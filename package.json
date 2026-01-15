@@ -45,17 +45,24 @@
     "build:electron:dev": "turbo run build --filter=sanyam-ide-electron-app",
     "build:browser": "turbo run build:prod --filter=sanyam-browser",
     "build:browser:dev": "turbo run build --filter=sanyam-browser",
+    "build:electron:win": "bash scripts/build-electron-win.sh",
     "build:extensions": "turbo run build --filter=\"theia-ide*\"",
+    "build:linux": "SKIP_WIN_BUILD=1 pnpm build",
     "download:plugins": "theia download:plugins --rate-limit=15 --parallel=false && pnpm permissions:writeable",
     "package:applications": "pnpm --workspace-concurrency=1 --filter \"sanyam*\" --filter \"!theia-ide*\" run package",
     "package:applications:preview": "pnpm --workspace-concurrency=1 --filter \"sanyam*\" --filter \"!theia-ide*\" run package:preview",
     "package:applications:prod": "pnpm --workspace-concurrency=1 --filter \"sanyam*\" --filter \"!theia-ide*\" run package:prod",
     "permissions:writeable": "ts-node scripts/make-files-writeable.ts plugins",
+    "prebuild": "bash scripts/swap-native-modules.sh linux && pnpm rebuild drivelist",
+    "postbuild": "bash scripts/postbuild-electron-win.sh",
+    "rebuild:electron:win": "bash scripts/rebuild-electron-win.sh",
+    "setup:electron:win": "bash scripts/setup-electron-win.sh",
     "watch": "turbo run watch",
     "test": "turbo run test",
     "electron": "pnpm --dir applications/electron",
     "start:browser": "pnpm theia:browser start",
     "start:electron": "pnpm theia:electron start",
+    "start:electron:win": "bash scripts/dev-electron-win.sh",
     "browser": "pnpm --dir applications/browser",
     "update:theia": "ts-node scripts/update-theia-version.ts",
     "update:theia:children": "pnpm -r run update:theia -- ",
@@ -93,6 +100,21 @@
     "docs/*"
   ],
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@theia/ffmpeg",
+      "@vscode/ripgrep",
+      "cpu-features",
+      "drivelist",
+      "electron",
+      "keytar",
+      "native-keymap",
+      "node-pty"
+    ],
+    "supportedArchitectures": {
+      "cpu": ["x64"],
+      "os": ["linux", "win32"]
+    },
     "overrides": {
       "@types/puppeteer": "^5.4.0",
       "@yarnpkg/parsers": "3.0.0-rc.44",

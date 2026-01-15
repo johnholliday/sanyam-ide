@@ -130,7 +130,7 @@ fi
 
 # Also update lib/backend/native if it exists (bundled modules)
 # Skip this if --skip-bundled was passed
-APP_NATIVE_DIR="$PROJECT_ROOT/applications/electron-app/lib/backend/native"
+APP_NATIVE_DIR="$PROJECT_ROOT/applications/electron/lib/backend/native"
 if [ "$SKIP_BUNDLED" == "true" ]; then
     echo "Skipping bundled module update (--skip-bundled)"
 elif [ -d "$APP_NATIVE_DIR" ]; then

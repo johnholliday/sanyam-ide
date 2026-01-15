@@ -6,7 +6,7 @@ set -e
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WIN_PROJECT_ROOT=$(wslpath -w "$PROJECT_ROOT")
-APP_PATH="$PROJECT_ROOT/applications/electron-app"
+APP_PATH="$PROJECT_ROOT/applications/electron"
 NATIVE_DIR="$APP_PATH/lib/backend/native"
 ELECTRON_VERSION="38.4.0"
 

@@ -128,9 +128,9 @@
   },
   "scripts": {
     "clean": "theia clean && rimraf node_modules",
-    "build": "pnpm rebuild && theia build --app-target=\"browser\" --mode development",
-    "build:prod": "pnpm rebuild && theia  build --app-target=\"browser\"",
-    "rebuild": "theia rebuild:browser --cacheRoot ../..",
+    "build": "npx theia rebuild:browser --cacheRoot ../.. && npx theia build --app-target=\"browser\" --mode development",
+    "build:prod": "npx theia rebuild:browser --cacheRoot ../.. && npx theia build --app-target=\"browser\"",
+    "rebuild": "npx theia rebuild:browser --cacheRoot ../..",
     "start": "theia start --port=3002 --plugins=local-dir:../../plugins",
     "watch": "concurrently --kill-others -n tsc,build -c red,yellow \"tsc -b -w --preserveWatchOutput\" \"pnpm watch:bundle\"",
     "update:theia": "ts-node ../../scripts/update-theia-version.ts"

@@ -6,7 +6,7 @@ set -e
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WIN_PROJECT_ROOT=$(wslpath -w "$PROJECT_ROOT")
-WIN_APP_PATH="${WIN_PROJECT_ROOT}\\applications\\electron-app"
+WIN_APP_PATH="${WIN_PROJECT_ROOT}\\applications\\electron"
 WIN_ELECTRON_PATH="${WIN_PROJECT_ROOT}\\node_modules\\electron\\dist-win32\\electron.exe"
 
 echo "Starting Electron development environment..."
@@ -27,19 +27,21 @@ run_win_cmd() {
 
 # Check if Windows native modules exist, rebuild if missing
 check_and_rebuild() {
-    local check_file="node_modules\\native-keymap\\build\\Release\\keymapping.node"
+    local native_dir="$PROJECT_ROOT/applications/electron/lib/backend/native"
+    local check_file="$native_dir/keymapping.node"
     echo "Checking for Windows native modules..."
 
-    # Use cmd.exe to check if file exists (pushd handles UNC paths)
-    local result
-    result=$(run_win_cmd "pushd ${WIN_APP_PATH} && if exist ${check_file} (echo True) else (echo False)" 2>/dev/null | tr -d '\r')
-
-    if [[ "$result" != *"True"* ]]; then
+    if [ ! -f "$check_file" ]; then
         echo "Windows native modules not found. Rebuilding..."
-        run_win_cmd "pushd ${WIN_APP_PATH} && pnpm rebuild"
-        echo "Rebuild complete."
+        bash "$PROJECT_ROOT/scripts/rebuild-electron-win.sh"
     else
-        echo "Windows native modules found."
+        # Verify it's actually a Windows binary
+        if file "$check_file" | grep -q "PE32+"; then
+            echo "Windows native modules found."
+        else
+            echo "Native modules are Linux binaries. Rebuilding for Windows..."
+            bash "$PROJECT_ROOT/scripts/rebuild-electron-win.sh"
+        fi
     fi
 }
 
@@ -48,4 +50,4 @@ check_and_rebuild
 # Launch Electron using Windows Electron binary (no quotes needed for UNC paths without spaces)
 # --disable-gpu-sandbox is needed when running from WSL filesystem via UNC paths
 echo "Launching Electron on Windows..."
-run_win_cmd "pushd ${WIN_APP_PATH} && set NODE_ENV=development && ${WIN_ELECTRON_PATH} scripts\\sanyam-electron-main.js --plugins=local-dir:..\\plugins --disable-gpu-sandbox --no-sandbox"
+run_win_cmd "pushd ${WIN_APP_PATH} && set NODE_ENV=development && ${WIN_ELECTRON_PATH} scripts\\theia-electron-main.js --plugins=local-dir:..\\plugins --disable-gpu-sandbox --no-sandbox"

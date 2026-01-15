@@ -119,7 +119,7 @@ The browser app may be started with
 pnpm browser start
 ```
 
-and connect to <http://localhost:3000/>
+and connect to <http://localhost:3002/>
 
 ### Troubleshooting
 
@@ -144,7 +144,7 @@ docker build -t theia-ide -f browser.Dockerfile .
 You may then run this with
 
 ```sh
-docker run -p=3000:3000 --rm theia-ide
+docker run -p=3002:3002 --rm theia-ide
 ```
 
-and connect to <http://localhost:3000/>
+and connect to <http://localhost:3002/>

@@ -28,7 +28,7 @@ pnpm install && pnpm build:dev && pnpm download:plugins
 ## Running the Application
 
 ```bash
-# Browser app at http://localhost:3000
+# Browser app at http://localhost:3002
 pnpm browser start
 
 # Electron desktop app
@@ -107,7 +107,7 @@ Pre-configured launch configurations in `.vscode/launch.json`:
 - **Launch Electron Backend** - Debug the Node.js backend
 - **Attach to Electron Frontend** - Chrome DevTools (port 9222)
 - **Launch Browser Backend** - Debug browser version backend
-- **Launch Browser Frontend** - Chrome at localhost:3000
+- **Launch Browser Frontend** - Chrome at localhost:3002
 - **Attach to Plugin Host** - Debug VS Code extensions (port 9339)
 
 Compound configurations available for full-stack debugging.
@@ -129,7 +129,7 @@ pnpm update:next
 docker build -t theia-ide -f browser.Dockerfile .
 
 # Run container
-docker run -p=3000:3000 --rm theia-ide
+docker run -p=3002:3002 --rm theia-ide
 ```
 
 ## Important Notes

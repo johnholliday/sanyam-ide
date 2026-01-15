@@ -48,7 +48,7 @@ WORKDIR /home/theia
 # Copy application from builder-stage
 COPY --from=build-stage --chown=theia:theia /home/theia /home/theia
 
-EXPOSE 3000
+EXPOSE 3002
 
 # Specify default shell for Theia and the Built-In plugins directory
 ENV SHELL=/bin/bash \
@@ -65,4 +65,4 @@ WORKDIR /home/theia/applications/browser
 ENTRYPOINT [ "node", "/home/theia/applications/browser/lib/backend/main.js" ]
 
 # Arguments passed to the application
-CMD [ "/home/project", "--hostname=0.0.0.0" ]
+CMD [ "/home/project", "--hostname=0.0.0.0", "--port=3002" ]

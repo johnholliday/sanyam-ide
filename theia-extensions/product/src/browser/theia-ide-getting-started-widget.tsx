@@ -11,7 +11,7 @@ import * as React from 'react';
 
 import { Message } from '@theia/core/lib/browser';
 import { PreferenceService } from '@theia/core/lib/common';
-import { inject, injectable } from '@theia/core/shared/inversify';
+import { inject, injectable, optional } from '@theia/core/shared/inversify';
 import {
     renderDocumentation, renderDownloads, renderExtendingCustomizing, renderSourceCode, renderSupport, renderTickets, renderWhatIs, renderCollaboration
 } from './branding-util';
@@ -23,8 +23,8 @@ import { WindowService } from '@theia/core/lib/browser/window/window-service';
 @injectable()
 export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
 
-    @inject(VSXEnvironment)
-    protected readonly environment: VSXEnvironment;
+    @inject(VSXEnvironment) @optional()
+    protected readonly environment?: VSXEnvironment;
 
     @inject(WindowService)
     protected readonly windowService: WindowService;
@@ -36,7 +36,9 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
 
     protected async doInit(): Promise<void> {
         super.doInit();
-        this.vscodeApiVersion = await this.environment.getVscodeApiVersion();
+        this.vscodeApiVersion = this.environment
+            ? await this.environment.getVscodeApiVersion()
+            : 'unknown';
         await this.preferenceService.ready;
         this.update();
     }

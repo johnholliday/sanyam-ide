@@ -10,68 +10,68 @@ This is **Sanyam IDE** (formerly Theia Blueprint) - a production desktop IDE bui
 
 ```bash
 # Install dependencies
-yarn
+pnpm install
 
 # Development build (faster, unminified frontend)
-yarn build:dev
+pnpm build:dev
 
 # Production build
-yarn build
+pnpm build
 
 # Download VS Code extensions from Open VSX
-yarn download:plugins
+pnpm download:plugins
 
 # Full dev setup
-yarn && yarn build:dev && yarn download:plugins
+pnpm install && pnpm build:dev && pnpm download:plugins
 ```
 
 ## Running the Application
 
 ```bash
 # Browser app at http://localhost:3000
-yarn browser start
+pnpm browser start
 
 # Electron desktop app
-yarn electron start
+pnpm electron start
 
 # Electron with debug logging
-yarn electron start:debug
+pnpm electron start:debug
 ```
 
 ## Testing and Quality
 
 ```bash
 # Run all tests
-yarn test
+pnpm test
 
 # E2E tests (requires preview package first)
-yarn electron package:preview
-yarn electron test
+pnpm electron package:preview
+pnpm electron test
 
 # Linting
-yarn lint
-yarn lint:fix
+pnpm lint
+pnpm lint:fix
 
 # License compliance check
-yarn license:check
+pnpm license:check
 ```
 
 ## Packaging
 
 ```bash
 # Package Electron app (output in applications/electron/dist)
-yarn package:applications
+pnpm package:applications
 
 # Preview package (unpackaged, for testing)
-yarn electron package:preview
+pnpm electron package:preview
 
 # Production package with publishing
-yarn electron package:prod
+pnpm electron package:prod
 ```
 
 ## Architecture
 
-**Monorepo Structure** (Lerna + Yarn workspaces):
+**Monorepo Structure** (Lerna + pnpm workspaces):
 
 ```
 applications/
@@ -116,10 +116,10 @@ Compound configurations available for full-stack debugging.
 
 ```bash
 # Update to specific Theia version
-yarn update:theia <version>
+pnpm update:theia <version>
 
 # Update to next/development branch
-yarn update:next
+pnpm update:next
 ```
 
 ## Docker

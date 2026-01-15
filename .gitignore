@@ -10,4 +10,4 @@
 **/plugins
 **/tsconfig.tsbuildinfo
 *.log
-license-check-summary.txt*
+license-check-summary.txt*.native-cache/

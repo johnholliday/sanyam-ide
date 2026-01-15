@@ -34,13 +34,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
         with:
-          fetch-depth: 0 # To fetch all history for all branches and tags. (Will be required for caching with lerna: https://github.com/markuplint/markuplint/pull/111)
+          fetch-depth: 0 # To fetch all history for all branches and tags
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: Use Node.js ${{ matrix.node }}
         uses: actions/setup-node@1a4442cacd436585916779262731d5b162bc6ec7 # v3.8.2
         with:
           node-version: ${{ matrix.node }}
           registry-url: "https://registry.npmjs.org"
+          cache: 'pnpm'
 
       - name: Use Python 3.13
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
@@ -51,10 +57,10 @@ jobs:
         if: (runner.os == 'Windows' || runner.os == 'Linux') && github.event_name == 'pull_request'
         shell: bash
         run: |
-          yarn --skip-integrity-check --network-timeout 100000
-          yarn build:dev
-          yarn download:plugins
-          yarn package:applications:preview
+          pnpm install
+          pnpm build:dev
+          pnpm download:plugins
+          pnpm package:applications:preview
         env:
           NODE_OPTIONS: --max_old_space_size=4096
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # https://github.com/microsoft/vscode-ripgrep/issues/9
@@ -63,10 +69,10 @@ jobs:
         if: (runner.os == 'Windows' || runner.os == 'Linux') && github.event_name != 'pull_request'
         shell: bash
         run: |
-          yarn --skip-integrity-check --network-timeout 100000
-          yarn build
-          yarn download:plugins
-          yarn package:applications
+          pnpm install
+          pnpm build
+          pnpm download:plugins
+          pnpm package:applications
         env:
           NODE_OPTIONS: --max_old_space_size=4096
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # https://github.com/microsoft/vscode-ripgrep/issues/9
@@ -80,10 +86,10 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          yarn --skip-integrity-check --network-timeout 100000
-          yarn build
-          yarn download:plugins
-          yarn package:applications
+          pnpm install
+          pnpm build
+          pnpm download:plugins
+          pnpm package:applications
         env:
           NODE_OPTIONS: --max_old_space_size=4096
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # https://github.com/microsoft/vscode-ripgrep/issues/9
@@ -120,21 +126,21 @@ jobs:
       - name: Test (Linux)
         if: runner.os == 'Linux'
         run: |
-          xvfb-run -a yarn electron test
+          xvfb-run -a pnpm electron test
 
       - name: Test (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          yarn electron test
+          pnpm electron test
 
       - name: Test (macOS)
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          yarn electron test
+          pnpm electron test
 
       - name: Lint
         shell: bash
         run: |
-          yarn lint
+          pnpm lint

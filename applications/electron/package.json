@@ -19,7 +19,7 @@
     "url": "git+https://github.com/johnholliday/sanyam-ide.git"
   },
   "engines": {
-    "yarn": ">=1.7.0 <2",
+    "pnpm": ">=9",
     "node": ">=20"
   },
   "theia": {
@@ -129,9 +129,9 @@
     "@theia/vsx-registry": "1.67.0",
     "@theia/workspace": "1.67.0",
     "fs-extra": "^9.0.1",
-    "theia-ide-launcher-ext": "1.67.100",
-    "theia-ide-product-ext": "1.67.100",
-    "theia-ide-updater-ext": "1.67.100"
+    "theia-ide-launcher-ext": "workspace:*",
+    "theia-ide-product-ext": "workspace:*",
+    "theia-ide-updater-ext": "workspace:*"
   },
   "devDependencies": {
     "@theia/cli": "1.67.0",
@@ -161,20 +161,19 @@
   "scripts": {
     "clean": "theia clean && rimraf node_modules",
     "clean:dist": "rimraf dist",
-    "build": "yarn -s rebuild && theia build --app-target=\"electron\" --mode development",
-    "build:prod": "yarn -s rebuild && theia build --app-target=\"electron\"",
+    "build": "pnpm rebuild && theia build --app-target=\"electron\" --mode development",
+    "build:prod": "pnpm rebuild && theia build --app-target=\"electron\"",
     "rebuild": "theia rebuild:electron --cacheRoot ../..",
     "watch": "concurrently -n compile,build \"theiaext watch --preserveWatchOutput\" \"theia build --watch --mode development\"",
     "start": "electron scripts/theia-electron-main.js --plugins=local-dir:../../plugins",
-    "start:debug": "yarn start --log-level=debug",
-    "package": "yarn clean:dist && yarn rebuild && electron-builder -c.mac.identity=null --publish never",
-    "package:prod": "yarn deploy",
-    "deploy": "yarn clean:dist && yarn rebuild && electron-builder -c.mac.identity=null --publish always",
-    "package:preview": "yarn clean:dist && yarn rebuild && electron-builder -c.mac.identity=null --dir",
+    "start:debug": "pnpm start --log-level=debug",
+    "package": "pnpm clean:dist && pnpm rebuild && electron-builder -c.mac.identity=null --publish never",
+    "package:prod": "pnpm deploy",
+    "deploy": "pnpm clean:dist && pnpm rebuild && electron-builder -c.mac.identity=null --publish always",
+    "package:preview": "pnpm clean:dist && pnpm rebuild && electron-builder -c.mac.identity=null --dir",
     "update:checksum": "ts-node scripts/update-checksum.ts",
     "update:blockmap": "ts-node scripts/update-blockmap.ts",
     "update:theia": "ts-node ../../scripts/update-theia-version.ts",
-    "update:next": "ts-node ../../scripts/update-theia-version.ts next",
     "sign:directory": "ts-node scripts/sign-directory.ts",
     "test": "mocha --timeout 60000 \"./test/*.spec.js\"",
     "lint": "eslint --ext js,jsx,ts,tsx scripts && eslint --ext js,jsx,ts,tsx test",

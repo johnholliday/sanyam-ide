@@ -33,8 +33,7 @@
     "lint": "eslint --ext js,jsx,ts,tsx src",
     "lint:fix": "eslint --ext js,jsx,ts,tsx src --fix",
     "watch": "tsc -w",
-    "update:theia": "ts-node ../../scripts/update-theia-version.ts",
-    "update:next": "ts-node ../../scripts/update-theia-version.ts next"
+    "update:theia": "ts-node ../../scripts/update-theia-version.ts"
   },
   "theiaExtensions": [
     {

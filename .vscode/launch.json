@@ -58,7 +58,7 @@
       "cwd": "${workspaceFolder}/applications/browser",
       "args": [
         "--hostname=0.0.0.0",
-        "--port=3000",
+        "--port=3002",
         "--no-cluster",
         "--app-project-path=${workspaceFolder}/applications/browser",
         "--plugins=local-dir:../../plugins",
@@ -100,7 +100,7 @@
       "cwd": "${workspaceFolder}/applications/browser",
       "args": [
         "--hostname=0.0.0.0",
-        "--port=3000",
+        "--port=3002",
         "--no-cluster",
         "--root-dir=${workspaceFolder}/../eclipse.jdt.ls/org.eclipse.jdt.ls.core",
         "--app-project-path=${workspaceFolder}/applications/browser",
@@ -147,7 +147,7 @@
       "name": "Launch Browser Frontend",
       "type": "chrome",
       "request": "launch",
-      "url": "http://localhost:3000/",
+      "url": "http://localhost:3002/",
       "webRoot": "${workspaceFolder}/applications/browser"
     },
     {

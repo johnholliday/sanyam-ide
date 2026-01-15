@@ -10,68 +10,68 @@ This is **Sanyam IDE** (formerly Theia Blueprint) - a production desktop IDE bui
 
 ```bash
 # Install dependencies
-yarn
+pnpm install
 
 # Development build (faster, unminified frontend)
-yarn build:dev
+pnpm build:dev
 
 # Production build
-yarn build
+pnpm build
 
 # Download VS Code extensions from Open VSX
-yarn download:plugins
+pnpm download:plugins
 
 # Full dev setup
-yarn && yarn build:dev && yarn download:plugins
+pnpm install && pnpm build:dev && pnpm download:plugins
 ```
 
 ## Running the Application
 
 ```bash
-# Browser app at http://localhost:3000
-yarn browser start
+# Browser app at http://localhost:3002
+pnpm browser start
 
 # Electron desktop app
-yarn electron start
+pnpm electron start
 
 # Electron with debug logging
-yarn electron start:debug
+pnpm electron start:debug
 ```
 
 ## Testing and Quality
 
 ```bash
 # Run all tests
-yarn test
+pnpm test
 
 # E2E tests (requires preview package first)
-yarn electron package:preview
-yarn electron test
+pnpm electron package:preview
+pnpm electron test
 
 # Linting
-yarn lint
-yarn lint:fix
+pnpm lint
+pnpm lint:fix
 
 # License compliance check
-yarn license:check
+pnpm license:check
 ```
 
 ## Packaging
 
 ```bash
 # Package Electron app (output in applications/electron/dist)
-yarn package:applications
+pnpm package:applications
 
 # Preview package (unpackaged, for testing)
-yarn electron package:preview
+pnpm electron package:preview
 
 # Production package with publishing
-yarn electron package:prod
+pnpm electron package:prod
 ```
 
 ## Architecture
 
-**Monorepo Structure** (Lerna + Yarn workspaces):
+**Monorepo Structure** (Lerna + pnpm workspaces):
 
 ```
 applications/
@@ -107,7 +107,7 @@ Pre-configured launch configurations in `.vscode/launch.json`:
 - **Launch Electron Backend** - Debug the Node.js backend
 - **Attach to Electron Frontend** - Chrome DevTools (port 9222)
 - **Launch Browser Backend** - Debug browser version backend
-- **Launch Browser Frontend** - Chrome at localhost:3000
+- **Launch Browser Frontend** - Chrome at localhost:3002
 - **Attach to Plugin Host** - Debug VS Code extensions (port 9339)
 
 Compound configurations available for full-stack debugging.
@@ -116,10 +116,10 @@ Compound configurations available for full-stack debugging.
 
 ```bash
 # Update to specific Theia version
-yarn update:theia <version>
+pnpm update:theia <version>
 
 # Update to next/development branch
-yarn update:next
+pnpm update:next
 ```
 
 ## Docker
@@ -129,7 +129,7 @@ yarn update:next
 docker build -t theia-ide -f browser.Dockerfile .
 
 # Run container
-docker run -p=3000:3000 --rm theia-ide
+docker run -p=3002:3002 --rm theia-ide
 ```
 
 ## Important Notes

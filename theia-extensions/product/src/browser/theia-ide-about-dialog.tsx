@@ -9,7 +9,7 @@
 
 import * as React from 'react';
 import { AboutDialog, AboutDialogProps, ABOUT_CONTENT_CLASS } from '@theia/core/lib/browser/about-dialog';
-import { injectable, inject } from '@theia/core/shared/inversify';
+import { injectable, inject, optional } from '@theia/core/shared/inversify';
 import { renderDocumentation, renderDownloads, renderSourceCode, renderSupport, renderTickets, renderWhatIs } from './branding-util';
 import { VSXEnvironment } from '@theia/vsx-registry/lib/common/vsx-environment';
 import { WindowService } from '@theia/core/lib/browser/window/window-service';
@@ -17,8 +17,8 @@ import { WindowService } from '@theia/core/lib/browser/window/window-service';
 @injectable()
 export class TheiaIDEAboutDialog extends AboutDialog {
 
-    @inject(VSXEnvironment)
-    protected readonly environment: VSXEnvironment;
+    @inject(VSXEnvironment) @optional()
+    protected readonly environment?: VSXEnvironment;
 
     @inject(WindowService)
     protected readonly windowService: WindowService;
@@ -32,7 +32,9 @@ export class TheiaIDEAboutDialog extends AboutDialog {
     }
 
     protected async doInit(): Promise<void> {
-        this.vscodeApiVersion = await this.environment.getVscodeApiVersion();
+        this.vscodeApiVersion = this.environment
+            ? await this.environment.getVscodeApiVersion()
+            : 'unknown';
         super.doInit();
     }
 

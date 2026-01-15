@@ -39,7 +39,7 @@ The Sanyam IDE also serves as a **template** for building desktop-based products
 
 ## Sanyam IDE vs Theia Blueprint
 
-The Sanyam IDE has been rebranded from its original name “Theia Blueprint”. You can therefore assume the terms “Sanyam IDE” and “Theia Blueprint” to be synonymous.
+The Sanyam IDE has been rebranded from its original name "Theia Blueprint". You can therefore assume the terms "Sanyam IDE" and "Theia Blueprint" to be synonymous.
 
 ## Development
 
@@ -69,16 +69,16 @@ For development and casual testing of the Sanyam IDE, one can build it in "dev" 
 NOTE: If manually building after updating dependencies or pulling to a newer commit, run `git clean -xfd` to help avoid runtime conflicts.
 
 ```sh
-# Build "dev" version of the app. Its quicker, uses less resources, 
+# Build "dev" version of the app. Its quicker, uses less resources,
 # but the front end app is not "minified"
-yarn && yarn build:dev && yarn download:plugins
+pnpm install && pnpm build:dev && pnpm download:plugins
 ```
 
 Production applications:
 
 ```sh
 # Build production version of the Sanyam IDE app
-yarn && yarn build && yarn download:plugins
+pnpm install && pnpm build && pnpm download:plugins
 ```
 
 ### Package the Applications
@@ -86,9 +86,9 @@ yarn && yarn build && yarn download:plugins
 ATM we only produce packages for the Electron application.
 
 ```sh
-yarn package:applications
+pnpm package:applications
 # or
-yarn electron package
+pnpm electron package
 ```
 
 The packaged application is located in `applications/electron/dist`.
@@ -96,7 +96,7 @@ The packaged application is located in `applications/electron/dist`.
 ### Create a Preview Electron Electron Application (without packaging it)
 
 ```sh
-yarn electron package:preview
+pnpm electron package:preview
 ```
 
 The packaged application is located in `applications/electron/dist`.
@@ -107,8 +107,8 @@ The E2E tests basic UI tests of the actual application.
 This is done based on the preview of the packaged application.
 
 ```sh
-yarn electron package:preview
-yarn electron test
+pnpm electron package:preview
+pnpm electron test
 ```
 
 ### Running Browser app
@@ -116,10 +116,10 @@ yarn electron test
 The browser app may be started with
 
 ```sh
-yarn browser start
+pnpm browser start
 ```
 
-and connect to <http://localhost:3000/>
+and connect to <http://localhost:3002/>
 
 ### Troubleshooting
 
@@ -144,7 +144,7 @@ docker build -t theia-ide -f browser.Dockerfile .
 You may then run this with
 
 ```sh
-docker run -p=3000:3000 --rm theia-ide
+docker run -p=3002:3002 --rm theia-ide
 ```
 
-and connect to <http://localhost:3000/>
+and connect to <http://localhost:3002/>

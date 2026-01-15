@@ -6,7 +6,6 @@
   "dependencies": {
     "@theia/core": "1.67.0",
     "@theia/getting-started": "1.67.0",
-    "@theia/vsx-registry": "1.67.0",
     "@theia/workspace": "1.67.0",
     "inversify": "^6.0.1"
   },
@@ -42,10 +41,10 @@
     "build": "tsc -b",
     "lint": "eslint --ext js,jsx,ts,tsx src",
     "lint:fix": "eslint --ext js,jsx,ts,tsx src --fix",
-    "update:theia": "ts-node ../../scripts/update-theia-version.ts",
-    "update:next": "ts-node ../../scripts/update-theia-version.ts next"
+    "update:theia": "ts-node ../../scripts/update-theia-version.ts"
   },
   "peerDependencies": {
-    "react": "^16.8.0"
+    "@theia/vsx-registry": "1.67.0",
+    "react": "^18.2.0"
   }
 }

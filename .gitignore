@@ -10,4 +10,15 @@
 **/plugins
 **/tsconfig.tsbuildinfo
 *.log
-license-check-summary.txt*.native-cache/
+license-check-summary.txt
+
+# Native module cache for Windows/Linux swapping
+.native-cache/
+
+# IDE and editor files
+.idea/
+*.swp
+*.swo
+
+# Build artifacts
+*.tgz

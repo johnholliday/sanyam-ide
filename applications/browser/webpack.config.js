@@ -26,6 +26,11 @@ configs[0].plugins.push(
             {
                 context: path.resolve('.', '..', '..', 'applications', 'browser', 'ico'),
                 from: '**'
+            },
+            {
+                context: path.resolve('.', '..', '..', 'applications', 'browser', 'resources'),
+                from: '**',
+                to: 'resources'
             }
         ]
     })

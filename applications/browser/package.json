@@ -28,7 +28,7 @@
         "applicationData": {
           "name": "Sanyam IDE",
           "description": "AI-Powered Development Environment for Domain-Specific Languages",
-          "logo": "resources/sanyam-logo.svg",
+          "logo": "resources/sanyam-banner.svg",
           "tagline": "Build intelligent language tools with ease",
           "text": [
             "Sanyam IDE provides a complete development environment for creating and working with domain-specific languages powered by Langium.",

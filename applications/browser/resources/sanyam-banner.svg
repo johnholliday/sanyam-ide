@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg width="100%" height="100%" viewBox="0 0 500 235" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-    <g id="Vorm-1" serif:id="Vorm 1" transform="matrix(0.5,0,0,0.5,0,0)">
-        <path d="M27.1,12.1L972.9,12.1C981.2,12.1 987.9,18.8 987.9,27.1L987.9,442.9C987.9,451.2 981.2,457.9 972.9,457.9L27.1,457.9C18.8,457.9 12.1,451.2 12.1,442.9L12.1,27.1C12.1,18.8 18.8,12.1 27.1,12.1Z" style="fill:rgb(7,49,181);"/>
-    </g>
     <g transform="matrix(1,0,0,1,24.427,1.44988)">
         <g transform="matrix(24,0,0,24,326.47,208.445)">
         </g>

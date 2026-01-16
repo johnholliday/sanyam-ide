@@ -126,11 +126,40 @@ pnpm update:next
 
 ```bash
 # Build browser app Docker image
-docker build -t theia-ide -f browser.Dockerfile .
+docker build -t sanyam-ide -f browser.Dockerfile .
 
 # Run container
-docker run -p=3002:3002 --rm theia-ide
+docker run -p=3002:3002 --rm sanyam-ide
 ```
+
+## Custom Commands
+
+### `/grammar-config <argument>`
+
+Generate grammar packages with `GrammarManifest` exports for the SANYAM platform.
+
+**Usage:**
+
+```bash
+# From existing grammar
+/grammar-config mygrammar
+
+# Create new grammar (starter template)
+/grammar-config newlanguage
+
+# From natural language description
+/grammar-config "A language for modeling REST APIs with resources and methods"
+```
+
+**Generated files:**
+
+- `grammars/{name}/{name}.langium` - Langium grammar (if creating new)
+- `grammars/{name}/manifest.ts` - GrammarManifest export
+- `grammars/{name}/package.json` - Package configuration
+
+**Related packages:**
+
+- `@sanyam/types` - Type definitions including `GrammarManifest`
 
 ## Important Notes
 
@@ -138,3 +167,12 @@ docker run -p=3002:3002 --rm theia-ide
 - Extensions in `theia-extensions/` are custom to this product; Theia platform extensions come from `@theia/*` packages
 - The `plugins/` directory contains downloaded VS Code extensions (created by `download:plugins`)
 - Generated files appear in `src-gen/` and `lib/` directories within applications
+
+## Active Technologies
+
+- TypeScript 5.x (per constitution) + Langium 4.x (grammar parsing), Claude Code (AI generation) (001-grammar-config-command)
+- File system (grammars/{name}/ directory structure) (001-grammar-config-command)
+
+## Recent Changes
+
+- 001-grammar-config-command: Added TypeScript 5.x (per constitution) + Langium 4.x (grammar parsing), Claude Code (AI generation)

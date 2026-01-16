@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "theia-ide-updater-ext",
+  "name": "sanyam-updater-ext",
   "version": "1.67.100",
   "description": "Sanyam IDE Updater",
   "dependencies": {

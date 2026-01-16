@@ -14,17 +14,17 @@ import { MenuContribution, MenuModelRegistry, MenuPath } from '@theia/core/lib/c
 import { WindowService } from '@theia/core/lib/browser/window/window-service';
 
 export namespace TheiaIDEMenus {
-    export const THEIA_IDE_HELP: MenuPath = [...CommonMenus.HELP, 'theia-ide'];
+    export const THEIA_IDE_HELP: MenuPath = [...CommonMenus.HELP, 'sanyam-ide'];
 }
 export namespace TheiaIDECommands {
     export const CATEGORY = 'TheiaIDE';
     export const REPORT_ISSUE: Command = {
-        id: 'theia-ide:report-issue',
+        id: 'sanyam-ide:report-issue',
         category: CATEGORY,
         label: 'Report Issue'
     };
     export const DOCUMENTATION: Command = {
-        id: 'theia-ide:documentation',
+        id: 'sanyam-ide:documentation',
         category: CATEGORY,
         label: 'Documentation'
     };
@@ -37,7 +37,7 @@ export class TheiaIDEContribution implements CommandContribution, MenuContributi
     protected readonly windowService: WindowService;
 
     static REPORT_ISSUE_URL = 'https://github.com/johnholliday/sanyam-ide/issues/new?assignees=&labels=&template=bug_report.md';
-    static DOCUMENTATION_URL = 'https://theia-ide.org/docs/user_getting_started/';
+    static DOCUMENTATION_URL = 'https://sanyam-ide.org/docs/user_getting_started/';
 
     registerCommands(commandRegistry: CommandRegistry): void {
         commandRegistry.registerCommand(TheiaIDECommands.REPORT_ISSUE, {

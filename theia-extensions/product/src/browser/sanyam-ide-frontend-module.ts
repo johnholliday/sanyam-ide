@@ -15,9 +15,9 @@ import { CommandContribution } from '@theia/core/lib/common/command';
 import { ContainerModule } from '@theia/core/shared/inversify';
 import { GettingStartedWidget } from '@theia/getting-started/lib/browser/getting-started-widget';
 import { MenuContribution } from '@theia/core/lib/common/menu';
-import { TheiaIDEAboutDialog } from './theia-ide-about-dialog';
-import { TheiaIDEContribution } from './theia-ide-contribution';
-import { TheiaIDEGettingStartedWidget } from './theia-ide-getting-started-widget';
+import { TheiaIDEAboutDialog } from './sanyam-ide-about-dialog';
+import { TheiaIDEContribution } from './sanyam-ide-contribution';
+import { TheiaIDEGettingStartedWidget } from './sanyam-ide-getting-started-widget';
 
 export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(TheiaIDEGettingStartedWidget).toSelf();

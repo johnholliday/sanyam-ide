@@ -8,7 +8,7 @@
  ********************************************************************************/
 
 :root {
-    --theia-branding-logo: url(../icons/TheiaIDE.png);
+    --theia-branding-logo: url(../icons/spdevkit.png);
 }
 
 .theia-icon {
@@ -16,7 +16,7 @@
     background-position: center;
     background-repeat: no-repeat;
     background-size: contain;
-  }
+}
 
 .gs-blue-header {
     color: #5088e7;
@@ -74,4 +74,4 @@ ul.theia-aboutExtensions {
     list-style-type: none;
     padding: 0;
     margin-left: 10px;
- }
+}

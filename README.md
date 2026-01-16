@@ -1,7 +1,7 @@
 <br/>
 <div id="theia-logo" align="center">
     <br />
-    <img src="https://raw.githubusercontent.com/eclipse-theia/theia-ide/master/theia-extensions/product/src/browser/icons/TheiaIDE.png" alt="Theia Logo" width="300"/>
+    <img src="https://raw.githubusercontent.com/eclipse-theia/sanyam-ide/master/theia-extensions/product/src/browser/icons/TheiaIDE.png" alt="Theia Logo" width="300"/>
     <h3>Sanyam IDE</h3>
 </div>
 
@@ -12,14 +12,14 @@ Sanyam IDE also serves as a template for building desktop-based products based o
 
 </div>
 
-[![Installers](https://img.shields.io/badge/download-installers-blue.svg?style=flat-curved)](https://theia-ide.org//#theiaidedownload)
+[![Installers](https://img.shields.io/badge/download-installers-blue.svg?style=flat-curved)](https://sanyam-ide.org//#theiaidedownload)
 [![Build Status](https://ci.eclipse.org/theia/buildStatus/icon?subject=latest&job=Theia2%2Fmaster)](https://ci.eclipse.org/theia/job/Theia2/job/master/)
 <!-- currently we have no working next job because next builds are not published -->
 <!-- [![Build Status](https://ci.eclipse.org/theia/buildStatus/icon?subject=next&job=theia-next%2Fmaster)](https://ci.eclipse.org/theia/job/theia-next/job/master/) -->
 
 [Main Theia Repository](https://github.com/eclipse-theia/theia)
 
-[Visit the Theia website](http://www.sanyam-ide.org) for more documentation: [Using the Sanyam IDE](https://theia-ide.org/docs/user_getting_started/), [Packaging Theia as a Desktop Product](https://theia-ide.org/docs/blueprint_documentation/).
+[Visit the Theia website](http://www.sanyam-ide.org) for more documentation: [Using the Sanyam IDE](https://sanyam-ide.org/docs/user_getting_started/), [Packaging Theia as a Desktop Product](https://sanyam-ide.org/docs/blueprint_documentation/).
 
 ## License
 
@@ -32,10 +32,10 @@ Sanyam IDE also serves as a template for building desktop-based products based o
 
 ## What is this?
 
-The Eclipse IDE is a modern and open IDE for cloud and desktop. The Sanyam IDE is based on the [Theia platform](https://theia-ide.org).
-The Sanyam IDE is available as a [downloadable desktop application](https://theia-ide.org//#theiaidedownload). You can also try the latest version of the Sanyam IDE online. The online test version is limited to 30 minutes per session and hosted via Theia.cloud. Finally, we provide an [experimental Docker image](#docker) for hosting the Sanyam IDE online.
+The Eclipse IDE is a modern and open IDE for cloud and desktop. The Sanyam IDE is based on the [Theia platform](https://sanyam-ide.org).
+The Sanyam IDE is available as a [downloadable desktop application](https://sanyam-ide.org//#theiaidedownload). You can also try the latest version of the Sanyam IDE online. The online test version is limited to 30 minutes per session and hosted via Theia.cloud. Finally, we provide an [experimental Docker image](#docker) for hosting the Sanyam IDE online.
 
-The Sanyam IDE also serves as a **template** for building desktop-based products based on the Eclipse Theia platform, as well as to showcase Eclipse Theia capabilities. It is made up of a subset of existing Eclipse Theia features and extensions. [Documentation is available](https://theia-ide.org/docs/composing_applications/) to help you customize and build your own Eclipse Theia-based product.
+The Sanyam IDE also serves as a **template** for building desktop-based products based on the Eclipse Theia platform, as well as to showcase Eclipse Theia capabilities. It is made up of a subset of existing Eclipse Theia features and extensions. [Documentation is available](https://sanyam-ide.org/docs/composing_applications/) to help you customize and build your own Eclipse Theia-based product.
 
 ## Sanyam IDE vs Theia Blueprint
 
@@ -49,7 +49,7 @@ Please check Theia's [prerequisites](https://github.com/eclipse-theia/theia/blob
 
 ### Documentation
 
-Documentation on how to package Theia as a Desktop Product may be found [here](https://theia-ide.org/docs/blueprint_documentation/)
+Documentation on how to package Theia as a Desktop Product may be found [here](https://sanyam-ide.org/docs/blueprint_documentation/)
 
 ### Repository Structure
 
@@ -132,19 +132,19 @@ The Sanyam IDE only packages existing functionality into a product and installer
 
 ### Docker
 
-The Docker image of the Sanyam IDE is currently in _experimental state_. It is built from the same sources and packages as the desktop version, but it is not part of the [preview test](https://github.com/johnholliday/sanyam-ide/blob/master/PUBLISHING.md#preview-testing-and-release-process-for-the-theia-ide).
-You can find a prebuilt Docker image of the IDE [here](https://github.com/johnholliday/sanyam-ide/pkgs/container/theia-ide%2Ftheia-ide).
+The Docker image of the Sanyam IDE is currently in _experimental state_. It is built from the same sources and packages as the desktop version, but it is not part of the [preview test](https://github.com/johnholliday/sanyam-ide/blob/master/PUBLISHING.md#preview-testing-and-release-process-for-the-sanyam-ide).
+You can find a prebuilt Docker image of the IDE [here](https://github.com/johnholliday/sanyam-ide/pkgs/container/sanyam-ide%2Fsanyam-ide).
 
 You can also create the Docker image for the Sanyam IDE based on the browser app with the following build command:
 
 ```sh
-docker build -t theia-ide -f browser.Dockerfile .
+docker build -t sanyam-ide -f browser.Dockerfile .
 ```
 
 You may then run this with
 
 ```sh
-docker run -p=3002:3002 --rm theia-ide
+docker run -p=3002:3002 --rm sanyam-ide
 ```
 
 and connect to <http://localhost:3002/>

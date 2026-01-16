@@ -129,9 +129,9 @@
     "@theia/vsx-registry": "1.67.0",
     "@theia/workspace": "1.67.0",
     "fs-extra": "^9.0.1",
-    "theia-ide-launcher-ext": "workspace:*",
-    "theia-ide-product-ext": "workspace:*",
-    "theia-ide-updater-ext": "workspace:*"
+    "sanyam-launcher-ext": "workspace:*",
+    "sanyam-product-ext": "workspace:*",
+    "sanyam-updater-ext": "workspace:*"
   },
   "devDependencies": {
     "@theia/cli": "1.67.0",

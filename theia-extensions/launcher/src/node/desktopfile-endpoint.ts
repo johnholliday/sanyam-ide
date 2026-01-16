@@ -108,10 +108,10 @@ export class TheiaDesktopFileServiceEndpoint implements BackendApplicationContri
                 }
             }
 
-            const desktopFilePath = path.join(process.env.HOME!, '.local', 'share', 'applications', 'theia-ide-launcher.desktop');
+            const desktopFilePath = path.join(process.env.HOME!, '.local', 'share', 'applications', 'sanyam-ide-launcher.desktop');
             fs.outputFileSync(desktopFilePath, this.getDesktopFileContents(process.env.APPIMAGE!, imagePath));
 
-            const desktopURLFilePath = path.join(process.env.HOME!, '.local', 'share', 'applications', 'theia-ide-launcher-url.desktop');
+            const desktopURLFilePath = path.join(process.env.HOME!, '.local', 'share', 'applications', 'sanyam-ide-launcher-url.desktop');
             fs.outputFileSync(desktopURLFilePath, this.getDesktopURLFileContents(process.env.APPIMAGE!, imagePath));
 
             appImageInformation.appImage = process.env.APPIMAGE!;

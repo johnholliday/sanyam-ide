@@ -118,11 +118,11 @@ After completing step 2.3, open a PR with your changes <https://github.com/johnh
 
 2. ==> Steps 2.4 and 2.5 need to be complete to proceed!
 
-3. Once [CI checks after merge to master are complete](https://github.com/johnholliday/sanyam-ide/actions), trigger the Jenkins Release Preview <https://ci.eclipse.org/theia/job/theia-ide-release/> job without parameters.
+3. Once [CI checks after merge to master are complete](https://github.com/johnholliday/sanyam-ide/actions), trigger the Jenkins Release Preview <https://ci.eclipse.org/theia/job/sanyam-ide-release/> job without parameters.
 
-4. Once 3. is successful the notarize job <https://ci.eclipse.org/theia/job/theia-ide-sign-notarize/> is started automatically.
+4. Once 3. is successful the notarize job <https://ci.eclipse.org/theia/job/sanyam-ide-sign-notarize/> is started automatically.
 
-5. Once 4. is successful it starts the upload job <https://ci.eclipse.org/theia/job/theia-ide-upload/>
+5. Once 4. is successful it starts the upload job <https://ci.eclipse.org/theia/job/sanyam-ide-upload/>
 
   *Note*: Please report if upload fails more than 5 times, we need to investigate!
 
@@ -340,15 +340,15 @@ After promoting the release, tag the release commit as follows:
 ## 6. Publish Docker Image
 <!-- release: both -->
 
-Publish the Docker image by running the [workflow](https://github.com/johnholliday/sanyam-ide/actions/workflows/publish-theia-ide-img.yml) from the `master` branch. Use **${THEIA_IDE_VERSION}** as the version.
+Publish the Docker image by running the [workflow](https://github.com/johnholliday/sanyam-ide/actions/workflows/publish-sanyam-ide-img.yml) from the `master` branch. Use **${THEIA_IDE_VERSION}** as the version.
 (We do NOT use the v prefix here in this case currently).
 
-- Check the GH package page if the image was published correctly: <https://github.com/johnholliday/sanyam-ide/pkgs/container/theia-ide%2Ftheia-ide>
+- Check the GH package page if the image was published correctly: <https://github.com/johnholliday/sanyam-ide/pkgs/container/sanyam-ide%2Fsanyam-ide>
 
 - Update the [Preview discussion](#32-announce-preview-test-phase) status table
 
    ```md
-   | [Docker image Publish](https://github.com/johnholliday/sanyam-ide/pkgs/container/theia-ide%2Ftheia-ide) | {{today}} | :white_check_mark: |
+   | [Docker image Publish](https://github.com/johnholliday/sanyam-ide/pkgs/container/sanyam-ide%2Fsanyam-ide) | {{today}} | :white_check_mark: |
    ```
 
 ## 7. Snap Update
@@ -369,11 +369,11 @@ After the IDE is promoted to stable, perform these steps for the snap update:
 5. Force push the branch.
 6. Verify that all checks pass, and then `rebase and merge`.
 7. Confirm the master branch build (Store Publishing) is successful.
-8. Check if snap is available <https://snapcraft.io/theia-ide>
+8. Check if snap is available <https://snapcraft.io/sanyam-ide>
 9. Update the [Preview discussion](#32-announce-preview-test-phase) status table
 
    ```md
-   | [Snap updated](https://snapcraft.io/theia-ide) | {{today}} | :white_check_mark: |
+   | [Snap updated](https://snapcraft.io/sanyam-ide) | {{today}} | :white_check_mark: |
    ```
 
 ## 8. Upgrade Dependencies

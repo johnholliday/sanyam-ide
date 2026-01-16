@@ -34,10 +34,10 @@ export function renderWhatIs(windowService: WindowService): React.ReactNode {
         </h3>
         <div>
             The Sanyam IDE is a modern and open IDE for cloud and desktop. The Sanyam IDE is based on the <BrowserLink text="Theia platform"
-                url="https://theia-ide.org" windowService={windowService} ></BrowserLink>.
+                url="https://sanyam-ide.org" windowService={windowService} ></BrowserLink>.
         </div>
         <div>
-            The IDE is available as a <BrowserLink text="downloadable desktop application" url="https://theia-ide.org//#theiaidedownload"
+            The IDE is available as a <BrowserLink text="downloadable desktop application" url="https://sanyam-ide.org//#theiaidedownload"
                 windowService={windowService} ></BrowserLink>. You can also <BrowserLink text="try the latest version of the Sanyam IDE online"
                     url="https://try.theia-cloud.io/" windowService={windowService} ></BrowserLink>. The online test version is limited to 30 minutes per session and hosted
             via <BrowserLink text="Theia Cloud" url="https://theia-cloud.io/" windowService={windowService} ></BrowserLink>.
@@ -57,7 +57,7 @@ export function renderExtendingCustomizing(windowService: WindowService): React.
         </div>
         <div>
             Furthermore, the Sanyam IDE is based on the flexible Theia platform. Therefore, the Sanyam IDE can serve as a <span className='gs-text-bold'>template</span> for building
-            custom tools and IDEs. Browse <BrowserLink text="the documentation" url="https://theia-ide.org/docs/composing_applications/"
+            custom tools and IDEs. Browse <BrowserLink text="the documentation" url="https://sanyam-ide.org/docs/composing_applications/"
                 windowService={windowService} ></BrowserLink> to help you customize and build your own Eclipse Theia-based product.
         </div>
     </div>;
@@ -70,7 +70,7 @@ export function renderSupport(windowService: WindowService): React.ReactNode {
         </h3>
         <div>
             Professional support, implementation services, consulting and training for building tools like Sanyam IDE and for building other tools based on Eclipse Theia is
-            available by selected companies as listed on the <BrowserLink text=" Theia support page" url="https://theia-ide.org/support/"
+            available by selected companies as listed on the <BrowserLink text=" Theia support page" url="https://sanyam-ide.org/support/"
                 windowService={windowService} ></BrowserLink>.
         </div>
     </div>;
@@ -116,7 +116,7 @@ export function renderDocumentation(windowService: WindowService): React.ReactNo
             Documentation
         </h3>
         <div >
-            Please see the <BrowserLink text="documentation" url="https://theia-ide.org/docs/user_getting_started/"
+            Please see the <BrowserLink text="documentation" url="https://sanyam-ide.org/docs/user_getting_started/"
                 windowService={windowService} ></BrowserLink> on how to use the Sanyam IDE.
         </div>
     </div>;

@@ -54,6 +54,6 @@ jobs:
           file: browser.Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/theia-ide:${{ github.event.inputs.tag }}
-            ghcr.io/${{ github.repository }}/theia-ide:latest
+            ghcr.io/${{ github.repository }}/sanyam-ide:${{ github.event.inputs.tag }}
+            ghcr.io/${{ github.repository }}/sanyam-ide:latest
           platforms: linux/amd64,linux/arm64

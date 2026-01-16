@@ -39,19 +39,19 @@
   },
   "scripts": {
     "clean": "pnpm -r run clean && rimraf node_modules .turbo",
-    "build": "turbo run build:prod --filter=\"sanyam*\" --filter=\"theia-ide*\"",
-    "build:dev": "turbo run build --filter=\"sanyam*\" --filter=\"theia-ide*\"",
-    "build:electron": "turbo run build:prod --filter=sanyam-ide-electron-app",
-    "build:electron:dev": "turbo run build --filter=sanyam-ide-electron-app",
-    "build:browser": "turbo run build:prod --filter=sanyam-browser",
-    "build:browser:dev": "turbo run build --filter=sanyam-browser",
+    "build": "turbo run build --filter=\"sanyam*\" --filter=\"sanyam-ide*\"",
+    "build:prod": "turbo run build:prod --filter=\"sanyam*\" --filter=\"sanyam-ide*\"",
+    "build:electron": "turbo run build --filter=sanyam-ide-electron-app",
+    "build:electron:prod": "turbo run build:prod --filter=sanyam-ide-electron-app",
+    "build:browser": "turbo run build --filter=sanyam-browser",
+    "build:browser:prod": "turbo run build:prod --filter=sanyam-browser",
     "build:electron:win": "bash scripts/build-electron-win.sh",
-    "build:extensions": "turbo run build --filter=\"theia-ide*\"",
+    "build:extensions": "turbo run build --filter=\"sanyam-ide*\"",
     "build:linux": "SKIP_WIN_BUILD=1 pnpm build",
     "download:plugins": "theia download:plugins --rate-limit=15 --parallel=false && pnpm permissions:writeable",
-    "package:applications": "pnpm --workspace-concurrency=1 --filter \"sanyam*\" --filter \"!theia-ide*\" run package",
-    "package:applications:preview": "pnpm --workspace-concurrency=1 --filter \"sanyam*\" --filter \"!theia-ide*\" run package:preview",
-    "package:applications:prod": "pnpm --workspace-concurrency=1 --filter \"sanyam*\" --filter \"!theia-ide*\" run package:prod",
+    "package:applications": "pnpm --workspace-concurrency=1 --filter \"sanyam*\" --filter \"!sanyam-ide*\" run package",
+    "package:applications:preview": "pnpm --workspace-concurrency=1 --filter \"sanyam*\" --filter \"!sanyam-ide*\" run package:preview",
+    "package:applications:prod": "pnpm --workspace-concurrency=1 --filter \"sanyam*\" --filter \"!sanyam-ide*\" run package:prod",
     "permissions:writeable": "ts-node scripts/make-files-writeable.ts plugins",
     "prebuild": "bash scripts/swap-native-modules.sh linux && pnpm rebuild drivelist",
     "postbuild": "bash scripts/postbuild-electron-win.sh",
@@ -112,8 +112,13 @@
       "node-pty"
     ],
     "supportedArchitectures": {
-      "cpu": ["x64"],
-      "os": ["linux", "win32"]
+      "cpu": [
+        "x64"
+      ],
+      "os": [
+        "linux",
+        "win32"
+      ]
     },
     "overrides": {
       "@types/puppeteer": "^5.4.0",

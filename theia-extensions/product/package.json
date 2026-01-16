@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "theia-ide-product-ext",
+  "name": "sanyam-product-ext",
   "version": "1.67.100",
   "description": "Sanyam IDE Product Branding",
   "dependencies": {
@@ -16,8 +16,8 @@
   },
   "theiaExtensions": [
     {
-      "frontend": "lib/browser/theia-ide-frontend-module",
-      "electronMain": "lib/electron-main/theia-ide-main-module"
+      "frontend": "lib/browser/sanyam-ide-frontend-module",
+      "electronMain": "lib/electron-main/sanyam-ide-main-module"
     }
   ],
   "keywords": [

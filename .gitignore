@@ -23,3 +23,9 @@ license-check-summary.txt
 # Build artifacts
 *.tgz
 *:Zone.Identifier
+
+# Grammar build artifacts (should go to lib/ but ignore root just in case)
+grammars/*/manifest.js
+grammars/*/manifest.d.ts
+grammars/*/*.js.map
+grammars/*/*.d.ts.map

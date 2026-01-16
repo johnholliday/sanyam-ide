@@ -2,7 +2,6 @@
   "name": "@sanyam/grammar-ecml",
   "version": "0.0.1",
   "description": "Grammar package for ECML - Enterprise Content Modeling Language",
-  "type": "module",
   "main": "./lib/src/browser/ecml-frontend-module.js",
   "exports": {
     ".": "./manifest.ts",

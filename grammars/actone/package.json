@@ -2,7 +2,6 @@
   "name": "@sanyam/grammar-actone",
   "version": "0.0.1",
   "description": "Grammar package for ActOne - AI-assisted fiction writing DSL",
-  "type": "module",
   "main": "./lib/src/browser/actone-frontend-module.js",
   "exports": {
     ".": "./manifest.ts",

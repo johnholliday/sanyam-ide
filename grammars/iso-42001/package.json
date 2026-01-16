@@ -2,7 +2,6 @@
   "name": "@sanyam/grammar-iso-42001",
   "version": "0.0.1",
   "description": "Grammar package for ISO 42001 - AI Management System Assessment",
-  "type": "module",
   "main": "./lib/src/browser/iso42001-frontend-module.js",
   "exports": {
     ".": "./manifest.ts",

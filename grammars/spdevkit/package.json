@@ -2,7 +2,6 @@
   "name": "@sanyam/grammar-spdevkit",
   "version": "0.0.1",
   "description": "Grammar package for SPDevKit",
-  "type": "module",
   "main": "./lib/src/browser/spdevkit-frontend-module.js",
   "exports": {
     ".": "./manifest.ts",

@@ -132,6 +132,10 @@
     "hono": "^4.0.0",
     "react-dom": "^18.2.0",
     "zod": "^3.25.0",
+    "@sanyam/grammar-spdevkit": "workspace:*",
+    "@sanyam/grammar-actone": "workspace:*",
+    "@sanyam/grammar-ecml": "workspace:*",
+    "@sanyam/grammar-iso-42001": "workspace:*",
     "sanyam-launcher-ext": "workspace:*",
     "sanyam-product-ext": "workspace:*",
     "sanyam-updater-ext": "workspace:*"

@@ -75,3 +75,85 @@ ul.theia-aboutExtensions {
     padding: 0;
     margin-left: 10px;
 }
+
+/* Grammar Cards */
+.gs-grammar-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.gs-grammar-card {
+    background-color: var(--theia-editor-background);
+    border: 1px solid var(--theia-widget-border);
+    border-radius: 6px;
+    padding: 12px;
+    min-width: 200px;
+    max-width: 280px;
+    flex: 1 1 200px;
+}
+
+.gs-grammar-card:hover {
+    border-color: var(--theia-focusBorder);
+}
+
+.gs-grammar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+}
+
+.gs-grammar-name {
+    font-weight: 600;
+    font-size: 1.1em;
+    color: var(--theia-foreground);
+}
+
+.gs-grammar-ext {
+    font-family: var(--theia-code-font-family);
+    font-size: 0.9em;
+    color: var(--theia-descriptionForeground);
+    background-color: var(--theia-badge-background);
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.gs-grammar-details {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+    color: var(--theia-descriptionForeground);
+}
+
+.gs-grammar-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.gs-grammar-stat i {
+    font-size: 0.9em;
+}
+
+.gs-grammar-types {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.gs-grammar-type-tag {
+    font-size: 0.75em;
+    background-color: var(--theia-button-secondaryBackground);
+    color: var(--theia-button-secondaryForeground);
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.gs-grammar-type-tag.gs-grammar-more {
+    background-color: transparent;
+    border: 1px solid var(--theia-widget-border);
+    color: var(--theia-descriptionForeground);
+}

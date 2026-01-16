@@ -34,3 +34,9 @@ export {
   type ValidationResult,
   validateManifest
 } from './grammar-manifest.js';
+
+export {
+  // Grammar manifest contribution (Theia integration)
+  GrammarManifestContribution,
+  type GrammarManifestContribution as GrammarManifestContributionInterface
+} from './grammar-manifest-contribution.js';

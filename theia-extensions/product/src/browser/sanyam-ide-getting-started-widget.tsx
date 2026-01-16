@@ -9,7 +9,7 @@
 
 import * as React from 'react';
 
-import { Message } from '@theia/core/lib/browser';
+import { codicon, Message } from '@theia/core/lib/browser';
 import { PreferenceService } from '@theia/core/lib/common';
 import { inject, injectable, optional } from '@theia/core/shared/inversify';
 import {
@@ -19,6 +19,8 @@ import {
 import { GettingStartedWidget } from '@theia/getting-started/lib/browser/getting-started-widget';
 import { VSXEnvironment } from '@theia/vsx-registry/lib/common/vsx-environment';
 import { WindowService } from '@theia/core/lib/browser/window/window-service';
+import type { GrammarManifest, RootTypeConfig } from '@sanyam/types';
+import { GrammarRegistry } from './grammar-registry';
 
 @injectable()
 export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
@@ -31,6 +33,9 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
 
     @inject(PreferenceService)
     protected readonly preferenceService: PreferenceService;
+
+    @inject(GrammarRegistry)
+    protected readonly grammarRegistry: GrammarRegistry;
 
     protected vscodeApiVersion: string;
 
@@ -61,6 +66,7 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
                 </div>
                 {this.renderHeader()}
                 <hr className='gs-hr' />
+                {this.renderInstalledGrammars()}
                 <div className='flex-grid'>
                     <div className='col'>
                         {this.renderNews()}
@@ -168,5 +174,64 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
             return React.cloneElement(framework, { className: 'gs-section' });
         }
         return framework;
+    }
+
+    /**
+     * Renders the installed grammars section.
+     */
+    protected renderInstalledGrammars(): React.ReactNode {
+        const manifests = this.grammarRegistry.manifests;
+        if (manifests.length === 0) {
+            return null;
+        }
+
+        return <div className='gs-section'>
+            <h3 className='gs-section-header'>
+                <i className={codicon('symbol-namespace')}></i>
+                Installed Languages
+            </h3>
+            <div className='gs-grammar-list'>
+                {manifests.map(m => this.renderGrammarCard(m))}
+            </div>
+        </div>;
+    }
+
+    /**
+     * Renders a single grammar card.
+     */
+    protected renderGrammarCard(manifest: GrammarManifest): React.ReactNode {
+        const rootTypeCount = manifest.rootTypes.length;
+        const diagramCount = manifest.diagramTypes?.length ?? 0;
+
+        return <div key={manifest.languageId} className='gs-grammar-card'>
+            <div className='gs-grammar-header'>
+                <span className='gs-grammar-name'>{manifest.displayName}</span>
+                <span className='gs-grammar-ext'>{manifest.fileExtension}</span>
+            </div>
+            <div className='gs-grammar-details'>
+                <span className='gs-grammar-stat'>
+                    <i className={codicon('symbol-class')}></i>
+                    {rootTypeCount} type{rootTypeCount !== 1 ? 's' : ''}
+                </span>
+                {manifest.diagrammingEnabled && diagramCount > 0 && (
+                    <span className='gs-grammar-stat'>
+                        <i className={codicon('type-hierarchy')}></i>
+                        {diagramCount} diagram{diagramCount !== 1 ? 's' : ''}
+                    </span>
+                )}
+            </div>
+            <div className='gs-grammar-types'>
+                {manifest.rootTypes.slice(0, 5).map((rt: RootTypeConfig, idx: number) => (
+                    <span key={`${manifest.languageId}-${idx}`} className='gs-grammar-type-tag'>
+                        {rt.displayName}
+                    </span>
+                ))}
+                {rootTypeCount > 5 && (
+                    <span className='gs-grammar-type-tag gs-grammar-more'>
+                        +{rootTypeCount - 5} more
+                    </span>
+                )}
+            </div>
+        </div>;
     }
 }

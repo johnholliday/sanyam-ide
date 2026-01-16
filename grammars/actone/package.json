@@ -1,0 +1,13 @@
+{
+  "name": "@sanyam/grammar-actone",
+  "version": "0.0.1",
+  "description": "Grammar package for ActOne - AI-assisted fiction writing DSL",
+  "type": "module",
+  "main": "./manifest.ts",
+  "exports": {
+    ".": "./manifest.ts"
+  },
+  "peerDependencies": {
+    "@sanyam/types": "workspace:*"
+  }
+}

@@ -129,6 +129,9 @@
     "@theia/vsx-registry": "1.67.0",
     "@theia/workspace": "1.67.0",
     "fs-extra": "^9.0.1",
+    "hono": "^4.0.0",
+    "react-dom": "^18.2.0",
+    "zod": "^3.25.0",
     "sanyam-launcher-ext": "workspace:*",
     "sanyam-product-ext": "workspace:*",
     "sanyam-updater-ext": "workspace:*"
@@ -152,7 +155,7 @@
     "electron-osx-sign": "^0.6.0",
     "js-yaml": "^3.12.0",
     "mocha": "^8.2.1",
-    "rimraf": "^2.7.1",
+    "rimraf": "^5.0.5",
     "ts-node": "^10.0.0",
     "wdio-chromedriver-service": "^6.0.4",
     "webdriverio": "^6.10.2",

@@ -1,0 +1,13 @@
+{
+  "name": "@sanyam/grammar-spdevkit",
+  "version": "0.0.1",
+  "description": "Grammar package for SPDevKit",
+  "type": "module",
+  "main": "./manifest.ts",
+  "exports": {
+    ".": "./manifest.ts"
+  },
+  "peerDependencies": {
+    "@sanyam/types": "workspace:*"
+  }
+}

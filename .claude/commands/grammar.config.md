@@ -253,7 +253,48 @@ Create `grammars/{name}/package.json`:
 }
 ```
 
-### Step 9: Report Completion
+### Step 9: Generate tsconfig.json
+
+Create `grammars/{name}/tsconfig.json` for TypeScript/ESLint integration:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true
+  },
+  "include": ["*.ts"],
+  "exclude": ["node_modules"]
+}
+```
+
+### Step 10: Update ESLint Configuration
+
+Check if the grammar's tsconfig is already included in `.eslintrc.js`. If not, add it to the `parserOptions.project` array.
+
+**Current pattern to find:**
+```javascript
+project: ['./configs/tsconfig.eslint.json', './theia-extensions/*/tsconfig.json', 'applications/electron/tsconfig.eslint.json']
+```
+
+**Updated pattern (if `grammars/*/tsconfig.json` not present):**
+```javascript
+project: ['./configs/tsconfig.eslint.json', './theia-extensions/*/tsconfig.json', 'applications/electron/tsconfig.eslint.json', 'grammars/*/tsconfig.json']
+```
+
+Only modify `.eslintrc.js` if the `grammars/*/tsconfig.json` pattern is not already present.
+
+### Step 11: Report Completion
 
 Output summary of generated files:
 
@@ -263,6 +304,10 @@ Output summary of generated files:
 Files created:
   grammars/{name}/manifest.ts    - GrammarManifest export
   grammars/{name}/package.json   - Package configuration
+  grammars/{name}/tsconfig.json  - TypeScript configuration
+
+Configuration updated:
+  .eslintrc.js                   - Added grammar tsconfig to project references (if not already present)
 
 Grammar: {DisplayName}
 Language ID: {languageId}
@@ -274,8 +319,6 @@ Next steps:
 2. Run 'pnpm install' to link the new grammar package
 3. Import the manifest in your platform configuration:
    import { {MANIFEST_NAME} } from '@sanyam/grammar-{name}';
-
-See quickstart guide: specs/001-grammar-config-command/quickstart.md
 ```
 
 ---

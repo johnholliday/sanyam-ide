@@ -608,6 +608,18 @@ importers:
         specifier: workspace:*
         version: link:../../packages/types
 
+  grammars/ecml:
+    dependencies:
+      '@sanyam/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+
+  grammars/iso-42001:
+    dependencies:
+      '@sanyam/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+
   grammars/spdevkit:
     dependencies:
       '@sanyam/types':

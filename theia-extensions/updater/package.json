@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "sanyam-updater-ext",
+  "name": "@sanyam/updater",
   "version": "1.67.100",
   "description": "Sanyam IDE Updater",
   "dependencies": {

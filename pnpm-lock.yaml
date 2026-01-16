@@ -296,7 +296,7 @@ importers:
       fs-extra:
         specifier: ^9.0.1
         version: 9.1.0
-      sanyam-product-ext:
+      @sanyam/product:
         specifier: workspace:*
         version: link:../../theia-extensions/product
     devDependencies:
@@ -543,13 +543,13 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
-      sanyam-launcher-ext:
+      @sanyam/launcher:
         specifier: workspace:*
         version: link:../../theia-extensions/launcher
-      sanyam-product-ext:
+      @sanyam/product:
         specifier: workspace:*
         version: link:../../theia-extensions/product
-      sanyam-updater-ext:
+      @sanyam/updater:
         specifier: workspace:*
         version: link:../../theia-extensions/updater
       zod:

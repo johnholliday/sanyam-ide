@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "sanyam-product-ext",
+  "name": "@sanyam/product",
   "version": "1.67.100",
   "description": "Sanyam IDE Product Branding",
   "dependencies": {

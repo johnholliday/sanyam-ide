@@ -1,5 +1,5 @@
 {
-  "name": "sanyam-launcher-ext",
+  "name": "@sanyam/launcher",
   "version": "1.67.100",
   "keywords": [
     "theia-extension"

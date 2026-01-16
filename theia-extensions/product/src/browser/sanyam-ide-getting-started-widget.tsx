@@ -19,8 +19,9 @@ import {
 import { GettingStartedWidget } from '@theia/getting-started/lib/browser/getting-started-widget';
 import { VSXEnvironment } from '@theia/vsx-registry/lib/common/vsx-environment';
 import { WindowService } from '@theia/core/lib/browser/window/window-service';
-import type { GrammarManifest, RootTypeConfig } from '@sanyam/types';
+import type { GrammarManifest, RootTypeConfig, ApplicationMetadata, ApplicationLink } from '@sanyam/types';
 import { GrammarRegistry } from './grammar-registry';
+import { getApplicationMetadata } from './application-config';
 
 @injectable()
 export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
@@ -66,6 +67,8 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
                 </div>
                 {this.renderHeader()}
                 <hr className='gs-hr' />
+                {this.renderApplicationContent()}
+                {this.renderApplicationLinks()}
                 {this.renderInstalledGrammars()}
                 <div className='flex-grid'>
                     <div className='col'>
@@ -150,10 +153,71 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
     }
 
     protected renderHeader(): React.ReactNode {
+        const appData = getApplicationMetadata();
         return <div className='gs-header'>
-            <h1>Sanyam <span className='gs-blue-header'>IDE</span></h1>
+            {appData ? this.renderApplicationHeader(appData) : this.renderDefaultHeader()}
             {this.renderVersion()}
+            {appData && this.renderApplicationTagline(appData)}
         </div>;
+    }
+
+    protected renderDefaultHeader(): React.ReactNode {
+        return <h1>Sanyam <span className='gs-blue-header'>IDE</span></h1>;
+    }
+
+    protected renderApplicationHeader(appData: ApplicationMetadata): React.ReactNode {
+        return <div className='gs-app-header'>
+            {appData.logo && <img src={appData.logo} alt={appData.name} className='gs-app-logo' />}
+            <h1>{appData.name}</h1>
+        </div>;
+    }
+
+    protected renderApplicationTagline(appData: ApplicationMetadata): React.ReactNode {
+        if (!appData.tagline) {
+            return null;
+        }
+        return <p className='gs-tagline'>{appData.tagline}</p>;
+    }
+
+    protected renderApplicationContent(): React.ReactNode {
+        const appData = getApplicationMetadata();
+        if (!appData?.text?.length) {
+            return null;
+        }
+        return <div className='gs-app-content gs-section'>
+            {appData.text.map((paragraph, idx) => <p key={idx}>{paragraph}</p>)}
+        </div>;
+    }
+
+    protected renderApplicationLinks(): React.ReactNode {
+        const appData = getApplicationMetadata();
+        if (!appData?.links?.length) {
+            return null;
+        }
+        return <div className='gs-app-links gs-section'>
+            <h3 className='gs-section-header'>
+                <i className={codicon('link')}></i>
+                Quick Links
+            </h3>
+            <div className='gs-links-list'>
+                {appData.links.map((link, idx) => this.renderApplicationLink(link, idx))}
+            </div>
+        </div>;
+    }
+
+    protected renderApplicationLink(link: ApplicationLink, index: number): React.ReactNode {
+        return <a
+            key={index}
+            href={link.url}
+            className='gs-link-item'
+            onClick={e => {
+                e.preventDefault();
+                this.windowService.openNewWindow(link.url, { external: true });
+            }}
+        >
+            {link.icon && <i className={codicon(link.icon)}></i>}
+            <span>{link.label}</span>
+        </a>;
     }
 
     protected renderVersion(): React.ReactNode {

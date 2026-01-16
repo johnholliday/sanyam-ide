@@ -40,3 +40,9 @@ export {
   GrammarManifestContribution,
   type GrammarManifestContribution as GrammarManifestContributionInterface
 } from './grammar-manifest-contribution.js';
+
+export {
+  // Application metadata for frontend config
+  type ApplicationLink,
+  type ApplicationMetadata
+} from './application-metadata.js';

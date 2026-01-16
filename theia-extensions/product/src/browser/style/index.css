@@ -157,3 +157,75 @@ ul.theia-aboutExtensions {
     border: 1px solid var(--theia-widget-border);
     color: var(--theia-descriptionForeground);
 }
+
+/* Application Metadata Styles */
+.gs-app-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.gs-app-header h1 {
+    margin: 0;
+}
+
+.gs-app-logo {
+    height: 64px;
+    width: auto;
+    object-fit: contain;
+}
+
+.gs-tagline {
+    font-size: 1.1em;
+    color: var(--theia-descriptionForeground);
+    margin-top: 8px;
+    margin-bottom: 0;
+    font-style: italic;
+}
+
+.gs-app-content {
+    margin-top: 16px;
+}
+
+.gs-app-content p {
+    color: var(--theia-foreground);
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+.gs-app-content p:last-child {
+    margin-bottom: 0;
+}
+
+.gs-app-links {
+    margin-top: 16px;
+}
+
+.gs-links-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.gs-link-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background-color: var(--theia-button-secondaryBackground);
+    color: var(--theia-button-secondaryForeground);
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.95em;
+    transition: background-color 0.15s ease;
+}
+
+.gs-link-item:hover {
+    background-color: var(--theia-button-secondaryHoverBackground);
+    text-decoration: none;
+}
+
+.gs-link-item i {
+    font-size: 1.1em;
+}

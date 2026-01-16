@@ -22,3 +22,4 @@ license-check-summary.txt
 
 # Build artifacts
 *.tgz
+*:Zone.Identifier

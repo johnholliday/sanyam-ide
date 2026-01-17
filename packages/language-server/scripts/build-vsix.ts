@@ -22,7 +22,7 @@ import { execSync } from 'node:child_process';
 import {
   scanForGrammarPackages,
   type ScannedGrammarPackage,
-} from '../src/grammar-scanner/grammar-scanner.js';
+} from '@sanyam/grammar-scanner';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,7 +39,7 @@ interface GrammarPackageWithConfig extends ScannedGrammarPackage {
  * Find Langium configuration for a grammar package.
  */
 function findLangiumConfig(pkg: ScannedGrammarPackage): GrammarPackageWithConfig {
-  const packageDir = path.dirname(pkg.packageJsonPath);
+  const packageDir = pkg.packagePath;
 
   // Check for langium-config.json
   const langiumConfigPath = path.join(packageDir, 'langium-config.json');
@@ -81,7 +81,7 @@ function generateTextMateGrammar(
 
   // If we have a langium-config.json, try to run langium generate
   if (pkg.langiumConfigPath) {
-    const packageDir = path.dirname(pkg.packageJsonPath);
+    const packageDir = pkg.packagePath;
 
     try {
       console.log(`  Running langium generate for ${pkg.languageId}...`);
@@ -416,7 +416,7 @@ function updatePackageJson(
  */
 function getExtensionsForPackage(pkg: GrammarPackageWithConfig): string[] {
   // Read manifest from package
-  const packageDir = path.dirname(pkg.packageJsonPath);
+  const packageDir = pkg.packagePath;
   const manifestPath = path.join(packageDir, 'manifest.ts');
 
   if (fs.existsSync(manifestPath)) {

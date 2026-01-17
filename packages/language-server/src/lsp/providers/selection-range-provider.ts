@@ -13,7 +13,7 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import type { AstNode, CstNode } from 'langium';
-import { findLeafNodeAtOffset } from 'langium';
+import { findLeafNodeAtOffsetSafe } from '../helpers/langium-compat.js';
 
 /**
  * Default selection range provider.
@@ -28,18 +28,8 @@ export const defaultSelectionRangeProvider = {
   ): Promise<SelectionRange[] | null> {
     const { document, services, token } = context;
 
-    // Check for built-in selection range provider first
-    const selectionRangeProvider = services.lsp.SelectionRangeProvider;
-    if (selectionRangeProvider) {
-      try {
-        const result = await selectionRangeProvider.getSelectionRange(document, params, token);
-        if (result) {
-          return result;
-        }
-      } catch (error) {
-        console.error('Error in Langium SelectionRangeProvider:', error);
-      }
-    }
+    // Note: Langium 4.x doesn't provide a SelectionRangeProvider
+    // We use our own implementation below
 
     // Fall back to our implementation
     const rootNode = document.parseResult?.value;
@@ -72,7 +62,7 @@ function buildSelectionRangeAtPosition(
   const offset = document.textDocument.offsetAt(position);
 
   // Find the CST node at the position
-  const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+  const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
   if (!cstNode) {
     return null;
   }
@@ -153,7 +143,7 @@ export function createSelectionRangeProvider(
 
       for (const position of params.positions) {
         const offset = document.textDocument.offsetAt(position);
-        const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+        const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
 
         if (cstNode?.astNode) {
           const range = customBuilder(cstNode.astNode, document);

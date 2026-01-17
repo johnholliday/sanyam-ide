@@ -6,8 +6,25 @@
  * @packageDocumentation
  */
 
-import type { AstNode } from 'langium';
-import { streamAllContents, isNamed, isReference } from 'langium';
+import type { AstNode, Reference } from 'langium';
+import { AstUtils } from 'langium';
+
+// Langium 4.x exports these via AstUtils namespace
+const { streamAllContents } = AstUtils;
+
+// Helper to check if an AST node has a name property
+function isNamed(node: AstNode): node is AstNode & { name: string } {
+  return 'name' in node && typeof (node as Record<string, unknown>)['name'] === 'string';
+}
+
+// Helper to check if a value is a Langium Reference
+function isReference(value: unknown): value is Reference {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    '$refText' in value
+  );
+}
 import type { LanguageContribution } from '@sanyam/types';
 import type {
   GModelRoot,
@@ -363,28 +380,31 @@ export class ManifestDrivenGModelFactory {
    * @param contribution - The language contribution
    */
   configure(contribution: LanguageContribution): void {
-    const manifest = contribution.manifest;
+    // Cast to any to handle manifest structure variations
+    // TODO: Align manifest structure with GrammarManifest type
+    const manifest = contribution.manifest as unknown as Record<string, unknown>;
+    const diagram = manifest['diagram'] as Record<string, unknown> | undefined;
 
     // Load node mappings
-    if (manifest.diagram?.nodeTypes) {
-      for (const [astType, config] of Object.entries(manifest.diagram.nodeTypes)) {
+    if (diagram?.['nodeTypes']) {
+      for (const [astType, config] of Object.entries(diagram['nodeTypes'] as object)) {
         this.nodeMappings.set(astType, config as NodeMappingConfig);
       }
     }
 
     // Load edge mappings
-    if (manifest.diagram?.edgeTypes) {
-      for (const [property, config] of Object.entries(manifest.diagram.edgeTypes)) {
+    if (diagram?.['edgeTypes']) {
+      for (const [property, config] of Object.entries(diagram['edgeTypes'] as object)) {
         this.edgeMappings.set(property, config as EdgeMappingConfig);
       }
     }
 
     // Set defaults
-    if (manifest.diagram?.defaultNodeType) {
-      this.defaultNodeType = manifest.diagram.defaultNodeType;
+    if (diagram?.['defaultNodeType']) {
+      this.defaultNodeType = diagram['defaultNodeType'] as string;
     }
-    if (manifest.diagram?.defaultEdgeType) {
-      this.defaultEdgeType = manifest.diagram.defaultEdgeType;
+    if (diagram?.['defaultEdgeType']) {
+      this.defaultEdgeType = diagram['defaultEdgeType'] as string;
     }
   }
 

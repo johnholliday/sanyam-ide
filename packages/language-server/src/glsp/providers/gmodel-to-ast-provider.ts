@@ -7,7 +7,8 @@
  */
 
 import type { AstNode } from 'langium';
-import type { GlspContext, GModelToAstProvider } from '@sanyam/types';
+import type { GlspContext } from '@sanyam/types';
+import type { GModelToAstProvider } from '../provider-types.js';
 import type {
   GModelElement,
   GModelNode,
@@ -45,7 +46,7 @@ export interface TextEdit {
 /**
  * Default GModel to AST provider implementation.
  */
-export const defaultGModelToAstProvider: GModelToAstProvider = {
+export const defaultGModelToAstProvider = {
   /**
    * Apply a position change from GModel to AST.
    */
@@ -111,6 +112,36 @@ export const defaultGModelToAstProvider: GModelToAstProvider = {
     }
 
     return { success: true };
+  },
+
+  /**
+   * Update the bounds (position and/or size) of an AST node.
+   */
+  updateBounds(
+    context: GlspContext,
+    elementId: string,
+    position?: Point,
+    size?: Dimension
+  ): ApplyResult {
+    const results: ApplyResult[] = [];
+
+    if (position) {
+      results.push(this.applyPosition(context, elementId, position));
+    }
+
+    if (size) {
+      results.push(this.applySize(context, elementId, size));
+    }
+
+    // Combine results
+    const textEdits = results.flatMap(r => r.textEdits || []);
+    const error = results.find(r => !r.success)?.error;
+
+    return {
+      success: !error,
+      error,
+      textEdits: textEdits.length > 0 ? textEdits : undefined,
+    };
   },
 
   /**
@@ -198,7 +229,7 @@ export const defaultGModelToAstProvider: GModelToAstProvider = {
   /**
    * Delete an AST node corresponding to a GModel element.
    */
-  deleteElement(context: GlspContext, elementId: string): ApplyResult {
+  deleteNode(context: GlspContext, elementId: string): ApplyResult {
     const astNode = this.findAstNode(context, elementId);
     if (!astNode) {
       return { success: true }; // Already deleted or never existed

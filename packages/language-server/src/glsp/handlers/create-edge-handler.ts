@@ -304,6 +304,7 @@ export const createEdgeHandler = {
     for (const element of context.gModel.children) {
       if (
         'sourceId' in element &&
+        'targetId' in element &&
         element.sourceId === sourceId &&
         element.targetId === targetId &&
         element.type === edgeType

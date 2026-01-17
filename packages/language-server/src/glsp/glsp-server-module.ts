@@ -162,7 +162,7 @@ export function createGlspServerModule(config?: GlspServerModuleConfig): Contain
       .toConstantValue(config?.providers?.astToGModel ?? defaultAstToGModelProvider);
 
     bind(GLSP_TYPES.GModelToAstProvider)
-      .toConstantValue(config?.providers?.gModelToAst ?? defaultGModelToAstProvider);
+      .toConstantValue(config?.providers?.gmodelToAst ?? defaultGModelToAstProvider);
 
     bind(GLSP_TYPES.ToolPaletteProvider)
       .toConstantValue(config?.providers?.toolPalette ?? defaultToolPaletteProvider);
@@ -213,7 +213,7 @@ export function initializeGlspServices(container: any): void {
   const providerRegistry = container.get(GLSP_TYPES.ProviderRegistry);
 
   providerRegistry.register('astToGModel', container.get(GLSP_TYPES.AstToGModelProvider));
-  providerRegistry.register('gModelToAst', container.get(GLSP_TYPES.GModelToAstProvider));
+  providerRegistry.register('gmodelToAst', container.get(GLSP_TYPES.GModelToAstProvider));
   providerRegistry.register('toolPalette', container.get(GLSP_TYPES.ToolPaletteProvider));
   providerRegistry.register('validation', container.get(GLSP_TYPES.DiagramValidationProvider));
   providerRegistry.register('layout', container.get(GLSP_TYPES.LayoutProvider));
@@ -225,7 +225,7 @@ export function initializeGlspServices(container: any): void {
  */
 export const allDefaultGlspProviders = {
   astToGModel: defaultAstToGModelProvider,
-  gModelToAst: defaultGModelToAstProvider,
+  gmodelToAst: defaultGModelToAstProvider,
   toolPalette: defaultToolPaletteProvider,
   validation: defaultDiagramValidationProvider,
   layout: defaultLayoutProvider,

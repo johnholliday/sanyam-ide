@@ -7,10 +7,18 @@
  */
 
 import type { AstNode } from 'langium';
-import { isNamed, streamAllContents } from 'langium';
-import type { GlspContext, AstToGModelProvider } from '@sanyam/types';
+import { AstUtils } from 'langium';
+
+// Langium 4.x exports these via AstUtils namespace
+const { streamAllContents } = AstUtils;
+
+// Helper to check if an AST node has a name property
+function isNamed(node: AstNode): node is AstNode & { name: string } {
+  return 'name' in node && typeof (node as any).name === 'string';
+}
+import type { GlspContext, GModelRoot } from '@sanyam/types';
+import type { AstToGModelProvider } from '../provider-types.js';
 import type {
-  GModelRoot,
   GModelNode,
   GModelEdge,
   GModelLabel,
@@ -23,7 +31,7 @@ import { ElementTypes, createNode, createEdge, createLabel } from '../conversion
 /**
  * Default AST to GModel provider implementation.
  */
-export const defaultAstToGModelProvider: AstToGModelProvider = {
+export const defaultAstToGModelProvider = {
   /**
    * Convert an entire AST to GModel.
    */
@@ -33,6 +41,16 @@ export const defaultAstToGModelProvider: AstToGModelProvider = {
     const edges: GModelEdge[] = [];
     const nodeMap = new Map<AstNode, string>();
     let nodeIndex = 0;
+
+    // Return empty model if no root
+    if (!root) {
+      return {
+        id: `root_${context.document.uri.toString()}`,
+        type: ElementTypes.GRAPH,
+        children: [],
+        revision: (context.gModel?.revision ?? 0) + 1,
+      };
+    }
 
     // First pass: create nodes
     for (const astNode of streamAllContents(root)) {

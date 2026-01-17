@@ -7,8 +7,17 @@
  */
 
 import type { AstNode } from 'langium';
-import { streamAllContents, isNamed } from 'langium';
-import type { GlspContext, DiagramValidationProvider } from '@sanyam/types';
+import { AstUtils } from 'langium';
+import type { GlspContext } from '@sanyam/types';
+import type { DiagramValidationProvider } from '../provider-types.js';
+
+// Langium 4.x exports these via AstUtils namespace
+const { streamAllContents } = AstUtils;
+
+// Helper to check if an AST node has a name property
+function isNamed(node: AstNode): node is AstNode & { name: string } {
+  return 'name' in node && typeof (node as Record<string, unknown>)['name'] === 'string';
+}
 import type { GModelElement, GModelNode, GModelEdge, Point } from '../conversion-types.js';
 import { isNode, isEdge } from '../conversion-types.js';
 
@@ -50,7 +59,7 @@ export interface ValidationResult {
 /**
  * Default diagram validation provider implementation.
  */
-export const defaultDiagramValidationProvider: DiagramValidationProvider = {
+export const defaultDiagramValidationProvider = {
   /**
    * Validate the entire diagram model.
    */
@@ -218,6 +227,11 @@ export const defaultDiagramValidationProvider: DiagramValidationProvider = {
     const root = context.root;
     const names = new Map<string, AstNode[]>();
 
+    // Skip if no root
+    if (!root) {
+      return markers;
+    }
+
     // Check for duplicate names
     for (const node of streamAllContents(root)) {
       if (isNamed(node)) {
@@ -275,12 +289,16 @@ export const defaultDiagramValidationProvider: DiagramValidationProvider = {
 
     // Check for overlapping nodes
     for (let i = 0; i < nodes.length; i++) {
+      const nodeI = nodes[i];
+      if (!nodeI) continue;
       for (let j = i + 1; j < nodes.length; j++) {
-        if (this.nodesOverlap(nodes[i], nodes[j])) {
+        const nodeJ = nodes[j];
+        if (!nodeJ) continue;
+        if (this.nodesOverlap(nodeI, nodeJ)) {
           markers.push({
-            elementId: nodes[i].id,
+            elementId: nodeI.id,
             severity: 'warning',
-            message: `Node overlaps with '${nodes[j].id}'`,
+            message: `Node overlaps with '${nodeJ.id}'`,
             code: 'OVERLAPPING_NODES',
             source: 'diagram-validation',
           });
@@ -375,6 +393,10 @@ export const defaultDiagramValidationProvider: DiagramValidationProvider = {
   ): string | undefined {
     const offset = context.document.textDocument.offsetAt(position);
     const root = context.root;
+
+    if (!root) {
+      return undefined;
+    }
 
     for (const node of streamAllContents(root)) {
       const cstNode = node.$cstNode;

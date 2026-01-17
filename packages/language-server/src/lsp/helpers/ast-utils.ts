@@ -7,7 +7,35 @@
  */
 
 import type { AstNode, CstNode, LangiumDocument } from 'langium';
-import { isNamed, getDocument, streamAllContents, findLeafNodeAtOffset } from 'langium';
+import { AstUtils, GrammarUtils } from 'langium';
+
+// Langium 4.x exports these via namespaces
+const { streamAllContents, getDocument: astGetDocument, findRootNode } = AstUtils;
+const { findNodeForProperty } = GrammarUtils;
+
+// Helper to check if an AST node has a name property
+function isNamed(node: AstNode): node is AstNode & { name: string } {
+  return 'name' in node && typeof (node as Record<string, unknown>)['name'] === 'string';
+}
+
+// Helper to get the document for an AST node
+function getDocument(node: AstNode): LangiumDocument | undefined {
+  return astGetDocument(node);
+}
+
+// Helper to find leaf node at offset
+function findLeafNodeAtOffset(cstNode: CstNode, offset: number): CstNode | undefined {
+  if (cstNode.offset <= offset && cstNode.offset + cstNode.length > offset) {
+    if ('children' in cstNode && Array.isArray((cstNode as any).children)) {
+      for (const child of (cstNode as any).children) {
+        const found = findLeafNodeAtOffset(child, offset);
+        if (found) return found;
+      }
+    }
+    return cstNode;
+  }
+  return undefined;
+}
 
 /**
  * Get the name of an AST node if it has one.
@@ -149,11 +177,7 @@ export function findNamedAncestor(
  * @returns The root node
  */
 export function getRoot(node: AstNode): AstNode {
-  let current = node;
-  while (current.$container) {
-    current = current.$container;
-  }
-  return current;
+  return findRootNode(node);
 }
 
 /**

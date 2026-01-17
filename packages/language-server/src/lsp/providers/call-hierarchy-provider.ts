@@ -15,7 +15,9 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext, WorkspaceContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
-import { findLeafNodeAtOffset, getDocument, isNamed, isReference, streamAllContents } from 'langium';
+import { URI } from 'langium';
+import { findLeafNodeAtOffsetSafe, getDocument, isNamed, streamAllContents, asRecord } from '../helpers/langium-compat.js';
+import { isReference } from 'langium';
 
 /**
  * Default call hierarchy provider.
@@ -53,7 +55,7 @@ export const defaultCallHierarchyProvider = {
     const offset = document.textDocument.offsetAt(params.position);
 
     // Find the CST node at the position
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode?.astNode) {
       return null;
     }
@@ -83,7 +85,7 @@ export const defaultCallHierarchyProvider = {
     const { shared, token } = context;
 
     // Find the target function by URI and position
-    const targetDoc = shared.workspace.LangiumDocuments.getDocument(item.uri);
+    const targetDoc = shared.workspace.LangiumDocuments.getDocument(URI.parse(item.uri));
     if (!targetDoc) {
       return null;
     }
@@ -95,7 +97,7 @@ export const defaultCallHierarchyProvider = {
 
     // Find the callable at the item position
     const offset = targetDoc.textDocument.offsetAt(item.selectionRange.start);
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode?.astNode) {
       return null;
     }
@@ -121,7 +123,7 @@ export const defaultCallHierarchyProvider = {
     const { shared, token } = context;
 
     // Find the source function by URI and position
-    const sourceDoc = shared.workspace.LangiumDocuments.getDocument(item.uri);
+    const sourceDoc = shared.workspace.LangiumDocuments.getDocument(URI.parse(item.uri));
     if (!sourceDoc) {
       return null;
     }
@@ -133,7 +135,7 @@ export const defaultCallHierarchyProvider = {
 
     // Find the callable at the item position
     const offset = sourceDoc.textDocument.offsetAt(item.selectionRange.start);
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode?.astNode) {
       return null;
     }
@@ -297,7 +299,7 @@ function findCallsToTarget(
       continue;
     }
 
-    const value = (node as Record<string, unknown>)[prop];
+    const value = asRecord(node)[prop];
 
     if (isReference(value)) {
       if (value.ref === target || value.$refText === targetName) {
@@ -384,7 +386,7 @@ function findCallTarget(node: AstNode): AstNode | null {
       continue;
     }
 
-    const value = (node as Record<string, unknown>)[prop];
+    const value = asRecord(node)[prop];
 
     if (isReference(value) && value.ref) {
       return value.ref;
@@ -418,7 +420,7 @@ export function createCallHierarchyProvider(
       }
 
       const offset = document.textDocument.offsetAt(params.position);
-      const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+      const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
       if (!cstNode?.astNode) {
         return null;
       }

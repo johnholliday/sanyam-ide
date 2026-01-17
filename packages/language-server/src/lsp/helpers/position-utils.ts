@@ -8,7 +8,15 @@
 
 import type { Position, Range } from 'vscode-languageserver';
 import type { AstNode, CstNode, LangiumDocument } from 'langium';
-import { getDocument } from 'langium';
+
+// Helper to get the document for an AST node
+function getDocument(node: AstNode): LangiumDocument | undefined {
+  let current: AstNode | undefined = node;
+  while (current?.$container) {
+    current = current.$container;
+  }
+  return (current as any)?.$document;
+}
 
 /**
  * Create a position from line and character.

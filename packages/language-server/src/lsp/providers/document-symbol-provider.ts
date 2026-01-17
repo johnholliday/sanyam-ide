@@ -14,7 +14,7 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
-import { isNamed, streamAllContents } from 'langium';
+import { isNamed, streamAllContents } from '../helpers/langium-compat.js';
 
 /**
  * Default document symbol provider that maps AST to symbols.

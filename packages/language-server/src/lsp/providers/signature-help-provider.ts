@@ -14,7 +14,7 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
-import { findLeafNodeAtOffset } from 'langium';
+import { findLeafNodeAtOffsetSafe, asRecord } from '../helpers/langium-compat.js';
 
 /**
  * Default signature help provider.
@@ -30,15 +30,16 @@ export const defaultSignatureHelpProvider = {
     const { document, services, token } = context;
 
     // Check for built-in signature help provider first
-    const signatureHelpProvider = services.lsp.SignatureHelpProvider;
-    if (signatureHelpProvider) {
+    // Note: In Langium 4.x, this is services.lsp.SignatureHelp
+    const signatureHelpProvider = services.lsp.SignatureHelp;
+    if (signatureHelpProvider && 'provideSignatureHelp' in signatureHelpProvider) {
       try {
-        const result = await signatureHelpProvider.getSignatureHelp(document, params, token);
+        const result = await (signatureHelpProvider as any).provideSignatureHelp(document, params, token);
         if (result) {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium SignatureHelpProvider:', error);
+        console.error('Error in Langium SignatureHelp:', error);
       }
     }
 
@@ -52,7 +53,7 @@ export const defaultSignatureHelpProvider = {
     const offset = document.textDocument.offsetAt(params.position);
 
     // Find the CST node at the position
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode?.astNode) {
       return null;
     }
@@ -216,7 +217,7 @@ function getParameters(funcNode: AstNode): ParameterInfo[] {
 
   for (const prop of paramProps) {
     if (prop in funcNode) {
-      const params = (funcNode as Record<string, unknown>)[prop];
+      const params = asRecord(funcNode)[prop];
       if (Array.isArray(params)) {
         for (const param of params) {
           if (typeof param === 'object' && param !== null) {

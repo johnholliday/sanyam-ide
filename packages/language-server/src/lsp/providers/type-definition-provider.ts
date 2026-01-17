@@ -13,7 +13,8 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
-import { findLeafNodeAtOffset, getDocument, isNamed, isReference } from 'langium';
+import { findLeafNodeAtOffsetSafe, getDocument, isNamed, asRecord } from '../helpers/langium-compat.js';
+import { isReference } from 'langium';
 
 /**
  * Default type definition provider.
@@ -29,15 +30,16 @@ export const defaultTypeDefinitionProvider = {
     const { document, services, token } = context;
 
     // Check for built-in type definition provider first
-    const typeDefProvider = services.lsp.TypeDefinitionProvider;
-    if (typeDefProvider) {
+    // Note: In Langium 4.x, this is services.lsp.TypeProvider
+    const typeDefProvider = services.lsp.TypeProvider;
+    if (typeDefProvider && 'getTypeDefinition' in typeDefProvider) {
       try {
-        const result = await typeDefProvider.getTypeDefinition(document, params, token);
+        const result = await (typeDefProvider as any).getTypeDefinition(document, params, token);
         if (result) {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium TypeDefinitionProvider:', error);
+        console.error('Error in Langium TypeProvider:', error);
       }
     }
 
@@ -51,7 +53,7 @@ export const defaultTypeDefinitionProvider = {
     const offset = document.textDocument.offsetAt(params.position);
 
     // Find the CST node at the position
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode?.astNode) {
       return null;
     }
@@ -102,7 +104,7 @@ function findTypeDefinition(astNode: AstNode): AstNode | null {
   // Check for extends/implements relationships
   for (const prop of ['extends', 'implements', 'supertype', 'baseType']) {
     if (prop in astNode) {
-      const value = (astNode as Record<string, unknown>)[prop];
+      const value = asRecord(astNode)[prop];
 
       if (isReference(value) && value.ref) {
         return value.ref;
@@ -140,7 +142,7 @@ function findDeclaredType(node: AstNode): AstNode | null {
 
   for (const prop of typeProps) {
     if (prop in node) {
-      const typeValue = (node as Record<string, unknown>)[prop];
+      const typeValue = asRecord(node)[prop];
 
       if (isReference(typeValue) && typeValue.ref) {
         return typeValue.ref;
@@ -178,7 +180,7 @@ export function createTypeDefinitionProvider(
       }
 
       const offset = document.textDocument.offsetAt(params.position);
-      const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+      const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
       if (!cstNode?.astNode) {
         return null;
       }

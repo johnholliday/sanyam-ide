@@ -15,12 +15,18 @@ import type { DiagnosticData, ValidationCategory } from 'langium';
 
 /**
  * Diagnostic severity mapping from Langium to LSP.
+ * Note: ValidationCategory includes 'error', 'warning', 'info', 'hint' for user-facing severities
+ * and 'fast', 'slow', 'built-in' for categorizing validation checks.
  */
-const SEVERITY_MAP: Record<ValidationCategory, DiagnosticSeverity> = {
+const SEVERITY_MAP: Record<string, DiagnosticSeverity> = {
   error: 1, // DiagnosticSeverity.Error
   warning: 2, // DiagnosticSeverity.Warning
   info: 3, // DiagnosticSeverity.Information
   hint: 4, // DiagnosticSeverity.Hint
+  // Validation categories that don't map to severity use the default 'info'
+  fast: 3,
+  slow: 3,
+  'built-in': 3,
 };
 
 /**
@@ -152,7 +158,7 @@ export function filterDiagnosticsBySeverity(
   diagnostics: Diagnostic[],
   minSeverity: 'error' | 'warning' | 'info' | 'hint'
 ): Diagnostic[] {
-  const minSeverityValue = SEVERITY_MAP[minSeverity];
+  const minSeverityValue = SEVERITY_MAP[minSeverity] ?? 4; // Default to hint level
   return diagnostics.filter((d) => (d.severity ?? 1) <= minSeverityValue);
 }
 

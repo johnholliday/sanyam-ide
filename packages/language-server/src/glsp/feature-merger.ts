@@ -65,7 +65,7 @@ export class GlspFeatureMerger {
   merge(
     defaultProviders: GlspFeatureProviders,
     customProviders?: Partial<GlspFeatureProviders>,
-    disabledFeatures?: string[]
+    disabledFeatures?: readonly string[]
   ): GlspMergeResult {
     const result: GlspMergeResult = {
       providers: {} as GlspFeatureProviders,
@@ -261,7 +261,7 @@ export class GlspFeatureMerger {
   static getFeatureNames(): string[] {
     return [
       'astToGModel',
-      'gModelToAst',
+      'gmodelToAst',
       'toolPalette',
       'validation',
       'layout',

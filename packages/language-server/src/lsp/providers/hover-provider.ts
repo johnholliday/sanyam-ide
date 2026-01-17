@@ -13,7 +13,7 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import type { AstNode, CstNode } from 'langium';
-import { findLeafNodeAtOffset, getDocument, isNamed } from 'langium';
+import { findLeafNodeAtOffsetSafe, getDocument, isNamed } from '../helpers/langium-compat.js';
 
 /**
  * Default hover provider that shows AST node information.
@@ -51,7 +51,7 @@ export const defaultHoverProvider = {
     const offset = document.textDocument.offsetAt(params.position);
 
     // Find the CST node at the position
-    const cstNode = findLeafNodeAtOffset(document.parseResult.value.$cstNode, offset);
+    const cstNode = findLeafNodeAtOffsetSafe(document.parseResult.value.$cstNode, offset);
     if (!cstNode) {
       return null;
     }
@@ -202,7 +202,7 @@ export function createHoverProvider(
       }
 
       const offset = document.textDocument.offsetAt(params.position);
-      const cstNode = findLeafNodeAtOffset(document.parseResult.value.$cstNode, offset);
+      const cstNode = findLeafNodeAtOffsetSafe(document.parseResult.value.$cstNode, offset);
       if (!cstNode?.astNode) {
         return null;
       }

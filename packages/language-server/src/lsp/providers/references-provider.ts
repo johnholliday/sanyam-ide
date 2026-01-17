@@ -12,7 +12,7 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
-import { findLeafNodeAtOffset, getDocument, isNamed } from 'langium';
+import { findLeafNodeAtOffsetSafe, getDocument, isNamed } from '../helpers/langium-compat.js';
 
 /**
  * Default references provider that uses Langium's reference finding.
@@ -31,7 +31,7 @@ export const defaultReferencesProvider = {
     const referencesProvider = services.lsp.ReferencesProvider;
     if (referencesProvider) {
       try {
-        const result = await referencesProvider.getReferences(document, params, token);
+        const result = await referencesProvider.findReferences(document, params, token);
         if (result) {
           return result;
         }
@@ -50,7 +50,7 @@ export const defaultReferencesProvider = {
     const offset = document.textDocument.offsetAt(params.position);
 
     // Find the CST node at the position
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode?.astNode) {
       return null;
     }
@@ -109,8 +109,9 @@ async function findAllReferences(
   // Get all documents in the workspace
   const documents = shared.workspace.LangiumDocuments;
 
-  // Get the reference finder
-  const references = shared.References;
+  // Note: In Langium 4.x, References is on language-specific services, not shared services
+  // We'll use the reference finding logic directly without the shared.References
+  const references: { findReferences?: (target: AstNode) => Iterable<{ sourceNode: AstNode; targetNode: AstNode }> } | undefined = undefined;
 
   // If we have a reference finder, use it
   if (references && 'findReferences' in references) {
@@ -187,7 +188,7 @@ export function createReferencesProvider(
       }
 
       const offset = document.textDocument.offsetAt(params.position);
-      const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+      const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
       if (!cstNode?.astNode) {
         return null;
       }

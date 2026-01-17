@@ -13,7 +13,7 @@ import type {
   CompletionParams,
 } from 'vscode-languageserver';
 import type { LspContext, MaybePromise } from '@sanyam/types';
-import type { CompletionAcceptor, LangiumDocument } from 'langium';
+import type { LangiumDocument } from 'langium';
 import { URI } from 'vscode-uri';
 
 /**

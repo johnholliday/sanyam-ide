@@ -95,7 +95,7 @@ function isFeatureEnabled(
   feature: keyof LspFeatureProviders,
   language: RegisteredLanguage
 ): boolean {
-  const disabledFeatures = language.contribution.disabledFeatures ?? [];
+  const disabledFeatures = language.contribution.disabledLspFeatures ?? [];
   return !isFeatureDisabled(feature, disabledFeatures);
 }
 
@@ -462,18 +462,27 @@ export function registerLspHandlers(config: LspHandlerConfig): void {
     return provider.provide(context, params);
   });
 
-  connection.onLinkedEditingRange(async (params: LinkedEditingRangeParams, token) => {
-    const context = createLspContext(params.textDocument.uri, token);
-    if (!context) return null;
+  // Linked editing range - some versions of vscode-languageserver have this
+  // We'll skip this handler if the connection doesn't support it
+  try {
+    const langConn = connection as unknown as { onLinkedEditingRange?: (handler: any) => void };
+    if (langConn.onLinkedEditingRange) {
+      langConn.onLinkedEditingRange(async (params: LinkedEditingRangeParams, token: CancellationToken) => {
+        const context = createLspContext(params.textDocument.uri, token);
+        if (!context) return null;
 
-    const language = registry.getByUri(params.textDocument.uri);
-    if (!language) return null;
+        const language = registry.getByUri(params.textDocument.uri);
+        if (!language) return null;
 
-    const provider = getEnabledProvider(ctx, 'linkedEditingRange', language);
-    if (!provider?.provide) return null;
+        const provider = getEnabledProvider(ctx, 'linkedEditingRange', language);
+        if (!provider?.provide) return null;
 
-    return provider.provide(context, params);
-  });
+        return provider.provide(context, params);
+      });
+    }
+  } catch {
+    // Linked editing range not supported in this version
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // CALL & TYPE HIERARCHY
@@ -563,42 +572,51 @@ export function registerLspHandlers(config: LspHandlerConfig): void {
   // ═══════════════════════════════════════════════════════════════════════════
 
   connection.languages.semanticTokens.on(async (params: SemanticTokensParams, token) => {
+    const emptyTokens = { data: [] };
+
     const context = createLspContext(params.textDocument.uri, token);
-    if (!context) return null;
+    if (!context) return emptyTokens;
 
     const language = registry.getByUri(params.textDocument.uri);
-    if (!language) return null;
+    if (!language) return emptyTokens;
 
     const provider = getEnabledProvider(ctx, 'semanticTokens', language);
-    if (!provider?.full) return null;
+    if (!provider?.full) return emptyTokens;
 
-    return provider.full(context, params);
+    const result = await provider.full(context, params);
+    return result ?? emptyTokens;
   });
 
   connection.languages.semanticTokens.onDelta(async (params: SemanticTokensDeltaParams, token) => {
+    const emptyTokens = { data: [] };
+
     const context = createLspContext(params.textDocument.uri, token);
-    if (!context) return null;
+    if (!context) return emptyTokens;
 
     const language = registry.getByUri(params.textDocument.uri);
-    if (!language) return null;
+    if (!language) return emptyTokens;
 
     const provider = getEnabledProvider(ctx, 'semanticTokens', language);
-    if (!provider?.delta) return null;
+    if (!provider?.delta) return emptyTokens;
 
-    return provider.delta(context, params);
+    const result = await provider.delta(context, params);
+    return result ?? emptyTokens;
   });
 
   connection.languages.semanticTokens.onRange(async (params: SemanticTokensRangeParams, token) => {
+    const emptyTokens = { data: [] };
+
     const context = createLspContext(params.textDocument.uri, token);
-    if (!context) return null;
+    if (!context) return emptyTokens;
 
     const language = registry.getByUri(params.textDocument.uri);
-    if (!language) return null;
+    if (!language) return emptyTokens;
 
     const provider = getEnabledProvider(ctx, 'semanticTokens', language);
-    if (!provider?.range) return null;
+    if (!provider?.range) return emptyTokens;
 
-    return provider.range(context, params);
+    const result = await provider.range(context, params);
+    return result ?? emptyTokens;
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

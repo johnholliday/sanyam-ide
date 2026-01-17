@@ -7,7 +7,33 @@
  */
 
 import type { AstNode, CstNode, Reference, LangiumDocument } from 'langium';
-import { isReference, getDocument, streamAllContents, isNamed } from 'langium';
+import { AstUtils } from 'langium';
+
+// Langium 4.x exports these via AstUtils namespace
+const { streamAllContents } = AstUtils;
+
+// Helper to check if an AST node has a name property
+function isNamed(node: AstNode): node is AstNode & { name: string } {
+  return 'name' in node && typeof (node as Record<string, unknown>)['name'] === 'string';
+}
+
+// Helper to check if a value is a Langium Reference
+function isReference(value: unknown): value is Reference {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    '$refText' in value
+  );
+}
+
+// Helper to get the document for an AST node
+function getDocument(node: AstNode): LangiumDocument | undefined {
+  let current: AstNode | undefined = node;
+  while (current?.$container) {
+    current = current.$container;
+  }
+  return (current as any)?.$document;
+}
 
 /**
  * Information about a reference.

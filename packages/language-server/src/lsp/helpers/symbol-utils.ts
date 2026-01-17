@@ -14,7 +14,15 @@ import type {
   Range,
 } from 'vscode-languageserver';
 import type { AstNode, LangiumDocument } from 'langium';
-import { isNamed, streamAllContents, getDocument } from 'langium';
+import { AstUtils } from 'langium';
+
+// Langium 4.x exports these via AstUtils namespace
+const { streamAllContents } = AstUtils;
+
+// Helper to check if an AST node has a name property
+function isNamed(node: AstNode): node is AstNode & { name: string } {
+  return 'name' in node && typeof (node as Record<string, unknown>)['name'] === 'string';
+}
 
 /**
  * Symbol kind mappings from common AST types.

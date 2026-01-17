@@ -7,7 +7,10 @@
  * @packageDocumentation
  */
 
-import { inject, type Module, type PartialLangiumServices } from 'langium';
+import {
+  type Module,
+  type PartialLangiumCoreServices,
+} from 'langium';
 import {
   createDefaultModule,
   createDefaultSharedModule,
@@ -61,15 +64,24 @@ export interface SharedServiceContext extends DefaultSharedModuleContext {
  */
 export function createSharedServices(
   context: SharedServiceContext,
-  contributionModules: readonly Module<LangiumSharedServices>[]
+  contributionModules: readonly Module<LangiumSharedServices, LangiumSharedServices>[]
 ): LangiumSharedServices {
-  // Start with Langium defaults, then layer contribution modules
-  const modules: Module<LangiumSharedServices>[] = [
-    createDefaultSharedModule(context),
-    ...contributionModules,
-  ];
+  // Import inject from langium
+  const { inject } = require('langium');
 
-  return inject(...modules);
+  // Start with Langium defaults, then layer contribution modules
+  const defaultModule = createDefaultSharedModule(context);
+
+  // Langium 4.x uses inject with rest parameters
+  // Create the base services first, then apply contribution overrides
+  let services = inject(defaultModule) as LangiumSharedServices;
+
+  // Apply contribution modules as overrides
+  for (const contributionModule of contributionModules) {
+    services = inject(defaultModule, contributionModule) as LangiumSharedServices;
+  }
+
+  return services;
 }
 
 /**
@@ -86,20 +98,23 @@ export function createLanguageServicesFromContribution(
   contribution: LanguageContributionInterface,
   shared: LangiumSharedServices
 ): LangiumServices {
-  const modules: Module<LangiumServices>[] = [
-    // Langium defaults configured with shared services
-    createDefaultModule({ shared }),
-    // Generated module from langium generate
-    contribution.generatedModule,
-  ];
+  // Import inject from langium
+  const { inject } = require('langium');
+
+  // Langium defaults configured with shared services
+  const defaultModule = createDefaultModule({ shared });
+  // Generated module from langium generate
+  const generatedModule = contribution.generatedModule;
+
+  // Compose modules using inject
+  let services: LangiumServices;
 
   // Add custom module if provided (applied last for overrides)
   if (contribution.customModule) {
-    modules.push(contribution.customModule);
+    services = inject(defaultModule, generatedModule, contribution.customModule) as LangiumServices;
+  } else {
+    services = inject(defaultModule, generatedModule) as LangiumServices;
   }
-
-  // Compose all modules
-  const services = inject(...modules);
 
   // Register with the shared service registry
   shared.ServiceRegistry.register(services);
@@ -129,9 +144,9 @@ export function createLanguageServicesFromContribution(
  * @returns A Langium module
  */
 export function createCustomModule(
-  overrides: PartialLangiumServices
-): Module<LangiumServices, PartialLangiumServices> {
-  return overrides;
+  overrides: PartialLangiumCoreServices
+): Module<LangiumServices, PartialLangiumCoreServices> {
+  return overrides as Module<LangiumServices, PartialLangiumCoreServices>;
 }
 
 /**
@@ -143,16 +158,32 @@ export function createCustomModule(
  * @returns A single composed module
  */
 export function composeModules<T>(
-  ...modules: Module<T>[]
-): Module<T> {
+  ...modules: Module<T, T>[]
+): Module<T, T> {
   if (modules.length === 0) {
-    return {};
+    return {} as Module<T, T>;
   }
   if (modules.length === 1 && modules[0]) {
     return modules[0];
   }
 
-  return inject(...modules);
+  // Import inject from langium
+  const { inject } = require('langium');
+
+  // Langium 4.x inject returns the composed services, not a module
+  // We apply injection at runtime to compose the modules
+  return ((ctx: T) => {
+    let result = ctx;
+    for (const mod of modules) {
+      if (typeof mod === 'function') {
+        result = (mod as (ctx: T) => T)(result);
+      } else {
+        // Merge object-style modules
+        result = { ...result, ...mod } as T;
+      }
+    }
+    return result;
+  }) as unknown as Module<T, T>;
 }
 
 /**

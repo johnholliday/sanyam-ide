@@ -7,9 +7,11 @@
  * @packageDocumentation
  */
 
-import type { LangiumDocument, CancellationToken } from 'langium';
-import type { GlspContext, LanguageContribution } from '@sanyam/types';
-import { Emitter, Event, Disposable, DisposableCollection } from 'vscode-languageserver';
+import type { LangiumDocument } from 'langium';
+import type { CancellationToken } from 'vscode-languageserver';
+import type { GlspContext, RegisteredLanguage } from '@sanyam/types';
+import { Emitter, Event, Disposable, CancellationToken as VsCancellationToken } from 'vscode-languageserver';
+import { DisposableCollection } from '../../utils/disposable.js';
 
 /**
  * Document change event.
@@ -79,7 +81,7 @@ export class TextToDiagramSync implements Disposable {
     this.options = {
       debounceDelay: options?.debounceDelay ?? 100,
       autoSync: options?.autoSync ?? true,
-      cancellationToken: options?.cancellationToken,
+      cancellationToken: options?.cancellationToken ?? VsCancellationToken.None,
     };
 
     this.toDispose.push(this.onModelUpdateEmitter);
@@ -326,25 +328,34 @@ export function createTextToDiagramSync(
 /**
  * Create a default AST to GModel converter.
  *
- * @param contribution - Language contribution with AST to GModel provider
+ * @param registered - Registered language with services and providers
  * @returns AstToGModelConverter
  */
 export function createDefaultAstToGModelConverter(
-  contribution: LanguageContribution
+  registered: RegisteredLanguage
 ): AstToGModelConverter {
   return {
     async convert(document: LangiumDocument): Promise<any> {
       const context: GlspContext = {
         document,
-        services: contribution.services as any,
-        token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose: () => {} }) },
-        options: {},
+        services: registered.services,
+        manifest: registered.contribution.manifest,
+        root: document.parseResult?.value,
       };
 
-      // Use the contribution's AST to GModel provider if available
-      const provider = contribution.glspProviders?.astToGModel;
-      if (provider) {
-        return provider.convert(context);
+      // Use the registered language's AST to GModel provider if available
+      const provider = registered.mergedGlspProviders?.astToGModel;
+      if (provider?.convert) {
+        const diagramTypes = registered.contribution.manifest.diagramTypes;
+        const firstDiagramType = diagramTypes?.[0];
+        const conversionContext = {
+          manifest: registered.contribution.manifest,
+          diagramType: firstDiagramType,
+          idCounter: { value: 0 },
+          nodeMap: new Map(),
+          idMap: new Map(),
+        };
+        return provider.convert(document.parseResult?.value as any, conversionContext as any);
       }
 
       // Return empty GModel root

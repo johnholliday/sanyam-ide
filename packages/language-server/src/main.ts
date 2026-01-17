@@ -17,10 +17,12 @@ import {
   TextDocumentSyncKind,
 } from 'vscode-languageserver/node.js';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { CancellationToken } from 'langium';
+import { CancellationToken } from 'vscode-languageserver';
+import { URI } from 'langium';
+import { NodeFileSystem } from 'langium/node';
 import type { LspFeatureProviders, GlspFeatureProviders, LanguageContribution } from '@sanyam/types';
 import { languageRegistry, LanguageRegistry } from './language-registry.js';
-import { loadFromGeneratedRegistry } from './grammar-scanner/contribution-loader.js';
+import { loadFromGeneratedRegistry } from './discovery/contribution-loader.js';
 
 // Import GLSP server components
 import { GlspServer, createGlspServer } from './glsp/glsp-server.js';
@@ -168,7 +170,7 @@ connection.onInitialize(async (params: InitializeParams): Promise<InitializeResu
       GRAMMAR_REGISTRY,
       languageRegistry,
       {
-        context: { connection, documents },
+        context: { connection, ...NodeFileSystem },
         defaultLspProviders: createDefaultLspProviders(),
         defaultGlspProviders: createDefaultGlspProviders(),
       }
@@ -196,9 +198,11 @@ connection.onInitialize(async (params: InitializeParams): Promise<InitializeResu
           workspace: {
             LangiumDocuments: {
               // Document access will be provided through the registry
-              getDocument: (uri: string) => {
-                const contribution = languageRegistry.getByUri(uri);
-                return contribution?.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(uri);
+              getDocument: (uri: string | import('langium').URI) => {
+                const uriStr = typeof uri === 'string' ? uri : uri.toString();
+                const contribution = languageRegistry.getByUri(uriStr);
+                const parsedUri = typeof uri === 'string' ? URI.parse(uri) : uri;
+                return contribution?.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(parsedUri);
               },
               all: [] as any[],
             },
@@ -212,7 +216,7 @@ connection.onInitialize(async (params: InitializeParams): Promise<InitializeResu
       for (const langId of languageRegistry.getAllLanguageIds()) {
         const contribution = languageRegistry.getByLanguageId(langId);
         if (contribution) {
-          registerLanguageWithGlsp(contribution as LanguageContribution);
+          registerLanguageWithGlsp(contribution as unknown as LanguageContribution);
         }
       }
     } catch (glspError) {
@@ -314,8 +318,9 @@ connection.onInitialize(async (params: InitializeParams): Promise<InitializeResu
               'documentation', 'defaultLibrary',
             ],
           },
-          full: true,
-          delta: true,
+          full: {
+            delta: true,
+          },
           range: true,
         },
 
@@ -487,7 +492,7 @@ connection.onRequest('glsp/loadModel', async (params: GlspLoadModelRequest) => {
     }
 
     // Get Langium document from contribution
-    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(params.uri);
+    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
     if (!langiumDoc) {
       return { success: false, error: `Document not found: ${params.uri}` };
     }
@@ -528,7 +533,7 @@ connection.onRequest('glsp/executeOperation', async (params: GlspOperationReques
       return { success: false, error: `No language registered for URI: ${params.uri}` };
     }
 
-    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(params.uri);
+    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
     if (!langiumDoc) {
       return { success: false, error: `Document not found: ${params.uri}` };
     }
@@ -563,7 +568,7 @@ connection.onRequest('glsp/validate', async (params: GlspValidateRequest) => {
       return { markers: [], isValid: false, errorCount: 1, warningCount: 0, error: 'No language registered' };
     }
 
-    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(params.uri);
+    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
     if (!langiumDoc) {
       return { markers: [], isValid: false, errorCount: 1, warningCount: 0, error: 'Document not found' };
     }
@@ -598,7 +603,7 @@ connection.onRequest('glsp/layout', async (params: GlspLayoutRequest) => {
       return { positions: {}, bounds: { width: 0, height: 0 }, error: 'No language registered' };
     }
 
-    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(params.uri);
+    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
     if (!langiumDoc) {
       return { positions: {}, bounds: { width: 0, height: 0 }, error: 'Document not found' };
     }
@@ -637,7 +642,7 @@ connection.onRequest('glsp/toolPalette', async (params: GlspToolPaletteRequest) 
       return { groups: [], error: 'No language registered' };
     }
 
-    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(params.uri);
+    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
     if (!langiumDoc) {
       return { groups: [], error: 'Document not found' };
     }
@@ -669,7 +674,7 @@ connection.onRequest('glsp/contextMenu', async (params: GlspContextMenuRequest) 
       return { items: [], error: 'No language registered' };
     }
 
-    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(params.uri);
+    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
     if (!langiumDoc) {
       return { items: [], error: 'Document not found' };
     }
@@ -701,7 +706,7 @@ connection.onRequest('glsp/saveModel', async (params: GlspSaveModelRequest) => {
       return { success: false, error: 'No language registered' };
     }
 
-    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(params.uri);
+    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
     if (!langiumDoc) {
       return { success: false, error: 'Document not found' };
     }
@@ -887,7 +892,7 @@ documents.onDidChangeContent((change) => {
   const contribution = languageRegistry.getByUri(change.document.uri);
   if (!contribution) return;
 
-  const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(change.document.uri);
+  const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(change.document.uri));
   if (langiumDoc) {
     // Notify GLSP server (T127)
     if (glspServer) {
@@ -910,7 +915,7 @@ documents.onDidSave?.((event) => {
   const contribution = languageRegistry.getByUri(event.document.uri);
   if (!contribution) return;
 
-  const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(event.document.uri);
+  const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(event.document.uri));
   if (langiumDoc && astServer) {
     astServer.onDocumentSaved(langiumDoc);
   }

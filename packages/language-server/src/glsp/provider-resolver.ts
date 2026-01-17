@@ -103,7 +103,7 @@ export class GlspProviderResolver {
     contribution: LanguageContribution
   ): ResolvedGlspProvider<GlspFeatureProviders[K]> {
     const languageId = contribution.languageId;
-    const disabledFeatures = contribution.disabledFeatures ?? [];
+    const disabledFeatures = contribution.disabledGlspFeatures ?? [];
 
     // Check if feature is disabled (with glsp. prefix support)
     const isDisabled = this.isFeatureDisabled(featureName, disabledFeatures);
@@ -168,7 +168,7 @@ export class GlspProviderResolver {
     featureName: keyof GlspFeatureProviders,
     contribution: LanguageContribution
   ): boolean {
-    const disabledFeatures = contribution.disabledFeatures ?? [];
+    const disabledFeatures = contribution.disabledGlspFeatures ?? [];
     return !this.isFeatureDisabled(featureName, disabledFeatures);
   }
 
@@ -179,7 +179,7 @@ export class GlspProviderResolver {
    */
   private isFeatureDisabled(
     featureName: string,
-    disabledFeatures: string[]
+    disabledFeatures: readonly string[]
   ): boolean {
     const disabledSet = new Set(disabledFeatures);
     return (
@@ -217,7 +217,7 @@ export class GlspProviderResolver {
     const result = this.merger.merge(
       this.defaultProviders,
       contribution.glspProviders,
-      contribution.disabledFeatures
+      contribution.disabledGlspFeatures
     );
 
     // Cache result
@@ -315,13 +315,14 @@ export function resolveGlspProvider<K extends keyof GlspFeatureProviders>(
   defaultProviders: GlspFeatureProviders
 ): GlspFeatureProviders[K] | undefined {
   const merger = createGlspFeatureMerger({ deepMerge: true });
-  const disabledFeatures = contribution.disabledFeatures ?? [];
+  const disabledFeatures = contribution.disabledGlspFeatures ?? [];
 
   // Check if disabled
-  const disabledSet = new Set(disabledFeatures);
+  const disabledSet = new Set<string>(disabledFeatures);
+  const featureNameStr = String(featureName);
   if (
-    disabledSet.has(featureName) ||
-    disabledSet.has(`glsp.${featureName}`)
+    disabledSet.has(featureNameStr) ||
+    disabledSet.has(`glsp.${featureNameStr}`)
   ) {
     return undefined;
   }

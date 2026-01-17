@@ -41,6 +41,8 @@
   "dependencies": {
     "@sanyam/grammar-scanner": "workspace:*",
     "@sanyam/types": "workspace:*",
+    "@sanyam-grammar/ecml": "workspace:*",
+    "@sanyam-grammar/example-minimal": "workspace:*",
     "@eclipse-glsp/server-node": "^1.0.0",
     "inversify": "^6.0.1",
     "langium": "^4.0.0",
@@ -50,11 +52,13 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
     "esbuild": "^0.20.0",
     "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
     "typescript": "~5.6.3",
     "vsce": "^2.15.0",
+    "vscode-languageclient": "^9.0.1",
     "yaml": "^2.3.4"
   },
   "peerDependencies": {

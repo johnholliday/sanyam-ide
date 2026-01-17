@@ -13,7 +13,7 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
-import { isNamed, streamAllContents } from 'langium';
+import { isNamed, streamAllContents } from '../helpers/langium-compat.js';
 
 /**
  * Default code lens provider.
@@ -32,7 +32,7 @@ export const defaultCodeLensProvider = {
     const codeLensProvider = services.lsp.CodeLensProvider;
     if (codeLensProvider) {
       try {
-        const result = await codeLensProvider.getCodeLens(document, params, token);
+        const result = await codeLensProvider.provideCodeLens(document, params, token);
         if (result && result.length > 0) {
           return result;
         }

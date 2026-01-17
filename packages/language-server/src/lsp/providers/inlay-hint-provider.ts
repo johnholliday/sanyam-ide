@@ -13,7 +13,8 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
-import { isReference, streamAllContents } from 'langium';
+import { streamAllContents, asRecord } from '../helpers/langium-compat.js';
+import { isReference } from 'langium';
 
 /**
  * Default inlay hint provider.
@@ -173,7 +174,7 @@ function inferType(node: AstNode): string | null {
       continue;
     }
 
-    const value = (node as Record<string, unknown>)[prop];
+    const value = asRecord(node)[prop];
 
     // Infer from literal types
     if (typeof value === 'string') {
@@ -264,7 +265,7 @@ function getCallee(callNode: AstNode): AstNode | null {
 
   for (const prop of calleeProps) {
     if (prop in callNode) {
-      const value = (callNode as Record<string, unknown>)[prop];
+      const value = asRecord(callNode)[prop];
       if (isReference(value) && value.ref) {
         return value.ref;
       }
@@ -283,7 +284,7 @@ function getParameterNames(funcNode: AstNode): string[] {
 
   for (const prop of paramProps) {
     if (prop in funcNode) {
-      const params = (funcNode as Record<string, unknown>)[prop];
+      const params = asRecord(funcNode)[prop];
       if (Array.isArray(params)) {
         for (const param of params) {
           if (typeof param === 'object' && param !== null && 'name' in param) {
@@ -306,7 +307,7 @@ function getArguments(callNode: AstNode): AstNode[] {
 
   for (const prop of argProps) {
     if (prop in callNode) {
-      const args = (callNode as Record<string, unknown>)[prop];
+      const args = asRecord(callNode)[prop];
       if (Array.isArray(args)) {
         return args.filter((a): a is AstNode =>
           typeof a === 'object' && a !== null && '$type' in a

@@ -59,7 +59,7 @@ export class FeatureMerger {
   merge(
     defaultProviders: LspFeatureProviders,
     customProviders?: Partial<LspFeatureProviders>,
-    disabledFeatures?: string[]
+    disabledFeatures?: readonly string[]
   ): MergeResult<LspFeatureProviders> {
     const result: MergeResult<LspFeatureProviders> = {
       providers: {} as LspFeatureProviders,
@@ -165,7 +165,7 @@ export class FeatureMerger {
   /**
    * Check if a feature is disabled.
    */
-  isDisabled(featureName: string, disabledFeatures?: string[]): boolean {
+  isDisabled(featureName: string, disabledFeatures?: readonly string[]): boolean {
     if (!disabledFeatures || disabledFeatures.length === 0) {
       return false;
     }
@@ -264,7 +264,7 @@ export const defaultFeatureMerger = createFeatureMerger();
 export function mergeProviders(
   defaultProviders: LspFeatureProviders,
   customProviders?: Partial<LspFeatureProviders>,
-  disabledFeatures?: string[]
+  disabledFeatures?: readonly string[]
 ): LspFeatureProviders {
   return defaultFeatureMerger.merge(defaultProviders, customProviders, disabledFeatures).providers;
 }
@@ -295,7 +295,7 @@ export function isFeatureEnabled(
  */
 export function isFeatureDisabled(
   featureName: string,
-  disabledFeatures: string[]
+  disabledFeatures: readonly string[]
 ): boolean {
   if (!disabledFeatures || disabledFeatures.length === 0) {
     return false;

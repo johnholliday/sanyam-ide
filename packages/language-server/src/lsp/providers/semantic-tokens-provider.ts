@@ -15,7 +15,8 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext, SemanticTokensLegend } from '@sanyam/types';
 import type { AstNode, CstNode } from 'langium';
-import { streamAllContents, isNamed, isReference } from 'langium';
+import { streamAllContents, isNamed } from '../helpers/langium-compat.js';
+import { isReference } from 'langium';
 
 /**
  * Default token types for semantic highlighting.

@@ -9,7 +9,8 @@
 
 import type { LangiumDocument } from 'langium';
 import type { TextEdit, Range, Position } from 'vscode-languageserver';
-import { Emitter, Event, Disposable, DisposableCollection } from 'vscode-languageserver';
+import { Emitter, Event, Disposable } from 'vscode-languageserver';
+import { DisposableCollection } from '../../utils/disposable.js';
 
 /**
  * Operation result with text edits.
@@ -299,10 +300,15 @@ export class DiagramToTextSync implements Disposable {
     });
 
     const merged: TextEdit[] = [];
-    let current = sorted[0];
+    let current: TextEdit | undefined = sorted[0];
+
+    if (!current) {
+      return merged;
+    }
 
     for (let i = 1; i < sorted.length; i++) {
       const next = sorted[i];
+      if (!next) continue;
 
       // Check if edits overlap
       if (this.editsOverlap(current, next)) {
@@ -536,10 +542,16 @@ export function createDocumentTextEditApplier(
 function getOffset(lines: string[], position: Position): number {
   let offset = 0;
   for (let i = 0; i < position.line && i < lines.length; i++) {
-    offset += lines[i].length + 1; // +1 for newline
+    const line = lines[i];
+    if (line !== undefined) {
+      offset += line.length + 1; // +1 for newline
+    }
   }
   if (position.line < lines.length) {
-    offset += Math.min(position.character, lines[position.line].length);
+    const line = lines[position.line];
+    if (line !== undefined) {
+      offset += Math.min(position.character, line.length);
+    }
   }
   return offset;
 }

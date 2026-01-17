@@ -13,7 +13,7 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
-import { streamAllContents } from 'langium';
+import { streamAllContents } from '../helpers/langium-compat.js';
 
 /**
  * Default folding range provider that creates folds for AST blocks.

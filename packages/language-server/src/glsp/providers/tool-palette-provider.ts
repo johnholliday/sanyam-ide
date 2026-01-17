@@ -6,7 +6,8 @@
  * @packageDocumentation
  */
 
-import type { GlspContext, ToolPaletteProvider } from '@sanyam/types';
+import type { GlspContext } from '@sanyam/types';
+import type { ToolPaletteProvider } from '../provider-types.js';
 
 /**
  * Tool item in the palette.
@@ -65,7 +66,7 @@ export interface ToolPalette {
 /**
  * Default tool palette provider implementation.
  */
-export const defaultToolPaletteProvider: ToolPaletteProvider = {
+export const defaultToolPaletteProvider = {
   /**
    * Generate tool palette configuration.
    */

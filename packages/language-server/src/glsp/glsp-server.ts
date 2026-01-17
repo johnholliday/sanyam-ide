@@ -10,7 +10,8 @@
  * @packageDocumentation
  */
 
-import type { LangiumCoreServices, LangiumDocument, CancellationToken } from 'langium';
+import type { LangiumCoreServices, LangiumDocument } from 'langium';
+import type { CancellationToken } from 'vscode-languageserver';
 import type { GlspContext, LanguageContribution, GlspFeatureProviders } from '@sanyam/types';
 import { GlspContextFactory, createGlspContextFactory } from './glsp-context-factory.js';
 import { LangiumSourceModelStorage, createLangiumSourceModelStorage } from './langium-source-model-storage.js';
@@ -97,7 +98,8 @@ export class GlspServer {
     config?: GlspServerConfig
   ) {
     this.config = config ?? {};
-    this.contextFactory = createGlspContextFactory(services);
+    // Cast to LangiumServices - the GLSP context factory uses a subset of services
+    this.contextFactory = createGlspContextFactory(services as any);
     this.sourceModelStorage = createLangiumSourceModelStorage(services);
     this.gModelFactory = createManifestDrivenGModelFactory();
 
@@ -142,8 +144,8 @@ export class GlspServer {
       customProviders.astToGModel ?? allDefaultGlspProviders.astToGModel
     );
     this.providerRegistry.register(
-      'gModelToAst',
-      customProviders.gModelToAst ?? allDefaultGlspProviders.gModelToAst
+      'gmodelToAst',
+      customProviders.gmodelToAst ?? allDefaultGlspProviders.gmodelToAst
     );
     this.providerRegistry.register(
       'toolPalette',
@@ -163,7 +165,7 @@ export class GlspServer {
     );
 
     // Set defaults in the provider resolver for language-specific resolution
-    this.providerResolver.setDefaultProviders(allDefaultGlspProviders as GlspFeatureProviders);
+    this.providerResolver.setDefaultProviders(allDefaultGlspProviders as unknown as GlspFeatureProviders);
   }
 
   /**
@@ -225,8 +227,18 @@ export class GlspServer {
 
     // Convert AST to GModel using resolver if contribution exists
     const astToGModel = this.getResolvedProvider('astToGModel', contribution);
-    if (astToGModel) {
-      const gModel = astToGModel.convert(context);
+    if (astToGModel?.convert && contribution?.manifest) {
+      // Create conversion context
+      const conversionContext = {
+        manifest: contribution.manifest,
+        diagramType: contribution.manifest.diagramTypes?.[0] ?? { astType: 'Model', displayName: 'Model', diagramId: 'model' },
+        idCounter: { value: 0 },
+        nodeMap: new Map(),
+        idMap: new Map(),
+      };
+      const gModelResult = astToGModel.convert(document.parseResult.value, conversionContext as any);
+      // Handle both sync and async results
+      const gModel = gModelResult instanceof Promise ? await gModelResult : gModelResult;
       context.gModel = gModel;
     }
 

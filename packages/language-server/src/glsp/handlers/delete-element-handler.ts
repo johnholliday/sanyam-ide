@@ -87,7 +87,7 @@ export const deleteElementHandler = {
         if (!element) continue;
 
         // Delete from AST first
-        const applyResult = defaultGModelToAstProvider.deleteElement(context, elementId);
+        const applyResult = defaultGModelToAstProvider.deleteNode(context, elementId);
         if (applyResult.textEdits) {
           allTextEdits.push(...applyResult.textEdits);
         }

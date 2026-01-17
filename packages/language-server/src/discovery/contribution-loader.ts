@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import { inject, type Module } from 'langium';
+import { inject } from 'langium';
 import {
   createDefaultModule,
   createDefaultSharedModule,
@@ -21,6 +21,9 @@ import type {
   GlspFeatureProviders,
 } from '@sanyam/types';
 import { LanguageRegistry } from '../language-registry.js';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyModule = any;
 
 /**
  * Options for loading contributions.
@@ -77,7 +80,8 @@ export async function loadContributions(
   const errors: string[] = [];
 
   // Collect all shared modules to compose together
-  const sharedModules: Module<LangiumSharedServices>[] = [
+  // Using AnyModule to handle Langium 4.x module type variance
+  const sharedModules: AnyModule[] = [
     createDefaultSharedModule(options.context),
   ];
 
@@ -87,7 +91,8 @@ export async function loadContributions(
   }
 
   // Create composed shared services
-  const sharedServices = inject(...sharedModules);
+  // Cast to tuple to satisfy TypeScript's spread requirement
+  const sharedServices = inject(...(sharedModules as [AnyModule, ...AnyModule[]])) as LangiumSharedServices;
 
   // Set shared services on registry
   registry.setSharedServices(sharedServices);
@@ -149,7 +154,8 @@ function createLanguageServices(
   contribution: LanguageContributionInterface,
   sharedServices: LangiumSharedServices
 ): LangiumServices {
-  const modules: Module<LangiumServices>[] = [
+  // Using AnyModule to handle Langium 4.x module type variance
+  const modules: AnyModule[] = [
     // Start with Langium defaults
     createDefaultModule({ shared: sharedServices }),
     // Add generated module
@@ -162,7 +168,8 @@ function createLanguageServices(
   }
 
   // Compose all modules
-  const services = inject(...modules);
+  // Cast to tuple to satisfy TypeScript's spread requirement
+  const services = inject(...(modules as [AnyModule, ...AnyModule[]])) as LangiumServices;
 
   // Register with shared service registry
   sharedServices.ServiceRegistry.register(services);

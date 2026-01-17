@@ -13,7 +13,9 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext, WorkspaceContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
-import { findLeafNodeAtOffset, getDocument, isNamed, isReference, streamAllContents } from 'langium';
+import { URI } from 'langium';
+import { findLeafNodeAtOffsetSafe, getDocument, isNamed, streamAllContents, asRecord } from '../helpers/langium-compat.js';
+import { isReference } from 'langium';
 
 /**
  * Default type hierarchy provider.
@@ -51,7 +53,7 @@ export const defaultTypeHierarchyProvider = {
     const offset = document.textDocument.offsetAt(params.position);
 
     // Find the CST node at the position
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode?.astNode) {
       return null;
     }
@@ -81,7 +83,7 @@ export const defaultTypeHierarchyProvider = {
     const { shared, token } = context;
 
     // Find the type by URI and position
-    const doc = shared.workspace.LangiumDocuments.getDocument(item.uri);
+    const doc = shared.workspace.LangiumDocuments.getDocument(URI.parse(item.uri));
     if (!doc) {
       return null;
     }
@@ -92,8 +94,8 @@ export const defaultTypeHierarchyProvider = {
     }
 
     // Find the type at the item position
-    const offset = doc.textDocument.positionAt(item.selectionRange.start);
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const offset = doc.textDocument.offsetAt(item.selectionRange.start);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode?.astNode) {
       return null;
     }
@@ -119,7 +121,7 @@ export const defaultTypeHierarchyProvider = {
     const { shared, token } = context;
 
     // Find the type by URI and position
-    const doc = shared.workspace.LangiumDocuments.getDocument(item.uri);
+    const doc = shared.workspace.LangiumDocuments.getDocument(URI.parse(item.uri));
     if (!doc) {
       return null;
     }
@@ -130,8 +132,8 @@ export const defaultTypeHierarchyProvider = {
     }
 
     // Find the type at the item position
-    const offset = doc.textDocument.positionAt(item.selectionRange.start);
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const offset = doc.textDocument.offsetAt(item.selectionRange.start);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode?.astNode) {
       return null;
     }
@@ -252,7 +254,7 @@ function findSupertypes(
       continue;
     }
 
-    const value = (typeNode as Record<string, unknown>)[prop];
+    const value = asRecord(typeNode)[prop];
 
     // Single supertype
     if (isReference(value) && value.ref) {
@@ -347,7 +349,7 @@ function isSubtypeOf(
       continue;
     }
 
-    const value = (node as Record<string, unknown>)[prop];
+    const value = asRecord(node)[prop];
 
     if (isReference(value)) {
       if (value.ref === target || value.$refText === targetName) {
@@ -393,7 +395,7 @@ export function createTypeHierarchyProvider(
       }
 
       const offset = document.textDocument.offsetAt(params.position);
-      const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+      const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
       if (!cstNode?.astNode) {
         return null;
       }

@@ -6,14 +6,15 @@
  * @packageDocumentation
  */
 
-import type { GlspContext, LayoutProvider } from '@sanyam/types';
-import type { GModelRoot, GModelElement, GModelNode, GModelEdge, Point, Dimension } from '../conversion-types.js';
+import type { GlspContext } from '@sanyam/types';
+import type { LayoutProvider } from '../provider-types.js';
+import type { GModelElement, GModelNode, GModelEdge, Point, Dimension } from '../conversion-types.js';
 import { isNode, isEdge } from '../conversion-types.js';
 
 /**
  * Layout algorithm type.
  */
-export type LayoutAlgorithm = 'grid' | 'tree' | 'force' | 'layered' | 'none';
+export type LayoutAlgorithm = 'grid' | 'tree' | 'force' | 'force-directed' | 'layered' | 'none';
 
 /**
  * Layout options.
@@ -60,7 +61,7 @@ const DEFAULT_OPTIONS: LayoutOptions = {
 /**
  * Default layout provider implementation.
  */
-export const defaultLayoutProvider: LayoutProvider = {
+export const defaultLayoutProvider = {
   /**
    * Apply layout to the entire model.
    */
@@ -325,9 +326,14 @@ export const defaultLayoutProvider: LayoutProvider = {
 
       // Repulsion between all nodes
       for (let i = 0; i < nodes.length; i++) {
+        const nodeI = nodes[i];
+        if (!nodeI) continue;
         for (let j = i + 1; j < nodes.length; j++) {
-          const pos1 = positions.get(nodes[i].id)!;
-          const pos2 = positions.get(nodes[j].id)!;
+          const nodeJ = nodes[j];
+          if (!nodeJ) continue;
+          const pos1 = positions.get(nodeI.id);
+          const pos2 = positions.get(nodeJ.id);
+          if (!pos1 || !pos2) continue;
 
           const dx = pos2.x - pos1.x;
           const dy = pos2.y - pos1.y;
@@ -337,8 +343,9 @@ export const defaultLayoutProvider: LayoutProvider = {
           const fx = (dx / dist) * force;
           const fy = (dy / dist) * force;
 
-          const f1 = forces.get(nodes[i].id)!;
-          const f2 = forces.get(nodes[j].id)!;
+          const f1 = forces.get(nodeI.id);
+          const f2 = forces.get(nodeJ.id);
+          if (!f1 || !f2) continue;
 
           f1.fx -= fx;
           f1.fy -= fy;

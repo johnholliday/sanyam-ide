@@ -98,7 +98,7 @@ export class ProviderResolver {
     contribution: LanguageContribution
   ): ResolvedProvider<LspFeatureProviders[K]> {
     const languageId = contribution.languageId;
-    const disabledFeatures = contribution.disabledFeatures ?? [];
+    const disabledFeatures = contribution.disabledLspFeatures ?? [];
 
     // Check if feature is disabled
     if (this.merger.isDisabled(featureName, disabledFeatures)) {
@@ -156,7 +156,7 @@ export class ProviderResolver {
     featureName: keyof LspFeatureProviders,
     contribution: LanguageContribution
   ): boolean {
-    const disabledFeatures = contribution.disabledFeatures ?? [];
+    const disabledFeatures = contribution.disabledLspFeatures ?? [];
     return !this.merger.isDisabled(featureName, disabledFeatures);
   }
 
@@ -182,7 +182,7 @@ export class ProviderResolver {
     const result = this.merger.merge(
       this.defaultProviders,
       contribution.lspProviders,
-      contribution.disabledFeatures
+      contribution.disabledLspFeatures
     );
 
     // Cache result
@@ -249,7 +249,7 @@ export function resolveProvider<K extends keyof LspFeatureProviders>(
   defaultProviders: LspFeatureProviders
 ): LspFeatureProviders[K] | undefined {
   const merger = createFeatureMerger();
-  const disabledFeatures = contribution.disabledFeatures ?? [];
+  const disabledFeatures = contribution.disabledLspFeatures ?? [];
 
   // Check if disabled
   if (merger.isDisabled(featureName, disabledFeatures)) {

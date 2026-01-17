@@ -13,7 +13,8 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import type { AstNode, CstNode, Reference } from 'langium';
-import { findLeafNodeAtOffset, isNamed, isReference, streamAllContents } from 'langium';
+import { findLeafNodeAtOffsetSafe, isNamed, streamAllContents } from '../helpers/langium-compat.js';
+import { isReference } from 'langium';
 
 /**
  * Default linked editing range provider.
@@ -28,18 +29,8 @@ export const defaultLinkedEditingRangeProvider = {
   ): Promise<LinkedEditingRanges | null> {
     const { document, services, token } = context;
 
-    // Check for built-in linked editing provider first
-    const linkedEditingProvider = services.lsp.LinkedEditingRangeProvider;
-    if (linkedEditingProvider) {
-      try {
-        const result = await linkedEditingProvider.getLinkedEditingRanges(document, params, token);
-        if (result) {
-          return result;
-        }
-      } catch (error) {
-        console.error('Error in Langium LinkedEditingRangeProvider:', error);
-      }
-    }
+    // Note: Langium 4.x doesn't provide a LinkedEditingRangeProvider
+    // We use our own implementation below
 
     // Fall back to our implementation
     const rootNode = document.parseResult?.value;
@@ -51,7 +42,7 @@ export const defaultLinkedEditingRangeProvider = {
     const offset = document.textDocument.offsetAt(params.position);
 
     // Find the CST node at the position
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode?.astNode) {
       return null;
     }
@@ -252,7 +243,7 @@ export function createLinkedEditingRangeProvider(
       }
 
       const offset = document.textDocument.offsetAt(params.position);
-      const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+      const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
       if (!cstNode?.astNode) {
         return null;
       }

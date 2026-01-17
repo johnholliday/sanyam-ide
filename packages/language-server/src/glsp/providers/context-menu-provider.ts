@@ -6,7 +6,8 @@
  * @packageDocumentation
  */
 
-import type { GlspContext, ContextMenuProvider } from '@sanyam/types';
+import type { GlspContext } from '@sanyam/types';
+import type { ContextMenuProvider } from '../provider-types.js';
 import type { GModelElement, GModelNode, GModelEdge } from '../conversion-types.js';
 import { isNode, isEdge } from '../conversion-types.js';
 
@@ -61,7 +62,7 @@ export interface ContextMenu {
 /**
  * Default context menu provider implementation.
  */
-export const defaultContextMenuProvider: ContextMenuProvider = {
+export const defaultContextMenuProvider = {
   /**
    * Get context menu for selected elements.
    */
@@ -77,7 +78,11 @@ export const defaultContextMenuProvider: ContextMenuProvider = {
       items.push(...this.getCanvasMenuItems(context, position));
     } else if (selectedIds.length === 1) {
       // Single element context menu
-      const element = this.findElement(context, selectedIds[0]);
+      const selectedId = selectedIds[0];
+      if (!selectedId) {
+        return { items };
+      }
+      const element = this.findElement(context, selectedId);
       if (element) {
         if (isNode(element)) {
           items.push(...this.getNodeMenuItems(context, element));

@@ -15,7 +15,7 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
-import { findLeafNodeAtOffset, getDocument, isNamed } from 'langium';
+import { findLeafNodeAtOffsetSafe, getDocument, isNamed } from '../helpers/langium-compat.js';
 
 /**
  * Default rename provider that uses Langium's rename service.
@@ -53,7 +53,7 @@ export const defaultRenameProvider = {
     const offset = document.textDocument.offsetAt(params.position);
 
     // Find the CST node at the position
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode?.astNode) {
       return null;
     }
@@ -108,7 +108,7 @@ export const defaultRenameProvider = {
     const offset = document.textDocument.offsetAt(params.position);
 
     // Find the CST node at the position
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode?.astNode) {
       return null;
     }
@@ -228,7 +228,8 @@ async function buildRenameEdits(
   }
 
   // Find and add edits for all references
-  const references = shared.References;
+  // Note: In Langium 4.x, References is on language-specific services, not shared services
+  const references: { findReferences?: (target: AstNode) => Iterable<{ sourceNode: AstNode }> } | undefined = undefined;
   if (references && 'findReferences' in references) {
     try {
       const finder = references as { findReferences: (target: AstNode) => Iterable<{ sourceNode: AstNode }> };
@@ -292,7 +293,7 @@ export function createRenameProvider(
       }
 
       const offset = document.textDocument.offsetAt(params.position);
-      const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+      const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
       if (!cstNode?.astNode) {
         return null;
       }

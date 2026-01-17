@@ -13,7 +13,8 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import type { AstNode, CstNode, Reference } from 'langium';
-import { findLeafNodeAtOffset, getDocument, isReference, isNamed } from 'langium';
+import { findLeafNodeAtOffsetSafe, getDocument, isNamed } from '../helpers/langium-compat.js';
+import { isReference } from 'langium';
 
 /**
  * Default definition provider that uses Langium's reference resolution.
@@ -51,7 +52,7 @@ export const defaultDefinitionProvider = {
     const offset = document.textDocument.offsetAt(params.position);
 
     // Find the CST node at the position
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode) {
       return null;
     }
@@ -204,7 +205,7 @@ export function createDefinitionProvider(
       }
 
       const offset = document.textDocument.offsetAt(params.position);
-      const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+      const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
       if (!cstNode?.astNode) {
         return null;
       }

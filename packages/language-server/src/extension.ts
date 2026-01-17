@@ -71,7 +71,6 @@ export async function activate(context: ExtensionContext): Promise<void> {
       ],
     },
     outputChannelName: 'Sanyam Language Server',
-    traceOutputChannelName: 'Sanyam Language Server Trace',
   };
 
   // Create the language client

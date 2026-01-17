@@ -13,7 +13,8 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
-import { findLeafNodeAtOffset, getDocument, isNamed, isReference, streamAllContents } from 'langium';
+import { findLeafNodeAtOffsetSafe, getDocument, isNamed, streamAllContents, asRecord } from '../helpers/langium-compat.js';
+import { isReference } from 'langium';
 
 /**
  * Default implementation provider.
@@ -51,7 +52,7 @@ export const defaultImplementationProvider = {
     const offset = document.textDocument.offsetAt(params.position);
 
     // Find the CST node at the position
-    const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+    const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
     if (!cstNode?.astNode) {
       return null;
     }
@@ -174,7 +175,7 @@ function isImplementationOf(
       continue;
     }
 
-    const value = (node as Record<string, unknown>)[prop];
+    const value = asRecord(node)[prop];
 
     // Single reference
     if (isReference(value)) {
@@ -228,7 +229,7 @@ export function createImplementationProvider(
       }
 
       const offset = document.textDocument.offsetAt(params.position);
-      const cstNode = findLeafNodeAtOffset(rootNode.$cstNode, offset);
+      const cstNode = findLeafNodeAtOffsetSafe(rootNode.$cstNode, offset);
       if (!cstNode?.astNode) {
         return null;
       }

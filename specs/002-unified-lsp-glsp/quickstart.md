@@ -61,7 +61,7 @@ cd grammars/mygrammar
 
 ```json
 {
-  "name": "@sanyam/grammar-mygrammar",
+  "name": "@sanyam-grammar/mygrammar",
   "version": "1.0.0",
   "type": "module",
   "main": "./lib/index.js",

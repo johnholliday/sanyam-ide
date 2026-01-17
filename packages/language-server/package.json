@@ -39,6 +39,7 @@
     "package:vsix": "npm run build:vsix && vsce package"
   },
   "dependencies": {
+    "@sanyam/grammar-scanner": "workspace:*",
     "@sanyam/types": "workspace:*",
     "@eclipse-glsp/server-node": "^1.0.0",
     "inversify": "^6.0.1",

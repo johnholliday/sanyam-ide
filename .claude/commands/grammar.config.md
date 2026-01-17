@@ -1,5 +1,5 @@
 ---
-description: Generate grammar package with GrammarManifest from Langium grammar
+description: Generate grammar package with LanguageContribution from Langium grammar
 handoffs:
   - label: Plan Implementation
     agent: speckit.plan
@@ -13,7 +13,13 @@ $ARGUMENTS
 
 ## Outline
 
-This command generates a grammar package with `GrammarManifest` export for the SANYAM platform. It supports three input modes:
+This command generates a grammar package with `LanguageContribution` export for the SANYAM platform. The generated package follows the spec from `002-unified-lsp-glsp` and includes:
+
+- `src/manifest.ts` - `GrammarManifest` configuration
+- `src/contribution.ts` - `LanguageContribution` factory
+- `package.json` - Package with `sanyam` discovery metadata
+
+It supports three input modes:
 
 1. **Grammar name** (`mygrammar`) - Uses existing grammar or creates starter
 2. **Grammar file path** (`mygrammar.langium` or path/to/grammar.langium) - Uses specified grammar file
@@ -29,12 +35,14 @@ Parse `$ARGUMENTS` to determine the input mode:
 - **Simple name** (alphanumeric with hyphens): Grammar name
 
 For grammar names, apply normalization:
+
 - Convert to lowercase
 - Replace spaces and underscores with hyphens
 - Remove special characters except hyphens
 - Validate: must start with letter, alphanumeric with hyphens only
 
 If the name is invalid, report error:
+
 ```
 Error: Invalid grammar name '{name}'
 Grammar names must:
@@ -48,14 +56,16 @@ Grammar names must:
 Based on the detected mode:
 
 **For grammar name:**
-- Expected location: `grammars/{name}/{name}.langium`
+
+- Expected location: `packages/grammar/{name}.langium`
 - Check if file exists
 
 **For file path:**
+
 - If absolute path, use directly
 - If relative path, resolve from workspace root
 - Extract grammar name from filename (without `.langium` extension)
-- Target directory: `grammars/{name}/`
+- Target directory: `packages/grammar/{name}/`
 
 ### Step 3: Check for Existing Grammar
 
@@ -64,6 +74,7 @@ Check if the grammar file exists at the resolved location.
 **If grammar exists** → Proceed to Step 4 (parse existing grammar)
 
 **If grammar does NOT exist:**
+
 - For simple name input → User Story 2: Create starter grammar (see separate section below)
 - For quoted string input → User Story 3: AI-generate grammar (see separate section below)
 - For explicit file path → Error: "Grammar file not found at '{path}'"
@@ -78,6 +89,7 @@ Read the `.langium` file and extract:
 4. **Terminal rules**: Look for `terminal {NAME}:` patterns - used for basic validation
 
 **Extraction patterns:**
+
 ```
 Grammar declaration: /^grammar\s+([A-Z][a-zA-Z0-9]*)/m
 Entry rules: /entry\s+([A-Z][a-zA-Z0-9]*)\s*:/g
@@ -86,6 +98,7 @@ Terminal rules: /terminal\s+([A-Z_]+)/g
 ```
 
 If parsing fails:
+
 ```
 Error: Failed to parse grammar file '{path}'
 {specific error details with line/column if available}
@@ -131,6 +144,7 @@ else → 'symbol-namespace'
 ```
 
 **Template generation:**
+
 ```typescript
 // For a type like "Task"
 `task \${name} {
@@ -143,7 +157,8 @@ else → 'symbol-namespace'
 
 For each rootType, generate corresponding diagram configuration:
 
-**DiagramNodeConfig:**
+**DiagramNodeConfig:** (embedded in RootTypeConfig)
+
 ```typescript
 {
   glspType: `node:${astType.toLowerCase()}`,
@@ -155,6 +170,7 @@ For each rootType, generate corresponding diagram configuration:
 
 **DiagramTypeConfig:**
 Create a single overview diagram type:
+
 ```typescript
 {
   id: `${languageId}-overview`,
@@ -166,7 +182,8 @@ Create a single overview diagram type:
 }
 ```
 
-**NodeTypeConfig:** (for each rootType)
+**NodeTypeConfig:** (for each rootType in diagramTypes)
+
 ```typescript
 {
   glspType: `node:${astType.toLowerCase()}`,
@@ -176,6 +193,7 @@ Create a single overview diagram type:
 ```
 
 **EdgeTypeConfig:** (default connection edge)
+
 ```typescript
 {
   glspType: 'edge:connection',
@@ -186,6 +204,7 @@ Create a single overview diagram type:
 
 **ToolPaletteConfig:**
 Group tools by category. Create one "Elements" group with items for each rootType:
+
 ```typescript
 {
   groups: [{
@@ -204,58 +223,227 @@ Group tools by category. Create one "Elements" group with items for each rootTyp
 }
 ```
 
-### Step 7: Generate manifest.ts
+### Step 7: Generate src/manifest.ts
 
-Create `grammars/{name}/manifest.ts` with the complete `GrammarManifest` export:
+Create `packages/grammar/{name}/src/manifest.ts` with the complete `GrammarManifest` export:
 
 ```typescript
+/**
+ * {DisplayName} Grammar Manifest
+ *
+ * Declarative configuration for UI presentation, file organization,
+ * and diagram rendering.
+ *
+ * @packageDocumentation
+ */
+
 import type { GrammarManifest } from '@sanyam/types';
 
-export const {GRAMMAR_NAME_UPPERCASE}_MANIFEST: GrammarManifest = {
+/**
+ * {DisplayName} Grammar Manifest
+ */
+export const manifest: GrammarManifest = {
   languageId: '{languageId}',
   displayName: '{DisplayName}',
   fileExtension: '.{ext}',
   baseExtension: '.{ext}',
   rootTypes: [
-    // ... generated rootTypes
+    {
+      astType: '{AstType}',
+      displayName: '{Display Name}',
+      fileSuffix: '.{suffix}',
+      folder: '{folder}',
+      icon: '{icon}',
+      template: `{template content}`,
+      templateInputs: [
+        { id: 'name', label: '{Display Name} Name', type: 'string', required: true },
+      ],
+      diagramNode: {
+        glspType: 'node:{lowercase}',
+        shape: 'rectangle',
+        cssClass: '{lowercase}-node',
+        defaultSize: { width: 150, height: 60 },
+      },
+    },
+    // ... additional rootTypes
   ],
   diagrammingEnabled: true,
   diagramTypes: [
-    // ... generated diagramTypes
-  ]
+    {
+      id: '{languageId}-overview',
+      displayName: '{DisplayName} Overview',
+      fileType: 'Model',
+      nodeTypes: [
+        { glspType: 'node:{lowercase}', creatable: true, showable: true },
+        // ... for each rootType
+      ],
+      edgeTypes: [
+        { glspType: 'edge:connection', creatable: true, showable: true },
+      ],
+      toolPalette: {
+        groups: [
+          {
+            id: 'elements',
+            label: 'Elements',
+            items: [
+              {
+                id: 'create-{lowercase}',
+                label: '{Display Name}',
+                icon: '{icon}',
+                action: { type: 'create-node', glspType: 'node:{lowercase}' },
+              },
+              // ... for each rootType
+            ],
+          },
+        ],
+      },
+    },
+  ],
 };
+
+export default manifest;
 ```
 
-The export name follows the pattern: `{GRAMMAR_NAME_UPPERCASE}_MANIFEST`
-- Convert grammar name to uppercase
-- Replace hyphens with underscores
-- Append `_MANIFEST`
+### Step 8: Generate src/contribution.ts
 
-Example: `my-grammar` → `MY_GRAMMAR_MANIFEST`
+Create `packages/grammar/{name}/src/contribution.ts` with the `LanguageContribution` factory:
 
-### Step 8: Generate package.json
+```typescript
+/**
+ * {DisplayName} Language Contribution
+ *
+ * Exports the LanguageContribution for registration with the unified server.
+ *
+ * @packageDocumentation
+ */
 
-Create `grammars/{name}/package.json`:
+import type { Module } from 'langium';
+import type { LangiumServices, LangiumSharedServices } from 'langium/lsp';
+import type {
+  LanguageContribution,
+  LspFeatureProviders,
+  GlspFeatureProviders,
+} from '@sanyam/types';
+
+import { manifest } from './manifest.js';
+import {
+  {GrammarName}GeneratedModule,
+  {GrammarName}GeneratedSharedModule,
+} from './generated/module.js';
+
+/**
+ * Custom LSP providers for {DisplayName}.
+ *
+ * Override default LSP behavior here. Omitted providers use Langium defaults.
+ */
+const lspProviders: Partial<LspFeatureProviders> = {
+  // Add custom LSP providers here
+  // Example:
+  // hover: {
+  //   provide: async (ctx, params) => ({
+  //     contents: { kind: 'markdown', value: '**Custom hover**' }
+  //   })
+  // }
+};
+
+/**
+ * Custom GLSP providers for {DisplayName}.
+ *
+ * Override default diagram behavior here. Omitted providers use manifest-driven defaults.
+ */
+const glspProviders: Partial<GlspFeatureProviders> = {
+  // Add custom GLSP providers here
+  // Example:
+  // astToGModel: {
+  //   getLabel: (ast) => (ast as any).title ?? (ast as any).name ?? 'Unnamed'
+  // }
+};
+
+/**
+ * {DisplayName} Language Contribution
+ *
+ * This is the main export that the unified server discovers and loads.
+ */
+export const contribution: LanguageContribution = {
+  languageId: '{languageId}',
+  fileExtensions: ['.{ext}'],
+  generatedSharedModule: {GrammarName}GeneratedSharedModule as Module<LangiumSharedServices>,
+  generatedModule: {GrammarName}GeneratedModule as Module<LangiumServices>,
+  manifest,
+  lspProviders,
+  glspProviders,
+};
+
+export default contribution;
+```
+
+**Notes on Langium modules:**
+
+- `{GrammarName}GeneratedModule` and `{GrammarName}GeneratedSharedModule` are generated by `langium generate`
+- These are created when the user runs `pnpm langium:generate` or similar
+- The import path `./generated/module.js` is the standard Langium output location
+
+### Step 9: Generate package.json
+
+Create `packages/grammar/{name}/package.json`:
 
 ```json
 {
-  "name": "@sanyam/grammar-{name}",
+  "name": "@sanyam-grammar/{name}",
   "version": "0.0.1",
   "description": "Grammar package for {DisplayName}",
   "type": "module",
-  "main": "./manifest.ts",
+  "main": "./lib/src/contribution.js",
+  "types": "./lib/src/contribution.d.ts",
   "exports": {
-    ".": "./manifest.ts"
+    ".": {
+      "types": "./lib/src/contribution.d.ts",
+      "default": "./lib/src/contribution.js"
+    },
+    "./contribution": {
+      "types": "./lib/src/contribution.d.ts",
+      "default": "./lib/src/contribution.js"
+    },
+    "./manifest": {
+      "types": "./lib/src/manifest.d.ts",
+      "default": "./lib/src/manifest.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "clean": "rimraf lib",
+    "langium:generate": "langium generate",
+    "watch": "tsc -b tsconfig.json --watch"
+  },
+  "sanyam": {
+    "grammar": true,
+    "languageId": "{languageId}",
+    "contribution": "./lib/src/contribution.js"
+  },
+  "dependencies": {
+    "langium": "^4.0.0"
   },
   "peerDependencies": {
     "@sanyam/types": "workspace:*"
+  },
+  "devDependencies": {
+    "langium-cli": "^4.0.0",
+    "rimraf": "^5.0.0",
+    "typescript": "~5.6.0"
   }
 }
 ```
 
-### Step 9: Generate tsconfig.json
+**Key fields:**
 
-Create `grammars/{name}/tsconfig.json` for TypeScript/ESLint integration:
+- `sanyam.grammar: true` - Marks package for build-time discovery
+- `sanyam.languageId` - Language identifier for registry
+- `sanyam.contribution` - Path to LanguageContribution export
+- `exports./contribution` - Enables `import from '@sanyam-grammar/{name}/contribution'`
+
+### Step 10: Generate tsconfig.json
+
+Create `packages/grammar/{name}/tsconfig.json`:
 
 ```json
 {
@@ -264,50 +452,74 @@ Create `grammars/{name}/tsconfig.json` for TypeScript/ESLint integration:
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
+    "outDir": "./lib",
+    "rootDir": ".",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "noUnusedLocals": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "noEmit": true
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "lib"]
 }
 ```
 
-### Step 10: Update ESLint Configuration
+### Step 11: Generate langium-config.json
+
+Create `packages/grammar/{name}/langium-config.json` for Langium CLI:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/eclipse-langium/langium/main/packages/langium-cli/langium-config-schema.json",
+  "projectName": "{GrammarName}",
+  "languages": [
+    {
+      "id": "{languageId}",
+      "grammar": "src/{name}.langium",
+      "fileExtensions": [".{ext}"]
+    }
+  ],
+  "out": "src/generated"
+}
+```
+
+### Step 12: Update ESLint Configuration
 
 Check if the grammar's tsconfig is already included in `.eslintrc.js`. If not, add it to the `parserOptions.project` array.
 
 **Current pattern to find:**
+
 ```javascript
-project: ['./configs/tsconfig.eslint.json', './theia-extensions/*/tsconfig.json', 'applications/electron/tsconfig.eslint.json']
+project: ['./configs/tsconfig.eslint.json', './packages/ide/*/tsconfig.json', 'applications/electron/tsconfig.eslint.json']
 ```
 
-**Updated pattern (if `grammars/*/tsconfig.json` not present):**
+**Updated pattern (if `packages/grammar/*/tsconfig.json` not present):**
+
 ```javascript
-project: ['./configs/tsconfig.eslint.json', './theia-extensions/*/tsconfig.json', 'applications/electron/tsconfig.eslint.json', 'grammars/*/tsconfig.json']
+project: ['./configs/tsconfig.eslint.json', './packages/ide/*/tsconfig.json', 'applications/electron/tsconfig.eslint.json', 'packages/grammar/*/tsconfig.json']
 ```
 
-Only modify `.eslintrc.js` if the `grammars/*/tsconfig.json` pattern is not already present.
+Only modify `.eslintrc.js` if the `packages/grammar/*/tsconfig.json` pattern is not already present.
 
-### Step 11: Report Completion
+### Step 13: Report Completion
 
 Output summary of generated files:
 
 ```
-✓ Grammar package generated successfully!
+Grammar package generated successfully!
 
 Files created:
-  grammars/{name}/manifest.ts    - GrammarManifest export
-  grammars/{name}/package.json   - Package configuration
-  grammars/{name}/tsconfig.json  - TypeScript configuration
-
-Configuration updated:
-  .eslintrc.js                   - Added grammar tsconfig to project references (if not already present)
+  packages/grammar/{name}/src/manifest.ts      - GrammarManifest configuration
+  packages/grammar/{name}/src/contribution.ts  - LanguageContribution export
+  packages/grammar/{name}/package.json         - Package with sanyam discovery metadata
+  packages/grammar/{name}/tsconfig.json        - TypeScript configuration
+  packages/grammar/{name}/langium-config.json  - Langium CLI configuration
 
 Grammar: {DisplayName}
 Language ID: {languageId}
@@ -315,28 +527,49 @@ Root Types: {count} ({list of type names})
 Diagramming: Enabled
 
 Next steps:
-1. Review and customize the generated manifest.ts
-2. Run 'pnpm install' to link the new grammar package
-3. Import the manifest in your platform configuration:
-   import { {MANIFEST_NAME} } from '@sanyam/grammar-{name}';
+1. Generate Langium modules:
+   cd packages/grammar/{name} && pnpm langium:generate
+
+2. Build the grammar package:
+   pnpm build
+
+3. Install workspace dependencies:
+   pnpm install
+
+4. The grammar will be auto-discovered by the unified server via:
+   - package.json sanyam.grammar: true
+   - sanyam.contribution path
+
+Note: The contribution.ts imports from './generated/module.js' which
+is created by 'langium generate'. Run step 1 before building.
 ```
 
 ---
 
 ## User Story 2: Create New Grammar from Scratch
 
-**Trigger**: Simple name provided, but `grammars/{name}/{name}.langium` does not exist
+**Trigger**: Simple name provided, but `packages/grammar/{name}/src/{name}.langium` does not exist
 
-### US2 Step 1: Create Grammar Directory
+### US2 Step 1: Create Grammar Directory Structure
 
-Create `grammars/{name}/` directory if it doesn't exist.
+Create the full directory structure:
+
+```
+packages/grammar/{name}/
+├── src/
+│   └── {name}.langium
+├── package.json
+├── tsconfig.json
+└── langium-config.json
+```
 
 ### US2 Step 2: Copy Starter Template
 
 Read the starter template from `.claude/templates/starter-grammar.langium` and:
+
 1. Replace `${GrammarName}` placeholder with PascalCase grammar name
    - Convert `my-grammar` → `MyGrammar`
-2. Write to `grammars/{name}/{name}.langium`
+2. Write to `packages/grammar/{name}/src/{name}.langium`
 
 ### US2 Step 3: Continue to Manifest Generation
 
@@ -351,8 +584,8 @@ Note: A starter grammar was created since no existing grammar was found.
 The starter template includes basic Task and Workflow types.
 
 To customize your grammar:
-1. Edit grammars/{name}/{name}.langium
-2. Re-run /grammar-config {name} to regenerate the manifest
+1. Edit packages/grammar/{name}/src/{name}.langium
+2. Re-run /grammar.config {name} to regenerate the manifest
 ```
 
 ---
@@ -369,6 +602,7 @@ To customize your grammar:
 ### US3 Step 2: Derive Grammar Name
 
 From the description, extract a suitable grammar name:
+
 1. Look for key domain nouns (first significant noun phrase)
 2. Convert to kebab-case
 3. Validate the derived name
@@ -382,6 +616,7 @@ If name derivation fails, ask user or use generic name like "custom-dsl".
 Use Claude to generate a Langium grammar based on the description:
 
 **Prompt:**
+
 ```
 Generate a Langium grammar for the following DSL:
 
@@ -403,6 +638,7 @@ Output format:
 ### US3 Step 4: Validate Generated Grammar
 
 Check the generated grammar for:
+
 1. Starts with `grammar {Name}` declaration
 2. Has at least one `entry` rule
 3. Contains terminal rules for ID and STRING
@@ -411,7 +647,9 @@ Check the generated grammar for:
 ### US3 Step 5: Retry on Failure
 
 If validation fails:
+
 1. Retry once with additional guidance:
+
    ```
    The previous grammar had issues: {specific issues}
 
@@ -426,8 +664,10 @@ If validation fails:
 ### US3 Step 6: Fallback to Starter Template
 
 If both attempts fail:
+
 1. Use the starter template from `.claude/templates/starter-grammar.langium`
 2. Add the original description as a comment at the top:
+
    ```langium
    // Generated from description:
    // {description}
@@ -448,16 +688,18 @@ Proceed with Step 4 (parsing) using the generated/fallback grammar.
 After completion, add status to output:
 
 **If AI generation succeeded:**
+
 ```
 Note: Grammar was generated from your description using AI.
-Review grammars/{name}/{name}.langium and adjust as needed.
+Review packages/grammar/{name}/src/{name}.langium and adjust as needed.
 ```
 
 **If fallback was used:**
+
 ```
 Note: AI grammar generation did not produce valid output after 2 attempts.
 A starter template was used instead. Your description has been preserved as a comment.
-Please edit grammars/{name}/{name}.langium to implement your DSL.
+Please edit packages/grammar/{name}/src/{name}.langium to implement your DSL.
 ```
 
 ---
@@ -476,7 +718,7 @@ Grammar names must:
 
 Examples of valid names: 'workflow', 'my-dsl', 'api-model'
 
-To fix: /grammar-config {suggested-normalized-name}
+To fix: /grammar.config {suggested-normalized-name}
 ```
 
 ### Grammar Parse Failure (FR-011)
@@ -496,9 +738,10 @@ For help: https://langium.org/docs/reference/grammar-language/
 
 ### Missing grammars Directory (FR-012)
 
-If `grammars/` directory doesn't exist, create it automatically:
+If `packages/grammar/` directory doesn't exist, create it automatically:
+
 ```bash
-mkdir -p grammars/{name}
+mkdir -p packages/grammar/{name}/src
 ```
 
 No error message needed - handle silently.
@@ -514,20 +757,93 @@ Please check:
 - Path validity
 
 If the problem persists, try creating the directory manually:
-mkdir -p grammars/{name}
+mkdir -p packages/grammar/{name}/src
 ```
 
 ---
 
 ## Validation (User Story 4)
 
-Before writing the manifest, validate using `validateManifest()` logic:
+Before writing the manifest, validate using `validateManifest()` logic from `@sanyam/types`:
 
 1. `languageId` is lowercase alphanumeric with hyphens, starts with letter
 2. `fileExtension` and `baseExtension` start with `.`
 3. `rootTypes` has at least one entry
 4. Each `rootType.astType` is PascalCase
 5. Each `rootType.fileSuffix` starts with `.`
-6. If `diagrammingEnabled` is true, `diagramTypes` has at least one entry
+6. Each `rootType.displayName` is non-empty
+7. Each `rootType.folder` is non-empty
+8. Each `rootType.icon` is non-empty
+9. Each `rootType.template` is non-empty
+10. If `diagrammingEnabled` is true, `diagramTypes` has at least one entry
+11. Each `diagramType` has valid `nodeTypes`, `edgeTypes`, and `toolPalette`
 
 If validation fails, report specific errors and do not write the manifest.
+
+---
+
+## Reference: Type Definitions
+
+The generated code must conform to these types from `@sanyam/types`:
+
+### GrammarManifest
+
+```typescript
+interface GrammarManifest {
+  languageId: string;
+  displayName: string;
+  fileExtension: string;
+  baseExtension: string;
+  packageFile?: PackageFileConfig;
+  rootTypes: RootTypeConfig[];
+  diagrammingEnabled: boolean;
+  diagramTypes?: DiagramTypeConfig[];
+}
+```
+
+### RootTypeConfig
+
+```typescript
+interface RootTypeConfig {
+  astType: string;           // PascalCase AST type name
+  displayName: string;       // Human-readable name
+  fileSuffix: string;        // e.g., '.task'
+  folder: string;            // e.g., 'tasks'
+  icon: string;              // VS Code codicon
+  template: string;          // File template with ${name}
+  templateInputs?: TemplateInput[];
+  diagramNode?: DiagramNodeConfig;
+}
+```
+
+### DiagramTypeConfig
+
+```typescript
+interface DiagramTypeConfig {
+  id: string;
+  displayName: string;
+  fileType: string;
+  nodeTypes: NodeTypeConfig[];
+  edgeTypes: EdgeTypeConfig[];
+  toolPalette: ToolPaletteConfig;
+}
+```
+
+### LanguageContribution
+
+```typescript
+interface LanguageContribution {
+  languageId: string;
+  fileExtensions: string[];
+  generatedSharedModule: Module<LangiumSharedServices>;
+  generatedModule: Module<LangiumServices>;
+  customModule?: Module<LangiumServices>;
+  manifest: GrammarManifest;
+  lspProviders?: LspFeatureProviders;
+  glspProviders?: GlspFeatureProviders;
+  disabledLspFeatures?: LspFeatureName[];
+  disabledGlspFeatures?: GlspFeatureName[];
+}
+```
+
+See `packages/types/src/grammar-manifest.ts` and `packages/types/src/language-contribution.ts` for complete type definitions.

@@ -81,6 +81,8 @@ export {
   type GPort,
   type Point,
   type Dimension,
+  type ModelMetadata,
+  type GlspContextConfig,
   type GlspContext,
   type ConversionContext,
   type ConversionResult,

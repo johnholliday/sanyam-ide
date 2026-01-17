@@ -1,7 +1,7 @@
 <br/>
 <div id="theia-logo" align="center">
     <br />
-    <img src="https://raw.githubusercontent.com/eclipse-theia/sanyam-ide/master/theia-extensions/product/src/browser/icons/TheiaIDE.png" alt="Theia Logo" width="300"/>
+    <img src="https://raw.githubusercontent.com/eclipse-theia/sanyam-ide/master/packages/ide/product/src/browser/icons/TheiaIDE.png" alt="Theia Logo" width="300"/>
     <h3>Sanyam IDE</h3>
 </div>
 
@@ -57,16 +57,16 @@ Documentation on how to package Theia as a Desktop Product may be found [here](h
 - `applications` groups the different app targets
   - `browser` contains a browser based version of Sanyam IDE that may be packaged as a Docker image
   - `electron` contains the electron app to package, packaging configuration, and E2E tests for the electron target.
-- `packages` contains shared packages
+- `packages` contains shared packages and extensions
   - `types` contains TypeScript type definitions (@sanyam/types)
   - `language-server` contains the unified LSP/GLSP language server
-- `grammars` contains DSL grammar packages
-  - Each grammar package provides language support via the unified server
-- `theia-extensions` groups the various custom theia extensions for the Sanyam IDE
-  - `product` contains a Theia extension contributing the product branding (about dialogue and welcome page).
-  - `updater` contains a Theia extension contributing the update mechanism and corresponding UI elements (based on the electron updater).
-  - `launcher` contains a Theia extension contributing, for AppImage applications, the option to create a script that allows to start the Sanyam IDE from the command line by calling the 'theia' command.
-  - `glsp` contains the GLSP diagram frontend integration.
+  - `ide` contains IDE-specific Theia extensions (@sanyam-ide/*)
+    - `product` contains a Theia extension contributing the product branding (about dialogue and welcome page).
+    - `updater` contains a Theia extension contributing the update mechanism and corresponding UI elements (based on the electron updater).
+    - `launcher` contains a Theia extension contributing, for AppImage applications, the option to create a script that allows to start the Sanyam IDE from the command line by calling the 'theia' command.
+    - `glsp` contains the GLSP diagram frontend integration.
+  - `grammar` contains DSL grammar packages (@sanyam-grammar/*)
+    - Each grammar package provides language support via the unified server
 
 ### Unified LSP/GLSP Language Server
 
@@ -95,14 +95,14 @@ Sanyam IDE includes a unified language server that provides both LSP (Language S
 
 To add support for a new domain-specific language:
 
-1. Create a grammar package in `grammars/your-language/`
+1. Create a grammar package in `packages/grammar/your-language/`
 2. Define the Langium grammar (`.langium` file)
 3. Create a `manifest.ts` with GrammarManifest export
 4. Create `src/contribution.ts` implementing LanguageContribution
 5. Add `"sanyam": { "contribution": "./lib/src/contribution.js" }` to package.json
 6. Rebuild the server
 
-See `grammars/example-minimal/` for a minimal reference implementation.
+See `packages/grammar/example-minimal/` for a minimal reference implementation.
 
 #### Building the Language Server
 

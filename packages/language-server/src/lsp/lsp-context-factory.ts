@@ -8,12 +8,8 @@
  * @packageDocumentation
  */
 
-import type {
-  LangiumDocument,
-  LangiumServices,
-  LangiumSharedServices,
-  AstNode,
-} from 'langium';
+import type { LangiumDocument, AstNode } from 'langium';
+import type { LangiumServices, LangiumSharedServices } from 'langium/lsp';
 import type { CancellationToken } from 'vscode-languageserver';
 import type { LspContext, WorkspaceContext } from '@sanyam/types';
 import { URI } from 'vscode-uri';

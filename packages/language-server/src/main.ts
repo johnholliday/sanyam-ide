@@ -20,7 +20,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { CancellationToken } from 'langium';
 import type { LspFeatureProviders, GlspFeatureProviders, LanguageContribution } from '@sanyam/types';
 import { languageRegistry, LanguageRegistry } from './language-registry.js';
-import { loadFromGeneratedRegistry } from './discovery/contribution-loader.js';
+import { loadFromGeneratedRegistry } from './grammar-scanner/contribution-loader.js';
 
 // Import GLSP server components
 import { GlspServer, createGlspServer } from './glsp/glsp-server.js';
@@ -446,13 +446,13 @@ interface GlspDiagramRequest {
   uri: string;
 }
 
-interface GlspLoadModelRequest extends GlspDiagramRequest {}
+interface GlspLoadModelRequest extends GlspDiagramRequest { }
 
 interface GlspOperationRequest extends GlspDiagramRequest {
   operation: Operation;
 }
 
-interface GlspValidateRequest extends GlspDiagramRequest {}
+interface GlspValidateRequest extends GlspDiagramRequest { }
 
 interface GlspLayoutRequest extends GlspDiagramRequest {
   options?: {
@@ -461,14 +461,14 @@ interface GlspLayoutRequest extends GlspDiagramRequest {
   };
 }
 
-interface GlspToolPaletteRequest extends GlspDiagramRequest {}
+interface GlspToolPaletteRequest extends GlspDiagramRequest { }
 
 interface GlspContextMenuRequest extends GlspDiagramRequest {
   selectedIds: string[];
   position?: { x: number; y: number };
 }
 
-interface GlspSaveModelRequest extends GlspDiagramRequest {}
+interface GlspSaveModelRequest extends GlspDiagramRequest { }
 
 /**
  * Load diagram model for a document.

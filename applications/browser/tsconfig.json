@@ -6,10 +6,10 @@
     },
     "references": [
       {
-        "path": "../../theia-extensions/launcher"
+        "path": "../../packages/ide/launcher"
       },
       {
-        "path": "../../theia-extensions/product"
+        "path": "../../packages/ide/product"
       }
     ]
 }

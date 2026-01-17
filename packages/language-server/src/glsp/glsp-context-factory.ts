@@ -6,8 +6,21 @@
  * @packageDocumentation
  */
 
-import type { LangiumDocument, LangiumCoreServices, AstNode, CancellationToken } from 'langium';
-import type { GlspContext, GlspFeatureProviders } from '@sanyam/types';
+import type { LangiumDocument, AstNode } from 'langium';
+import type { LangiumServices } from 'langium/lsp';
+import type { CancellationToken } from 'vscode-languageserver';
+import type {
+  GlspContext,
+  GlspContextConfig,
+  ModelMetadata,
+  GModelRoot,
+  GModelElement,
+  Point,
+  Dimension,
+} from '@sanyam/types';
+
+// Re-export types for convenience
+export type { GlspContext, GlspContextConfig, ModelMetadata, GModelRoot, GModelElement };
 
 /**
  * Model state interface for GLSP operations.
@@ -26,74 +39,29 @@ export interface ModelState {
 }
 
 /**
- * GModel root element.
- */
-export interface GModelRoot {
-  id: string;
-  type: string;
-  children: GModelElement[];
-  revision?: number;
-}
-
-/**
- * Base GModel element.
- */
-export interface GModelElement {
-  id: string;
-  type: string;
-  children?: GModelElement[];
-}
-
-/**
- * GModel node element.
+ * Extended GModel node element with layout options.
  */
 export interface GModelNode extends GModelElement {
-  position?: { x: number; y: number };
-  size?: { width: number; height: number };
-  layoutOptions?: Record<string, any>;
+  position?: Point;
+  size?: Dimension;
+  layoutOptions?: Record<string, unknown>;
 }
 
 /**
- * GModel edge element.
+ * Extended GModel edge element.
  */
 export interface GModelEdge extends GModelElement {
   sourceId: string;
   targetId: string;
-  routingPoints?: { x: number; y: number }[];
+  routingPoints?: Point[];
 }
 
 /**
- * GModel label element.
+ * Extended GModel label element.
  */
 export interface GModelLabel extends GModelElement {
   text: string;
-  alignment?: { x: number; y: number };
-}
-
-/**
- * Model metadata storage.
- */
-export interface ModelMetadata {
-  /** Node positions by ID */
-  positions: Map<string, { x: number; y: number }>;
-  /** Node sizes by ID */
-  sizes: Map<string, { width: number; height: number }>;
-  /** Edge routing points by ID */
-  routingPoints: Map<string, { x: number; y: number }[]>;
-  /** Collapsed state by ID */
-  collapsed: Set<string>;
-}
-
-/**
- * Configuration for GLSP context creation.
- */
-export interface GlspContextConfig {
-  /** Custom feature providers to override defaults */
-  providers?: Partial<GlspFeatureProviders>;
-  /** Whether to enable automatic layout */
-  autoLayout?: boolean;
-  /** Whether to enable validation */
-  validation?: boolean;
+  alignment?: Point;
 }
 
 /**
@@ -142,21 +110,19 @@ export function createEmptyGModel(id: string): GModelRoot {
  *
  * @param modelState - The current model state
  * @param services - Langium services
- * @param token - Cancellation token
+ * @param _token - Cancellation token (unused but kept for API compatibility)
  * @param config - Optional configuration
  * @returns A GlspContext instance
  */
 export function createGlspContext(
   modelState: ModelState,
-  services: LangiumCoreServices,
-  token: CancellationToken,
+  services: LangiumServices,
+  _token: CancellationToken,
   config?: GlspContextConfig
 ): GlspContext {
   return {
-    modelState,
-    services,
-    token,
     document: modelState.document,
+    services,
     root: modelState.root,
     gModel: modelState.gModel,
     metadata: modelState.metadata,
@@ -174,7 +140,7 @@ export function createGlspContext(
 export class GlspContextFactory {
   private modelStates: Map<string, ModelState> = new Map();
 
-  constructor(private readonly services: LangiumCoreServices) {}
+  constructor(private readonly services: LangiumServices) {}
 
   /**
    * Get or create a model state for a document.
@@ -264,6 +230,6 @@ export class GlspContextFactory {
  * @param services - Langium services
  * @returns A new GlspContextFactory
  */
-export function createGlspContextFactory(services: LangiumCoreServices): GlspContextFactory {
+export function createGlspContextFactory(services: LangiumServices): GlspContextFactory {
   return new GlspContextFactory(services);
 }

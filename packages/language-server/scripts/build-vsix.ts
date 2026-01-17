@@ -22,7 +22,7 @@ import { execSync } from 'node:child_process';
 import {
   scanForGrammarPackages,
   type ScannedGrammarPackage,
-} from '../src/discovery/grammar-scanner.js';
+} from '../src/grammar-scanner/grammar-scanner.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

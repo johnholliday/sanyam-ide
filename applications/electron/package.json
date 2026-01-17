@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "sanyam-ide-electron-app",
+  "name": "sanyam-electron",
   "description": "Sanyam IDE product",
   "productName": "Sanyam IDE",
   "version": "1.67.100",
@@ -159,15 +159,12 @@
     "hono": "^4.0.0",
     "react-dom": "^18.2.0",
     "zod": "^3.25.0",
-    "@sanyam/grammar-spdevkit": "workspace:*",
-    "@sanyam/grammar-actone": "workspace:*",
-    "@sanyam/grammar-ecml": "workspace:*",
-    "@sanyam/grammar-iso-42001": "workspace:*",
-    "@sanyam/glsp": "workspace:*",
-    "@sanyam/launcher": "workspace:*",
-    "@sanyam/product": "workspace:*",
+    "@sanyam-grammar/ecml": "workspace:*",
+    "@sanyam-ide/glsp": "workspace:*",
+    "@sanyam-ide/launcher": "workspace:*",
+    "@sanyam-ide/product": "workspace:*",
     "@sanyam/language-server": "workspace:*",
-    "@sanyam/updater": "workspace:*"
+    "@sanyam-ide/updater": "workspace:*"
   },
   "devDependencies": {
     "@theia/cli": "1.67.0",

@@ -66,7 +66,7 @@ Platform components MUST be extensible without modification. Grammar packages ex
 @sanyam/platform-core      → Theia integrations, may depend on protocol
 @sanyam/diagram-service      → GLSP integrations, may depend on protocol
 @sanyam/form-service     → React components, may depend on protocol
-@sanyam/grammar-*          → Grammar packages, peerDepend on platform-*
+@sanyam-grammar/*          → Grammar packages, peerDepend on platform-*
 ```
 
 ### Dependency Rules

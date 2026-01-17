@@ -83,20 +83,15 @@ applications/
 
 packages/
 ├── types/             # Shared type definitions (@sanyam/types)
-└── language-server/        # Unified LSP/GLSP language server
-
-grammars/
-├── ecml/              # ECML grammar package
-├── actone/            # ActOne fiction writing DSL
-├── iso-42001/         # ISO 42001 AI Management System
-├── spdevkit/          # SPDevKit development toolkit
-└── example-minimal/   # Reference minimal grammar
-
-theia-extensions/
-├── product/           # Branding: about dialog, welcome page, splash
-├── updater/           # Auto-update mechanism (electron-updater)
-├── launcher/          # AppImage CLI launcher ('theia' command)
-└── glsp/              # GLSP diagram frontend integration
+├── language-server/   # Unified LSP/GLSP language server
+├── ide/               # IDE-specific Theia extensions (@sanyam-ide/*)
+│   ├── product/       # Branding: about dialog, welcome page, splash
+│   ├── updater/       # Auto-update mechanism (electron-updater)
+│   ├── launcher/      # AppImage CLI launcher ('theia' command)
+│   └── glsp/          # GLSP diagram frontend integration
+└── grammar/           # DSL grammar packages (@sanyam-grammar/*)
+    ├── ecml/          # ECML grammar package
+    └── example-minimal/ # Reference minimal grammar
 ```
 
 **Build Flow**:
@@ -170,7 +165,7 @@ pnpm package:vsix
 Grammar packages follow this structure:
 
 ```
-grammars/your-language/
+packages/grammar/your-language/
 ├── your-language.langium    # Langium grammar
 ├── manifest.ts              # GrammarManifest export
 ├── package.json             # With sanyam.contribution field
@@ -209,9 +204,9 @@ Generate grammar packages with `GrammarManifest` exports for the SANYAM platform
 
 **Generated files:**
 
-- `grammars/{name}/{name}.langium` - Langium grammar (if creating new)
-- `grammars/{name}/manifest.ts` - GrammarManifest export
-- `grammars/{name}/package.json` - Package configuration
+- `packages/grammar/{name}/{name}.langium` - Langium grammar (if creating new)
+- `packages/grammar/{name}/manifest.ts` - GrammarManifest export
+- `packages/grammar/{name}/package.json` - Package configuration
 
 **Related packages:**
 
@@ -220,7 +215,8 @@ Generate grammar packages with `GrammarManifest` exports for the SANYAM platform
 ## Important Notes
 
 - After updating dependencies or switching commits, run `git clean -xfd` to avoid runtime conflicts
-- Extensions in `theia-extensions/` are custom to this product; Theia platform extensions come from `@theia/*` packages
+- Extensions in `packages/ide/` are custom to this product; Theia platform extensions come from `@theia/*` packages
+- Grammar packages in `packages/grammar/` provide language support via the unified server
 - The `plugins/` directory contains downloaded VS Code extensions (created by `download:plugins`)
 - Generated files appear in `src-gen/` and `lib/` directories within applications
 
@@ -230,7 +226,7 @@ Generate grammar packages with `GrammarManifest` exports for the SANYAM platform
 - File system (grammar packages in workspace), LangiumDocuments (in-memory document store) (002-unified-lsp-glsp)
 
 - TypeScript 5.x (per constitution) + Langium 4.x (grammar parsing), Claude Code (AI generation) (001-grammar-config-command)
-- File system (grammars/{name}/ directory structure) (001-grammar-config-command)
+- File system (packages/grammar/{name}/ directory structure) (001-grammar-config-command)
 
 ## Recent Changes
 

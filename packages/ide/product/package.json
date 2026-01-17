@@ -1,0 +1,54 @@
+{
+  "private": true,
+  "name": "@sanyam-ide/product",
+  "version": "1.67.100",
+  "description": "Sanyam IDE Product Branding",
+  "dependencies": {
+    "@sanyam/types": "workspace:*",
+    "@theia/core": "1.67.0",
+    "@theia/getting-started": "1.67.0",
+    "@theia/workspace": "1.67.0",
+    "hono": "^4.0.0",
+    "inversify": "^6.0.1",
+    "react-dom": "^18.2.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5",
+    "tslint": "^5.12.0",
+    "typescript": "~5.6.3"
+  },
+  "theiaExtensions": [
+    {
+      "frontend": "lib/browser/sanyam-ide-frontend-module",
+      "electronMain": "lib/electron-main/sanyam-ide-main-module"
+    }
+  ],
+  "keywords": [
+    "theia-extension"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnholliday/sanyam-ide.git"
+  },
+  "bugs": {
+    "url": "https://github.com/johnholliday/sanyam-ide/issues"
+  },
+  "homepage": "https://github.com/johnholliday/sanyam-ide",
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "clean": "rimraf lib *.tsbuildinfo",
+    "build": "tsc -b",
+    "lint": "eslint --ext js,jsx,ts,tsx src",
+    "lint:fix": "eslint --ext js,jsx,ts,tsx src --fix",
+    "update:theia": "ts-node ../../../scripts/update-theia-version.ts"
+  },
+  "peerDependencies": {
+    "@theia/vsx-registry": "1.67.0",
+    "react": "^18.2.0"
+  }
+}

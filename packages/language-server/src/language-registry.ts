@@ -10,7 +10,7 @@
 import type {
   LangiumServices,
   LangiumSharedServices,
-} from 'langium';
+} from 'langium/lsp';
 import type {
   LanguageContributionInterface,
   RegisteredLanguage,

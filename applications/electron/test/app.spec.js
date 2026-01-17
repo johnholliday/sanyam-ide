@@ -32,7 +32,7 @@ function getElectronMainJS() {
         "app",
         "lib",
         "backend",
-        "electron-main.js"
+        "electron-main.js",
       );
     case "win32":
       return path.join(
@@ -42,7 +42,7 @@ function getElectronMainJS() {
         "app",
         "lib",
         "backend",
-        "electron-main.js"
+        "electron-main.js",
       );
     case "darwin":
       const macFolder = isMacArm() ? "mac-arm64" : "mac";
@@ -55,7 +55,7 @@ function getElectronMainJS() {
         "app",
         "lib",
         "backend",
-        "electron-main.js"
+        "electron-main.js",
       );
     default:
       return undefined;
@@ -98,7 +98,7 @@ function getBinaryPath() {
   const distFolder = path.join(__dirname, "..", "dist");
   switch (os.platform()) {
     case "linux":
-      return path.join(distFolder, "linux-unpacked", "sanyam-ide-electron-app");
+      return path.join(distFolder, "linux-unpacked", "sanyam-electron");
     case "win32":
       return path.join(distFolder, "win-unpacked", "TheiaIDE.exe");
     case "darwin":
@@ -109,12 +109,12 @@ function getBinaryPath() {
         "TheiaIDE.app",
         "Contents",
         "MacOS",
-        "TheiaIDE"
+        "TheiaIDE",
       );
       console.log(
         `Using binary path for Mac ${
           isMacArm() ? "ARM64" : "Intel"
-        }: ${binaryPath}`
+        }: ${binaryPath}`,
       );
       return binaryPath;
     default:
@@ -202,7 +202,7 @@ describe("Theia App", function () {
     // Open extensions view
     await this.browser.keys(macSafeKeyCombo(["Control", "Shift", "x"]));
     const builtinContainer = await this.browser.$(
-      "#vsx-extensions-view-container--vsx-extensions\\:builtin"
+      "#vsx-extensions-view-container--vsx-extensions\\:builtin",
     );
 
     // Expand builtin extensions
@@ -214,14 +214,14 @@ describe("Theia App", function () {
 
     // Wait for expansion to finish
     const builtin = await this.browser.$(
-      "#vsx-extensions\\:builtin .theia-TreeContainer"
+      "#vsx-extensions\\:builtin .theia-TreeContainer",
     );
     await builtin.waitForExist();
 
     // Get names of all builtin extensions
     const extensions = await builtin.$$(".theia-vsx-extension .name");
     const extensionNames = await Promise.all(
-      extensions.map((e) => e.getText())
+      extensions.map((e) => e.getText()),
     );
 
     // Exemplary check a few extensions

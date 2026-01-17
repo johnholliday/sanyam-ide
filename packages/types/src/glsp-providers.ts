@@ -8,7 +8,8 @@
  * @packageDocumentation
  */
 
-import type { AstNode, LangiumDocument, LangiumServices, LangiumSharedServices } from 'langium';
+import type { AstNode, LangiumDocument } from 'langium';
+import type { LangiumServices, LangiumSharedServices } from 'langium/lsp';
 import type { GrammarManifest, DiagramTypeConfig, RootTypeConfig } from './grammar-manifest.js';
 import type { MaybePromise } from './lsp-providers.js';
 
@@ -19,15 +20,17 @@ import type { MaybePromise } from './lsp-providers.js';
 
 /** Placeholder for GLSP GModelRoot */
 export interface GModelRoot {
-  readonly id: string;
-  readonly type: string;
-  readonly children: GModelElement[];
+  id: string;
+  type: string;
+  children: GModelElement[];
+  revision?: number;
 }
 
 /** Placeholder for GLSP GModelElement */
 export interface GModelElement {
-  readonly id: string;
-  readonly type: string;
+  id: string;
+  type: string;
+  children?: GModelElement[];
 }
 
 /** Placeholder for GLSP GNode */
@@ -71,6 +74,32 @@ export interface Dimension {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
+ * Model metadata storage for diagram elements.
+ */
+export interface ModelMetadata {
+  /** Node positions by ID */
+  positions: Map<string, Point>;
+  /** Node sizes by ID */
+  sizes: Map<string, Dimension>;
+  /** Edge routing points by ID */
+  routingPoints: Map<string, Point[]>;
+  /** Collapsed state by ID */
+  collapsed: Set<string>;
+}
+
+/**
+ * Configuration for GLSP context.
+ */
+export interface GlspContextConfig {
+  /** Custom feature providers to override defaults */
+  providers?: Partial<GlspFeatureProviders>;
+  /** Whether to enable automatic layout */
+  autoLayout?: boolean;
+  /** Whether to enable validation */
+  validation?: boolean;
+}
+
+/**
  * Context for GLSP operations, extending LSP context with diagram-specific data.
  *
  * @typeParam T - The root AST node type for the document
@@ -81,11 +110,19 @@ export interface GlspContext<T extends AstNode = AstNode> {
   /** Language-specific services */
   readonly services: LangiumServices;
   /** Shared services across all languages */
-  readonly shared: LangiumSharedServices;
+  readonly shared?: LangiumSharedServices;
   /** Grammar manifest with diagram configuration */
-  readonly manifest: GrammarManifest;
+  readonly manifest?: GrammarManifest;
   /** Current diagram type configuration */
-  readonly diagramType: DiagramTypeConfig;
+  readonly diagramType?: DiagramTypeConfig;
+  /** The root AST node */
+  readonly root?: T;
+  /** The GModel representation */
+  gModel?: GModelRoot;
+  /** Model metadata (positions, sizes, etc.) */
+  metadata?: ModelMetadata;
+  /** Context configuration */
+  config?: GlspContextConfig;
 }
 
 /**

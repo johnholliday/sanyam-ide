@@ -7,15 +7,14 @@
  * @packageDocumentation
  */
 
+import { inject, type Module } from 'langium';
 import {
   createDefaultModule,
   createDefaultSharedModule,
-  inject,
   type DefaultSharedModuleContext,
   type LangiumServices,
   type LangiumSharedServices,
-  type Module,
-} from 'langium';
+} from 'langium/lsp';
 import type {
   LanguageContributionInterface,
   LspFeatureProviders,

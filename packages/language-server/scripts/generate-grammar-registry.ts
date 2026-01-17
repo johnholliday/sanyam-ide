@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 import {
   scanForGrammarPackages,
   generateRegistryCode,
-} from '../src/discovery/grammar-scanner.js';
+} from '@sanyam/grammar-scanner';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

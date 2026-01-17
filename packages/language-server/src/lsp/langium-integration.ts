@@ -7,16 +7,14 @@
  * @packageDocumentation
  */
 
+import { inject, type Module, type PartialLangiumServices } from 'langium';
 import {
-  inject,
   createDefaultModule,
   createDefaultSharedModule,
   type LangiumServices,
   type LangiumSharedServices,
-  type Module,
   type DefaultSharedModuleContext,
-  type PartialLangiumServices,
-} from 'langium';
+} from 'langium/lsp';
 import type { LanguageContributionInterface } from '@sanyam/types';
 
 /**

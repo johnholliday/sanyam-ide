@@ -147,11 +147,8 @@
     "@theia/vsx-registry": "1.67.0",
     "@theia/workspace": "1.67.0",
     "fs-extra": "^9.0.1",
-    "@sanyam/grammar-spdevkit": "workspace:*",
-    "@sanyam/grammar-actone": "workspace:*",
-    "@sanyam/grammar-ecml": "workspace:*",
-    "@sanyam/grammar-iso-42001": "workspace:*",
-    "@sanyam/product": "workspace:*"
+    "@sanyam-grammar/ecml": "workspace:*",
+    "@sanyam-ide/product": "workspace:*"
   },
   "devDependencies": {
     "@theia/cli": "1.67.0",

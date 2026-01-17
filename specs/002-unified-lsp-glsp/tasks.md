@@ -54,14 +54,14 @@
 ### Language Registry
 
 - [x] T013 Implement LanguageRegistry class in packages/language-server/src/language-registry.ts (register, getByLanguageId, getByExtension, getByUri, getAllLanguageIds)
-- [x] T014 Unit test for LanguageRegistry in tests/unit/discovery/language-registry.spec.ts
+- [x] T014 Unit test for LanguageRegistry in tests/unit/grammar-scanner/language-registry.spec.ts
 
 ### Grammar Discovery
 
-- [x] T015 Implement GrammarScanner (build-time) in packages/language-server/src/discovery/grammar-scanner.ts (parse pnpm-workspace.yaml, find grammar packages by sanyam field or @sanyam/grammar-* naming)
-- [x] T016 [P] Implement ContributionLoader (runtime) in packages/language-server/src/discovery/contribution-loader.ts (load LanguageContribution from grammar packages)
+- [x] T015 Implement GrammarScanner (build-time) in packages/language-server/src/grammar-scanner/grammar-scanner.ts (parse pnpm-workspace.yaml, find grammar packages by sanyam field or @sanyam-grammar/* naming)
+- [x] T016 [P] Implement ContributionLoader (runtime) in packages/language-server/src/grammar-scanner/contribution-loader.ts (load LanguageContribution from grammar packages)
 - [x] T017 Create code generator for packages/language-server/src/generated/grammar-registry.ts (auto-generate static imports from discovered packages)
-- [x] T018 Unit test for GrammarScanner in tests/unit/discovery/grammar-scanner.spec.ts
+- [x] T018 Unit test for GrammarScanner in tests/unit/grammar-scanner/grammar-scanner.spec.ts
 
 ### Server Entry Point
 
@@ -223,8 +223,8 @@
 
 ### Tests for User Story 3
 
-- [x] T092 [P] [US3] Integration test for grammar discovery in tests/integration/discovery/grammar-discovery.spec.ts
-- [x] T093 [P] [US3] Integration test for new language registration in tests/integration/discovery/language-registration.spec.ts
+- [x] T092 [P] [US3] Integration test for grammar discovery in tests/integration/grammar-scanner/grammar-scanner.spec.ts
+- [x] T093 [P] [US3] Integration test for new language registration in tests/integration/grammar-scanner/language-registration.spec.ts
 
 ### Feature Provider Merger
 

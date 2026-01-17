@@ -8,12 +8,8 @@
  * @packageDocumentation
  */
 
-import type {
-  AstNode,
-  LangiumDocument,
-  LangiumServices,
-  LangiumSharedServices,
-} from 'langium';
+import type { AstNode, LangiumDocument } from 'langium';
+import type { LangiumServices, LangiumSharedServices } from 'langium/lsp';
 
 import type {
   CancellationToken,

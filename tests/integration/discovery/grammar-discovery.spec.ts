@@ -16,7 +16,7 @@ import {
   createGrammarScanner,
   type GrammarPackageInfo,
   type ScanResult,
-} from '../../../packages/language-server/src/discovery/grammar-scanner';
+} from '../../../packages/language-server/src/grammar-scanner/grammar-scanner';
 
 describe('Grammar Discovery Integration', () => {
   let scanner: GrammarScanner;
@@ -47,12 +47,12 @@ describe('Grammar Discovery Integration', () => {
         packages: ['grammars/lang1', 'grammars/lang2'],
       });
       createMockGrammarPackage(tempDir, 'grammars/lang1', {
-        name: '@sanyam/grammar-lang1',
+        name: '@sanyam-grammar/lang1',
         languageId: 'lang1',
         fileExtensions: ['.l1'],
       });
       createMockGrammarPackage(tempDir, 'grammars/lang2', {
-        name: '@sanyam/grammar-lang2',
+        name: '@sanyam-grammar/lang2',
         languageId: 'lang2',
         fileExtensions: ['.l2'],
       });
@@ -81,12 +81,12 @@ describe('Grammar Discovery Integration', () => {
       expect(result.packages[0].languageId).toBe('custom');
     });
 
-    it('should detect packages by @sanyam/grammar-* naming convention', async () => {
+    it('should detect packages by @sanyam-grammar/* naming convention', async () => {
       createMockWorkspace(tempDir, {
         packages: ['grammars/test'],
       });
       createMockGrammarPackage(tempDir, 'grammars/test', {
-        name: '@sanyam/grammar-testlang',
+        name: '@sanyam-grammar/testlang',
         languageId: 'testlang',
         fileExtensions: ['.tst'],
       });
@@ -94,7 +94,7 @@ describe('Grammar Discovery Integration', () => {
       const result = await scanner.scan(tempDir);
 
       expect(result.packages).toHaveLength(1);
-      expect(result.packages[0].name).toBe('@sanyam/grammar-testlang');
+      expect(result.packages[0].name).toBe('@sanyam-grammar/testlang');
     });
 
     it('should skip packages without grammar markers', async () => {
@@ -112,7 +112,7 @@ describe('Grammar Discovery Integration', () => {
 
       // Grammar package
       createMockGrammarPackage(tempDir, 'grammars/lang1', {
-        name: '@sanyam/grammar-lang1',
+        name: '@sanyam-grammar/lang1',
         languageId: 'lang1',
         fileExtensions: ['.l1'],
       });
@@ -143,7 +143,7 @@ describe('Grammar Discovery Integration', () => {
       fs.writeFileSync(
         path.join(invalidPath, 'package.json'),
         JSON.stringify({
-          name: '@sanyam/grammar-invalid',
+          name: '@sanyam-grammar/invalid',
           sanyam: { grammar: true }, // Missing languageId
         })
       );
@@ -160,7 +160,7 @@ describe('Grammar Discovery Integration', () => {
         packages: ['grammars/complete'],
       });
       createMockGrammarPackage(tempDir, 'grammars/complete', {
-        name: '@sanyam/grammar-complete',
+        name: '@sanyam-grammar/complete',
         languageId: 'complete',
         fileExtensions: ['.cmp', '.complete'],
         version: '2.0.0',
@@ -170,7 +170,7 @@ describe('Grammar Discovery Integration', () => {
       const result = await scanner.scan(tempDir);
       const pkg = result.packages[0];
 
-      expect(pkg.name).toBe('@sanyam/grammar-complete');
+      expect(pkg.name).toBe('@sanyam-grammar/complete');
       expect(pkg.languageId).toBe('complete');
       expect(pkg.fileExtensions).toEqual(['.cmp', '.complete']);
       expect(pkg.version).toBe('2.0.0');
@@ -182,7 +182,7 @@ describe('Grammar Discovery Integration', () => {
         packages: ['grammars/with-manifest'],
       });
       createMockGrammarPackage(tempDir, 'grammars/with-manifest', {
-        name: '@sanyam/grammar-with-manifest',
+        name: '@sanyam-grammar/with-manifest',
         languageId: 'manifest',
         fileExtensions: ['.mnf'],
         hasManifest: true,
@@ -200,7 +200,7 @@ describe('Grammar Discovery Integration', () => {
         packages: ['grammars/with-contribution'],
       });
       createMockGrammarPackage(tempDir, 'grammars/with-contribution', {
-        name: '@sanyam/grammar-with-contribution',
+        name: '@sanyam-grammar/with-contribution',
         languageId: 'contrib',
         fileExtensions: ['.cnt'],
         hasContribution: true,
@@ -227,7 +227,7 @@ describe('Grammar Discovery Integration', () => {
       fs.writeFileSync(
         path.join(grammarPath, 'package.json'),
         JSON.stringify({
-          name: '@sanyam/grammar-langium',
+          name: '@sanyam-grammar/langium',
           version: '1.0.0',
           sanyam: { grammar: true },
         })
@@ -267,7 +267,7 @@ describe('Grammar Discovery Integration', () => {
       fs.writeFileSync(
         path.join(grammarPath, 'package.json'),
         JSON.stringify({
-          name: '@sanyam/grammar-override',
+          name: '@sanyam-grammar/override',
           version: '1.0.0',
           sanyam: {
             grammar: true,
@@ -308,7 +308,7 @@ describe('Grammar Discovery Integration', () => {
       });
 
       createMockGrammarPackage(tempDir, 'grammars/base', {
-        name: '@sanyam/grammar-base',
+        name: '@sanyam-grammar/base',
         languageId: 'base',
         fileExtensions: ['.base'],
       });
@@ -318,7 +318,7 @@ describe('Grammar Discovery Integration', () => {
       fs.writeFileSync(
         path.join(extendedPath, 'package.json'),
         JSON.stringify({
-          name: '@sanyam/grammar-extended',
+          name: '@sanyam-grammar/extended',
           version: '1.0.0',
           sanyam: {
             grammar: true,
@@ -326,7 +326,7 @@ describe('Grammar Discovery Integration', () => {
             fileExtensions: ['.ext'],
           },
           dependencies: {
-            '@sanyam/grammar-base': '^1.0.0',
+            '@sanyam-grammar/base': '^1.0.0',
           },
         })
       );
@@ -334,7 +334,7 @@ describe('Grammar Discovery Integration', () => {
       const result = await scanner.scan(tempDir);
       const extendedPkg = result.packages.find(p => p.languageId === 'extended');
 
-      expect(extendedPkg?.dependencies).toContain('@sanyam/grammar-base');
+      expect(extendedPkg?.dependencies).toContain('@sanyam-grammar/base');
     });
   });
 
@@ -346,7 +346,7 @@ describe('Grammar Discovery Integration', () => {
 
       // Base package (no dependencies)
       createMockGrammarPackage(tempDir, 'grammars/base', {
-        name: '@sanyam/grammar-base',
+        name: '@sanyam-grammar/base',
         languageId: 'base',
         fileExtensions: ['.base'],
       });
@@ -357,7 +357,7 @@ describe('Grammar Discovery Integration', () => {
       fs.writeFileSync(
         path.join(derivedPath, 'package.json'),
         JSON.stringify({
-          name: '@sanyam/grammar-derived',
+          name: '@sanyam-grammar/derived',
           version: '1.0.0',
           sanyam: {
             grammar: true,
@@ -365,7 +365,7 @@ describe('Grammar Discovery Integration', () => {
             fileExtensions: ['.drv'],
           },
           dependencies: {
-            '@sanyam/grammar-base': '^1.0.0',
+            '@sanyam-grammar/base': '^1.0.0',
           },
         })
       );
@@ -417,7 +417,7 @@ function createMockGrammarPackage(
     description: config.description,
   };
 
-  if (config.useSanyamField || !config.name.startsWith('@sanyam/grammar-')) {
+  if (config.useSanyamField || !config.name.startsWith('@sanyam-grammar/')) {
     packageJson.sanyam = {
       grammar: true,
       languageId: config.languageId,

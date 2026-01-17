@@ -262,7 +262,7 @@ Implement a **build-time scanner** that:
 
 ```json
 {
-    "name": "@sanyam/grammar-ecml",
+    "name": "@sanyam-grammar/ecml",
     "sanyam": {
         "grammar": true,
         "languageId": "ecml",
@@ -276,8 +276,8 @@ Implement a **build-time scanner** that:
 ```typescript
 // packages/language-server/src/generated/grammar-registry.ts
 // AUTO-GENERATED - DO NOT EDIT
-import { contribution as ecml } from '@sanyam/grammar-ecml/contribution';
-import { contribution as actone } from '@sanyam/grammar-actone/contribution';
+import { contribution as ecml } from '@sanyam-grammar/ecml/contribution';
+import { contribution as actone } from '@sanyam-grammar/actone/contribution';
 
 export const GRAMMAR_REGISTRY = [
   ecml,
@@ -289,7 +289,7 @@ export const GRAMMAR_REGISTRY = [
 
 - **Build-time Resolution**: Avoids runtime filesystem scanning; improves startup performance
 - **pnpm Workspace Alignment**: Uses the same glob patterns pnpm already understands
-- **Convention over Configuration**: `@sanyam/grammar-*` naming provides default discovery
+- **Convention over Configuration**: `@sanyam-grammar/*` naming provides default discovery
 - **Generated Code**: Static imports enable tree-shaking and type safety
 
 ### Alternatives Considered

@@ -18,7 +18,7 @@ import {
   ContributionLoader,
   createContributionLoader,
   loadFromGeneratedRegistry,
-} from '../../../packages/language-server/src/discovery/contribution-loader';
+} from '../../../packages/language-server/src/grammar-scanner/contribution-loader';
 
 describe('Language Registration Integration', () => {
   let registry: LanguageRegistry;

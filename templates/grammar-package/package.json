@@ -1,5 +1,5 @@
 {
-  "name": "@sanyam/grammar-{{languageId}}",
+  "name": "@sanyam-grammar/{{languageId}}",
   "version": "0.1.0",
   "description": "{{description}}",
   "type": "module",
@@ -29,7 +29,10 @@
   "sanyam": {
     "grammar": true,
     "languageId": "{{languageId}}",
-    "fileExtensions": {{fileExtensionsJson}}
+    "fileExtensions": {
+      {fileExtensionsJson
+      }
+    }
   },
   "dependencies": {
     "langium": "^4.0.0"

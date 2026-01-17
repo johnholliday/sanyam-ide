@@ -1,5 +1,5 @@
 packages:
-  - 'applications/*'
-  - 'theia-extensions/*'
   - 'packages/*'
-  - 'grammars/*'
+  - 'packages/ide/*'
+  - 'packages/grammar/*'
+  - 'applications/*'

@@ -7,7 +7,8 @@
  * @packageDocumentation
  */
 
-import type { Module, LangiumServices, LangiumSharedServices } from 'langium';
+import type { Module } from 'langium';
+import type { LangiumServices, LangiumSharedServices } from 'langium/lsp';
 import type { GrammarManifest } from './grammar-manifest.js';
 import type { LspFeatureProviders, LspFeatureName } from './lsp-providers.js';
 import type { GlspFeatureProviders, GlspFeatureName } from './glsp-providers.js';
@@ -186,7 +187,7 @@ export interface LanguageContribution {
  * @example
  * ```json
  * {
- *   "name": "@sanyam/grammar-ecml",
+ *   "name": "@sanyam-grammar/ecml",
  *   "version": "1.0.0",
  *   "sanyam": {
  *     "grammar": true,
@@ -197,7 +198,7 @@ export interface LanguageContribution {
  * ```
  */
 export interface GrammarPackageJson {
-  /** Package name (should follow @sanyam/grammar-* convention) */
+  /** Package name (should follow @sanyam-grammar/* convention) */
   readonly name: string;
   /** Package version */
   readonly version: string;

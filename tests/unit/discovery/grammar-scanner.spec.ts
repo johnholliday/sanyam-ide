@@ -11,7 +11,7 @@ import {
   scanForGrammarPackages,
   generateRegistryCode,
   type ScannedGrammarPackage,
-} from '../../../packages/language-server/src/discovery/grammar-scanner.js';
+} from '../../../packages/language-server/src/grammar-scanner/grammar-scanner.js';
 
 describe('GrammarScanner', () => {
   let tempDir: string;
@@ -70,10 +70,10 @@ describe('GrammarScanner', () => {
       expect(result.warnings).to.have.length(0);
     });
 
-    it('should find packages matching @sanyam/grammar-* naming', async () => {
+    it('should find packages matching @sanyam-grammar/* naming', async () => {
       createWorkspaceConfig(['packages/*']);
       createTestPackage('packages/ecml', {
-        name: '@sanyam/grammar-ecml',
+        name: '@sanyam-grammar/ecml',
         version: '1.0.0',
       });
 
@@ -81,13 +81,13 @@ describe('GrammarScanner', () => {
 
       expect(result.packages).to.have.length(1);
       expect(result.packages[0]?.languageId).to.equal('ecml');
-      expect(result.packages[0]?.packageName).to.equal('@sanyam/grammar-ecml');
+      expect(result.packages[0]?.packageName).to.equal('@sanyam-grammar/ecml');
     });
 
     it('should extract language ID from package name with hyphens', async () => {
       createWorkspaceConfig(['packages/*']);
       createTestPackage('packages/iso-42001', {
-        name: '@sanyam/grammar-iso-42001',
+        name: '@sanyam-grammar/iso-42001',
         version: '1.0.0',
       });
 
@@ -100,7 +100,7 @@ describe('GrammarScanner', () => {
     it('should prefer explicit languageId over naming convention', async () => {
       createWorkspaceConfig(['grammars/*']);
       createTestPackage('grammars/test', {
-        name: '@sanyam/grammar-test',
+        name: '@sanyam-grammar/test',
         version: '1.0.0',
         sanyam: {
           grammar: true,
@@ -121,20 +121,20 @@ describe('GrammarScanner', () => {
         version: '1.0.0',
       });
       createTestPackage('packages/grammar-ecml', {
-        name: '@sanyam/grammar-ecml',
+        name: '@sanyam-grammar/ecml',
         version: '1.0.0',
       });
 
       const result = await scanForGrammarPackages({ workspaceRoot: tempDir });
 
       expect(result.packages).to.have.length(1);
-      expect(result.packages[0]?.packageName).to.equal('@sanyam/grammar-ecml');
+      expect(result.packages[0]?.packageName).to.equal('@sanyam-grammar/ecml');
     });
 
     it('should use default contribution path when not specified', async () => {
       createWorkspaceConfig(['grammars/*']);
       createTestPackage('grammars/mygrammar', {
-        name: '@sanyam/grammar-mygrammar',
+        name: '@sanyam-grammar/mygrammar',
         version: '1.0.0',
       });
 
@@ -147,11 +147,11 @@ describe('GrammarScanner', () => {
     it('should handle multiple workspace globs', async () => {
       createWorkspaceConfig(['packages/*', 'grammars/*']);
       createTestPackage('packages/grammar-ecml', {
-        name: '@sanyam/grammar-ecml',
+        name: '@sanyam-grammar/ecml',
         version: '1.0.0',
       });
       createTestPackage('grammars/spdevkit', {
-        name: '@sanyam/grammar-spdevkit',
+        name: '@sanyam-grammar/spdevkit',
         version: '1.0.0',
       });
 
@@ -198,7 +198,7 @@ describe('GrammarScanner', () => {
     it('should generate valid TypeScript code', () => {
       const packages: ScannedGrammarPackage[] = [
         {
-          packageName: '@sanyam/grammar-ecml',
+          packageName: '@sanyam-grammar/ecml',
           languageId: 'ecml',
           contributionPath: './lib/contribution.js',
           packagePath: '/path/to/ecml',
@@ -208,7 +208,7 @@ describe('GrammarScanner', () => {
 
       const code = generateRegistryCode(packages);
 
-      expect(code).to.include("import { contribution as contribution0 } from '@sanyam/grammar-ecml/contribution'");
+      expect(code).to.include("import { contribution as contribution0 } from '@sanyam-grammar/ecml/contribution'");
       expect(code).to.include('GRAMMAR_REGISTRY');
       expect(code).to.include('GRAMMAR_BY_ID');
       expect(code).to.include('getContribution');
@@ -217,14 +217,14 @@ describe('GrammarScanner', () => {
     it('should include all packages in registry', () => {
       const packages: ScannedGrammarPackage[] = [
         {
-          packageName: '@sanyam/grammar-ecml',
+          packageName: '@sanyam-grammar/ecml',
           languageId: 'ecml',
           contributionPath: './lib/contribution.js',
           packagePath: '/path/to/ecml',
           version: '1.0.0',
         },
         {
-          packageName: '@sanyam/grammar-spdevkit',
+          packageName: '@sanyam-grammar/spdevkit',
           languageId: 'spdevkit',
           contributionPath: './lib/contribution.js',
           packagePath: '/path/to/spdevkit',
@@ -236,8 +236,8 @@ describe('GrammarScanner', () => {
 
       expect(code).to.include('contribution0');
       expect(code).to.include('contribution1');
-      expect(code).to.include('@sanyam/grammar-ecml');
-      expect(code).to.include('@sanyam/grammar-spdevkit');
+      expect(code).to.include('@sanyam-grammar/ecml');
+      expect(code).to.include('@sanyam-grammar/spdevkit');
     });
 
     it('should include generation timestamp', () => {

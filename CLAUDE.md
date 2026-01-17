@@ -165,7 +165,7 @@ pnpm package:vsix
 Grammar packages follow this structure:
 
 ```
-packages/grammar/your-language/
+packages/grammar-definitions/your-language/
 ├── your-language.langium    # Langium grammar
 ├── manifest.ts              # GrammarManifest export
 ├── package.json             # With sanyam.contribution field
@@ -204,9 +204,9 @@ Generate grammar packages with `GrammarManifest` exports for the SANYAM platform
 
 **Generated files:**
 
-- `packages/grammar/{name}/{name}.langium` - Langium grammar (if creating new)
-- `packages/grammar/{name}/manifest.ts` - GrammarManifest export
-- `packages/grammar/{name}/package.json` - Package configuration
+- `packages/grammar-definitions/{name}/{name}.langium` - Langium grammar (if creating new)
+- `packages/grammar-definitions/{name}/manifest.ts` - GrammarManifest export
+- `packages/grammar-definitions/{name}/package.json` - Package configuration
 
 **Related packages:**
 
@@ -216,7 +216,7 @@ Generate grammar packages with `GrammarManifest` exports for the SANYAM platform
 
 - After updating dependencies or switching commits, run `git clean -xfd` to avoid runtime conflicts
 - Extensions in `packages/theia-extensions/` are custom to this product; Theia platform extensions come from `@theia/*` packages
-- Grammar packages in `packages/grammar/` provide language support via the unified server
+- Grammar packages in `packages/grammar-definitions/` provide language support via the unified server
 - The `plugins/` directory contains downloaded VS Code extensions (created by `download:plugins`)
 - Generated files appear in `src-gen/` and `lib/` directories within applications
 
@@ -226,7 +226,7 @@ Generate grammar packages with `GrammarManifest` exports for the SANYAM platform
 - File system (grammar packages in workspace), LangiumDocuments (in-memory document store) (002-unified-lsp-glsp)
 
 - TypeScript 5.x (per constitution) + Langium 4.x (grammar parsing), Claude Code (AI generation) (001-grammar-config-command)
-- File system (packages/grammar/{name}/ directory structure) (001-grammar-config-command)
+- File system (packages/grammar-definitions/{name}/ directory structure) (001-grammar-config-command)
 
 ## Recent Changes
 

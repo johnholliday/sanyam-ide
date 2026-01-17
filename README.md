@@ -95,14 +95,14 @@ Sanyam IDE includes a unified language server that provides both LSP (Language S
 
 To add support for a new domain-specific language:
 
-1. Create a grammar package in `packages/grammar/your-language/`
+1. Create a grammar package in `packages/grammar-definitions/your-language/`
 2. Define the Langium grammar (`.langium` file)
 3. Create a `manifest.ts` with GrammarManifest export
 4. Create `src/contribution.ts` implementing LanguageContribution
 5. Add `"sanyam": { "contribution": "./lib/src/contribution.js" }` to package.json
 6. Rebuild the server
 
-See `packages/grammar/example-minimal/` for a minimal reference implementation.
+See `packages/grammar-definitions/example-minimal/` for a minimal reference implementation.
 
 #### Building the Language Server
 

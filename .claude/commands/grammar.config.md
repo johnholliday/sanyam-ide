@@ -57,7 +57,7 @@ Based on the detected mode:
 
 **For grammar name:**
 
-- Expected location: `packages/grammar/{name}.langium`
+- Expected location: `packages/grammar-definitions/{name}.langium`
 - Check if file exists
 
 **For file path:**
@@ -65,7 +65,7 @@ Based on the detected mode:
 - If absolute path, use directly
 - If relative path, resolve from workspace root
 - Extract grammar name from filename (without `.langium` extension)
-- Target directory: `packages/grammar/{name}/`
+- Target directory: `packages/grammar-definitions/{name}/`
 
 ### Step 3: Check for Existing Grammar
 
@@ -225,7 +225,7 @@ Group tools by category. Create one "Elements" group with items for each rootTyp
 
 ### Step 7: Generate src/manifest.ts
 
-Create `packages/grammar/{name}/src/manifest.ts` with the complete `GrammarManifest` export:
+Create `packages/grammar-definitions/{name}/src/manifest.ts` with the complete `GrammarManifest` export:
 
 ```typescript
 /**
@@ -306,7 +306,7 @@ export default manifest;
 
 ### Step 8: Generate src/contribution.ts
 
-Create `packages/grammar/{name}/src/contribution.ts` with the `LanguageContribution` factory:
+Create `packages/grammar-definitions/{name}/src/contribution.ts` with the `LanguageContribution` factory:
 
 ```typescript
 /**
@@ -385,7 +385,7 @@ export default contribution;
 
 ### Step 9: Generate package.json
 
-Create `packages/grammar/{name}/package.json`:
+Create `packages/grammar-definitions/{name}/package.json`:
 
 ```json
 {
@@ -443,7 +443,7 @@ Create `packages/grammar/{name}/package.json`:
 
 ### Step 10: Generate tsconfig.json
 
-Create `packages/grammar/{name}/tsconfig.json`:
+Create `packages/grammar-definitions/{name}/tsconfig.json`:
 
 ```json
 {
@@ -472,7 +472,7 @@ Create `packages/grammar/{name}/tsconfig.json`:
 
 ### Step 11: Generate langium-config.json
 
-Create `packages/grammar/{name}/langium-config.json` for Langium CLI:
+Create `packages/grammar-definitions/{name}/langium-config.json` for Langium CLI:
 
 ```json
 {
@@ -499,13 +499,13 @@ Check if the grammar's tsconfig is already included in `.eslintrc.js`. If not, a
 project: ['./configs/tsconfig.eslint.json', './packages/theia-extensions/*/tsconfig.json', 'applications/electron/tsconfig.eslint.json']
 ```
 
-**Updated pattern (if `packages/grammar/*/tsconfig.json` not present):**
+**Updated pattern (if `packages/grammar-definitions/*/tsconfig.json` not present):**
 
 ```javascript
-project: ['./configs/tsconfig.eslint.json', './packages/theia-extensions/*/tsconfig.json', 'applications/electron/tsconfig.eslint.json', 'packages/grammar/*/tsconfig.json']
+project: ['./configs/tsconfig.eslint.json', './packages/theia-extensions/*/tsconfig.json', 'applications/electron/tsconfig.eslint.json', 'packages/grammar-definitions/*/tsconfig.json']
 ```
 
-Only modify `.eslintrc.js` if the `packages/grammar/*/tsconfig.json` pattern is not already present.
+Only modify `.eslintrc.js` if the `packages/grammar-definitions/*/tsconfig.json` pattern is not already present.
 
 ### Step 13: Report Completion
 
@@ -515,11 +515,11 @@ Output summary of generated files:
 Grammar package generated successfully!
 
 Files created:
-  packages/grammar/{name}/src/manifest.ts      - GrammarManifest configuration
-  packages/grammar/{name}/src/contribution.ts  - LanguageContribution export
-  packages/grammar/{name}/package.json         - Package with sanyam discovery metadata
-  packages/grammar/{name}/tsconfig.json        - TypeScript configuration
-  packages/grammar/{name}/langium-config.json  - Langium CLI configuration
+  packages/grammar-definitions/{name}/src/manifest.ts      - GrammarManifest configuration
+  packages/grammar-definitions/{name}/src/contribution.ts  - LanguageContribution export
+  packages/grammar-definitions/{name}/package.json         - Package with sanyam discovery metadata
+  packages/grammar-definitions/{name}/tsconfig.json        - TypeScript configuration
+  packages/grammar-definitions/{name}/langium-config.json  - Langium CLI configuration
 
 Grammar: {DisplayName}
 Language ID: {languageId}
@@ -528,7 +528,7 @@ Diagramming: Enabled
 
 Next steps:
 1. Generate Langium modules:
-   cd packages/grammar/{name} && pnpm langium:generate
+   cd packages/grammar-definitions/{name} && pnpm langium:generate
 
 2. Build the grammar package:
    pnpm build
@@ -548,14 +548,14 @@ is created by 'langium generate'. Run step 1 before building.
 
 ## User Story 2: Create New Grammar from Scratch
 
-**Trigger**: Simple name provided, but `packages/grammar/{name}/src/{name}.langium` does not exist
+**Trigger**: Simple name provided, but `packages/grammar-definitions/{name}/src/{name}.langium` does not exist
 
 ### US2 Step 1: Create Grammar Directory Structure
 
 Create the full directory structure:
 
 ```
-packages/grammar/{name}/
+packages/grammar-definitions/{name}/
 ├── src/
 │   └── {name}.langium
 ├── package.json
@@ -569,7 +569,7 @@ Read the starter template from `.claude/templates/starter-grammar.langium` and:
 
 1. Replace `${GrammarName}` placeholder with PascalCase grammar name
    - Convert `my-grammar` → `MyGrammar`
-2. Write to `packages/grammar/{name}/src/{name}.langium`
+2. Write to `packages/grammar-definitions/{name}/src/{name}.langium`
 
 ### US2 Step 3: Continue to Manifest Generation
 
@@ -584,7 +584,7 @@ Note: A starter grammar was created since no existing grammar was found.
 The starter template includes basic Task and Workflow types.
 
 To customize your grammar:
-1. Edit packages/grammar/{name}/src/{name}.langium
+1. Edit packages/grammar-definitions/{name}/src/{name}.langium
 2. Re-run /grammar.config {name} to regenerate the manifest
 ```
 
@@ -691,7 +691,7 @@ After completion, add status to output:
 
 ```
 Note: Grammar was generated from your description using AI.
-Review packages/grammar/{name}/src/{name}.langium and adjust as needed.
+Review packages/grammar-definitions/{name}/src/{name}.langium and adjust as needed.
 ```
 
 **If fallback was used:**
@@ -699,7 +699,7 @@ Review packages/grammar/{name}/src/{name}.langium and adjust as needed.
 ```
 Note: AI grammar generation did not produce valid output after 2 attempts.
 A starter template was used instead. Your description has been preserved as a comment.
-Please edit packages/grammar/{name}/src/{name}.langium to implement your DSL.
+Please edit packages/grammar-definitions/{name}/src/{name}.langium to implement your DSL.
 ```
 
 ---
@@ -738,10 +738,10 @@ For help: https://langium.org/docs/reference/grammar-language/
 
 ### Missing grammars Directory (FR-012)
 
-If `packages/grammar/` directory doesn't exist, create it automatically:
+If `packages/grammar-definitions/` directory doesn't exist, create it automatically:
 
 ```bash
-mkdir -p packages/grammar/{name}/src
+mkdir -p packages/grammar-definitions/{name}/src
 ```
 
 No error message needed - handle silently.
@@ -757,7 +757,7 @@ Please check:
 - Path validity
 
 If the problem persists, try creating the directory manually:
-mkdir -p packages/grammar/{name}/src
+mkdir -p packages/grammar-definitions/{name}/src
 ```
 
 ---

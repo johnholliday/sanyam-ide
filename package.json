@@ -95,7 +95,7 @@
   "workspaces": [
     "packages/*",
     "packages/theia-extensions/*",
-    "packages/grammar/*",
+    "packages/grammar-definitions/*",
     "applications/*",
     "tests/*",
     "docs/*"

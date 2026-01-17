@@ -10,6 +10,7 @@
 **/plugins
 **/tsconfig.tsbuildinfo
 *.log
+*.vsix
 license-check-summary.txt
 
 # Native module cache for Windows/Linux swapping

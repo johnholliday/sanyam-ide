@@ -163,7 +163,7 @@
     "@sanyam-ide/glsp": "workspace:*",
     "@sanyam-ide/launcher": "workspace:*",
     "@sanyam-ide/product": "workspace:*",
-    "@sanyam/language-server": "workspace:*",
+    "sanyam-language-server": "workspace:*",
     "@sanyam-ide/updater": "workspace:*"
   },
   "devDependencies": {

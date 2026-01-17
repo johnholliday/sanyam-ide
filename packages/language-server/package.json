@@ -1,8 +1,13 @@
 {
-  "name": "@sanyam/language-server",
+  "name": "sanyam-language-server",
+  "displayName": "Sanyam Language Server",
+  "publisher": "sanyam",
   "version": "0.0.1",
   "description": "Unified LSP/GLSP Language Server for Sanyam IDE",
   "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
   "type": "module",
   "main": "./lib/main.js",
   "types": "./lib/main.d.ts",
@@ -36,7 +41,7 @@
     "generate:registry": "ts-node --esm scripts/generate-grammar-registry.ts",
     "generate:vsix-manifest": "ts-node --esm scripts/generate-vsix-manifest.ts",
     "generate:textmate": "ts-node --esm scripts/build-vsix.ts",
-    "package:vsix": "npm run build:vsix && vsce package"
+    "package:vsix": "npm run build:vsix && vsce package --no-dependencies"
   },
   "dependencies": {
     "@sanyam/grammar-scanner": "workspace:*",
@@ -82,5 +87,47 @@
   },
   "bugs": {
     "url": "https://github.com/johnholliday/sanyam-ide/issues"
+  },
+  "activationEvents": [
+    "onLanguage:ecml",
+    "onLanguage:example-minimal"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "ecml",
+        "aliases": [
+          "Ecml",
+          "ecml"
+        ],
+        "extensions": [
+          ".ecml"
+        ],
+        "configuration": "./language-configurations/ecml.json"
+      },
+      {
+        "id": "example-minimal",
+        "aliases": [
+          "Example-minimal",
+          "example-minimal"
+        ],
+        "extensions": [
+          ".example"
+        ],
+        "configuration": "./language-configurations/example-minimal.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ecml",
+        "scopeName": "source.ecml",
+        "path": "./syntaxes/ecml.tmLanguage.json"
+      },
+      {
+        "language": "example-minimal",
+        "scopeName": "source.example-minimal",
+        "path": "./syntaxes/example-minimal.tmLanguage.json"
+      }
+    ]
   }
 }

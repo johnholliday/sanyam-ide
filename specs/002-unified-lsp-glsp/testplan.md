@@ -143,8 +143,8 @@ Verify the quickstart guide is accurate and complete by following it step-by-ste
 1. **Create package structure**
 
    ```bash
-   mkdir -p grammars/testgrammar/src
-   cd grammars/testgrammar
+   mkdir -p packages/grammar-definitions/testgrammar/src
+   cd packages/grammar-definitions/testgrammar
    ```
 
 2. **Create files per quickstart**
@@ -157,7 +157,7 @@ Verify the quickstart guide is accurate and complete by following it step-by-ste
 3. **Build and test**
 
    ```bash
-   cd ../..  # Return to root
+   cd ../../..  # Return to root
    pnpm install
    pnpm build:dev
    ```
@@ -174,7 +174,7 @@ Verify the quickstart guide is accurate and complete by following it step-by-ste
 5. **Clean up**
 
    ```bash
-   rm -rf grammars/testgrammar
+   rm -rf packages/grammar-definitions/testgrammar
    ```
 
 #### Part 3: Customizing Language Features (Section 3)
@@ -234,7 +234,7 @@ cd ../language-server
 pnpm lint
 
 # GLSP extension
-cd ../../theia-extensions/glsp
+cd ../theia-extensions/glsp
 pnpm lint
 ```
 
@@ -253,7 +253,7 @@ npx eslint packages/language-server/src/glsp/providers/*.ts
 npx eslint packages/language-server/src/model/*.ts
 
 # Check Grammar contributions
-npx eslint grammars/*/src/contribution.ts
+npx eslint packages/grammar-definitions/*/src/contribution.ts
 ```
 
 ### Results
@@ -262,7 +262,7 @@ npx eslint grammars/*/src/contribution.ts
 |--------------|--------|----------|-------|
 | packages/types | | | |
 | packages/language-server | | | |
-| theia-extensions/glsp | | | |
+| packages/theia-extensions/glsp | | | |
 | LSP providers | | | |
 | GLSP providers | | | |
 | Model API | | | |
@@ -301,7 +301,7 @@ madge --circular packages/types/src/
 madge --circular packages/language-server/src/
 
 # Check GLSP extension
-madge --circular theia-extensions/glsp/src/
+madge --circular packages/theia-extensions/glsp/src/
 ```
 
 **Expected**: "No circular dependency found" for each
@@ -310,7 +310,7 @@ madge --circular theia-extensions/glsp/src/
 
 ```bash
 # Full project check (may take time)
-madge --circular --extensions ts packages/ theia-extensions/
+madge --circular --extensions ts packages/
 ```
 
 **Expected**: No circular dependencies between packages
@@ -330,7 +330,7 @@ Review the graph for unexpected dependency patterns.
 |-------|---------------------|---------|
 | packages/types | | |
 | packages/language-server | | |
-| theia-extensions/glsp | | |
+| packages/theia-extensions/glsp | | |
 | Cross-package | | |
 
 ### Expected Dependency Structure
@@ -340,9 +340,9 @@ Review the graph for unexpected dependency patterns.
     ↑
 @sanyam/language-server (depends on @sanyam/types)
     ↑
-@sanyam/glsp-frontend (depends on @sanyam/types, @sanyam/language-server)
+@sanyam-ide/glsp (depends on @sanyam/types, @sanyam/language-server)
 
-grammars/* (depend on @sanyam/types only)
+packages/grammar-definitions/* (depend on @sanyam/types only)
 ```
 
 ### Common Circular Dependency Patterns to Avoid

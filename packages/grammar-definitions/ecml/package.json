@@ -36,7 +36,7 @@
     "contribution": "./lib/contribution.js"
   },
   "dependencies": {
-    "langium": "^4.0.0"
+    "langium": "^4.1.0"
   },
   "devDependencies": {
     "@sanyam/types": "workspace:*",

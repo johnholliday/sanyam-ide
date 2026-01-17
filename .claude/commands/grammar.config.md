@@ -421,7 +421,7 @@ Create `packages/grammar-definitions/{name}/package.json`:
     "contribution": "./lib/src/contribution.js"
   },
   "dependencies": {
-    "langium": "^4.0.0"
+    "langium":"^4.1.0"
   },
   "peerDependencies": {
     "@sanyam/types": "workspace:*"

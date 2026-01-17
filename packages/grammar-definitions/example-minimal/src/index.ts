@@ -9,8 +9,8 @@ export { manifest } from './manifest.js';
 export type { GrammarManifest } from '@sanyam/types';
 
 // Export contribution
-export { createContribution } from './contribution.js';
-export type { LanguageContribution, ContributionContext } from '@sanyam/types';
+export { contribution } from './contribution.js';
+export type { LanguageContributionInterface } from '@sanyam/types';
 
 // Re-export generated module (uncomment after langium generate)
 // export * from './generated/module.js';

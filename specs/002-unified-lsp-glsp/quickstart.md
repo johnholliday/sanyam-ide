@@ -88,10 +88,10 @@ cd grammars/mygrammar
     "@sanyam/types": "workspace:*"
   },
   "peerDependencies": {
-    "langium": "^4.0.0"
+    "langium":"^4.1.0"
   },
   "devDependencies": {
-    "langium": "^4.0.0",
+    "langium":"^4.1.0",
     "langium-cli": "^4.0.0",
     "typescript": "~5.6.3"
   }

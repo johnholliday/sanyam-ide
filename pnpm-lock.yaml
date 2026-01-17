@@ -76,10 +76,10 @@ importers:
     dependencies:
       '@sanyam-grammar/ecml':
         specifier: workspace:*
-        version: link:../../packages/grammar/ecml
+        version: link:../../packages/grammar-definitions/ecml
       '@sanyam-ide/product':
         specifier: workspace:*
-        version: link:../../packages/ide/product
+        version: link:../../packages/theia-extensions/product
       '@theia/ai-anthropic':
         specifier: 1.67.0
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)(zod@3.25.76)
@@ -118,7 +118,7 @@ importers:
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
       '@theia/ai-ide':
         specifier: 1.67.0
-        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
+        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(hono@4.11.4)(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
       '@theia/ai-llamafile':
         specifier: 1.67.0
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
@@ -220,13 +220,13 @@ importers:
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
       '@theia/plugin-dev':
         specifier: 1.67.0
-        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
+        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
       '@theia/plugin-ext':
         specifier: 1.67.0
-        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
+        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
       '@theia/plugin-ext-vscode':
         specifier: 1.67.0
-        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
+        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
       '@theia/preferences':
         specifier: 1.67.0
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
@@ -247,10 +247,10 @@ importers:
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(encoding@0.1.13)
       '@theia/scm':
         specifier: 1.67.0
-        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)
+        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(react@18.3.1)(typescript@5.9.3)
       '@theia/search-in-workspace':
         specifier: 1.67.0
-        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)
+        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(react@18.3.1)(typescript@5.9.3)
       '@theia/secondary-window':
         specifier: 1.67.0
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
@@ -271,7 +271,7 @@ importers:
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
       '@theia/toolbar':
         specifier: 1.67.0
-        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)
+        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(react@18.3.1)(typescript@5.9.3)
       '@theia/typehierarchy':
         specifier: 1.67.0
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
@@ -283,7 +283,7 @@ importers:
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
       '@theia/vsx-registry':
         specifier: 1.67.0
-        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
+        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
       '@theia/workspace':
         specifier: 1.67.0
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
@@ -302,19 +302,19 @@ importers:
     dependencies:
       '@sanyam-grammar/ecml':
         specifier: workspace:*
-        version: link:../../packages/grammar/ecml
+        version: link:../../packages/grammar-definitions/ecml
       '@sanyam-ide/glsp':
         specifier: workspace:*
-        version: link:../../packages/ide/glsp
+        version: link:../../packages/theia-extensions/glsp
       '@sanyam-ide/launcher':
         specifier: workspace:*
-        version: link:../../packages/ide/launcher
+        version: link:../../packages/theia-extensions/launcher
       '@sanyam-ide/product':
         specifier: workspace:*
-        version: link:../../packages/ide/product
+        version: link:../../packages/theia-extensions/product
       '@sanyam-ide/updater':
         specifier: workspace:*
-        version: link:../../packages/ide/updater
+        version: link:../../packages/theia-extensions/updater
       '@sanyam/language-server':
         specifier: workspace:*
         version: link:../../packages/language-server
@@ -491,10 +491,10 @@ importers:
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(encoding@0.1.13)
       '@theia/scm':
         specifier: 1.67.0
-        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)
+        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(react@18.3.1)(typescript@5.9.3)
       '@theia/search-in-workspace':
         specifier: 1.67.0
-        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)
+        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(react@18.3.1)(typescript@5.9.3)
       '@theia/secondary-window':
         specifier: 1.67.0
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
@@ -614,6 +614,44 @@ importers:
         specifier: 17.2.1
         version: 17.2.1
 
+  packages/grammar-definitions/ecml:
+    dependencies:
+      langium:
+        specifier: ^4.0.0
+        version: 4.1.3
+    devDependencies:
+      '@sanyam/types':
+        specifier: workspace:*
+        version: link:../../types
+      langium-cli:
+        specifier: ^4.0.0
+        version: 4.1.0
+      rimraf:
+        specifier: ^5.0.0
+        version: 5.0.10
+      typescript:
+        specifier: ~5.6.3
+        version: 5.6.3
+
+  packages/grammar-definitions/example-minimal:
+    dependencies:
+      langium:
+        specifier: ^4.0.0
+        version: 4.1.3
+    devDependencies:
+      '@sanyam/types':
+        specifier: workspace:*
+        version: link:../../types
+      langium-cli:
+        specifier: ^4.0.0
+        version: 4.1.0
+      rimraf:
+        specifier: ^5.0.0
+        version: 5.0.10
+      typescript:
+        specifier: ~5.6.3
+        version: 5.6.3
+
   packages/grammar-scanner:
     dependencies:
       '@sanyam/types':
@@ -633,45 +671,68 @@ importers:
         specifier: ~5.6.3
         version: 5.6.3
 
-  packages/grammar/ecml:
+  packages/language-server:
     dependencies:
+      '@eclipse-glsp/server-node':
+        specifier: ^1.0.0
+        version: 1.0.0
+      '@sanyam-grammar/ecml':
+        specifier: workspace:*
+        version: link:../grammar-definitions/ecml
+      '@sanyam-grammar/example-minimal':
+        specifier: workspace:*
+        version: link:../grammar-definitions/example-minimal
+      '@sanyam/grammar-scanner':
+        specifier: workspace:*
+        version: link:../grammar-scanner
+      '@sanyam/types':
+        specifier: workspace:*
+        version: link:../types
+      inversify:
+        specifier: ^6.0.1
+        version: 6.2.2(reflect-metadata@0.2.2)
       langium:
         specifier: ^4.0.0
         version: 4.1.3
+      vscode-languageserver:
+        specifier: ^9.0.1
+        version: 9.0.1
+      vscode-languageserver-textdocument:
+        specifier: ^1.0.11
+        version: 1.0.12
+      vscode-uri:
+        specifier: ^3.0.8
+        version: 3.1.0
     devDependencies:
-      '@sanyam/types':
-        specifier: workspace:*
-        version: link:../../types
-      langium-cli:
-        specifier: ^4.0.0
-        version: 4.1.0
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.30
+      '@types/vscode':
+        specifier: ^1.85.0
+        version: 1.108.1
+      esbuild:
+        specifier: ^0.20.0
+        version: 0.20.2
       rimraf:
-        specifier: ^5.0.0
+        specifier: ^5.0.5
         version: 5.0.10
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@20.19.30)(typescript@5.6.3)
       typescript:
         specifier: ~5.6.3
         version: 5.6.3
+      vsce:
+        specifier: ^2.15.0
+        version: 2.15.0
+      vscode-languageclient:
+        specifier: ^9.0.1
+        version: 9.0.1
+      yaml:
+        specifier: ^2.3.4
+        version: 2.8.2
 
-  packages/grammar/example-minimal:
-    dependencies:
-      langium:
-        specifier: ^4.0.0
-        version: 4.1.3
-    devDependencies:
-      '@sanyam/types':
-        specifier: workspace:*
-        version: link:../../types
-      langium-cli:
-        specifier: ^4.0.0
-        version: 4.1.0
-      rimraf:
-        specifier: ^5.0.0
-        version: 5.0.10
-      typescript:
-        specifier: ~5.6.3
-        version: 5.6.3
-
-  packages/ide/glsp:
+  packages/theia-extensions/glsp:
     dependencies:
       '@eclipse-glsp/client':
         specifier: ^2.3.0
@@ -708,7 +769,7 @@ importers:
         specifier: ~5.6.3
         version: 5.6.3
 
-  packages/ide/launcher:
+  packages/theia-extensions/launcher:
     dependencies:
       '@theia/core':
         specifier: 1.67.0
@@ -730,7 +791,7 @@ importers:
         specifier: ~5.6.3
         version: 5.6.3
 
-  packages/ide/product:
+  packages/theia-extensions/product:
     dependencies:
       '@sanyam/types':
         specifier: workspace:*
@@ -773,7 +834,7 @@ importers:
         specifier: ~5.6.3
         version: 5.6.3
 
-  packages/ide/updater:
+  packages/theia-extensions/updater:
     dependencies:
       '@theia/core':
         specifier: 1.67.0
@@ -809,58 +870,6 @@ importers:
       typescript:
         specifier: ~5.6.3
         version: 5.6.3
-
-  packages/language-server:
-    dependencies:
-      '@eclipse-glsp/server-node':
-        specifier: ^1.0.0
-        version: 1.0.0
-      '@sanyam/grammar-scanner':
-        specifier: workspace:*
-        version: link:../grammar-scanner
-      '@sanyam/types':
-        specifier: workspace:*
-        version: link:../types
-      inversify:
-        specifier: ^6.0.1
-        version: 6.2.2(reflect-metadata@0.2.2)
-      langium:
-        specifier: ^4.0.0
-        version: 4.1.3
-      vscode-languageclient:
-        specifier: ^9.0.1
-        version: 9.0.1
-      vscode-languageserver:
-        specifier: ^9.0.1
-        version: 9.0.1
-      vscode-languageserver-textdocument:
-        specifier: ^1.0.11
-        version: 1.0.12
-      vscode-uri:
-        specifier: ^3.0.8
-        version: 3.1.0
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.30
-      esbuild:
-        specifier: ^0.20.0
-        version: 0.20.2
-      rimraf:
-        specifier: ^5.0.5
-        version: 5.0.10
-      ts-node:
-        specifier: ^10.9.2
-        version: 10.9.2(@types/node@20.19.30)(typescript@5.6.3)
-      typescript:
-        specifier: ~5.6.3
-        version: 5.6.3
-      vsce:
-        specifier: ^2.15.0
-        version: 2.15.0
-      yaml:
-        specifier: ^2.3.4
-        version: 2.8.2
 
   packages/types:
     dependencies:
@@ -2619,6 +2628,9 @@ packages:
 
   '@types/verror@1.10.11':
     resolution: {integrity: sha512-RlDm9K7+o5stv0Co8i8ZRGxDbrTxhJtgjqjFyVh/tXQyl/rYtTKlnTvZ88oSTeYREWurwx20Js4kTuKCsFkUtg==}
+
+  '@types/vscode@1.108.1':
+    resolution: {integrity: sha512-DerV0BbSzt87TbrqmZ7lRDIYaMiqvP8tmJTzW2p49ZBVtGUnGAu2RGQd1Wv4XMzEVUpaHbsemVM5nfuQJj7H6w==}
 
   '@types/which@1.3.2':
     resolution: {integrity: sha512-8oDqyLC7eD4HM307boe2QWKyuzdzWBj56xI/imSl2cpL+U3tCMaTAkMJ4ee5JBZ/FsOJlvRGeIShiZDAl1qERA==}
@@ -10202,47 +10214,6 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@theia/ai-ide@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)':
-    dependencies:
-      '@theia/ai-chat': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/ai-chat-ui': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/ai-core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/ai-mcp': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(hono@4.11.4)(typescript@5.9.3)(zod@3.25.76)
-      '@theia/core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/debug': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/editor': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/filesystem': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/markers': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/monaco': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/navigator': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/preferences': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/scm': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)
-      '@theia/search-in-workspace': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)
-      '@theia/task': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/terminal': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/workspace': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      date-fns: 4.1.0
-      ignore: 6.0.2
-      js-yaml: 4.1.1
-      minimatch: 10.1.1
-      puppeteer-core: 24.35.0
-      simple-git: 3.30.0
-    transitivePeerDependencies:
-      - '@cfworker/json-schema'
-      - '@theia/electron'
-      - '@types/react'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
-      - hono
-      - react
-      - react-native-b4a
-      - supports-color
-      - typescript
-      - utf-8-validate
-      - zod
-
   '@theia/ai-ide@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(hono@4.11.4)(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)':
     dependencies:
       '@theia/ai-chat': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
@@ -11478,32 +11449,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@theia/plugin-dev@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)':
-    dependencies:
-      '@theia/core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/debug': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/filesystem': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/output': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/plugin-ext': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
-      '@theia/workspace': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - '@cfworker/json-schema'
-      - '@theia/electron'
-      - '@types/react'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
-      - hono
-      - react
-      - react-dom
-      - react-native-b4a
-      - supports-color
-      - typescript
-      - utf-8-validate
-      - zod
-
   '@theia/plugin-dev@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)':
     dependencies:
       '@theia/core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
@@ -11512,43 +11457,6 @@ snapshots:
       '@theia/output': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
       '@theia/plugin-ext': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
       '@theia/workspace': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - '@cfworker/json-schema'
-      - '@theia/electron'
-      - '@types/react'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
-      - hono
-      - react
-      - react-dom
-      - react-native-b4a
-      - supports-color
-      - typescript
-      - utf-8-validate
-      - zod
-
-  '@theia/plugin-ext-vscode@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)':
-    dependencies:
-      '@theia/callhierarchy': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/editor': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/filesystem': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/monaco': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/monaco-editor-core': 1.96.302
-      '@theia/navigator': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/outline-view': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/plugin': 1.67.0
-      '@theia/plugin-ext': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
-      '@theia/scm': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)
-      '@theia/terminal': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/typehierarchy': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/userstorage': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/workspace': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      decompress: 4.2.1
-      filenamify: 4.3.0
       tslib: 2.8.1
     transitivePeerDependencies:
       - '@cfworker/json-schema'
@@ -11624,70 +11532,6 @@ snapshots:
       decompress: 4.2.1
       filenamify: 4.3.0
       tslib: 2.8.1
-    transitivePeerDependencies:
-      - '@cfworker/json-schema'
-      - '@theia/electron'
-      - '@types/react'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
-      - hono
-      - react
-      - react-dom
-      - react-native-b4a
-      - supports-color
-      - typescript
-      - utf-8-validate
-      - zod
-
-  '@theia/plugin-ext@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)':
-    dependencies:
-      '@theia/ai-mcp': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(hono@4.11.4)(typescript@5.9.3)(zod@3.25.76)
-      '@theia/bulk-edit': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/callhierarchy': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/console': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/debug': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/editor': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/editor-preview': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/file-search': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/filesystem': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/markers': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/messages': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@theia/monaco': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/monaco-editor-core': 1.96.302
-      '@theia/navigator': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/notebook': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
-      '@theia/output': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/plugin': 1.67.0
-      '@theia/preferences': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/scm': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)
-      '@theia/search-in-workspace': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)
-      '@theia/task': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/terminal': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/test': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/timeline': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/typehierarchy': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/variable-resolver': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/workspace': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@types/mime': 2.0.3
-      '@vscode/debugprotocol': 1.68.0
-      '@vscode/proxy-agent': 0.13.2
-      async-mutex: 0.4.1
-      decompress: 4.2.1
-      escape-html: 1.0.3
-      filenamify: 4.3.0
-      is-electron: 2.2.2
-      jsonc-parser: 2.3.1
-      lodash.clonedeep: 4.5.0
-      macaddress: 0.5.4
-      mime: 2.6.0
-      node-pty: 1.1.0-beta27
-      semver: 7.7.3
-      tslib: 2.8.1
-      vhost: 3.0.2
-      vscode-textmate: 9.3.1
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - '@theia/electron'
@@ -12021,32 +11865,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@theia/scm@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)':
-    dependencies:
-      '@theia/core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/editor': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/filesystem': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/monaco': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/monaco-editor-core': 1.96.302
-      '@types/diff': 5.2.3
-      diff: 5.2.0
-      p-debounce: 2.1.0
-      react-textarea-autosize: 8.5.9(@types/react@18.3.27)(react@18.3.1)
-      ts-md5: 1.3.1
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - '@theia/electron'
-      - '@types/react'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
-      - react
-      - react-native-b4a
-      - supports-color
-      - typescript
-      - utf-8-validate
-
   '@theia/scm@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(react@18.3.1)(typescript@5.6.3)':
     dependencies:
       '@theia/core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
@@ -12057,7 +11875,7 @@ snapshots:
       '@types/diff': 5.2.3
       diff: 5.2.0
       p-debounce: 2.1.0
-      react-textarea-autosize: 8.5.9(@types/react@18.3.27)(react@18.3.1)
+      react-textarea-autosize: 8.5.9(react@18.3.1)
       ts-md5: 1.3.1
       tslib: 2.8.1
     transitivePeerDependencies:
@@ -12083,33 +11901,8 @@ snapshots:
       '@types/diff': 5.2.3
       diff: 5.2.0
       p-debounce: 2.1.0
-      react-textarea-autosize: 8.5.9(@types/react@18.3.27)(react@18.3.1)
+      react-textarea-autosize: 8.5.9(react@18.3.1)
       ts-md5: 1.3.1
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - '@theia/electron'
-      - '@types/react'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
-      - react
-      - react-native-b4a
-      - supports-color
-      - typescript
-      - utf-8-validate
-
-  '@theia/search-in-workspace@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)':
-    dependencies:
-      '@theia/core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/editor': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/filesystem': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/navigator': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/process': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/workspace': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@vscode/ripgrep': 1.17.0
-      minimatch: 10.1.1
-      react-textarea-autosize: 8.5.9(@types/react@18.3.27)(react@18.3.1)
       tslib: 2.8.1
     transitivePeerDependencies:
       - '@theia/electron'
@@ -12134,7 +11927,7 @@ snapshots:
       '@theia/workspace': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3)
       '@vscode/ripgrep': 1.17.0
       minimatch: 10.1.1
-      react-textarea-autosize: 8.5.9(@types/react@18.3.27)(react@18.3.1)
+      react-textarea-autosize: 8.5.9(react@18.3.1)
       tslib: 2.8.1
     transitivePeerDependencies:
       - '@theia/electron'
@@ -12159,7 +11952,7 @@ snapshots:
       '@theia/workspace': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
       '@vscode/ripgrep': 1.17.0
       minimatch: 10.1.1
-      react-textarea-autosize: 8.5.9(@types/react@18.3.27)(react@18.3.1)
+      react-textarea-autosize: 8.5.9(react@18.3.1)
       tslib: 2.8.1
     transitivePeerDependencies:
       - '@theia/electron'
@@ -12379,34 +12172,6 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@theia/toolbar@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)':
-    dependencies:
-      '@theia/core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/editor': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/file-search': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/filesystem': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/monaco': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/monaco-editor-core': 1.96.302
-      '@theia/search-in-workspace': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(react@18.3.1)(typescript@5.9.3)
-      '@theia/userstorage': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/workspace': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      ajv: 6.12.6
-      jsonc-parser: 2.3.1
-      perfect-scrollbar: 1.5.5
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - '@theia/electron'
-      - '@types/react'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
-      - react
-      - react-native-b4a
-      - supports-color
-      - typescript
-      - utf-8-validate
-
   '@theia/toolbar@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(react@18.3.1)(typescript@5.9.3)':
     dependencies:
       '@theia/core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
@@ -12489,38 +12254,6 @@ snapshots:
       - debug
       - supports-color
       - utf-8-validate
-
-  '@theia/vsx-registry@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)':
-    dependencies:
-      '@theia/core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/filesystem': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/navigator': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/ovsx-client': 1.67.0
-      '@theia/plugin-ext': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
-      '@theia/plugin-ext-vscode': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(@types/react@18.3.27)(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
-      '@theia/preferences': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      '@theia/workspace': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)
-      limiter: 2.1.0
-      luxon: 2.5.2
-      p-debounce: 2.1.0
-      semver: 7.7.3
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - '@cfworker/json-schema'
-      - '@theia/electron'
-      - '@types/react'
-      - bare-abort-controller
-      - bare-buffer
-      - bufferutil
-      - debug
-      - hono
-      - react
-      - react-dom
-      - react-native-b4a
-      - supports-color
-      - typescript
-      - utf-8-validate
-      - zod
 
   '@theia/vsx-registry@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(hono@4.11.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.6.3)(zod@3.25.76)':
     dependencies:
@@ -12921,6 +12654,8 @@ snapshots:
 
   '@types/verror@1.10.11':
     optional: true
+
+  '@types/vscode@1.108.1': {}
 
   '@types/which@1.3.2': {}
 
@@ -17989,12 +17724,12 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  react-textarea-autosize@8.5.9(@types/react@18.3.27)(react@18.3.1):
+  react-textarea-autosize@8.5.9(react@18.3.1):
     dependencies:
       '@babel/runtime': 7.28.6
       react: 18.3.1
-      use-composed-ref: 1.4.0(@types/react@18.3.27)(react@18.3.1)
-      use-latest: 1.3.0(@types/react@18.3.27)(react@18.3.1)
+      use-composed-ref: 1.4.0(react@18.3.1)
+      use-latest: 1.3.0(react@18.3.1)
     transitivePeerDependencies:
       - '@types/react'
 
@@ -19370,24 +19105,18 @@ snapshots:
 
   urlpattern-polyfill@10.0.0: {}
 
-  use-composed-ref@1.4.0(@types/react@18.3.27)(react@18.3.1):
+  use-composed-ref@1.4.0(react@18.3.1):
     dependencies:
       react: 18.3.1
-    optionalDependencies:
-      '@types/react': 18.3.27
 
-  use-isomorphic-layout-effect@1.2.1(@types/react@18.3.27)(react@18.3.1):
+  use-isomorphic-layout-effect@1.2.1(react@18.3.1):
     dependencies:
       react: 18.3.1
-    optionalDependencies:
-      '@types/react': 18.3.27
 
-  use-latest@1.3.0(@types/react@18.3.27)(react@18.3.1):
+  use-latest@1.3.0(react@18.3.1):
     dependencies:
       react: 18.3.1
-      use-isomorphic-layout-effect: 1.2.1(@types/react@18.3.27)(react@18.3.1)
-    optionalDependencies:
-      '@types/react': 18.3.27
+      use-isomorphic-layout-effect: 1.2.1(react@18.3.1)
 
   use-sync-external-store@1.6.0(react@18.3.1):
     dependencies:

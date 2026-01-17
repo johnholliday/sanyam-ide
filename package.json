@@ -107,6 +107,7 @@
       "cpu-features",
       "drivelist",
       "electron",
+      "esbuild",
       "keytar",
       "native-keymap",
       "node-pty"

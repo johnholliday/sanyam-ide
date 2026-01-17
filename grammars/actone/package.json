@@ -2,10 +2,21 @@
   "name": "@sanyam/grammar-actone",
   "version": "0.0.1",
   "description": "Grammar package for ActOne - AI-assisted fiction writing DSL",
-  "main": "./lib/src/browser/actone-frontend-module.js",
+  "type": "module",
+  "main": "./lib/manifest.js",
   "exports": {
-    ".": "./manifest.ts",
+    ".": {
+      "types": "./lib/manifest.d.ts",
+      "import": "./lib/manifest.js"
+    },
+    "./contribution": {
+      "types": "./lib/src/contribution.d.ts",
+      "import": "./lib/src/contribution.js"
+    },
     "./lib/src/browser/actone-frontend-module": "./lib/src/browser/actone-frontend-module.js"
+  },
+  "sanyam": {
+    "contribution": "./lib/src/contribution.js"
   },
   "scripts": {
     "clean": "rimraf lib *.tsbuildinfo",

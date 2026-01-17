@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/eclipse-langium/langium/main/packages/langium-cli/src/langium-config-schema.json",
+  "projectName": "ExampleMinimal",
+  "languages": [
+    {
+      "id": "example-minimal",
+      "grammar": "src/example-minimal.langium",
+      "fileExtensions": [".exm", ".example"]
+    }
+  ],
+  "out": "src/generated",
+  "importExtension": ".js"
+}

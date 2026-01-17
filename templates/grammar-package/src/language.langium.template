@@ -1,0 +1,52 @@
+/**
+ * {{languageId}} Grammar Definition
+ *
+ * This is a starter Langium grammar template.
+ * Modify it to define your language's syntax.
+ */
+
+grammar {{ProjectName}}
+
+// Entry rule - the root of your AST
+entry Model:
+    (elements+=Element)*;
+
+// Base element type
+Element:
+    Entity | Relationship;
+
+// Example entity type
+Entity:
+    'entity' name=ID '{'
+        (properties+=Property)*
+    '}';
+
+// Example property
+Property:
+    name=ID ':' type=Type;
+
+// Example type reference
+Type:
+    primitive=PrimitiveType | reference=[Entity:ID];
+
+// Primitive types
+PrimitiveType returns string:
+    'string' | 'number' | 'boolean' | 'date';
+
+// Example relationship
+Relationship:
+    'relationship' name=ID '{'
+        'from' source=[Entity:ID]
+        'to' target=[Entity:ID]
+        ('label' label=STRING)?
+    '}';
+
+// Hidden terminals (whitespace and comments)
+hidden terminal WS: /\s+/;
+hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;
+hidden terminal SL_COMMENT: /\/\/[^\n\r]*/;
+
+// Basic terminals
+terminal ID: /[_a-zA-Z][\w_]*/;
+terminal STRING: /"[^"]*"|'[^']*'/;
+terminal NUMBER: /[0-9]+(\.[0-9]+)?/;

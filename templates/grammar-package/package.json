@@ -1,0 +1,43 @@
+{
+  "name": "@sanyam/grammar-{{languageId}}",
+  "version": "0.1.0",
+  "description": "{{description}}",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./manifest": {
+      "types": "./lib/manifest.d.ts",
+      "import": "./lib/manifest.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "build:langium": "langium generate",
+    "watch": "tsc -b tsconfig.json --watch",
+    "clean": "rimraf lib src-gen",
+    "lint": "eslint src --ext .ts"
+  },
+  "sanyam": {
+    "grammar": true,
+    "languageId": "{{languageId}}",
+    "fileExtensions": {{fileExtensionsJson}}
+  },
+  "dependencies": {
+    "langium": "^4.0.0"
+  },
+  "devDependencies": {
+    "@sanyam/types": "workspace:*",
+    "langium-cli": "^4.0.0",
+    "rimraf": "^5.0.0",
+    "typescript": "~5.6.3"
+  }
+}

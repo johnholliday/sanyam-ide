@@ -151,8 +151,10 @@
     "@sanyam/grammar-actone": "workspace:*",
     "@sanyam/grammar-ecml": "workspace:*",
     "@sanyam/grammar-iso-42001": "workspace:*",
+    "@sanyam/glsp": "workspace:*",
     "@sanyam/launcher": "workspace:*",
     "@sanyam/product": "workspace:*",
+    "@sanyam/sanyam-lsp": "workspace:*",
     "@sanyam/updater": "workspace:*"
   },
   "devDependencies": {

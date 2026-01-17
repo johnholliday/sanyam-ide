@@ -81,10 +81,22 @@ applications/
 │   └── test/          # E2E tests (WebdriverIO)
 └── browser/           # Browser/Docker version
 
+packages/
+├── types/             # Shared type definitions (@sanyam/types)
+└── sanyam-lsp/        # Unified LSP/GLSP language server
+
+grammars/
+├── ecml/              # ECML grammar package
+├── actone/            # ActOne fiction writing DSL
+├── iso-42001/         # ISO 42001 AI Management System
+├── spdevkit/          # SPDevKit development toolkit
+└── example-minimal/   # Reference minimal grammar
+
 theia-extensions/
 ├── product/           # Branding: about dialog, welcome page, splash
 ├── updater/           # Auto-update mechanism (electron-updater)
-└── launcher/          # AppImage CLI launcher ('theia' command)
+├── launcher/          # AppImage CLI launcher ('theia' command)
+└── glsp/              # GLSP diagram frontend integration
 ```
 
 **Build Flow**:
@@ -132,6 +144,48 @@ docker build -t sanyam-ide -f browser.Dockerfile .
 docker run -p=3002:3002 --rm sanyam-ide
 ```
 
+## Unified Language Server
+
+The `@sanyam/sanyam-lsp` package provides unified LSP and GLSP support for all grammar packages.
+
+### Language Server Build Commands
+
+```bash
+# Build the language server
+cd packages/sanyam-lsp
+pnpm build
+
+# Generate grammar registry from workspace
+pnpm generate:registry
+
+# Build with VSIX packaging (generates TextMate grammars)
+pnpm build:vsix
+
+# Package as VS Code extension
+pnpm package:vsix
+```
+
+### Adding a Grammar
+
+Grammar packages follow this structure:
+```
+grammars/your-language/
+├── your-language.langium    # Langium grammar
+├── manifest.ts              # GrammarManifest export
+├── package.json             # With sanyam.contribution field
+└── src/
+    └── contribution.ts      # LanguageContribution implementation
+```
+
+Key package.json fields:
+```json
+{
+  "sanyam": {
+    "contribution": "./lib/src/contribution.js"
+  }
+}
+```
+
 ## Custom Commands
 
 ### `/grammar-config <argument>`
@@ -169,10 +223,13 @@ Generate grammar packages with `GrammarManifest` exports for the SANYAM platform
 - Generated files appear in `src-gen/` and `lib/` directories within applications
 
 ## Active Technologies
+- TypeScript 5.6.3 (ES2017 target, strict mode) + Langium 4.x (grammar parsing), @eclipse-glsp/server 2.x (diagrams), Theia 1.67.0 (IDE platform), Inversify 6.x (DI) (002-unified-lsp-glsp)
+- File system (grammar packages in workspace), LangiumDocuments (in-memory document store) (002-unified-lsp-glsp)
 
 - TypeScript 5.x (per constitution) + Langium 4.x (grammar parsing), Claude Code (AI generation) (001-grammar-config-command)
 - File system (grammars/{name}/ directory structure) (001-grammar-config-command)
 
 ## Recent Changes
 
+- 002-unified-lsp-glsp: Added unified LSP/GLSP language server with bidirectional text-diagram sync
 - 001-grammar-config-command: Added TypeScript 5.x (per constitution) + Langium 4.x (grammar parsing), Claude Code (AI generation)

@@ -24,10 +24,10 @@
     "src"
   ],
   "scripts": {
-    "build": "tsc -b tsconfig.json",
+    "build": "npm run build:langium && tsc -b tsconfig.json",
     "build:langium": "langium generate",
     "watch": "tsc -b tsconfig.json --watch",
-    "clean": "rimraf lib src-gen",
+    "clean": "rimraf lib src/generated",
     "lint": "eslint src --ext .ts"
   },
   "sanyam": {

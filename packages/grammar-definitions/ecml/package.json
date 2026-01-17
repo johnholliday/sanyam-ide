@@ -24,7 +24,7 @@
     "src"
   ],
   "scripts": {
-    "build": "tsc -b tsconfig.json",
+    "build": "npm run build:langium && tsc -b tsconfig.json",
     "build:langium": "langium generate",
     "clean": "rimraf lib src/generated",
     "watch": "tsc -b tsconfig.json --watch",

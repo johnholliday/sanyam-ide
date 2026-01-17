@@ -15,7 +15,7 @@ import {
   createCreateNodeHandler,
   type CreateNodeOperation,
   type CreateNodeResult,
-} from '../../../packages/sanyam-lsp/src/glsp/handlers/create-node-handler';
+} from '../../../packages/language-server/src/glsp/handlers/create-node-handler';
 
 describe('CreateNodeHandler', () => {
   let context: GlspContext;
@@ -351,7 +351,7 @@ function createMockContext(): GlspContext {
     services: {} as any,
     token: {
       isCancellationRequested: false,
-      onCancellationRequested: () => ({ dispose: () => {} }),
+      onCancellationRequested: () => ({ dispose: () => { } }),
     },
     options: {},
     gModel: {

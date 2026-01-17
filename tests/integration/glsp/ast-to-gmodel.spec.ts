@@ -13,8 +13,8 @@ import type { TextDocument } from 'vscode-languageserver-textdocument';
 import type { Position } from 'vscode-languageserver';
 
 // TODO: Import actual implementations when available
-// import { ManifestDrivenGModelFactory } from '../../../packages/sanyam-lsp/src/glsp/manifest-converter';
-// import { defaultAstToGModelProvider } from '../../../packages/sanyam-lsp/src/glsp/providers/ast-to-gmodel-provider';
+// import { ManifestDrivenGModelFactory } from '../../../packages/language-server/src/glsp/manifest-converter';
+// import { defaultAstToGModelProvider } from '../../../packages/language-server/src/glsp/providers/ast-to-gmodel-provider';
 
 /**
  * Mock GModel types for testing

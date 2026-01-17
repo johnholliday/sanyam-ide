@@ -7,10 +7,10 @@
  */
 
 import type { GlspContext } from '@sanyam/types';
-import type { GModelEdge, GModelNode, Point } from '../conversion-types';
-import { ElementTypes, createEdge, createLabel, isNode } from '../conversion-types';
-import type { ApplyResult } from '../providers/gmodel-to-ast-provider';
-import { defaultGModelToAstProvider } from '../providers/gmodel-to-ast-provider';
+import type { GModelEdge, GModelNode, Point } from '../conversion-types.js';
+import { ElementTypes, createEdge, createLabel, isNode } from '../conversion-types.js';
+import type { ApplyResult } from '../providers/gmodel-to-ast-provider.js';
+import { defaultGModelToAstProvider } from '../providers/gmodel-to-ast-provider.js';
 
 /**
  * Create edge operation.

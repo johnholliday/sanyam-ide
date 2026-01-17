@@ -14,7 +14,7 @@ import {
   ManifestDrivenGModelFactory,
   createManifestDrivenGModelFactory,
   type ConversionContext,
-} from '../../../packages/sanyam-lsp/src/glsp/manifest-converter';
+} from '../../../packages/language-server/src/glsp/manifest-converter';
 
 describe('ManifestDrivenGModelFactory', () => {
   let factory: ManifestDrivenGModelFactory;
@@ -373,7 +373,7 @@ function createMockContext(
       },
     } as any,
     services: {} as any,
-    token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose: () => {} }) },
+    token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose: () => { } }) },
     options: {},
     metadata: {
       positions: metadata?.positions ?? new Map(),

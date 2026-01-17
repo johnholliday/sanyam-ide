@@ -11,60 +11,72 @@ This document covers the remaining manual verification tasks for Phase 8.
 ## T138: VSIX Installation Test
 
 ### Objective
+
 Verify the VSIX package installs correctly in a clean VS Code/Theia environment.
 
 ### Prerequisites
-- [ ] Built VSIX package (`pnpm package:vsix` in `packages/sanyam-lsp`)
+
+- [ ] Built VSIX package (`pnpm package:vsix` in `packages/language-server`)
 - [ ] Clean VS Code installation (no Sanyam extensions)
 - [ ] OR Clean Theia instance
 
 ### Test Steps
 
 #### 1. Build the VSIX Package
+
 ```bash
-cd packages/sanyam-lsp
+cd packages/language-server
 pnpm build:vsix
 pnpm package:vsix
 ```
 
 **Expected**:
-- `sanyam-lsp-0.0.1.vsix` file created in `packages/sanyam-lsp/`
+
+- `language-server-0.0.1.vsix` file created in `packages/language-server/`
 - No build errors
 
 #### 2. Install in VS Code
+
 ```bash
-code --install-extension packages/sanyam-lsp/sanyam-lsp-0.0.1.vsix
+code --install-extension packages/language-server/language-server-0.0.1.vsix
 ```
 
 **Expected**:
+
 - Extension installs without errors
 - Extension appears in Extensions panel
 
 #### 3. Verify Language Registration
+
 1. Open VS Code
 2. Create a new file with `.ecml` extension
 3. Check bottom-right status bar
 
 **Expected**:
+
 - Language mode shows "ECML" or appropriate language
 - No error notifications
 
 #### 4. Test Basic LSP Features
+
 1. Open a `.ecml` file with content
 2. Test completion (`Ctrl+Space`)
 3. Test hover (mouse over keyword)
 4. Test go-to-definition (`F12`)
 
 **Expected**:
+
 - Completion popup appears
 - Hover shows information
 - Definition navigation works (or shows "No definition found")
 
 #### 5. Verify Syntax Highlighting
+
 1. Open a DSL file
 2. Check for colored syntax
 
 **Expected**:
+
 - Keywords are highlighted
 - Strings are highlighted
 - Comments are highlighted
@@ -84,9 +96,11 @@ code --install-extension packages/sanyam-lsp/sanyam-lsp-0.0.1.vsix
 ## T149: Quickstart.md Validation Walkthrough
 
 ### Objective
+
 Verify the quickstart guide is accurate and complete by following it step-by-step.
 
 ### Prerequisites
+
 - [ ] Fresh clone of repository (or clean working directory)
 - [ ] Node.js and pnpm installed
 
@@ -95,6 +109,7 @@ Verify the quickstart guide is accurate and complete by following it step-by-ste
 #### Part 1: Using Existing Grammar Support (Section 1)
 
 1. **Build the project**
+
    ```bash
    pnpm install
    pnpm build:dev
@@ -126,6 +141,7 @@ Verify the quickstart guide is accurate and complete by following it step-by-ste
 #### Part 2: Creating a New Grammar Package (Section 2)
 
 1. **Create package structure**
+
    ```bash
    mkdir -p grammars/testgrammar/src
    cd grammars/testgrammar
@@ -139,6 +155,7 @@ Verify the quickstart guide is accurate and complete by following it step-by-ste
    - [ ] Create `src/contribution.ts` as documented
 
 3. **Build and test**
+
    ```bash
    cd ../..  # Return to root
    pnpm install
@@ -155,6 +172,7 @@ Verify the quickstart guide is accurate and complete by following it step-by-ste
    **Expected**: "Found X grammar package(s)" includes testgrammar
 
 5. **Clean up**
+
    ```bash
    rm -rf grammars/testgrammar
    ```
@@ -191,11 +209,13 @@ Verify the quickstart guide is accurate and complete by following it step-by-ste
 ## T150: Linting Verification
 
 ### Objective
+
 Run linting on all new packages to ensure code quality.
 
 ### Test Steps
 
 #### 1. Run Root Linting
+
 ```bash
 pnpm lint
 ```
@@ -210,7 +230,7 @@ cd packages/types
 pnpm lint
 
 # LSP package
-cd ../sanyam-lsp
+cd ../language-server
 pnpm lint
 
 # GLSP extension
@@ -224,13 +244,13 @@ pnpm lint
 
 ```bash
 # Check LSP providers
-npx eslint packages/sanyam-lsp/src/lsp/providers/*.ts
+npx eslint packages/language-server/src/lsp/providers/*.ts
 
 # Check GLSP providers
-npx eslint packages/sanyam-lsp/src/glsp/providers/*.ts
+npx eslint packages/language-server/src/glsp/providers/*.ts
 
 # Check Model API
-npx eslint packages/sanyam-lsp/src/model/*.ts
+npx eslint packages/language-server/src/model/*.ts
 
 # Check Grammar contributions
 npx eslint grammars/*/src/contribution.ts
@@ -241,7 +261,7 @@ npx eslint grammars/*/src/contribution.ts
 | Package/Path | Errors | Warnings | Notes |
 |--------------|--------|----------|-------|
 | packages/types | | | |
-| packages/sanyam-lsp | | | |
+| packages/language-server | | | |
 | theia-extensions/glsp | | | |
 | LSP providers | | | |
 | GLSP providers | | | |
@@ -249,6 +269,7 @@ npx eslint grammars/*/src/contribution.ts
 | Grammar contributions | | | |
 
 ### Common Issues to Fix
+
 - [ ] Unused imports
 - [ ] Missing return types
 - [ ] Inconsistent naming
@@ -259,11 +280,13 @@ npx eslint grammars/*/src/contribution.ts
 ## T152: Circular Dependency Verification
 
 ### Objective
+
 Verify there are no circular dependencies between packages.
 
 ### Test Steps
 
 #### 1. Install Dependency Check Tool
+
 ```bash
 npm install -g madge
 ```
@@ -275,7 +298,7 @@ npm install -g madge
 madge --circular packages/types/src/
 
 # Check LSP package
-madge --circular packages/sanyam-lsp/src/
+madge --circular packages/language-server/src/
 
 # Check GLSP extension
 madge --circular theia-extensions/glsp/src/
@@ -296,7 +319,7 @@ madge --circular --extensions ts packages/ theia-extensions/
 
 ```bash
 # Generate dependency graph
-madge --image deps.svg packages/sanyam-lsp/src/main.ts
+madge --image deps.svg packages/language-server/src/main.ts
 ```
 
 Review the graph for unexpected dependency patterns.
@@ -306,7 +329,7 @@ Review the graph for unexpected dependency patterns.
 | Check | Circular Deps Found | Details |
 |-------|---------------------|---------|
 | packages/types | | |
-| packages/sanyam-lsp | | |
+| packages/language-server | | |
 | theia-extensions/glsp | | |
 | Cross-package | | |
 
@@ -315,14 +338,15 @@ Review the graph for unexpected dependency patterns.
 ```
 @sanyam/types (no dependencies on other @sanyam packages)
     ↑
-@sanyam/sanyam-lsp (depends on @sanyam/types)
+@sanyam/language-server (depends on @sanyam/types)
     ↑
-@sanyam/glsp-frontend (depends on @sanyam/types, @sanyam/sanyam-lsp)
+@sanyam/glsp-frontend (depends on @sanyam/types, @sanyam/language-server)
 
 grammars/* (depend on @sanyam/types only)
 ```
 
 ### Common Circular Dependency Patterns to Avoid
+
 - [ ] Type definitions importing implementations
 - [ ] Index files creating cycles
 - [ ] Utility modules importing from feature modules

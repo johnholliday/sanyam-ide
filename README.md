@@ -59,7 +59,7 @@ Documentation on how to package Theia as a Desktop Product may be found [here](h
   - `electron` contains the electron app to package, packaging configuration, and E2E tests for the electron target.
 - `packages` contains shared packages
   - `types` contains TypeScript type definitions (@sanyam/types)
-  - `sanyam-lsp` contains the unified LSP/GLSP language server
+  - `language-server` contains the unified LSP/GLSP language server
 - `grammars` contains DSL grammar packages
   - Each grammar package provides language support via the unified server
 - `theia-extensions` groups the various custom theia extensions for the Sanyam IDE
@@ -108,7 +108,7 @@ See `grammars/example-minimal/` for a minimal reference implementation.
 
 ```sh
 # Build the unified server
-cd packages/sanyam-lsp
+cd packages/language-server
 pnpm build
 
 # Build with VSIX packaging

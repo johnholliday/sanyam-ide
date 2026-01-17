@@ -16,8 +16,8 @@ import type {
   GModelEdge,
   GModelLabel,
   ModelMetadata,
-} from './glsp-context-factory';
-import type { LangiumModelState } from './langium-model-state';
+} from './glsp-context-factory.js';
+import type { LangiumModelState } from './langium-model-state.js';
 
 /**
  * Node mapping configuration from manifest.

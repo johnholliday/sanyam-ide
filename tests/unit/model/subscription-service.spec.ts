@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   SubscriptionService,
   createSubscriptionService,
-} from '../../../packages/sanyam-lsp/src/model/subscription-service.js';
+} from '../../../packages/language-server/src/model/subscription-service.js';
 import type { ModelChangeEvent, NodeChange } from '@sanyam/types';
 
 describe('SubscriptionService', () => {
@@ -298,7 +298,7 @@ describe('SubscriptionService', () => {
     });
 
     it('should log errors from callbacks', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
       const errorCallback = vi.fn(() => {
         throw new Error('Test error');

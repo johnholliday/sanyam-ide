@@ -17,11 +17,11 @@ import {
   ProviderResolver,
   createProviderResolver,
   createProviderHandler,
-} from '../../../packages/sanyam-lsp/src/lsp/provider-resolver';
+} from '../../../packages/language-server/src/lsp/provider-resolver';
 import {
   createFeatureMerger,
   isFeatureEnabled,
-} from '../../../packages/sanyam-lsp/src/lsp/feature-merger';
+} from '../../../packages/language-server/src/lsp/feature-merger';
 
 describe('Disabled Feature Error Handling', () => {
   let resolver: ProviderResolver;
@@ -248,7 +248,7 @@ function createMockLspContext(): LspContext {
     position: { line: 0, character: 0 },
     cancellationToken: {
       isCancellationRequested: false,
-      onCancellationRequested: () => ({ dispose: () => {} }),
+      onCancellationRequested: () => ({ dispose: () => { } }),
     },
   };
 }

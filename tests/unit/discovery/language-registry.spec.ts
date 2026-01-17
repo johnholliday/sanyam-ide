@@ -4,7 +4,7 @@
 
 import { describe, it, beforeEach, afterEach } from 'mocha';
 import { expect } from 'chai';
-import { LanguageRegistry } from '../../../packages/sanyam-lsp/src/language-registry.js';
+import { LanguageRegistry } from '../../../packages/language-server/src/language-registry.js';
 import type {
   LanguageContributionInterface,
   LspFeatureProviders,

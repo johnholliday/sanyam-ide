@@ -18,7 +18,7 @@ import {
   getProvider,
   type FeatureMergerOptions,
   type MergeResult,
-} from '../../../packages/sanyam-lsp/src/lsp/feature-merger';
+} from '../../../packages/language-server/src/lsp/feature-merger';
 
 describe('FeatureMerger', () => {
   let merger: FeatureMerger;

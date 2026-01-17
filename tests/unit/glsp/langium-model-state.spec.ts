@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   LangiumModelState,
   createLangiumModelState,
-} from '../../../packages/sanyam-lsp/src/glsp/langium-model-state';
+} from '../../../packages/language-server/src/glsp/langium-model-state';
 
 describe('LangiumModelState', () => {
   let modelState: LangiumModelState;

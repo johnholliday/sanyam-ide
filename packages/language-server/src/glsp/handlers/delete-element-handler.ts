@@ -7,10 +7,10 @@
  */
 
 import type { GlspContext } from '@sanyam/types';
-import type { GModelElement, GModelEdge } from '../conversion-types';
-import { isEdge } from '../conversion-types';
-import type { ApplyResult } from '../providers/gmodel-to-ast-provider';
-import { defaultGModelToAstProvider } from '../providers/gmodel-to-ast-provider';
+import type { GModelElement, GModelEdge } from '../conversion-types.js';
+import { isEdge } from '../conversion-types.js';
+import type { ApplyResult } from '../providers/gmodel-to-ast-provider.js';
+import { defaultGModelToAstProvider } from '../providers/gmodel-to-ast-provider.js';
 
 /**
  * Delete element operation.

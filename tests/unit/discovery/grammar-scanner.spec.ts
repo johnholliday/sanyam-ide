@@ -11,7 +11,7 @@ import {
   scanForGrammarPackages,
   generateRegistryCode,
   type ScannedGrammarPackage,
-} from '../../../packages/sanyam-lsp/src/discovery/grammar-scanner.js';
+} from '../../../packages/language-server/src/discovery/grammar-scanner.js';
 
 describe('GrammarScanner', () => {
   let tempDir: string;

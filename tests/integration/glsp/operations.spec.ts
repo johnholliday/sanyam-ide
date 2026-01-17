@@ -10,10 +10,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { LangiumDocument, AstNode } from 'langium';
 
 // TODO: Import actual implementations when available
-// import { CreateNodeHandler } from '../../../packages/sanyam-lsp/src/glsp/handlers/create-node-handler';
-// import { DeleteElementHandler } from '../../../packages/sanyam-lsp/src/glsp/handlers/delete-element-handler';
-// import { ChangeBoundsHandler } from '../../../packages/sanyam-lsp/src/glsp/handlers/change-bounds-handler';
-// import { CreateEdgeHandler } from '../../../packages/sanyam-lsp/src/glsp/handlers/create-edge-handler';
+// import { CreateNodeHandler } from '../../../packages/language-server/src/glsp/handlers/create-node-handler';
+// import { DeleteElementHandler } from '../../../packages/language-server/src/glsp/handlers/delete-element-handler';
+// import { ChangeBoundsHandler } from '../../../packages/language-server/src/glsp/handlers/change-bounds-handler';
+// import { CreateEdgeHandler } from '../../../packages/language-server/src/glsp/handlers/create-edge-handler';
 
 /**
  * Mock operation types for testing

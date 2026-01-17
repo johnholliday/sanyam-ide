@@ -16,11 +16,11 @@ import type {
   Position,
   CancellationToken,
 } from 'vscode-languageserver';
-import type { LspContext } from '../../../packages/sanyam-lsp/src/core/types';
+import type { LspContext } from '../../../packages/language-server/src/core/types';
 import {
   defaultDefinitionProvider,
   createDefinitionProvider,
-} from '../../../packages/sanyam-lsp/src/lsp/providers/definition-provider';
+} from '../../../packages/language-server/src/lsp/providers/definition-provider';
 
 // Mock Langium document
 function createMockDocument(content: string, uri: string = 'file:///test.dsl'): LangiumDocument {

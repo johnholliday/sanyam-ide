@@ -7,10 +7,10 @@
  */
 
 import type { GlspContext } from '@sanyam/types';
-import type { GModelNode, Point, Dimension } from '../conversion-types';
-import { ElementTypes, createNode, createLabel } from '../conversion-types';
-import type { ApplyResult } from '../providers/gmodel-to-ast-provider';
-import { defaultGModelToAstProvider } from '../providers/gmodel-to-ast-provider';
+import type { GModelNode, Point, Dimension } from '../conversion-types.js';
+import { ElementTypes, createNode, createLabel } from '../conversion-types.js';
+import type { ApplyResult } from '../providers/gmodel-to-ast-provider.js';
+import { defaultGModelToAstProvider } from '../providers/gmodel-to-ast-provider.js';
 
 /**
  * Create node operation.

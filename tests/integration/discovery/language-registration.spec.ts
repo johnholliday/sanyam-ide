@@ -13,12 +13,12 @@ import type { LanguageContribution, LspFeatureProviders, GlspFeatureProviders } 
 import {
   LanguageRegistry,
   createLanguageRegistry,
-} from '../../../packages/sanyam-lsp/src/language-registry';
+} from '../../../packages/language-server/src/language-registry';
 import {
   ContributionLoader,
   createContributionLoader,
   loadFromGeneratedRegistry,
-} from '../../../packages/sanyam-lsp/src/discovery/contribution-loader';
+} from '../../../packages/language-server/src/discovery/contribution-loader';
 
 describe('Language Registration Integration', () => {
   let registry: LanguageRegistry;

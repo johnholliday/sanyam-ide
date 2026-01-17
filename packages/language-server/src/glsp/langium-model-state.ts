@@ -14,7 +14,7 @@ import type {
   GModelEdge,
   ModelState,
   ModelMetadata,
-} from './glsp-context-factory';
+} from './glsp-context-factory.js';
 
 /**
  * Element ID to AST node mapping.

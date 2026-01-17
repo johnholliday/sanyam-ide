@@ -7,8 +7,8 @@
  */
 
 import type { GlspContext, ContextMenuProvider } from '@sanyam/types';
-import type { GModelElement, GModelNode, GModelEdge } from '../conversion-types';
-import { isNode, isEdge } from '../conversion-types';
+import type { GModelElement, GModelNode, GModelEdge } from '../conversion-types.js';
+import { isNode, isEdge } from '../conversion-types.js';
 
 /**
  * Context menu item.

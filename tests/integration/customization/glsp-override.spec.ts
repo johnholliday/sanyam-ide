@@ -23,7 +23,7 @@ import {
   mergeGlspProviders,
   isGlspFeatureEnabled,
   getGlspProvider,
-} from '../../../packages/sanyam-lsp/src/glsp/feature-merger';
+} from '../../../packages/language-server/src/glsp/feature-merger';
 
 describe('GLSP Provider Override Integration', () => {
   let merger: GlspFeatureMerger;
@@ -350,6 +350,6 @@ function createMockGlspContext(): GlspContext {
       gModel: { id: 'root', type: 'graph', children: [] },
     },
     services: {} as any,
-    cancellationToken: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose: () => {} }) },
+    cancellationToken: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose: () => { } }) },
   };
 }

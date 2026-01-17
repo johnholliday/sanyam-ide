@@ -17,8 +17,8 @@ import type {
   Point,
   Dimension,
   NodeMappingConfig,
-} from '../conversion-types';
-import { ElementTypes, createNode, createEdge, createLabel } from '../conversion-types';
+} from '../conversion-types.js';
+import { ElementTypes, createNode, createEdge, createLabel } from '../conversion-types.js';
 
 /**
  * Default AST to GModel provider implementation.

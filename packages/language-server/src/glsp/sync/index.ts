@@ -6,5 +6,5 @@
  * @packageDocumentation
  */
 
-export * from './text-to-diagram-sync';
-export * from './diagram-to-text-sync';
+export * from './text-to-diagram-sync.js';
+export * from './diagram-to-text-sync.js';

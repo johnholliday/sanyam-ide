@@ -10,8 +10,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { LangiumDocument, AstNode } from 'langium';
 
 // TODO: Import actual implementations when available
-// import { TextToDiagramSync } from '../../../packages/sanyam-lsp/src/glsp/sync/text-to-diagram-sync';
-// import { DiagramToTextSync } from '../../../packages/sanyam-lsp/src/glsp/sync/diagram-to-text-sync';
+// import { TextToDiagramSync } from '../../../packages/language-server/src/glsp/sync/text-to-diagram-sync';
+// import { DiagramToTextSync } from '../../../packages/language-server/src/glsp/sync/diagram-to-text-sync';
 
 /**
  * Mock document change event

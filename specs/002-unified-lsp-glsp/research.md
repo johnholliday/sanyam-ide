@@ -71,6 +71,7 @@ export function createLanguageServices(context: DefaultSharedModuleContext): {
 Extend Langium services using **interface-based override registration** with these patterns:
 
 **Pattern A: Extending Default Implementations**
+
 ```typescript
 export class CustomScopeProvider extends DefaultScopeProvider {
     override getScope(context: ReferenceInfo): Scope {
@@ -86,6 +87,7 @@ export const CustomModule: Module<MyServices, PartialLangiumServices> = {
 ```
 
 **Pattern B: Adding New Services**
+
 ```typescript
 export type CustomAddedServices = {
     validation: {
@@ -133,6 +135,7 @@ export const CustomModule: Module<MyLanguageServices, CustomAddedServices> = {
 Implement a **Langium-backed GLSP server** using `@eclipse-glsp/server-node` with these components:
 
 **Architecture**:
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Unified Server                        │
@@ -154,6 +157,7 @@ Implement a **Langium-backed GLSP server** using `@eclipse-glsp/server-node` wit
 3. **ManifestDrivenGModelFactory** (implements `GModelFactory`): Converts AST to GModel using manifest configuration
 
 **Bidirectional Synchronization**:
+
 - **Text → Diagram**: Listen to Langium document changes, regenerate GModel
 - **Diagram → Text**: Operation handlers modify AST, serialize back to text
 
@@ -183,6 +187,7 @@ Implement default providers for **all LSP 3.17 features** organized by category.
 ### Complete Feature List
 
 #### Navigation Features
+
 | Feature | Method | Default Implementation |
 |---------|--------|------------------------|
 | Declaration | `textDocument/declaration` | Navigate to AST node declaration |
@@ -192,12 +197,14 @@ Implement default providers for **all LSP 3.17 features** organized by category.
 | References | `textDocument/references` | Use Langium's ReferenceFinder |
 
 #### Hierarchy Features
+
 | Feature | Method | Default Implementation |
 |---------|--------|------------------------|
 | Call Hierarchy | `textDocument/prepareCallHierarchy` | Build call graph from AST |
 | Type Hierarchy | `textDocument/prepareTypeHierarchy` | Build inheritance graph |
 
 #### Display Features
+
 | Feature | Method | Default Implementation |
 |---------|--------|------------------------|
 | Document Highlight | `textDocument/documentHighlight` | Highlight same-name occurrences |
@@ -208,6 +215,7 @@ Implement default providers for **all LSP 3.17 features** organized by category.
 | Semantic Tokens | `textDocument/semanticTokens/full` | Use grammar token types |
 
 #### Edit Features
+
 | Feature | Method | Default Implementation |
 |---------|--------|------------------------|
 | Completion | `textDocument/completion` | Use Langium's CompletionProvider |
@@ -217,6 +225,7 @@ Implement default providers for **all LSP 3.17 features** organized by category.
 | Linked Editing | `textDocument/linkedEditingRange` | Edit matching pairs |
 
 #### Hints Features
+
 | Feature | Method | Default Implementation |
 |---------|--------|------------------------|
 | Inlay Hint | `textDocument/inlayHint` | Show type annotations |
@@ -250,6 +259,7 @@ Implement a **build-time scanner** that:
 4. Generates a registry manifest at build time
 
 **Package.json Convention**:
+
 ```json
 {
     "name": "@sanyam/grammar-ecml",
@@ -262,8 +272,9 @@ Implement a **build-time scanner** that:
 ```
 
 **Generated Output**:
+
 ```typescript
-// packages/sanyam-lsp/src/generated/grammar-registry.ts
+// packages/language-server/src/generated/grammar-registry.ts
 // AUTO-GENERATED - DO NOT EDIT
 import { contribution as ecml } from '@sanyam/grammar-ecml/contribution';
 import { contribution as actone } from '@sanyam/grammar-actone/contribution';
@@ -303,6 +314,7 @@ Create a **single VSIX extension** with:
 4. **TextMate grammars** generated from Langium at build time
 
 **Extension manifest structure**:
+
 ```json
 {
     "name": "sanyam-languages",

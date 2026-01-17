@@ -7,9 +7,9 @@
  */
 
 import type { GlspContext } from '@sanyam/types';
-import type { GModelEdge, GModelNode } from '../conversion-types';
-import { isEdge, isNode } from '../conversion-types';
-import type { ApplyResult } from '../providers/gmodel-to-ast-provider';
+import type { GModelEdge, GModelNode } from '../conversion-types.js';
+import { isEdge, isNode } from '../conversion-types.js';
+import type { ApplyResult } from '../providers/gmodel-to-ast-provider.js';
 
 /**
  * Reconnect edge operation.

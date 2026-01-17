@@ -83,7 +83,7 @@ applications/
 
 packages/
 ├── types/             # Shared type definitions (@sanyam/types)
-└── sanyam-lsp/        # Unified LSP/GLSP language server
+└── language-server/        # Unified LSP/GLSP language server
 
 grammars/
 ├── ecml/              # ECML grammar package
@@ -146,13 +146,13 @@ docker run -p=3002:3002 --rm sanyam-ide
 
 ## Unified Language Server
 
-The `@sanyam/sanyam-lsp` package provides unified LSP and GLSP support for all grammar packages.
+The `@sanyam/language-server` package provides unified LSP and GLSP support for all grammar packages.
 
 ### Language Server Build Commands
 
 ```bash
 # Build the language server
-cd packages/sanyam-lsp
+cd packages/language-server
 pnpm build
 
 # Generate grammar registry from workspace
@@ -168,6 +168,7 @@ pnpm package:vsix
 ### Adding a Grammar
 
 Grammar packages follow this structure:
+
 ```
 grammars/your-language/
 ├── your-language.langium    # Langium grammar
@@ -178,6 +179,7 @@ grammars/your-language/
 ```
 
 Key package.json fields:
+
 ```json
 {
   "sanyam": {
@@ -223,6 +225,7 @@ Generate grammar packages with `GrammarManifest` exports for the SANYAM platform
 - Generated files appear in `src-gen/` and `lib/` directories within applications
 
 ## Active Technologies
+
 - TypeScript 5.6.3 (ES2017 target, strict mode) + Langium 4.x (grammar parsing), @eclipse-glsp/server 2.x (diagrams), Theia 1.67.0 (IDE platform), Inversify 6.x (DI) (002-unified-lsp-glsp)
 - File system (grammar packages in workspace), LangiumDocuments (in-memory document store) (002-unified-lsp-glsp)
 

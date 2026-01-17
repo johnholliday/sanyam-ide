@@ -26,7 +26,7 @@ const __dirname = path.dirname(__filename);
 async function main(): Promise<void> {
   console.log('Scanning for grammar packages...');
 
-  // Find workspace root (go up from packages/sanyam-lsp/scripts to root)
+  // Find workspace root (go up from packages/language-server/scripts to root)
   const workspaceRoot = path.resolve(__dirname, '../../..');
 
   const result = await scanForGrammarPackages({ workspaceRoot });

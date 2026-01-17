@@ -22,7 +22,7 @@ import {
   mergeProviders,
   isFeatureEnabled,
   getProvider,
-} from '../../../packages/sanyam-lsp/src/lsp/feature-merger';
+} from '../../../packages/language-server/src/lsp/feature-merger';
 
 describe('LSP Provider Override Integration', () => {
   let merger: FeatureMerger;
@@ -260,6 +260,6 @@ function createMockLspContext(): LspContext {
     },
     services: {} as any,
     position: { line: 0, character: 0 },
-    cancellationToken: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose: () => {} }) },
+    cancellationToken: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose: () => { } }) },
   };
 }

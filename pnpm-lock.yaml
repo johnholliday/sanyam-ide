@@ -330,9 +330,9 @@ importers:
       '@sanyam/product':
         specifier: workspace:*
         version: link:../../theia-extensions/product
-      '@sanyam/sanyam-lsp':
+      '@sanyam/language-server':
         specifier: workspace:*
-        version: link:../../packages/sanyam-lsp
+        version: link:../../packages/language-server
       '@sanyam/updater':
         specifier: workspace:*
         version: link:../../theia-extensions/updater
@@ -721,7 +721,7 @@ importers:
         specifier: ~5.6.3
         version: 5.6.3
 
-  packages/sanyam-lsp:
+  packages/language-server:
     dependencies:
       '@eclipse-glsp/server-node':
         specifier: ^1.0.0

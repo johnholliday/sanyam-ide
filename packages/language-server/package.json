@@ -1,5 +1,5 @@
 {
-  "name": "@sanyam/sanyam-lsp",
+  "name": "@sanyam/language-server",
   "version": "0.0.1",
   "description": "Unified LSP/GLSP Language Server for Sanyam IDE",
   "license": "MIT",

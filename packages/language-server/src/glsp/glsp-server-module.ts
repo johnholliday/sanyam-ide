@@ -10,24 +10,24 @@ import { ContainerModule } from 'inversify';
 import type { GlspContext, GlspFeatureProviders } from '@sanyam/types';
 
 // Import providers
-import { defaultAstToGModelProvider, createAstToGModelProvider } from './providers/ast-to-gmodel-provider';
-import { defaultGModelToAstProvider, createGModelToAstProvider } from './providers/gmodel-to-ast-provider';
-import { defaultToolPaletteProvider, createToolPaletteProvider } from './providers/tool-palette-provider';
-import { defaultDiagramValidationProvider, createDiagramValidationProvider } from './providers/diagram-validation-provider';
-import { defaultLayoutProvider, createLayoutProvider } from './providers/layout-provider';
-import { defaultContextMenuProvider, createContextMenuProvider } from './providers/context-menu-provider';
+import { defaultAstToGModelProvider, createAstToGModelProvider } from './providers/ast-to-gmodel-provider.js';
+import { defaultGModelToAstProvider, createGModelToAstProvider } from './providers/gmodel-to-ast-provider.js';
+import { defaultToolPaletteProvider, createToolPaletteProvider } from './providers/tool-palette-provider.js';
+import { defaultDiagramValidationProvider, createDiagramValidationProvider } from './providers/diagram-validation-provider.js';
+import { defaultLayoutProvider, createLayoutProvider } from './providers/layout-provider.js';
+import { defaultContextMenuProvider, createContextMenuProvider } from './providers/context-menu-provider.js';
 
 // Import handlers
-import { createNodeHandler, createCreateNodeHandler } from './handlers/create-node-handler';
-import { deleteElementHandler, createDeleteElementHandler } from './handlers/delete-element-handler';
-import { changeBoundsHandler, createChangeBoundsHandler } from './handlers/change-bounds-handler';
-import { reconnectEdgeHandler, createReconnectEdgeHandler } from './handlers/reconnect-edge-handler';
-import { createEdgeHandler, createCreateEdgeHandler } from './handlers/create-edge-handler';
+import { createNodeHandler, createCreateNodeHandler } from './handlers/create-node-handler.js';
+import { deleteElementHandler, createDeleteElementHandler } from './handlers/delete-element-handler.js';
+import { changeBoundsHandler, createChangeBoundsHandler } from './handlers/change-bounds-handler.js';
+import { reconnectEdgeHandler, createReconnectEdgeHandler } from './handlers/reconnect-edge-handler.js';
+import { createEdgeHandler, createCreateEdgeHandler } from './handlers/create-edge-handler.js';
 
 // Import core components
-import { GlspContextFactory, createGlspContextFactory } from './glsp-context-factory';
-import { LangiumSourceModelStorage, createLangiumSourceModelStorage } from './langium-source-model-storage';
-import { ManifestDrivenGModelFactory, createManifestDrivenGModelFactory } from './manifest-converter';
+import { GlspContextFactory, createGlspContextFactory } from './glsp-context-factory.js';
+import { LangiumSourceModelStorage, createLangiumSourceModelStorage } from './langium-source-model-storage.js';
+import { ManifestDrivenGModelFactory, createManifestDrivenGModelFactory } from './manifest-converter.js';
 
 /**
  * Service identifiers for GLSP services.

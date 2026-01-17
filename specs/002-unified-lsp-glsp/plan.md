@@ -26,7 +26,7 @@ This plan implements a unified language server for Sanyam IDE that runs LSP, GLS
 | Principle | Status | Evidence/Notes |
 |-----------|--------|----------------|
 | Grammar Agnosticism | PASS | All grammar-specific knowledge flows through GrammarManifest and LanguageContribution interfaces. No hard-coded AST types in platform. |
-| Backward Compatibility | PASS | New packages (@sanyam/sanyam-lsp) added; existing packages unchanged. Grammar packages extend, not replace. |
+| Backward Compatibility | PASS | New packages (@sanyam/language-server) added; existing packages unchanged. Grammar packages extend, not replace. |
 | Declarative Over Imperative | PASS | GrammarManifest drives diagram configuration. LSP/GLSP features configured via provider interfaces. |
 | Extension Over Modification | PASS | Grammar packages override via registry registration and DI bindings, not patches. |
 | TypeScript 5.x | PASS | Using TypeScript 5.6.3 per constitution. |
@@ -35,8 +35,8 @@ This plan implements a unified language server for Sanyam IDE that runs LSP, GLS
 | Inversify 6.x | PASS | Services injectable via Inversify DI container. |
 | No Python | PASS | All tooling in TypeScript. |
 | No `any` without justification | PASS | Using typed interfaces throughout (LspContext, GlspContext, etc.). |
-| No circular dependencies | PASS | Clear package hierarchy: types → sanyam-lsp → grammar packages. |
-| Package boundaries | PASS | @sanyam/types (interfaces), @sanyam/sanyam-lsp (server), grammars/* (per-language). |
+| No circular dependencies | PASS | Clear package hierarchy: types → language-server → grammar packages. |
+| Package boundaries | PASS | @sanyam/types (interfaces), @sanyam/language-server (server), grammars/* (per-language). |
 
 **Gate Result**: PASS - All constitution requirements satisfied.
 
@@ -69,7 +69,7 @@ packages/
 │       ├── language-contribution.ts # NEW: Grammar package contract
 │       └── index.ts                # Updated exports
 │
-└── sanyam-lsp/               # NEW: @sanyam/sanyam-lsp unified server
+└── language-server/               # NEW: @sanyam/language-server unified server
     ├── src/
     │   ├── main.ts               # Server entry point
     │   ├── extension.ts          # VS Code client activation
@@ -150,7 +150,7 @@ tests/
     └── diagram-editing.spec.ts
 ```
 
-**Structure Decision**: Monorepo with new `packages/sanyam-lsp` for the unified server and extended `packages/types` for contracts. Grammar packages migrated in-place with new contribution exports.
+**Structure Decision**: Monorepo with new `packages/language-server` for the unified server and extended `packages/types` for contracts. Grammar packages migrated in-place with new contribution exports.
 
 ## Complexity Tracking
 

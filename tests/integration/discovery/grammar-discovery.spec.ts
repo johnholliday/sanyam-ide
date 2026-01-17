@@ -16,7 +16,7 @@ import {
   createGrammarScanner,
   type GrammarPackageInfo,
   type ScanResult,
-} from '../../../packages/sanyam-lsp/src/discovery/grammar-scanner';
+} from '../../../packages/language-server/src/discovery/grammar-scanner';
 
 describe('Grammar Discovery Integration', () => {
   let scanner: GrammarScanner;

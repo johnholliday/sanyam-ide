@@ -14,8 +14,8 @@ import type {
   GModelEdge,
   Point,
   Dimension,
-} from '../conversion-types';
-import { isNode, isEdge } from '../conversion-types';
+} from '../conversion-types.js';
+import { isNode, isEdge } from '../conversion-types.js';
 
 /**
  * Result of applying GModel changes to AST.

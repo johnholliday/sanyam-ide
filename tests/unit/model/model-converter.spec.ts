@@ -13,7 +13,7 @@ import {
   findNodeById,
   findNodesByType,
   getNodeByPath,
-} from '../../../packages/sanyam-lsp/src/model/model-converter.js';
+} from '../../../packages/language-server/src/model/model-converter.js';
 
 describe('ModelConverter', () => {
   let converter: ModelConverter;

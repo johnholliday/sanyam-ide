@@ -16,7 +16,7 @@
 ## Path Conventions
 
 - **packages/types/src/**: Type definitions and contracts (@sanyam/types)
-- **packages/sanyam-lsp/src/**: Unified language server (@sanyam/sanyam-lsp)
+- **packages/language-server/src/**: Unified language server (@sanyam/language-server)
 - **grammars/*/**: Grammar packages with contribution exports
 - **theia-extensions/glsp/**: GLSP frontend integration
 - **tests/**: Unit, integration, and E2E tests
@@ -27,14 +27,14 @@
 
 **Purpose**: Project initialization and package structure
 
-- [x] T001 Create package directory structure at packages/sanyam-lsp/ per plan.md
-- [x] T002 [P] Initialize packages/sanyam-lsp/package.json with dependencies (langium 4.x, @eclipse-glsp/server-node 2.x, inversify 6.x, vscode-languageserver)
-- [x] T003 [P] Create packages/sanyam-lsp/tsconfig.json extending configs/base.tsconfig.json
-- [x] T004 [P] Create packages/sanyam-lsp/esbuild.mjs build configuration
+- [x] T001 Create package directory structure at packages/language-server/ per plan.md
+- [x] T002 [P] Initialize packages/language-server/package.json with dependencies (langium 4.x, @eclipse-glsp/server-node 2.x, inversify 6.x, vscode-languageserver)
+- [x] T003 [P] Create packages/language-server/tsconfig.json extending configs/base.tsconfig.json
+- [x] T004 [P] Create packages/language-server/esbuild.mjs build configuration
 - [x] T005 [P] Create theia-extensions/glsp/package.json for GLSP frontend
 - [x] T006 [P] Create theia-extensions/glsp/tsconfig.json configuration
-- [x] T007 Update root pnpm-workspace.yaml to include packages/sanyam-lsp and theia-extensions/glsp
-- [x] T008 [P] Add workspace dependencies to applications/electron/package.json for @sanyam/sanyam-lsp
+- [x] T007 Update root pnpm-workspace.yaml to include packages/language-server and theia-extensions/glsp
+- [x] T008 [P] Add workspace dependencies to applications/electron/package.json for @sanyam/language-server
 
 ---
 
@@ -53,30 +53,30 @@
 
 ### Language Registry
 
-- [x] T013 Implement LanguageRegistry class in packages/sanyam-lsp/src/language-registry.ts (register, getByLanguageId, getByExtension, getByUri, getAllLanguageIds)
+- [x] T013 Implement LanguageRegistry class in packages/language-server/src/language-registry.ts (register, getByLanguageId, getByExtension, getByUri, getAllLanguageIds)
 - [x] T014 Unit test for LanguageRegistry in tests/unit/discovery/language-registry.spec.ts
 
 ### Grammar Discovery
 
-- [x] T015 Implement GrammarScanner (build-time) in packages/sanyam-lsp/src/discovery/grammar-scanner.ts (parse pnpm-workspace.yaml, find grammar packages by sanyam field or @sanyam/grammar-* naming)
-- [x] T016 [P] Implement ContributionLoader (runtime) in packages/sanyam-lsp/src/discovery/contribution-loader.ts (load LanguageContribution from grammar packages)
-- [x] T017 Create code generator for packages/sanyam-lsp/src/generated/grammar-registry.ts (auto-generate static imports from discovered packages)
+- [x] T015 Implement GrammarScanner (build-time) in packages/language-server/src/discovery/grammar-scanner.ts (parse pnpm-workspace.yaml, find grammar packages by sanyam field or @sanyam/grammar-* naming)
+- [x] T016 [P] Implement ContributionLoader (runtime) in packages/language-server/src/discovery/contribution-loader.ts (load LanguageContribution from grammar packages)
+- [x] T017 Create code generator for packages/language-server/src/generated/grammar-registry.ts (auto-generate static imports from discovered packages)
 - [x] T018 Unit test for GrammarScanner in tests/unit/discovery/grammar-scanner.spec.ts
 
 ### Server Entry Point
 
-- [x] T019 Implement main server entry in packages/sanyam-lsp/src/main.ts (create connection, initialize shared services, register all discovered languages)
-- [x] T020 [P] Implement VS Code client extension in packages/sanyam-lsp/src/extension.ts (activate, start language client)
+- [x] T019 Implement main server entry in packages/language-server/src/main.ts (create connection, initialize shared services, register all discovered languages)
+- [x] T020 [P] Implement VS Code client extension in packages/language-server/src/extension.ts (activate, start language client)
 
 ### Langium Integration
 
-- [x] T021 Implement Langium service creation helper in packages/sanyam-lsp/src/lsp/langium-integration.ts (compose modules using inject(), register with ServiceRegistry per research.md)
-- [x] T022 [P] Implement LspContext factory in packages/sanyam-lsp/src/lsp/lsp-context-factory.ts (create context from document, services, token)
+- [x] T021 Implement Langium service creation helper in packages/language-server/src/lsp/langium-integration.ts (compose modules using inject(), register with ServiceRegistry per research.md)
+- [x] T022 [P] Implement LspContext factory in packages/language-server/src/lsp/lsp-context-factory.ts (create context from document, services, token)
 
 ### VSIX Configuration
 
-- [x] T023 Create VSIX manifest template generator in packages/sanyam-lsp/scripts/generate-vsix-manifest.ts (generate language and grammar contributions from discovered packages)
-- [x] T024 [P] Add build script to packages/sanyam-lsp/package.json ("build", "build:extension", "package:vsix")
+- [x] T023 Create VSIX manifest template generator in packages/language-server/scripts/generate-vsix-manifest.ts (generate language and grammar contributions from discovered packages)
+- [x] T024 [P] Add build script to packages/language-server/package.json ("build", "build:extension", "package:vsix")
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -101,43 +101,43 @@
 
 ### LSP Default Providers Implementation
 
-- [x] T029 [P] [US1] Implement default CompletionProvider in packages/sanyam-lsp/src/lsp/providers/completion-provider.ts (delegate to Langium's CompletionProvider)
-- [x] T030 [P] [US1] Implement default HoverProvider in packages/sanyam-lsp/src/lsp/providers/hover-provider.ts (show AST node name, type, documentation)
-- [x] T031 [P] [US1] Implement default DefinitionProvider in packages/sanyam-lsp/src/lsp/providers/definition-provider.ts (use Langium's reference resolution)
-- [x] T032 [P] [US1] Implement default ReferencesProvider in packages/sanyam-lsp/src/lsp/providers/references-provider.ts (use Langium's ReferenceFinder)
-- [x] T033 [P] [US1] Implement default DocumentSymbolProvider in packages/sanyam-lsp/src/lsp/providers/document-symbol-provider.ts (map AST to hierarchical symbols)
-- [x] T034 [P] [US1] Implement default RenameProvider in packages/sanyam-lsp/src/lsp/providers/rename-provider.ts (use Langium's RenameProvider)
-- [x] T035 [P] [US1] Implement default DiagnosticsProvider in packages/sanyam-lsp/src/lsp/providers/diagnostics-provider.ts (report validation errors)
-- [x] T036 [P] [US1] Implement default FoldingRangeProvider in packages/sanyam-lsp/src/lsp/providers/folding-range-provider.ts
-- [x] T037 [P] [US1] Implement default SemanticTokensProvider in packages/sanyam-lsp/src/lsp/providers/semantic-tokens-provider.ts
-- [x] T038 [P] [US1] Implement default SignatureHelpProvider in packages/sanyam-lsp/src/lsp/providers/signature-help-provider.ts
+- [x] T029 [P] [US1] Implement default CompletionProvider in packages/language-server/src/lsp/providers/completion-provider.ts (delegate to Langium's CompletionProvider)
+- [x] T030 [P] [US1] Implement default HoverProvider in packages/language-server/src/lsp/providers/hover-provider.ts (show AST node name, type, documentation)
+- [x] T031 [P] [US1] Implement default DefinitionProvider in packages/language-server/src/lsp/providers/definition-provider.ts (use Langium's reference resolution)
+- [x] T032 [P] [US1] Implement default ReferencesProvider in packages/language-server/src/lsp/providers/references-provider.ts (use Langium's ReferenceFinder)
+- [x] T033 [P] [US1] Implement default DocumentSymbolProvider in packages/language-server/src/lsp/providers/document-symbol-provider.ts (map AST to hierarchical symbols)
+- [x] T034 [P] [US1] Implement default RenameProvider in packages/language-server/src/lsp/providers/rename-provider.ts (use Langium's RenameProvider)
+- [x] T035 [P] [US1] Implement default DiagnosticsProvider in packages/language-server/src/lsp/providers/diagnostics-provider.ts (report validation errors)
+- [x] T036 [P] [US1] Implement default FoldingRangeProvider in packages/language-server/src/lsp/providers/folding-range-provider.ts
+- [x] T037 [P] [US1] Implement default SemanticTokensProvider in packages/language-server/src/lsp/providers/semantic-tokens-provider.ts
+- [x] T038 [P] [US1] Implement default SignatureHelpProvider in packages/language-server/src/lsp/providers/signature-help-provider.ts
 
 ### Additional LSP Providers (Navigation & Hierarchy)
 
-- [x] T039 [P] [US1] Implement default DeclarationProvider in packages/sanyam-lsp/src/lsp/providers/declaration-provider.ts
-- [x] T040 [P] [US1] Implement default TypeDefinitionProvider in packages/sanyam-lsp/src/lsp/providers/type-definition-provider.ts
-- [x] T041 [P] [US1] Implement default ImplementationProvider in packages/sanyam-lsp/src/lsp/providers/implementation-provider.ts
-- [x] T042 [P] [US1] Implement default DocumentHighlightProvider in packages/sanyam-lsp/src/lsp/providers/document-highlight-provider.ts
-- [x] T043 [P] [US1] Implement default CallHierarchyProvider in packages/sanyam-lsp/src/lsp/providers/call-hierarchy-provider.ts
-- [x] T044 [P] [US1] Implement default TypeHierarchyProvider in packages/sanyam-lsp/src/lsp/providers/type-hierarchy-provider.ts
+- [x] T039 [P] [US1] Implement default DeclarationProvider in packages/language-server/src/lsp/providers/declaration-provider.ts
+- [x] T040 [P] [US1] Implement default TypeDefinitionProvider in packages/language-server/src/lsp/providers/type-definition-provider.ts
+- [x] T041 [P] [US1] Implement default ImplementationProvider in packages/language-server/src/lsp/providers/implementation-provider.ts
+- [x] T042 [P] [US1] Implement default DocumentHighlightProvider in packages/language-server/src/lsp/providers/document-highlight-provider.ts
+- [x] T043 [P] [US1] Implement default CallHierarchyProvider in packages/language-server/src/lsp/providers/call-hierarchy-provider.ts
+- [x] T044 [P] [US1] Implement default TypeHierarchyProvider in packages/language-server/src/lsp/providers/type-hierarchy-provider.ts
 
 ### Additional LSP Providers (Editing & Hints)
 
-- [x] T045 [P] [US1] Implement default CodeActionProvider in packages/sanyam-lsp/src/lsp/providers/code-action-provider.ts
-- [x] T046 [P] [US1] Implement default CodeLensProvider in packages/sanyam-lsp/src/lsp/providers/code-lens-provider.ts
-- [x] T047 [P] [US1] Implement default FormattingProvider in packages/sanyam-lsp/src/lsp/providers/formatting-provider.ts
-- [x] T048 [P] [US1] Implement default SelectionRangeProvider in packages/sanyam-lsp/src/lsp/providers/selection-range-provider.ts
-- [x] T049 [P] [US1] Implement default LinkedEditingRangeProvider in packages/sanyam-lsp/src/lsp/providers/linked-editing-range-provider.ts
-- [x] T050 [P] [US1] Implement default InlayHintProvider in packages/sanyam-lsp/src/lsp/providers/inlay-hint-provider.ts
+- [x] T045 [P] [US1] Implement default CodeActionProvider in packages/language-server/src/lsp/providers/code-action-provider.ts
+- [x] T046 [P] [US1] Implement default CodeLensProvider in packages/language-server/src/lsp/providers/code-lens-provider.ts
+- [x] T047 [P] [US1] Implement default FormattingProvider in packages/language-server/src/lsp/providers/formatting-provider.ts
+- [x] T048 [P] [US1] Implement default SelectionRangeProvider in packages/language-server/src/lsp/providers/selection-range-provider.ts
+- [x] T049 [P] [US1] Implement default LinkedEditingRangeProvider in packages/language-server/src/lsp/providers/linked-editing-range-provider.ts
+- [x] T050 [P] [US1] Implement default InlayHintProvider in packages/language-server/src/lsp/providers/inlay-hint-provider.ts
 
 ### LSP Handler and Utilities
 
-- [x] T051 [US1] Create DefaultProviders barrel export in packages/sanyam-lsp/src/lsp/default-providers.ts (export all default provider implementations)
-- [x] T052 [US1] Implement LspHandler in packages/sanyam-lsp/src/lsp/lsp-handler.ts (route LSP messages to appropriate provider based on document language)
-- [x] T053 [P] [US1] Create AST utility helpers in packages/sanyam-lsp/src/lsp/helpers/ast-utils.ts
-- [x] T054 [P] [US1] Create position utility helpers in packages/sanyam-lsp/src/lsp/helpers/position-utils.ts
-- [x] T055 [P] [US1] Create reference utility helpers in packages/sanyam-lsp/src/lsp/helpers/reference-utils.ts
-- [x] T056 [P] [US1] Create symbol utility helpers in packages/sanyam-lsp/src/lsp/helpers/symbol-utils.ts
+- [x] T051 [US1] Create DefaultProviders barrel export in packages/language-server/src/lsp/default-providers.ts (export all default provider implementations)
+- [x] T052 [US1] Implement LspHandler in packages/language-server/src/lsp/lsp-handler.ts (route LSP messages to appropriate provider based on document language)
+- [x] T053 [P] [US1] Create AST utility helpers in packages/language-server/src/lsp/helpers/ast-utils.ts
+- [x] T054 [P] [US1] Create position utility helpers in packages/language-server/src/lsp/helpers/position-utils.ts
+- [x] T055 [P] [US1] Create reference utility helpers in packages/language-server/src/lsp/helpers/reference-utils.ts
+- [x] T056 [P] [US1] Create symbol utility helpers in packages/language-server/src/lsp/helpers/symbol-utils.ts
 
 ### Unit Tests for Default Providers
 
@@ -164,33 +164,33 @@
 
 ### GLSP Core Components
 
-- [x] T064 [US2] Implement GlspContext factory in packages/sanyam-lsp/src/glsp/glsp-context-factory.ts
-- [x] T065 [US2] Implement LangiumModelState (extends DefaultGModelState) in packages/sanyam-lsp/src/glsp/langium-model-state.ts (wrap LangiumDocument as source model)
-- [x] T066 [US2] Implement LangiumSourceModelStorage in packages/sanyam-lsp/src/glsp/langium-source-model-storage.ts (load/save via Langium documents)
-- [x] T067 [US2] Implement ManifestDrivenGModelFactory in packages/sanyam-lsp/src/glsp/manifest-converter.ts (convert AST to GModel using manifest configuration)
-- [x] T068 [US2] Implement ConversionContext and ConversionResult types in packages/sanyam-lsp/src/glsp/conversion-types.ts
+- [x] T064 [US2] Implement GlspContext factory in packages/language-server/src/glsp/glsp-context-factory.ts
+- [x] T065 [US2] Implement LangiumModelState (extends DefaultGModelState) in packages/language-server/src/glsp/langium-model-state.ts (wrap LangiumDocument as source model)
+- [x] T066 [US2] Implement LangiumSourceModelStorage in packages/language-server/src/glsp/langium-source-model-storage.ts (load/save via Langium documents)
+- [x] T067 [US2] Implement ManifestDrivenGModelFactory in packages/language-server/src/glsp/manifest-converter.ts (convert AST to GModel using manifest configuration)
+- [x] T068 [US2] Implement ConversionContext and ConversionResult types in packages/language-server/src/glsp/conversion-types.ts
 
 ### GLSP Default Providers
 
-- [x] T069 [P] [US2] Implement default AstToGModelProvider in packages/sanyam-lsp/src/glsp/providers/ast-to-gmodel-provider.ts (convert, createNode, createEdge, getLabel, getPosition, getSize)
-- [x] T070 [P] [US2] Implement default GModelToAstProvider in packages/sanyam-lsp/src/glsp/providers/gmodel-to-ast-provider.ts (applyPosition, applySize, createNode, createEdge)
-- [x] T071 [P] [US2] Implement default ToolPaletteProvider in packages/sanyam-lsp/src/glsp/providers/tool-palette-provider.ts (generate palette from manifest)
-- [x] T072 [P] [US2] Implement default DiagramValidationProvider in packages/sanyam-lsp/src/glsp/providers/diagram-validation-provider.ts
-- [x] T073 [P] [US2] Implement default LayoutProvider in packages/sanyam-lsp/src/glsp/providers/layout-provider.ts (include cycle detection for circular references per edge case)
-- [x] T074 [P] [US2] Implement default ContextMenuProvider in packages/sanyam-lsp/src/glsp/providers/context-menu-provider.ts
+- [x] T069 [P] [US2] Implement default AstToGModelProvider in packages/language-server/src/glsp/providers/ast-to-gmodel-provider.ts (convert, createNode, createEdge, getLabel, getPosition, getSize)
+- [x] T070 [P] [US2] Implement default GModelToAstProvider in packages/language-server/src/glsp/providers/gmodel-to-ast-provider.ts (applyPosition, applySize, createNode, createEdge)
+- [x] T071 [P] [US2] Implement default ToolPaletteProvider in packages/language-server/src/glsp/providers/tool-palette-provider.ts (generate palette from manifest)
+- [x] T072 [P] [US2] Implement default DiagramValidationProvider in packages/language-server/src/glsp/providers/diagram-validation-provider.ts
+- [x] T073 [P] [US2] Implement default LayoutProvider in packages/language-server/src/glsp/providers/layout-provider.ts (include cycle detection for circular references per edge case)
+- [x] T074 [P] [US2] Implement default ContextMenuProvider in packages/language-server/src/glsp/providers/context-menu-provider.ts
 
 ### GLSP Operation Handlers
 
-- [x] T075 [P] [US2] Implement CreateNodeHandler in packages/sanyam-lsp/src/glsp/handlers/create-node-handler.ts (create AST node, regenerate GModel)
-- [x] T076 [P] [US2] Implement DeleteElementHandler in packages/sanyam-lsp/src/glsp/handlers/delete-element-handler.ts (remove from AST, regenerate GModel)
-- [x] T077 [P] [US2] Implement ChangeBoundsHandler in packages/sanyam-lsp/src/glsp/handlers/change-bounds-handler.ts (update position/size in AST)
-- [x] T078 [P] [US2] Implement ReconnectEdgeHandler in packages/sanyam-lsp/src/glsp/handlers/reconnect-edge-handler.ts (update relationship in AST)
-- [x] T079 [P] [US2] Implement CreateEdgeHandler in packages/sanyam-lsp/src/glsp/handlers/create-edge-handler.ts
+- [x] T075 [P] [US2] Implement CreateNodeHandler in packages/language-server/src/glsp/handlers/create-node-handler.ts (create AST node, regenerate GModel)
+- [x] T076 [P] [US2] Implement DeleteElementHandler in packages/language-server/src/glsp/handlers/delete-element-handler.ts (remove from AST, regenerate GModel)
+- [x] T077 [P] [US2] Implement ChangeBoundsHandler in packages/language-server/src/glsp/handlers/change-bounds-handler.ts (update position/size in AST)
+- [x] T078 [P] [US2] Implement ReconnectEdgeHandler in packages/language-server/src/glsp/handlers/reconnect-edge-handler.ts (update relationship in AST)
+- [x] T079 [P] [US2] Implement CreateEdgeHandler in packages/language-server/src/glsp/handlers/create-edge-handler.ts
 
 ### GLSP Server Module
 
-- [x] T080 [US2] Implement GlspServerModule (Inversify) in packages/sanyam-lsp/src/glsp/glsp-server-module.ts (bind all GLSP services)
-- [x] T081 [US2] Implement GlspServer initialization in packages/sanyam-lsp/src/glsp/glsp-server.ts (create server, register handlers)
+- [x] T080 [US2] Implement GlspServerModule (Inversify) in packages/language-server/src/glsp/glsp-server-module.ts (bind all GLSP services)
+- [x] T081 [US2] Implement GlspServer initialization in packages/language-server/src/glsp/glsp-server.ts (create server, register handlers)
 - [x] T082 [US2] Integrate GLSP server into main.ts startup sequence
 
 ### GLSP Frontend (Theia Extension)
@@ -202,8 +202,8 @@
 
 ### Bidirectional Synchronization
 
-- [x] T087 [US2] Implement text-to-diagram sync listener in packages/sanyam-lsp/src/glsp/sync/text-to-diagram-sync.ts (listen to LangiumDocument changes, regenerate GModel)
-- [x] T088 [US2] Implement diagram-to-text sync in packages/sanyam-lsp/src/glsp/sync/diagram-to-text-sync.ts (operation handlers serialize AST changes back to text)
+- [x] T087 [US2] Implement text-to-diagram sync listener in packages/language-server/src/glsp/sync/text-to-diagram-sync.ts (listen to LangiumDocument changes, regenerate GModel)
+- [x] T088 [US2] Implement diagram-to-text sync in packages/language-server/src/glsp/sync/diagram-to-text-sync.ts (operation handlers serialize AST changes back to text)
 
 ### Unit Tests for GLSP
 
@@ -228,8 +228,8 @@
 
 ### Feature Provider Merger
 
-- [x] T094 [US3] Implement FeatureMerger in packages/sanyam-lsp/src/lsp/feature-merger.ts (merge custom providers with defaults, respect disabledFeatures)
-- [x] T095 [P] [US3] Implement GlspFeatureMerger in packages/sanyam-lsp/src/glsp/feature-merger.ts (merge custom GLSP providers with defaults)
+- [x] T094 [US3] Implement FeatureMerger in packages/language-server/src/lsp/feature-merger.ts (merge custom providers with defaults, respect disabledFeatures)
+- [x] T095 [P] [US3] Implement GlspFeatureMerger in packages/language-server/src/glsp/feature-merger.ts (merge custom GLSP providers with defaults)
 - [x] T096 Unit test for FeatureMerger in tests/unit/lsp/feature-merger.spec.ts
 
 ### Grammar Package Template
@@ -247,9 +247,9 @@
 
 ### Build-Time Discovery Integration
 
-- [x] T104 [US3] Add grammar discovery to packages/sanyam-lsp build script (run grammar-scanner.ts during build)
-- [x] T105 [US3] Generate packages/sanyam-lsp/src/generated/grammar-registry.ts during build
-- [x] T106 [US3] Update packages/sanyam-lsp/src/main.ts to load from generated grammar-registry.ts
+- [x] T104 [US3] Add grammar discovery to packages/language-server build script (run grammar-scanner.ts during build)
+- [x] T105 [US3] Generate packages/language-server/src/generated/grammar-registry.ts during build
+- [x] T106 [US3] Update packages/language-server/src/main.ts to load from generated grammar-registry.ts
 
 **Checkpoint**: At this point, new grammars can be added via workspace configuration
 
@@ -269,8 +269,8 @@
 
 ### Custom Provider Infrastructure
 
-- [x] T110 [US4] Implement provider override resolution in packages/sanyam-lsp/src/lsp/provider-resolver.ts (check for custom, fall back to default)
-- [x] T111 [P] [US4] Implement GLSP provider override resolution in packages/sanyam-lsp/src/glsp/provider-resolver.ts
+- [x] T110 [US4] Implement provider override resolution in packages/language-server/src/lsp/provider-resolver.ts (check for custom, fall back to default)
+- [x] T111 [P] [US4] Implement GLSP provider override resolution in packages/language-server/src/glsp/provider-resolver.ts
 - [x] T112 [US4] Update LspHandler to use provider resolver for all requests
 - [x] T113 [US4] Update GlspServer to use GLSP provider resolver
 
@@ -304,9 +304,9 @@
 
 ### Model API Server
 
-- [x] T123 [US5] Implement ModelConverter in packages/sanyam-lsp/src/model/model-converter.ts (AST to JSON serialization)
-- [x] T124 [US5] Implement SubscriptionService in packages/sanyam-lsp/src/model/subscription-service.ts (manage client subscriptions, notify on changes)
-- [x] T125 [US5] Implement AstServer in packages/sanyam-lsp/src/model/ast-server.ts (getModel, subscribe, unsubscribe endpoints)
+- [x] T123 [US5] Implement ModelConverter in packages/language-server/src/model/model-converter.ts (AST to JSON serialization)
+- [x] T124 [US5] Implement SubscriptionService in packages/language-server/src/model/subscription-service.ts (manage client subscriptions, notify on changes)
+- [x] T125 [US5] Implement AstServer in packages/language-server/src/model/ast-server.ts (getModel, subscribe, unsubscribe endpoints)
 - [x] T126 [US5] Integrate Model API into main.ts server startup
 
 ### Change Notification
@@ -337,8 +337,8 @@
 ### VSIX Packaging
 
 - [x] T135 Generate TextMate grammars from Langium grammars during build (langium generate with textmate output)
-- [x] T136 Generate complete VSIX manifest with all discovered languages in packages/sanyam-lsp/package.json
-- [x] T137 Create VSIX build script in packages/sanyam-lsp/scripts/build-vsix.ts
+- [x] T136 Generate complete VSIX manifest with all discovered languages in packages/language-server/package.json
+- [x] T137 Create VSIX build script in packages/language-server/scripts/build-vsix.ts
 - [ ] T138 Test VSIX installation in clean VS Code/Theia environment (manual test)
 
 ### E2E Tests

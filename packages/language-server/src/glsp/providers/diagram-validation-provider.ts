@@ -9,8 +9,8 @@
 import type { AstNode } from 'langium';
 import { streamAllContents, isNamed } from 'langium';
 import type { GlspContext, DiagramValidationProvider } from '@sanyam/types';
-import type { GModelElement, GModelNode, GModelEdge, Point } from '../conversion-types';
-import { isNode, isEdge } from '../conversion-types';
+import type { GModelElement, GModelNode, GModelEdge, Point } from '../conversion-types.js';
+import { isNode, isEdge } from '../conversion-types.js';
 
 /**
  * Validation marker severity.

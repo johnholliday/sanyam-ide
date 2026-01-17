@@ -7,8 +7,8 @@
  */
 
 import type { GlspContext, LayoutProvider } from '@sanyam/types';
-import type { GModelRoot, GModelElement, GModelNode, GModelEdge, Point, Dimension } from '../conversion-types';
-import { isNode, isEdge } from '../conversion-types';
+import type { GModelRoot, GModelElement, GModelNode, GModelEdge, Point, Dimension } from '../conversion-types.js';
+import { isNode, isEdge } from '../conversion-types.js';
 
 /**
  * Layout algorithm type.

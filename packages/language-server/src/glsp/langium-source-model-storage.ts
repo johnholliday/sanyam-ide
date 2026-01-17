@@ -8,8 +8,8 @@
 
 import type { LangiumDocument, LangiumCoreServices, AstNode, URI } from 'langium';
 import type { TextDocumentEdit, TextEdit } from 'vscode-languageserver';
-import { LangiumModelState, createLangiumModelState } from './langium-model-state';
-import type { ModelMetadata, GModelRoot } from './glsp-context-factory';
+import { LangiumModelState, createLangiumModelState } from './langium-model-state.js';
+import type { ModelMetadata, GModelRoot } from './glsp-context-factory.js';
 
 /**
  * Load result from source model storage.
@@ -66,7 +66,7 @@ export class LangiumSourceModelStorage {
   private modelStates: Map<string, LangiumModelState> = new Map();
   private metadataCache: Map<string, ModelMetadata> = new Map();
 
-  constructor(private readonly services: LangiumCoreServices) {}
+  constructor(private readonly services: LangiumCoreServices) { }
 
   /**
    * Load a model from a document URI.

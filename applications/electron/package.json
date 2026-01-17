@@ -37,9 +37,21 @@
             "Features include AI-assisted code completion, syntax highlighting, validation, and diagram generation for your custom DSLs."
           ],
           "links": [
-            { "label": "Documentation", "url": "https://github.com/johnholliday/sanyam-ide#readme", "icon": "book" },
-            { "label": "GitHub", "url": "https://github.com/johnholliday/sanyam-ide", "icon": "github" },
-            { "label": "Report Issue", "url": "https://github.com/johnholliday/sanyam-ide/issues", "icon": "bug" }
+            {
+              "label": "Documentation",
+              "url": "https://github.com/johnholliday/sanyam-ide#readme",
+              "icon": "book"
+            },
+            {
+              "label": "GitHub",
+              "url": "https://github.com/johnholliday/sanyam-ide",
+              "icon": "github"
+            },
+            {
+              "label": "Report Issue",
+              "url": "https://github.com/johnholliday/sanyam-ide/issues",
+              "icon": "bug"
+            }
           ]
         },
         "reloadOnReconnect": true,
@@ -154,7 +166,7 @@
     "@sanyam/glsp": "workspace:*",
     "@sanyam/launcher": "workspace:*",
     "@sanyam/product": "workspace:*",
-    "@sanyam/sanyam-lsp": "workspace:*",
+    "@sanyam/language-server": "workspace:*",
     "@sanyam/updater": "workspace:*"
   },
   "devDependencies": {

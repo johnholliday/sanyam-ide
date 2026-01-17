@@ -15,11 +15,11 @@ import type {
   Position,
   CancellationToken,
 } from 'vscode-languageserver';
-import type { LspContext } from '../../../packages/sanyam-lsp/src/core/types';
+import type { LspContext } from '../../../packages/language-server/src/core/types';
 import {
   defaultDiagnosticsProvider,
   createDiagnosticsProvider,
-} from '../../../packages/sanyam-lsp/src/lsp/providers/diagnostics-provider';
+} from '../../../packages/language-server/src/lsp/providers/diagnostics-provider';
 
 // Mock Langium document
 function createMockDocument(

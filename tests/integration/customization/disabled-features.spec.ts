@@ -18,12 +18,12 @@ import {
   FeatureMerger,
   createFeatureMerger,
   isFeatureEnabled,
-} from '../../../packages/sanyam-lsp/src/lsp/feature-merger';
+} from '../../../packages/language-server/src/lsp/feature-merger';
 import {
   GlspFeatureMerger,
   createGlspFeatureMerger,
   isGlspFeatureEnabled,
-} from '../../../packages/sanyam-lsp/src/glsp/feature-merger';
+} from '../../../packages/language-server/src/glsp/feature-merger';
 
 describe('Disabled Features Integration', () => {
   describe('LSP Feature Disabling', () => {

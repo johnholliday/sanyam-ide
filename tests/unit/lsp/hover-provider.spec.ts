@@ -10,8 +10,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { LangiumDocument, AstNode, CstNode, LangiumCoreServices } from 'langium';
 import type { TextDocument } from 'vscode-languageserver-textdocument';
 import type { HoverParams, Hover, Position, CancellationToken } from 'vscode-languageserver';
-import type { LspContext } from '../../../packages/sanyam-lsp/src/core/types';
-import { defaultHoverProvider, createHoverProvider } from '../../../packages/sanyam-lsp/src/lsp/providers/hover-provider';
+import type { LspContext } from '../../../packages/language-server/src/core/types';
+import { defaultHoverProvider, createHoverProvider } from '../../../packages/language-server/src/lsp/providers/hover-provider';
 
 // Mock Langium document
 function createMockDocument(content: string, uri: string = 'file:///test.dsl'): LangiumDocument {

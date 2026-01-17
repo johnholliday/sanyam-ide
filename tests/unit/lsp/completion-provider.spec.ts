@@ -10,8 +10,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { LangiumDocument, AstNode, CstNode, LangiumCoreServices } from 'langium';
 import type { TextDocument } from 'vscode-languageserver-textdocument';
 import type { CompletionParams, CompletionList, Position, CancellationToken } from 'vscode-languageserver';
-import type { LspContext } from '../../../packages/sanyam-lsp/src/core/types';
-import { defaultCompletionProvider, createCompletionProvider } from '../../../packages/sanyam-lsp/src/lsp/providers/completion-provider';
+import type { LspContext } from '../../../packages/language-server/src/core/types';
+import { defaultCompletionProvider, createCompletionProvider } from '../../../packages/language-server/src/lsp/providers/completion-provider';
 
 // Mock Langium document
 function createMockDocument(content: string, uri: string = 'file:///test.dsl'): LangiumDocument {

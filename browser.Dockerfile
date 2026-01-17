@@ -21,7 +21,7 @@ RUN pnpm config set fetch-timeout 600000 && \
     pnpm browser build && \
     pnpm prune --prod && \
     pnpm store prune && \
-    rm -rf .git applications/electron packages/ide/launcher packages/ide/updater
+    rm -rf .git applications/electron packages/theia-extensions/launcher packages/theia-extensions/updater
 
 # Production stage uses a small base image
 FROM node:22-bullseye-slim AS production-stage

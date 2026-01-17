@@ -215,7 +215,7 @@ Generate grammar packages with `GrammarManifest` exports for the SANYAM platform
 ## Important Notes
 
 - After updating dependencies or switching commits, run `git clean -xfd` to avoid runtime conflicts
-- Extensions in `packages/ide/` are custom to this product; Theia platform extensions come from `@theia/*` packages
+- Extensions in `packages/theia-extensions/` are custom to this product; Theia platform extensions come from `@theia/*` packages
 - Grammar packages in `packages/grammar/` provide language support via the unified server
 - The `plugins/` directory contains downloaded VS Code extensions (created by `download:plugins`)
 - Generated files appear in `src-gen/` and `lib/` directories within applications

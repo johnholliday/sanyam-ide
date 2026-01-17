@@ -496,13 +496,13 @@ Check if the grammar's tsconfig is already included in `.eslintrc.js`. If not, a
 **Current pattern to find:**
 
 ```javascript
-project: ['./configs/tsconfig.eslint.json', './packages/ide/*/tsconfig.json', 'applications/electron/tsconfig.eslint.json']
+project: ['./configs/tsconfig.eslint.json', './packages/theia-extensions/*/tsconfig.json', 'applications/electron/tsconfig.eslint.json']
 ```
 
 **Updated pattern (if `packages/grammar/*/tsconfig.json` not present):**
 
 ```javascript
-project: ['./configs/tsconfig.eslint.json', './packages/ide/*/tsconfig.json', 'applications/electron/tsconfig.eslint.json', 'packages/grammar/*/tsconfig.json']
+project: ['./configs/tsconfig.eslint.json', './packages/theia-extensions/*/tsconfig.json', 'applications/electron/tsconfig.eslint.json', 'packages/grammar/*/tsconfig.json']
 ```
 
 Only modify `.eslintrc.js` if the `packages/grammar/*/tsconfig.json` pattern is not already present.

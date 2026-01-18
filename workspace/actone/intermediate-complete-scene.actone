@@ -1,0 +1,54 @@
+// Intermediate Example: Complete Scene with Atmosphere
+// Demonstrates a fully detailed scene with atmosphere, triggers, and constraints.
+
+story "The Confrontation" {
+    character Detective {
+        bio: "A seasoned investigator with a haunted past.",
+        personality: {
+            skepticism: 70,
+            empathy: 60,
+            fear: 30
+        }
+    }
+
+    character Suspect {
+        bio: "A charming socialite hiding dark secrets.",
+        personality: {
+            creativity: 85,
+            caution: 90,
+            desperation: 50
+        }
+    }
+
+    world Mansion {
+        locations: {
+            Study: "Wood-paneled walls lined with first editions, a fire crackling low.",
+            Balcony: "Overlooks the dark garden, rain pattering against stone."
+        },
+        rules: [
+            "No one can leave until the storm passes",
+            "The phone lines are down"
+        ]
+    }
+
+    scene Accusation {
+        participants: [Detective, Suspect],
+        setting: Study,
+        atmosphere: {
+            tension: 90,
+            intimacy: 40,
+            dread: 60,
+            custom("claustrophobia"): 75
+        },
+        objective: "The detective must get a confession without physical evidence.",
+        constraints: [
+            "Neither character can leave the room",
+            "The suspect must maintain plausible deniability",
+            "The detective cannot make threats"
+        ],
+        triggers: {
+            start: "When the detective produces the photograph",
+            end: "When one character makes an irreversible decision"
+        }
+    }
+}

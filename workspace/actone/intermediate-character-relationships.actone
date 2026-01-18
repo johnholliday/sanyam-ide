@@ -1,0 +1,41 @@
+// Intermediate Example: Character with Relationships
+// Demonstrates personality traits, goals, and character relationships.
+
+story "The Rival Scholars" {
+    character Mara {
+        bio: "A brilliant but skeptical archaeologist who trusts only evidence.",
+        personality: {
+            skepticism: 85,
+            curiosity: 90,
+            ambition: 70,
+            custom("perfectionism"): 80
+        },
+        voice: "Precise, analytical, occasionally sarcastic when frustrated.",
+        goals: [
+            { text: "Discover the truth about the lost civilization", priority: 100 },
+            { text: "Publish findings before Kael does", priority: 75 },
+            "Maintain academic integrity despite pressure"
+        ],
+        conflicts: [
+            "Her need for evidence conflicts with unexplainable discoveries",
+            "Professional rivalry threatens a former friendship"
+        ]
+    }
+
+    character Kael {
+        bio: "A charismatic theorist willing to take leaps of faith.",
+        personality: {
+            optimism: 80,
+            ambition: 95,
+            creativity: 85,
+            caution: 25
+        },
+        relationships: {
+            Mara: {
+                weight: 40,
+                label: "respected rival",
+                history: "They were graduate students together before their methods diverged."
+            }
+        }
+    }
+}

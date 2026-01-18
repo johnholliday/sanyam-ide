@@ -1,0 +1,55 @@
+// ECML - Enterprise Content Modeling Language
+// TODO: Add your model title and metadata
+
+#Title "TODO: Model Title"
+#Description "TODO: Model description"
+#Author "TODO: Author name"
+#Version "1.0"
+
+// =============================================================================
+// ACTORS - Define participants and roles
+// =============================================================================
+
+// TODO: Define actors (users, roles, or systems)
+// Actor <name> <title> <description> [<notes>] [{ properties }]
+
+Actor TODO_Actor "Actor Title" "Actor description"
+
+// =============================================================================
+// COMPLIANCE - Security and retention (optional)
+// =============================================================================
+
+// TODO: Define permissions, retention labels, sensitivity labels
+// Permission <name> <title> <description> [<notes>]
+// RetentionLabel <name> <title> <description> [<notes>]
+// SensitivityLabel <name> <title> <description> [<notes>]
+// SecurityGroup [<members>] <name> <title> <description> [= [<permissions>]]
+
+// =============================================================================
+// CONTENT - Documents and data artifacts
+// =============================================================================
+
+// TODO: Define content items
+// Content [<attributes>] <name> <title> <description> [<notes>] [<labels>] [<flow>] [{ properties }]
+
+Content TODO_Content "Content Title" "Content description"
+
+// =============================================================================
+// ACTIVITIES AND TASKS - Workflow stages and work items
+// =============================================================================
+
+// TODO: Define activities and tasks
+// Activity [<roles>] <name> <title> <description> [<notes>] [{ tasks/properties }] [<flow>]
+// Task [<roles>] <name> <title> <description> [<notes>] [{ subtasks/properties }] [<flow>]
+
+Activity TODO_Activity "Activity Title" "Activity description"
+
+// =============================================================================
+// WORKFLOW - Orchestration (optional)
+// =============================================================================
+
+// TODO: Define workflow if needed
+// Workflow <name> <title> <description> [<notes>] { steps }
+//   Do <activity>
+//   Do <activity> If <condition>
+//   Repeat <activities> Until <condition>

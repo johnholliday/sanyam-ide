@@ -1,0 +1,8 @@
+{
+  "main": [
+    { "text": "Home", "url": "/" },
+    { "text": "Getting Started", "url": "/getting-started/" },
+    { "text": "Language", "url": "/language/" },
+    { "text": "Examples", "url": "/examples/" }
+  ]
+}

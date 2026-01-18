@@ -1,0 +1,21 @@
+// Intermediate Example: Security and Compliance Model
+// Demonstrates security groups, permissions, and labels
+
+#Title "Enterprise Security Configuration"
+#Author "Security Team"
+
+// Define actors for security groups
+Actor Manager "Manager" "Department manager"
+Actor Analyst "Analyst" "Data analyst"
+Actor FullAccess "Full Access Role" "Role with complete access"
+
+// Define permissions
+Permission ReadWrite "Read Write" "Complete read and write access"
+Permission ViewOnly "View Only" "Read-only access to content"
+
+// Define compliance labels
+RetentionLabel SevenYear "7 Year Retention" "Retain for 7 years per regulations"
+SensitivityLabel Confidential "Confidential" "Internal use only"
+
+// Security group with members and permissions (references Actors)
+SecurityGroup [Manager, Analyst] DataTeam "Data Team" "Data analytics group" = [FullAccess]

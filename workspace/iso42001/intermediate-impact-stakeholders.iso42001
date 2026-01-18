@@ -1,0 +1,121 @@
+// Intermediate Example: Impact Assessment with Stakeholder Registry
+// Demonstrates impact assessment linked to stakeholders per ISO 42001
+// Updated to include DATE fields for assessments and reviews
+
+// First define the AI system being assessed
+aiSystem CreditScoring {
+    description "Automated credit scoring system for loan applications"
+    version "3.0"
+    status PRODUCTION
+
+    classification {
+        type MACHINE_LEARNING
+        riskLevel HIGH
+        autonomyLevel HUMAN_ON_THE_LOOP
+        euAiActCategory HIGH_RISK
+    }
+
+    purpose {
+        intendedUse "Automated assessment of creditworthiness for loan applications"
+        foreseeableMisuse "Using scores beyond intended loan decisions"
+        affectedParties { "Loan applicants", "Financial advisors", "Underwriters" }
+    }
+
+    lifecycle {
+        stage OPERATION
+    }
+}
+
+// Define stakeholders affected by this system
+stakeholderRegistry CreditStakeholders {
+    description "Stakeholders for credit scoring AI system"
+
+    stakeholder LoanApplicants {
+        type AFFECTED_INDIVIDUAL
+        description "Individuals applying for loans"
+        needs {
+            FairAssessment: "Fair and unbiased credit evaluation" [X]
+            Explanation: "Understanding of credit decision factors"
+        }
+        expectations {
+            Transparency: "Clear explanation of scoring factors"
+            Appeals: "Ability to appeal decisions" [X]
+        }
+        influence MEDIUM
+        interest VERY_HIGH
+    }
+
+    stakeholder Regulator {
+        type REGULATOR
+        description "Financial regulatory authority"
+        influence VERY_HIGH
+        interest HIGH
+        communication {
+            method "Quarterly compliance reports"
+            frequency "Quarterly"
+            responsible "Compliance Officer"
+        }
+    }
+}
+
+// Impact assessment for the credit scoring system
+impactAssessment CreditScoringImpact {
+    aiSystem CreditScoring
+    assessmentDate 2024-03-15
+    assessor "AI Ethics Committee"
+    status APPROVED
+
+    context {
+        intendedUse "Evaluate creditworthiness for consumer loan applications"
+        operationalContext "Used in United States and European Union markets"
+    }
+
+    individualImpacts {
+        impact PrivacyImpact {
+            description "Processing of personal financial data for scoring"
+            type PRIVACY
+            severity SIGNIFICANT
+            likelihood LIKELY
+        }
+        impact BiasImpact {
+            description "Potential algorithmic bias against protected groups"
+            type DISCRIMINATION
+            severity SIGNIFICANT
+            likelihood POSSIBLE
+        }
+    }
+
+    societalImpacts {
+        impact FinancialInclusion {
+            description "Impact on access to credit for underserved communities"
+            type ECONOMIC_INEQUALITY
+            severity MODERATE
+            scale REGIONAL
+        }
+    }
+
+    mitigations {
+        mitigation PrivacyMitigation {
+            impact "Privacy risks from data processing"
+            measure "Data minimization and encryption at rest"
+            effectiveness HIGH
+            status IMPLEMENTED
+        }
+        mitigation BiasMitigation {
+            impact "Algorithmic bias risks"
+            measure "Regular bias audits and fairness constraints"
+            effectiveness MEDIUM
+            status APPROVED
+        }
+    }
+
+    conclusion {
+        summary "High-risk AI system requiring enhanced monitoring and controls"
+        overallRiskLevel HIGH
+        decision PROCEED_WITH_CONDITIONS
+        conditions { "Quarterly bias audits", "Human review for borderline cases", "Appeal mechanism" }
+        nextReview 2024-09-15
+    }
+
+    nextReview 2024-09-15
+}

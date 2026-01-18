@@ -1,0 +1,11 @@
+{
+  "projectName": "ActOne",
+  "languages": [
+    {
+      "id": "actone",
+      "grammar": "src/actone.langium",
+      "fileExtensions": [".actone"]
+    }
+  ],
+  "out": "src/generated"
+}

@@ -1,0 +1,4 @@
+// Basic Example: Defining an Actor
+// An Actor represents a user role or participant in the enterprise
+
+Actor Admin "Administrator" "System administrator with full access"

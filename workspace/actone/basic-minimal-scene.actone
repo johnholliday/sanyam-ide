@@ -1,0 +1,18 @@
+// Basic Example: Minimal Scene
+// Demonstrates a simple scene with participants and objective.
+
+story "First Meeting" {
+    character Anna {
+        bio: "A curious journalist investigating local legends."
+    }
+
+    character Marcus {
+        bio: "A reclusive historian with secrets to hide."
+    }
+
+    scene Interview {
+        participants: [Anna, Marcus],
+        setting: Library,
+        objective: "Anna tries to get Marcus to reveal what he knows about the disappearance."
+    }
+}

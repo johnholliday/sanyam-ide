@@ -1,0 +1,21 @@
+// Intermediate Example: Activity with nested Tasks
+// Shows actors, activities, tasks with properties and content flow
+
+#Title "Document Review Process"
+#Version "1.0"
+
+// Define actors
+Actor Reviewer "Document Reviewer" "Reviews submitted documents"
+Actor Author "Document Author" "Creates and submits documents"
+
+// Define content items
+Content Draft "Draft Document" "Initial document submission"
+Content FinalDoc "Final Document" "Approved final version"
+
+// Activity with tasks and content flow
+Activity [Reviewer] ReviewProcess "Review Process" "Complete review cycle" {
+    Task CheckFormat "Check Formatting" "Verify document formatting"
+    Task ValidateContent "Validate Content" "Review content accuracy"
+    dueDate: date "Review deadline"
+    priority: choice(High, Medium, Low)
+}

@@ -1,0 +1,44 @@
+{
+  "name": "@sanyam-grammar/iso42001",
+  "version": "0.0.1",
+  "description": "Grammar package for ISO 42001 AI Management System assessments",
+  "type": "module",
+  "main": "./lib/src/contribution.js",
+  "types": "./lib/src/contribution.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/src/contribution.d.ts",
+      "default": "./lib/src/contribution.js"
+    },
+    "./contribution": {
+      "types": "./lib/src/contribution.d.ts",
+      "default": "./lib/src/contribution.js"
+    },
+    "./manifest": {
+      "types": "./lib/src/manifest.d.ts",
+      "default": "./lib/src/manifest.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "clean": "rimraf lib",
+    "langium:generate": "langium generate",
+    "watch": "tsc -b tsconfig.json --watch"
+  },
+  "sanyam": {
+    "grammar": true,
+    "languageId": "iso42001",
+    "contribution": "./lib/src/contribution.js"
+  },
+  "dependencies": {
+    "langium": "^4.1.0"
+  },
+  "peerDependencies": {
+    "@sanyam/types": "workspace:*"
+  },
+  "devDependencies": {
+    "langium-cli": "^4.0.0",
+    "rimraf": "^5.0.0",
+    "typescript": "~5.6.0"
+  }
+}

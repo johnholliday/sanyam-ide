@@ -1,0 +1,16 @@
+// Basic Example: Document Library
+// Demonstrates a simple document library with versioning settings
+
+@ {
+    title "Project Documents Library"
+    description "Central repository for project documentation"
+}
+library ProjectDocs {
+    note "Stores all project-related documents with version control"
+
+    versioning {
+        major 10
+        minor 5
+        requireCheckout true
+    }
+}

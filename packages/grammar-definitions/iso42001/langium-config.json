@@ -1,0 +1,11 @@
+{
+  "projectName": "Iso42001",
+  "languages": [
+    {
+      "id": "iso42001",
+      "grammar": "src/iso42001.langium",
+      "fileExtensions": [".iso42001"]
+    }
+  ],
+  "out": "src/generated"
+}

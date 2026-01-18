@@ -1,0 +1,23 @@
+// Basic Example: AI System Definition
+// Defines an AI system inventory item per ISO 42001 Annex A.4
+
+aiSystem CustomerSentiment {
+    description "Customer sentiment analysis system using NLP"
+    version "2.1.0"
+    status PRODUCTION
+
+    classification {
+        type NATURAL_LANGUAGE_PROCESSING
+        riskLevel LIMITED
+        autonomyLevel HUMAN_ON_THE_LOOP
+        mlApproach SUPERVISED
+    }
+
+    purpose {
+        intendedUse "Analyze customer feedback to identify sentiment trends"
+    }
+
+    lifecycle {
+        stage OPERATION
+    }
+}

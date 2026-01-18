@@ -118,7 +118,7 @@ AIManagementSystem:
         'version' version=STRING
         ('effectiveDate' effectiveDate=DATE)?
         ('organization' organization=[Organization])?
-        
+
         // 4.3 Scope
         ('scope' '{'
             'description' scopeDescription=STRING
@@ -126,7 +126,7 @@ AIManagementSystem:
             ('exclusions' '{' exclusions+=ScopeExclusion* '}')?
             ('aiSystems' '{' aiSystemRefs+=[AISystem] (',' aiSystemRefs+=[AISystem])* '}')?
         '}')?
-        
+
         // 5.2 AI Policy
         ('policy' '{'
             'statement' policyStatement=STRING
@@ -136,10 +136,10 @@ AIManagementSystem:
             ('approvalDate' approvalDate=DATE)?
             ('reviewDate' reviewDate=DATE)?
         '}')?
-        
+
         // 6.2 AI Objectives
         ('objectives' '{' objectives+=AIObjective* '}')?
-        
+
         // Documented information references
         ('documents' '{' documentRefs+=[Document] (',' documentRefs+=[Document])* '}')?
     '}';
@@ -451,40 +451,42 @@ ImpactAssessment:
         ('reviewer' reviewer=STRING)?
         ('approver' approver=STRING)?
         ('status' status=AssessmentStatus)?
-        
+
         // A.5.2 - Impact Assessment Process
         ('methodology' methodology=STRING)?
-        
+
         // Intended use and context
         ('context' '{'
             'intendedUse' intendedUse=STRING
             ('operationalContext' operationalContext=STRING)?
             ('foreseeableMisuse' foreseeableMisuse=STRING)?
         '}')?
-        
+
         // A.5.4 - Individual impacts
         ('individualImpacts' '{' individualImpacts+=IndividualImpact* '}')?
-        
+
         // A.5.5 - Societal impacts
         ('societalImpacts' '{' societalImpacts+=SocietalImpact* '}')?
-        
+
         // Environmental impacts
         ('environmentalImpacts' '{' environmentalImpacts+=EnvironmentalImpact* '}')?
-        
+
         // Positive impacts (opportunities)
         ('benefits' '{' benefits+=Benefit* '}')?
-        
+
         // Mitigation measures
         ('mitigations' '{' mitigations+=ImpactMitigation* '}')?
-        
+
         // Conclusions
         ('conclusion' '{'
             'summary' summary=STRING
             ('recommendation' recommendation=STRING)?
             ('overallRiskLevel' overallRiskLevel=RiskLevel)?
             ('decision' decision=AssessmentDecision)?
+            ('conditions' '{' conditions+=STRING (',' conditions+=STRING)* '}')?
+            ('nextReview' conclusionNextReview=DATE)?
         '}')?
-        
+
         // Review schedule
         ('nextReview' nextReviewDate=DATE)?
     '}';
@@ -552,10 +554,10 @@ Audit:
         ('leadAuditor' leadAuditor=STRING)?
         ('auditTeam' '{' auditTeam+=STRING (',' auditTeam+=STRING)* '}')?
         ('status' status=AuditStatus)?
-        
+
         // Audit findings
         ('findings' '{' findings+=AuditFinding* '}')?
-        
+
         // Audit conclusion
         ('conclusion' '{'
             ('summary' summary=STRING)?
@@ -773,7 +775,7 @@ Supplier:
         ('services' '{' services+=STRING (',' services+=STRING)* '}')?
         ('criticality' criticality=CriticalityLevel)?
         ('riskLevel' riskLevel=RiskRating)?
-        
+
         // AI-specific due diligence
         ('dueDiligence' '{'
             ('aiPoliciesReviewed' aiPoliciesReviewed?='[X]')?
@@ -784,7 +786,7 @@ Supplier:
             ('lastReviewDate' lastReviewDate=DATE)?
             ('nextReviewDate' nextReviewDate=DATE)?
         '}')?
-        
+
         // Contractual requirements
         ('contract' '{'
             ('startDate' startDate=DATE)?
@@ -794,7 +796,7 @@ Supplier:
             ('auditRights' auditRights?='[X]')?
             ('incidentNotification' incidentNotification?='[X]')?
         '}')?
-        
+
         // Ongoing monitoring
         ('monitoring' '{'
             ('performanceRating' performanceRating=QualityRating)?
@@ -1196,8 +1198,8 @@ IncidentRootCause returns string:
 
 terminal ID: /[_a-zA-Z][\w_]*/;
 terminal STRING: /"[^"]*"|'[^']*'/;
+terminal DATE: /\d{4}-\d{2}-\d{2}/;  // Must come before INT to match dates correctly
 terminal INT returns number: /[0-9]+/;
-terminal DATE: /\d{4}-\d{2}-\d{2}/;
 terminal BOOLEAN returns boolean: /true|false/;
 
 hidden terminal WS: /\s+/;

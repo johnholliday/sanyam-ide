@@ -1,0 +1,104 @@
+// Intermediate Example: Term Taxonomy
+// Demonstrates term groups, term sets, and hierarchical terms
+
+// Define individual terms with labels and synonyms
+@ {
+    title "North America Region"
+    description "Geographic region covering US, Canada, and Mexico"
+}
+term NorthAmerica {
+    note "Primary sales region"
+    labels {
+        "en-US": "North America"
+        "fr-CA": "Amérique du Nord"
+        "es-MX": "América del Norte"
+    }
+    synonyms {
+        "NA"
+        "N. America"
+    }
+}
+
+term Europe {
+    note "European sales region"
+    labels {
+        "en-US": "Europe"
+        "de-DE": "Europa"
+        "fr-FR": "Europe"
+    }
+    synonyms {
+        "EU"
+        "EMEA"
+    }
+}
+
+term AsiaPacific {
+    note "Asia-Pacific sales region"
+    labels {
+        "en-US": "Asia Pacific"
+        "zh-CN": "亚太地区"
+        "ja-JP": "アジア太平洋"
+    }
+    synonyms {
+        "APAC"
+        "Asia-Pac"
+    }
+}
+
+// Define a term set containing the region terms
+@ {
+    title "Geographic Regions"
+    description "Standard geographic regions for sales and operations"
+}
+termSet Regions {
+    note "Closed set of predefined regions"
+    open false
+    terms {
+        NorthAmerica
+        Europe
+        AsiaPacific
+    }
+}
+
+// Define a term set for departments
+term Engineering {
+    labels {
+        "en-US": "Engineering"
+    }
+}
+
+term Sales {
+    labels {
+        "en-US": "Sales"
+    }
+}
+
+term Marketing {
+    labels {
+        "en-US": "Marketing"
+    }
+}
+
+termSet Departments {
+    note "Company departments - users can suggest new terms"
+    open true
+    terms {
+        Engineering
+        Sales
+        Marketing
+    }
+}
+
+// Define the term group containing both term sets
+@ {
+    title "Corporate Taxonomy"
+    description "Enterprise-wide taxonomy for document classification"
+    version "1.0.0"
+}
+termGroup CorporateTaxonomy {
+    note "Managed by the Information Architecture team"
+    termSets {
+        Regions
+        Departments
+    }
+}

@@ -1,0 +1,86 @@
+
+INTRODUCING THE INFORMATION GOVERNANCE MATURITY MODEL (IGIM)
+This year, ARMA International released the Informational Governance Implementation Model (IGIM), beta version. There are, of course, other information governance (IG) models available to the community, each looking at IG through a different lens. Why should you take the time to look at yet another model? At the highest level: 1) because the IGIM offers an implementation-focused approach that we think many practitioners will find especially useful, and 2) because it will enable you to better use the resources ARMA has already collected and is building around this model.
+
+WHAT IS THE IGIM?
+The IGIM is designed as an aid to bridge the gaps across the stakeholders who participate in an organization’s IG program. It offers a functional approach to IG, exploring the elements that need to be developed in seven key areas necessary to implementing a successful IG program. These seven key areas—steering committee, authorities, supports, processes, capabilities, structures, and infrastructure—are represented in the hive infographic and explored in more detail below. By defining these areas and the elements that must be developed in each, the IGIM helps build a common understanding and unified implementation approach that bridges people, policy, technology, etc. across these seven critical areas.
+
+RESOURCES SUPPORTING THE IGIM
+Models can help us better understand an issue, but the IGIM is intended to do more than that. It is intended to be a guide toward implementing an IG program. To that end, we have already gathered an array of resources on each of the seven areas to help guide you in implementing IG at your organization. In 2020 and beyond, ARMA will be building training, tools, and other resources targeted to these seven areas.
+
+One such initiative currently underway is the creation of the IG Maturity Index. At ARMA InfoCon 2019, we launched a survey assessing organizations’ IG maturity overall and across the seven areas of the IGIM identified above. The results of that survey will be used to create an IG Maturity Index, a point-in-time assessment of IG maturity. Because the survey will be presented at the same time each year, the IG Maturity Index will serve as a year-over-year benchmark and industry standard of IG maturity with respect to these areas. Survey results will be reported in early 2020 and will include infographics of the results, which you can use in internal presentations to show how your IG program compares and support steps to close existing gaps.
+
+AN INTRODUCTION TO THE SEVEN AREAS OF THE IGIM
+Below is a more detailed look at the seven areas and the elements that are included in them. Each is followed by a series of question you might consider when evaluating your organization’s programs with respect to each of the seven areas.
+
+1) STEERING COMMITTEE
+The steering committee represents the people aspect of your organization’s IG program. This is the organization’s IG leadership team, and it should have broad representation, including in each of the interests enumerated in the infographic.
+When evaluating your organization’s program with respect to this element, consider factors including:
+	Does your organization have a formal or informal group of individuals identified and tasked with IG decision making?
+	Does the group have sufficient authority or influence to guide IG decisions? 	Does the group meet on a regular basis?
+	Are all relevant information stakeholders represented and consulted during IG decisions?
+2) AUTHORITIES
+Authorities are the elements that will serve as guiderails for your organization’s IG efforts. Roughly, these are the rules that help guide IG decisions. These include authoritative frameworks, standards, regulations, privacy requirements, risk tolerance, and organizational culture. Understanding relevant authorities will help ensure that you’re meeting your organization’s obligations and objectives with your IG program.
+
+When evaluating your organization’s program with respect to this element, consider factors including:
+	Are your organization’s legal, regulatory compliance, and business needs clearly understood, documented, and followed?
+	Have appropriate standards and best practices been identified? Are they understood?
+	Are your organization’s culture and risk tolerance understood well enough to incorporate them into decision making?
+	Are relevant authorities being periodically reviewed and kept current? How are changes to these being captured and incorporated into decision making?
+
+3) SUPPORTS
+Supports are the elements that your organization has available to it that will assist you in establishing your IG program. These include change management, project management, communications, organizational learning and training, and help desk/FAQs.
+
+When evaluating your organization’s program with respect to this element, consider factors including:
+	Are all necessary support structures in place or are some missing?
+	For existing supports, are they used, are they helpful, and do they apply a consistent, repeatable methodology?
+	Are the supports proactively incorporated into the IG project or initiatives or created or added to projects ad hoc?
+	Are lessons learned incorporated to improve support structures going forward?
+
+4) PROCESSES
+Processes ensure consistency in your organization’s IG program. These include metrics, policies, procedures, rules, roles, benchmarking, and accountability. They
+
+help to implement your IG program through informed and consistent decision- making as well as to measure and assess the results.
+
+When evaluating your organization’s program with respect to this element, consider factors including:
+	Are policies, procedures, rules, and roles clearly defined and followed?
+	Are people regularly trained and assessed on their understanding of the policies, procedures, rules, and roles?
+	Are there accountability structures in places to ensure compliance?
+	Are metrics and benchmarking being used to measure program progress and to inform decision making?
+
+5) CAPABILITIES
+Capabilities reflect what’s in place to guide information through the organization throughout the information lifecycle. These include information lifecycle, information access, search, protection, and privacy. As the model’s visualization shows, the information lifecycle is surrounded by elements relating to access and security as both need to be addressed as your information moves through its lifecycle.
+
+
+When evaluating your organization’s program with respect to this element, consider factors including:
+	Does the correct information get to the right hands when it is need?
+	Is information protected throughout the information lifecycle so that it does not fall into the wrong hands?
+	Are internal and external threats to information addressed?
+	Is a consistent lifecycle being applied to all of your organization’s information regardless of format or location?
+
+6) STRUCTURES
+Structures are the building blocks of information organization, from the storage structures (information architecture, taxonomy, metadata) to the system structures (technology architecture), along with file formats and transmission (formats & protocols).
+
+When evaluating your organization’s program with respect to this element, consider factors including:
+	Does your organization use an information taxonomy?
+	Are your organization’s taxonomy and metadata consistent across systems?
+	Is there an overarching information architecture that shows how your organization’s information is related?
+	Is your organization’s technology architecture mapped and rationalized?
+	Are specific file formats supported as required (e.g., PDF/a for archiving or locked/uneditable finalized records)?
+	Are policies and protocols in place for information transfer (e.g., use of IM, VPN, etc.)?
+7) INFRASTRUCTURE
+Infrastructure represents the abilities and models that underpin your organizations
+
+information systems, basically the ability of your organization’s information systems to do what you need them to do to meet your organization’s objectives. These include applications and software, networks and connectivity, content services and APIs, hosting/cloud/servers, SLAs and licensing, and information security.
+
+When evaluating your organization’s program with respect to this element, consider factors including:
+	Are the right applications and software in place to meet your organization’s needs?
+	Are the tools within your organization’s technology environment integrated? 	Are your organization’s networks and connectivity adequate?
+	Are SLA’s (internal and third party) and contracts tracked, managed, and enforced?
+	Are security measures applied across all organization systems, networks, and other infrastructure?
+	Is information security monitoring in place?
+
+TO LEARN MORE
+The IGIM is available for free download at the ARMA International website and will be continually updated there.
+
+

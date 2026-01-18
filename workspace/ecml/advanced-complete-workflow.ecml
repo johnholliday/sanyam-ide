@@ -1,0 +1,93 @@
+// Advanced Example: Complete Document Approval Workflow
+// Demonstrates all major ECML features working together
+
+#Title "Contract Approval System"
+#Description "End-to-end contract review and approval workflow"
+#Author "Enterprise Architecture Team"
+#Company "Acme Corporation"
+#Version "2.1"
+#Created "2024-01-15"
+
+// =============================================================================
+// ACTORS - Define all participants in the workflow
+// =============================================================================
+
+Actor Requester "Contract Requester" "Initiates contract requests" {
+    department: text "Employee department"
+    level: choice(Junior, Senior, Manager)
+}
+
+Actor LegalReviewer "Legal Reviewer" "Reviews legal terms and conditions"
+Actor FinanceApprover "Finance Approver" "Approves financial terms"
+Actor ExecutiveSigner "Executive Signer" "Final signature authority"
+Actor CanReview "Can Review Role" "Role that can review contracts"
+
+// =============================================================================
+// COMPLIANCE - Security and retention configuration
+// =============================================================================
+
+Permission SubmitPerm "Can Submit" "Submit new contracts for review"
+Permission ReviewPerm "Can Review" "Review and comment on contracts"
+Permission ApprovePerm "Can Approve" "Approve or reject contracts"
+Permission SignPerm "Can Sign" "Final signature authority"
+
+RetentionLabel TenYear "10 Year Retention" "Retain for 10 years per legal requirements"
+SensitivityLabel BusinessCritical "Business Critical" "Highly sensitive business information"
+
+SecurityGroup [LegalReviewer, FinanceApprover] ReviewTeam "Review Team" "Contract review group" = [CanReview]
+
+// =============================================================================
+// CONTENT - Documents flowing through the workflow
+// =============================================================================
+
+Content [format=DOCX, type=Word] DraftContract "Draft Contract" "Initial contract draft" [TenYear(BusinessCritical)] {
+    contractValue: currency "Total contract value"
+    effectiveDate: date "Contract start date"
+    termMonths: integer "Contract duration in months"
+}
+
+Content [format=PDF] SignedContract "Signed Contract" "Fully executed contract" [TenYear(BusinessCritical)] << DraftContract
+
+Content [format=XLSX, type=Excel] FinancialSummary "Financial Summary" "Cost breakdown analysis" << DraftContract >> SignedContract
+
+// =============================================================================
+// ACTIVITIES - Major workflow stages
+// =============================================================================
+
+Activity [Requester] SubmitContract "Submit Contract" "Initial contract submission" {
+    Task PrepareDocuments "Prepare Documents" "Gather all required documents"
+    Task FillForm "Fill Request Form" "Complete contract request form" {
+        requestDate: date "Submission date"
+        urgency: choice(Normal, Urgent, Critical)
+    }
+}
+
+Activity [LegalReviewer] LegalReview "Legal Review" "Review legal terms" {
+    Task CheckTerms "Check Terms" "Verify all terms are acceptable"
+    Task IdentifyRisks "Identify Risks" "Document potential legal risks"
+    reviewStatus: choice(Pending, InProgress, Complete)
+}
+
+Activity [FinanceApprover] FinanceReview "Finance Review" "Review financial impact" {
+    Task ValidateBudget "Validate Budget" "Confirm budget availability"
+    Task CalculateROI "Calculate ROI" "Assess return on investment"
+}
+
+Activity [ExecutiveSigner] FinalApproval "Final Approval" "Executive sign-off" >> SignedContract
+
+// =============================================================================
+// WORKFLOW - Orchestrate the activities
+// =============================================================================
+
+Workflow ContractApproval "Contract Approval" "Main approval workflow" {
+    <#
+    This workflow handles the complete contract approval process.
+    It includes conditional logic for high-value contracts.
+    #>
+
+    Do SubmitContract
+    Do LegalReview
+    Do FinanceReview If LegalReview.reviewStatus = "approved"
+    Repeat [LegalReview, FinanceReview] Until status = approved
+    Do FinalApproval If this.status = approved
+}

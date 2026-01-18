@@ -1,0 +1,68 @@
+// Intermediate Example: AI Management System with Control Catalog
+// Demonstrates AIMS configuration with linked controls per ISO 42001
+
+aims MainAIMS {
+    version "1.0"
+
+    scope {
+        description "AI Management System covering all customer-facing AI applications"
+        boundaries {
+            boundary CustomerServices {
+                type FUNCTIONAL
+                description "Customer service AI applications"
+            }
+        }
+    }
+
+    policy {
+        statement "We are committed to responsible AI development and deployment"
+        principles {
+            principle Transparency {
+                description "Ensure AI decisions are explainable and transparent"
+                category TRANSPARENCY
+                implementation "Document all model decisions and provide explanations"
+            }
+            principle Fairness {
+                description "Ensure AI systems treat all users equitably"
+                category FAIRNESS
+                implementation "Regular bias audits and fairness testing"
+            }
+        }
+        commitments { "Ethical AI use", "Continuous improvement", "Stakeholder engagement" }
+    }
+
+    objectives {
+        objective ReduceBias {
+            description "Reduce algorithmic bias in customer recommendations"
+            target "Less than 5% disparity across demographic groups"
+            metric "Demographic parity ratio"
+            status IN_PROGRESS
+        }
+    }
+}
+
+controlCatalog ISO42001Controls {
+    description "Control catalog aligned with ISO 42001 Annex A"
+    version "1.0"
+    basedOn "ISO/IEC 42001:2023 Annex A"
+
+    family AIGovernance {
+        title "AI Governance and Accountability"
+        description "Controls for AI governance structure and accountability"
+
+        control CTRL_A5_1 {
+            title "AI Policy"
+            objective "Establish and communicate AI policy"
+            description "The organization shall establish an AI policy"
+            guidance "Policy should address ethical principles and compliance requirements"
+
+            implementation {
+                status FULLY_IMPLEMENTED
+                method "Policy document approved by executive leadership"
+                owner "Chief AI Officer"
+            }
+
+            maturity MANAGED
+        }
+    }
+}

@@ -57,8 +57,15 @@ Based on the detected mode:
 
 **For grammar name:**
 
-- Expected location: `packages/grammar-definitions/{name}.langium`
-- Check if file exists
+Search for the grammar file in the following locations (in order):
+
+1. `packages/grammar-definitions/{name}/src/{name}.langium` (standard package structure)
+2. `packages/grammar-definitions/{name}/{name}.langium` (package dir, no src)
+3. `packages/grammar-definitions/{name}.langium` (root level, no package dir)
+
+Use the first location where the file exists. Set:
+- `grammarPath` = the found file path
+- `packageDir` = `packages/grammar-definitions/{name}/` (target package directory)
 
 **For file path:**
 
@@ -67,11 +74,17 @@ Based on the detected mode:
 - Extract grammar name from filename (without `.langium` extension)
 - Target directory: `packages/grammar-definitions/{name}/`
 
-### Step 3: Check for Existing Grammar
+### Step 3: Check for Existing Grammar and Setup Package
 
-Check if the grammar file exists at the resolved location.
+Check if the grammar file was found in Step 2.
 
-**If grammar exists** → Proceed to Step 4 (parse existing grammar)
+**If grammar exists:**
+
+1. Ensure the package directory exists: `mkdir -p packages/grammar-definitions/{name}/src`
+2. If the grammar file is NOT in the standard location (`packages/grammar-definitions/{name}/src/{name}.langium`):
+   - Copy/move the grammar file to the standard location
+   - Log: "Moved grammar file to packages/grammar-definitions/{name}/src/{name}.langium"
+3. Proceed to Step 4 (parse existing grammar)
 
 **If grammar does NOT exist:**
 

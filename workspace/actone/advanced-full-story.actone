@@ -1,0 +1,163 @@
+// Advanced Example: Full Story with All Elements
+// Demonstrates a complete story with characters, world, scenes, plot,
+// interactions, and generation settings.
+
+story "The Lighthouse Keeper's Secret" {
+    // Import external character definitions (runtime resolution)
+    import "./shared-characters.actone" as Shared
+
+    // AI generation parameters
+    generate {
+        temperature: 0.8,
+        max_tokens: 2000,
+        continuity_loss: 0.1,
+        style_bleed: true
+    }
+
+    // === CHARACTERS ===
+
+    character Isolde {
+        bio: "The lighthouse keeper's daughter, raised in isolation, speaks to the sea.",
+        personality: {
+            melancholy: 75,
+            curiosity: 90,
+            hope: 45,
+            loyalty: 85,
+            custom("mysticism"): 80
+        },
+        voice: "Poetic, lilting, with archaic turns of phrase learned from old books.",
+        goals: [
+            { text: "Understand her father's disappearance", priority: 100 },
+            { text: "Escape the island without abandoning her duty", priority: 70 },
+            "Find connection with the outside world"
+        ],
+        conflicts: [
+            "Duty to the lighthouse versus desire for freedom",
+            "Trust in the stranger versus lifelong warnings"
+        ]
+    }
+
+    character Theron {
+        bio: "A shipwrecked cartographer mapping forbidden coastlines.",
+        personality: {
+            ambition: 80,
+            curiosity: 85,
+            caution: 40,
+            empathy: 65,
+            pride: 70
+        },
+        voice: "Educated, precise, occasionally arrogant but softening with time.",
+        goals: [
+            { text: "Complete his charts and earn recognition", priority: 85 },
+            { text: "Understand the island's mysteries", priority: 60 },
+            "Survive and return to the mainland"
+        ],
+        relationships: {
+            Isolde: {
+                weight: 30,
+                label: "intriguing stranger",
+                history: "She rescued him from the wreck three days ago."
+            },
+            // Reference to imported character
+            "Shared.Admiral": {
+                weight: -60,
+                label: "feared patron"
+            }
+        }
+    }
+
+    // === WORLD ===
+
+    world Island {
+        locations: {
+            Lighthouse: "A spiraling tower of salt-stained stone, light flickering eternally.",
+            Shore: "Black rocks where ships have broken, remnants of past wrecks visible.",
+            Cove: "A hidden inlet accessible only at low tide, rumored to hold secrets.",
+            Cottage: "Isolde's home, filled with maritime relics and her father's journals."
+        },
+        rules: [
+            "The lighthouse must never go dark",
+            "The sea speaks to those who listen",
+            "What the island takes, it does not return",
+            "The fog comes without warning"
+        ],
+        time: {
+            period: "Ambiguous, feels like 1890s but technology is inconsistent",
+            clock: "The fifth day after the shipwreck"
+        }
+    }
+
+    // === SCENES ===
+
+    scene Discovery {
+        participants: [Isolde, Theron],
+        setting: Cove,
+        atmosphere: {
+            mystery: 90,
+            tension: 50,
+            intimacy: 40,
+            hope: 30,
+            custom("otherworldly"): 75
+        },
+        objective: "They discover evidence of what happened to Isolde's father.",
+        constraints: [
+            "The tide is rising - they have limited time",
+            "Neither fully trusts the other yet",
+            "What they find challenges their understanding of reality"
+        ],
+        triggers: {
+            start: "When Theron notices the cave entrance at low tide",
+            end: "When the sea reclaims the cove or they make a discovery"
+        }
+    }
+
+    scene Confession {
+        participants: [Isolde, Theron],
+        setting: Lighthouse,
+        atmosphere: {
+            intimacy: 80,
+            tension: 60,
+            hope: 55,
+            sorrow: 70
+        },
+        objective: "One character reveals a secret they've been hiding.",
+        constraints: [
+            "The storm outside forces vulnerability",
+            "Physical escape is impossible tonight"
+        ]
+    }
+
+    // === PLOT ===
+
+    plot MainArc {
+        beats: [
+            "The shipwreck brings Theron to the island",
+            "Isolde's initial distrust slowly erodes",
+            "Discovery of the father's journal entries",
+            "The truth about the lighthouse's purpose emerges",
+            "A choice must be made: duty or escape",
+            "The consequences of that choice manifest"
+        ],
+        conflict_type: Supernatural,
+        resolution_pattern: Transformative
+    }
+
+    // === INTERACTIONS ===
+
+    interaction Debate {
+        participants: [Isolde, Theron],
+        pattern: "A-B-A-B with increasing overlap, monologue breaks",
+        style_mix: {
+            Isolde: 0.6,
+            Theron: 0.4
+        }
+    }
+
+    interaction Storytelling {
+        participants: [Isolde],
+        pattern: "Long monologue with embedded dialogue from memories",
+        style_mix: {
+            Isolde: 1.0
+        }
+    }
+}

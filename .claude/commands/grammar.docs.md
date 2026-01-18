@@ -1,5 +1,5 @@
 ---
-description: Generate a complete Eleventy documentation site for the <grammarName> grammar
+description: Generate a complete Eleventy documentation site for the {name} grammar
 ---
 
 ## User Input
@@ -12,8 +12,8 @@ $ARGUMENTS
 
 The argument `$ARGUMENTS` should be one of:
 
-1. **Path to a .langium file** (e.g., `packages/grammar-definitions/<grammarName>.langium` or absolute path)
-2. **Grammar name** to search for in the `packages/grammar-definitions/` directory (e.g., `<grammarName>`, `spdevkit`, `novel`)
+1. **Path to a .langium file** (e.g., `packages/grammar-definitions/.source/{name}.langium` or absolute path)
+2. **Grammar name** to search for in the `packages/grammar-definitions/` directory (e.g., `ecml`, `spdevkit`, `garp`)
 
 ### Step 1: Resolve the Grammar File
 
@@ -21,22 +21,28 @@ The argument `$ARGUMENTS` should be one of:
 2. If `$ARGUMENTS` ends with `.langium`, treat it as a file path:
    - If relative, resolve from the current working directory
    - Read the file directly
-3. If `$ARGUMENTS` doesn't end with `.langium`, search for a matching grammar:
-   - Search `packages/grammar-definitions/**/*.langium` and `packages/grammar-definitions/*.langium` for files matching the name (case-insensitive)
-   - If multiple matches found, list them and ask the user to specify
-   - If no matches found, report the error
+3. If `$ARGUMENTS` doesn't end with `.langium`, search for a matching grammar in the following order:
+   - **FIRST**: Check `packages/grammar-definitions/.source/{name}.langium` (master source - PRIMARY)
+   - **SECOND**: Check `packages/grammar-definitions/{name}/src/{name}.langium` (existing package)
+   - Use the first location where the file exists
+   - If no matches found, report the error and stop
+
+Set:
+- `grammarPath` = the found file path
+- `packageDir` = `packages/grammar-definitions/{name}/` (target package directory)
+- `sourcePath` = `packages/grammar-definitions/.source/{name}.langium` (master source location)
 
 ## Overview
 
-Generate a fully-functional Eleventy (11ty) documentation website for the <grammarName> grammar. This includes the complete site infrastructure with three-column layout (sidebar, content, table of contents), light/dark theme toggle, and integration of any existing examples.
+Generate a fully-functional Eleventy (11ty) documentation website for the {name} grammar. This includes the complete site infrastructure with three-column layout (sidebar, content, table of contents), light/dark theme toggle, and integration of any existing examples.
 
 ## Step 1: Ensure 11ty Infrastructure Exists
 
-Check if `docs/<grammarName>/eleventy.config.js` exists. If not, create the complete 11ty site structure.
+Check if `docs/{name}/eleventy.config.js` exists. If not, create the complete 11ty site structure.
 
 ### Required Files
 
-**1. Create `docs/<grammarName>/eleventy.config.js`:**
+**1. Create `docs/{name}/eleventy.config.js`:**
 
 ```javascript
 import syntaxHighlight from '@11ty/eleventy-plugin-syntaxhighlight';
@@ -123,11 +129,11 @@ export default function(eleventyConfig) {
 }
 ```
 
-**2. Create `docs/<grammarName>/package.json`:**
+**2. Create `docs/{name}/package.json`:**
 
 ```json
 {
-  "name": "sanyam-grammar/<grammarName>-docs",
+  "name": "sanyam-grammar/{name}-docs",
   "private": true,
   "type": "module",
   "scripts": {
@@ -145,7 +151,7 @@ export default function(eleventyConfig) {
 }
 ```
 
-**3. Create `docs/<grammarName>/.gitignore`:**
+**3. Create `docs/{name}/.gitignore`:**
 
 ```text
 # Dependencies
@@ -159,7 +165,7 @@ _site/
 *.swp
 ```
 
-**4. Create `docs/<grammarName>/_includes/layouts/base.njk`:**
+**4. Create `docs/{name}/_includes/layouts/base.njk`:**
 
 ```html
 <!DOCTYPE html>
@@ -274,7 +280,7 @@ _site/
 </html>
 ```
 
-**5. Create `docs/<grammarName>/_includes/layouts/doc.njk`:**
+**5. Create `docs/{name}/_includes/layouts/doc.njk`:**
 
 ```html
 {% extends "layouts/base.njk" %}
@@ -334,7 +340,7 @@ _site/
 {% endblock %}
 ```
 
-**6. Create `docs/<grammarName>/_includes/layouts/home.njk`:**
+**6. Create `docs/{name}/_includes/layouts/home.njk`:**
 
 ```html
 {% extends "layouts/base.njk" %}
@@ -348,21 +354,21 @@ _site/
 {% endblock %}
 ```
 
-**7. Create `docs/<grammarName>/_data/site.json`:**
+**7. Create `docs/{name}/_data/site.json`:**
 
-Replace `<grammarName>` with the resolved grammar name (e.g., "ECML", "SPDevKit") and `<ext>` with the file extension:
+Replace `{name}` with the resolved grammar name (e.g., "ECML", "SPDevKit") and `<ext>` with the file extension:
 
 ```json
 {
-  "title": "<grammarName>",
-  "description": "Documentation for the <grammarName> language",
+  "title": "{name}",
+  "description": "Documentation for the {name} language",
   "language": "en",
   "languageId": "<grammarName-lowercase>",
   "fileExtension": ".<ext>"
 }
 ```
 
-**8. Create `docs/<grammarName>/_data/navigation.json`:**
+**8. Create `docs/{name}/_data/navigation.json`:**
 
 ```json
 {
@@ -375,7 +381,7 @@ Replace `<grammarName>` with the resolved grammar name (e.g., "ECML", "SPDevKit"
 }
 ```
 
-**9. Create `docs/<grammarName>/assets/css/main.css`:**
+**9. Create `docs/{name}/assets/css/main.css`:**
 
 ```css
 /* ==========================================================================
@@ -951,7 +957,7 @@ body {
 }
 ```
 
-**10. Create `docs/<grammarName>/assets/css/prism-theme.css`:**
+**10. Create `docs/{name}/assets/css/prism-theme.css`:**
 
 ```css
 /* ==========================================================================
@@ -1104,20 +1110,20 @@ pre[class*="language-"].line-numbers > code {
 
 ### Ensure Package Structure Exists
 
-After resolving the grammar file path, ensure the grammar package folder exists:
+After resolving the grammar file path (found in `.source/` or package `src/`), ensure the grammar package folder exists:
 
 1. **Read the grammar file** and extract the grammar name (from `grammar <name>` declaration)
 2. **Derive the package name**: `@sanyam-grammar/<lowercase-grammar-name>`
    - Example: `grammar TaskList` → `@sanyam-grammar/tasklist`
-3. **Check if the package exists**: Look for `packages/grammar-definitions/<name>/src/` directory
-   - Use the Glob tool to check: `packages/grammar-definitions/<name>/src/`
+3. **Check if the package exists**: Look for `packages/grammar-definitions/{name}/src/` directory
+   - Use the Glob tool to check: `packages/grammar-definitions/{name}/src/`
 4. **If the package doesn't exist**:
    - Inform the user: "Grammar package structure not found. Creating scaffold..."
    - **Prompt the user for the file extension** using AskUserQuestion:
      - Question: "What file extension should be used for this grammar?"
      - Header: "Extension"
      - Options:
-       - `.<lowercase-grammar-name>` (e.g., `.tasklist`) - "Use grammar name as extension (Recommended)"
+       - `.{lowercase-grammar-name}` (e.g., `.tasklist`) - "Use grammar name as extension (Recommended)"
        - `.dsl` - "Generic DSL extension"
        - `.lang` - "Generic language extension"
      - The user can also select "Other" to provide a custom extension
@@ -1126,19 +1132,21 @@ After resolving the grammar file path, ensure the grammar package folder exists:
    - Or read `manifest.ts` to get the `fileExtension` property
    - Use that extension for all generated examples
 6. **Set the output paths for auto-save**:
-   - Individual examples: `workspace/<name>/`
-   - Base template: `workspace/<name>/templates/new-file.<ext>`
+   - Individual examples: `workspace/{name}/`
+   - Base template: `workspace/{name}/templates/new-file.{ext}`
    - File extension: Use the extension from step 4 (user prompt) or step 5 (existing config)
+
+**Note**: The grammar file in `.source/` is the master copy. If the grammar was found in `.source/` but not in the package, it should be copied to the package `src/` folder during `/grammar.config` execution.
 
 ### Look for user-created examples in the project:
 
-- Check `/workspace/<grammarName>/` folder at the project root
+- Check `/workspace/{name}/` folder at the project root
 - Read all files with the `<ext>` extension
 - Note each example's filename and content for incorporation into docs
 
 ## Step 3: Read and Analyze the Grammar
 
-Read `<grammarName>.langium` and extract:
+Read `{name}.langium` and extract:
 1. **Entry rule**: From `entry <RuleName>:` declaration
 2. **Parser rules**: All non-terminal rule names
 3. **Terminal rules**: All terminal definitions
@@ -1148,7 +1156,7 @@ Read `<grammarName>.langium` and extract:
 
 ### 4.1 Homepage
 
-**Save to**: `docs/<grammarName>/index.md`
+**Save to**: `docs/{name}/index.md`
 
 ```yaml
 ---
@@ -1164,7 +1172,7 @@ Include: Welcome message, feature highlights, quick links.
 
 ### 4.2 Getting Started Guide
 
-**Save to**: `docs/<grammarName>/getting-started/index.md`
+**Save to**: `docs/{name}/getting-started/index.md`
 
 ```yaml
 ---
@@ -1180,7 +1188,7 @@ Include: Prerequisites, first file walkthrough, basic concepts.
 
 ### 4.3 Language Reference
 
-**Save to**: `docs/<grammarName>/language/reference.md`
+**Save to**: `docs/{name}/language/reference.md`
 
 ```yaml
 ---
@@ -1197,7 +1205,7 @@ Include: Complete syntax reference for all grammar rules.
 
 ### 4.4 Quick Reference
 
-**Save to**: `docs/<grammarName>/language/quick-reference.md`
+**Save to**: `docs/{name}/language/quick-reference.md`
 
 ```yaml
 ---
@@ -1214,7 +1222,7 @@ Include: Cheatsheet with keywords, terminals, common patterns.
 
 ### 4.5 Tutorial
 
-**Save to**: `docs/<grammarName>/language/tutorial.md`
+**Save to**: `docs/{name}/language/tutorial.md`
 
 ```yaml
 ---
@@ -1235,7 +1243,7 @@ If examples were found in Step 2:
 
 ### 5.1 Create Example Pages
 
-For each example file found, create `docs/<grammarName>/examples/{example-name}.md`:
+For each example file found, create `docs/{name}/examples/{example-name}.md`:
 
 ```yaml
 ---
@@ -1249,13 +1257,13 @@ eleventyNavigation:
 ```
 
 Include:
-- The full example code in a fenced code block with `<grammarName>` language
+- The full example code in a fenced code block with `{name}` language
 - Explanation of what the example demonstrates
 - Key concepts highlighted
 
 ### 5.2 Create Examples Index
 
-**Save to**: `docs/<grammarName>/examples/index.md`
+**Save to**: `docs/{name}/examples/index.md`
 
 ```yaml
 ---
@@ -1276,12 +1284,12 @@ Include:
 
 After generating all files, run:
 ```bash
-cd docs/<grammarName> && npm install
+cd docs/{name} && npm install
 ```
 
 ## Running the Documentation Site
 
-From the `docs/<grammarName>/` directory, the following npm scripts are available:
+From the `docs/{name}/` directory, the following npm scripts are available:
 
 | Command | Description |
 |---------|-------------|
@@ -1308,10 +1316,10 @@ From the `docs/<grammarName>/` directory, the following npm scripts are availabl
 After generation, report:
 1. List of all created/updated files
 2. Number of examples incorporated
-3. Command to start the dev server: `cd docs/<grammarName> && npm run dev`
+3. Command to start the dev server: `cd docs/{name} && npm run dev`
 
 ## Error Handling
 
 - If grammar file not found: Report the expected path
-- If docs/<grammarName>/eleventy.config.js exists: Skip infrastructure generation, only update content
-- If /workspace/<grammarName>/ folder not found: Generate documentation without user examples
+- If docs/{name}/eleventy.config.js exists: Skip infrastructure generation, only update content
+- If /workspace/{name}/ folder not found: Generate documentation without user examples

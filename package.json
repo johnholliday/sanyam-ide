@@ -74,6 +74,9 @@
     "theia:electron": "pnpm --dir applications/electron",
     "lint": "eslint --ext js,jsx,ts,tsx scripts && turbo run lint",
     "lint:fix": "eslint --ext js,jsx,ts,tsx scripts --fix && turbo run lint:fix",
+    "docs:build": "bash scripts/docs.sh build",
+    "docs:start": "bash scripts/docs.sh start",
+    "docs:clean": "bash scripts/docs.sh clean",
     "license:check": "npx dash-licenses-wrapper  --configFile=./configs/license-check-config.json",
     "license:check:review": "npx dash-licenses-wrapper  --configFile=./configs/license-check-config.json --review",
     "postinstall": "theia-patch"

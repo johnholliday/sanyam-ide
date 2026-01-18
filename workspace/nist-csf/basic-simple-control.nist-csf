@@ -1,0 +1,9 @@
+// Basic Example: A simple security control definition
+// Demonstrates the Control construct with all properties
+
+control AccessControlPolicy {
+    id "AC-1"
+    family "Access Control"
+    description "Establish access control policy and procedures"
+    baseline Moderate
+}

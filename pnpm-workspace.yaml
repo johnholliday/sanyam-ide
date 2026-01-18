@@ -3,3 +3,4 @@ packages:
   - 'packages/theia-extensions/*'
   - 'packages/grammar-definitions/*'
   - 'applications/*'
+  - 'docs/*'

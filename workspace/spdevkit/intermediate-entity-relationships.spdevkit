@@ -1,0 +1,28 @@
+// Intermediate Example: Entities with relationships
+// Demonstrates entity references and default values
+
+entity Address {
+    street: string
+    city: string
+    zipCode: string
+    country: string = "USA"
+}
+
+entity Customer {
+    id: number
+    firstName: string
+    lastName: string
+    email: string
+    active: boolean
+    registrationDate: date
+    billingAddress: Address
+    shippingAddress: Address
+}
+
+entity Order {
+    orderId: number
+    orderDate: date
+    customer: Customer
+    total: number
+    status: string = "pending"
+}

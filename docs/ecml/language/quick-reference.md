@@ -1,198 +1,178 @@
 ---
+title: "Quick Reference"
+description: "ECML syntax cheatsheet"
 layout: layouts/doc.njk
-title: Quick Reference
-description: ECML syntax cheatsheet
 eleventyNavigation:
   key: Quick Reference
   parent: Language
   order: 2
 ---
 
-# Quick Reference
+# ECML Quick Reference
 
-A concise cheatsheet for ECML syntax.
+A handy cheatsheet for ECML syntax.
 
 ## Pragmas
 
 ```ecml
-#Title "Model Title"
-#Description "Description text"
-#Author "Author Name"
-#Company "Company Name"
-#Version "1.0"
+#Title "Title"
+#Description "Description"
+#Author "Author"
+#Company "Company"
 #Created "2024-01-15"
-#Updated "2024-06-20"
-#Copyright "2024 Company"
-#License "License Type"
+#Updated "2024-01-20"
+#Version "1.0"
+#Copyright "Copyright"
+#License "License"
 ```
-
-## Data Types
-
-| Type | Example |
-|------|---------|
-| `text` | `name: text "Description"` |
-| `integer` | `count: integer` |
-| `decimal` | `price: decimal` |
-| `date` | `dueDate: date` |
-| `boolean` | `isActive: boolean` |
-| `currency` | `amount: currency` |
-| `memo` | `notes: memo` |
-| `termset` | `category: termset` |
-| `choice(...)` | `status: choice(A, B, C)` |
 
 ## Actors
 
 ```ecml
-// Simple
-Actor Name "Title" "Description"
+// Basic
+Actor name "Title" "Description"
+
+// With notes
+Actor name "Title" "Description" "Notes"
 
 // With properties
-Actor Name "Title" "Description" {
-    prop: text "Description"
-}
-
-// Nested
-Actor Outer "Outer" "Description" {
-    Actor Inner "Inner" "Nested actor"
+Actor name "Title" "Description" {
+    property: type
 }
 ```
 
 ## Content
 
 ```ecml
-// Simple
-Content Name "Title" "Description"
+// Basic
+Content name "Title" "Description"
 
 // With attributes
-Content [format=DOCX, type=Word] Name "Title" "Description"
+Content [type=Word] name "Title"
+Content [format=DOCX] name "Title"
+Content [type=Excel, format=XLSX] name "Title"
 
 // With labels
-Content Name "Title" "Description" [RetentionLabel(SensitivityLabel)]
+Content name "Title" [RetentionLabel]
+Content name "Title" [RetentionLabel(SensitivityLabel)]
 
 // With flow
-Content Name "Title" "Description" << InputContent >> OutputContent
+Content name "Title" << Input1, Input2
+Content name "Title" >> Output1
+Content name "Title" << Input >> Output
 
 // With properties
-Content Name "Title" "Description" {
-    prop: text "Property"
+Content name "Title" {
+    property: type
 }
 ```
-
-### Content Attributes
-
-| Attribute | Values |
-|-----------|--------|
-| `format` | `TXT`, `DOCX`, `CSV`, `XLSX`, `PDF`, `MD`, `JSON`, `XML` |
-| `type` | `Text`, `Csv`, `Excel`, `Word`, `PowerPoint`, `Markdown`, `Pdf`, `Script`, `Image`, `Diagram`, `Flowchart`, `OrgChart`, `Survey` |
-| `template` | `Qualified.Name` |
-| `schema` | `Qualified.Name` |
 
 ## Activities & Tasks
 
 ```ecml
-// Simple activity
-Activity Name "Title" "Description"
+// Basic activity
+Activity name "Title" "Description"
 
 // With role assignment
-Activity [Actor1, Actor2] Name "Title" "Description"
+Activity [Role1, Role2] name "Title"
 
-// With tasks and properties
-Activity [Actor] Name "Title" "Description" {
-    Task SubTask "Task Title" "Description"
-    property: text "Property"
+// With nested tasks
+Activity name "Title" {
+    Task subtask1 "Subtask 1" "Description"
+    Task subtask2 "Subtask 2" "Description"
 }
 
-// With content flow
-Activity Name "Title" "Description" << Input >> Output
+// Task with properties
+Task name "Title" {
+    property: type
+}
 ```
 
 ## Security
 
 ```ecml
 // Permission
-Permission Name "Title" "Description"
+Permission name "Title" "Description"
+
+// Security group
+SecurityGroup name "Title" "Description"
+SecurityGroup [Actor1, Actor2] name "Title"
+SecurityGroup [Actor1] name "Title" = [Perm1, Perm2]
 
 // Retention label
-RetentionLabel Name "Title" "Description"
+RetentionLabel name "Title" "Description"
 
 // Sensitivity label
-SensitivityLabel Name "Title" "Description"
-
-// Security group (members and permissions reference Actors)
-SecurityGroup [Actor1, Actor2] Name "Title" "Description" = [PermissionActor]
+SensitivityLabel name "Title" "Description"
 ```
 
 ## Workflows
 
 ```ecml
-Workflow Name "Title" "Description" {
+Workflow name "Title" {
     // Execute activity
-    Do ActivityName
-
+    Do Activity1
+    
     // Conditional execution
-    Do ActivityName If condition
-
+    Do Activity2 If status = complete
+    
+    // Execute sequence
+    Do [Activity1, Activity2, Activity3]
+    
     // Repeat until condition
-    Repeat ActivityName Until status = approved
-
-    // Repeat multiple activities
-    Repeat [Activity1, Activity2] Until condition
+    Repeat Activity Until status = approved
+    
+    // Repeat with condition
+    Repeat Activity Until status = complete If this.status = started
 }
 ```
 
-### Conditions
+## Data Types
 
-```ecml
-// Status conditions
-If status = pending
-If status = approved
-If this.status = complete
+| Type | Usage |
+|------|-------|
+| `text` | `name: text` |
+| `integer` | `count: integer` |
+| `decimal` | `rate: decimal` |
+| `date` | `created: date` |
+| `boolean` | `active: boolean` |
+| `currency` | `price: currency` |
+| `memo` | `notes: memo` |
+| `termset` | `category: termset` |
+| `choice(...)` | `status: choice(Draft, Final, Archived)` |
 
-// Field conditions
-If Activity.field = "value"
-If Activity.property = true
-```
+## Content Formats
 
-### Status Values
+`TXT` | `DOCX` | `CSV` | `XLSX` | `PDF` | `MD` | `JSON` | `XML`
+
+## Content Types
+
+`Text` | `Csv` | `Excel` | `Word` | `PowerPoint` | `Markdown` | `Pdf` | `Script` | `Image` | `Diagram` | `Flowchart` | `OrgChart` | `Survey`
+
+## Status Values
 
 `pending` | `started` | `approved` | `rejected` | `complete` | `suspended` | `aborted`
 
-## Labels
+## Comments & Annotations
 
 ```ecml
-// Retention only
-[RetentionLabel]
-
-// Sensitivity only
-[(SensitivityLabel)]
-
-// Both
-[RetentionLabel(SensitivityLabel)]
-```
-
-## Content Flow
-
-```ecml
-// Input
-<< Source1, Source2
-
-// Output
->> Target1, Target2
-
-// Both
-<< Source >> Target
-```
-
-## Comments
-
-```ecml
-// Single-line comment
+// Single line comment
 
 /* Multi-line
    comment */
 
 <#
-Block annotation
-for documentation
+Block annotation for
+detailed documentation
 #>
+```
+
+## Property Initializers
+
+```ecml
+Actor name "Title" {
+    status: text = "Active"
+    count: integer = 0
+    enabled: boolean = true
+}
 ```

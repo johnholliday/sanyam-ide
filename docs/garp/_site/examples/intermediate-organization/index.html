@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organization with Policies | GARP Language</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/prism.css">
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-container">
+      <a href="/" class="nav-brand">GARP Language</a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/getting-started/">Getting Started</a></li>
+        <li><a href="/language-reference/">Reference</a></li>
+        <li><a href="/examples/">Examples</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="main-container">
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <h3>Documentation</h3>
+        <ul>
+          <li><a href="/">Overview</a></li>
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/language-reference/">Language Reference</a></li>
+        </ul>
+
+        <h3>Core Concepts</h3>
+        <ul>
+          <li><a href="/language-reference/#organizations">Organizations</a></li>
+          <li><a href="/language-reference/#policies">Policies</a></li>
+          <li><a href="/language-reference/#assessments">Assessments</a></li>
+          <li><a href="/language-reference/#retention-schedules">Retention Schedules</a></li>
+          <li><a href="/language-reference/#disposition-rules">Disposition Rules</a></li>
+        </ul>
+
+        <h3>Reference</h3>
+        <ul>
+          <li><a href="/language-reference/#principles">GARP Principles</a></li>
+          <li><a href="/language-reference/#maturity-levels">Maturity Levels</a></li>
+          <li><a href="/language-reference/#enumerations">Enumerations</a></li>
+        </ul>
+
+        <h3>Examples</h3>
+        <ul>
+          
+          <li><a href="/examples/">Examples</a></li>
+          
+          <li><a href="/examples/basic-organization/">Simple Organization</a></li>
+          
+          <li><a href="/examples/basic-policy/">Simple Policy</a></li>
+          
+          <li><a href="/examples/basic-retention/">Retention Schedule</a></li>
+          
+          <li><a href="/examples/intermediate-organization/">Organization with Policies</a></li>
+          
+          <li><a href="/examples/intermediate-assessment/">Assessment with Findings</a></li>
+          
+          <li><a href="/examples/advanced-complete/">Complete GARP Program</a></li>
+          
+          <li><a href="/examples/template/">File Template</a></li>
+          
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1 id="organization-with-policies" tabindex="-1"><a class="header-anchor" href="#organization-with-policies">Organization with Policies</a></h1>
+<p>Link multiple policies to an organization to build a comprehensive governance model.</p>
+<h2 id="example" tabindex="-1"><a class="header-anchor" href="#example">Example</a></h2>
+<pre class="language-garp"><code class="language-garp">// Intermediate Example: Organization with multiple policies
+// Demonstrates policy references and requirements within policies
+
+// Define policies first so they can be referenced
+policy DataProtectionPolicy {
+    description "Policy for protecting sensitive data and PII"
+    principle Protection
+    status Active
+    owner "Information Security Officer"
+    effective "2023-06-01"
+
+    requirement EncryptionAtRest {
+        description "All sensitive data must be encrypted at rest"
+        mandatory true
+    }
+
+    requirement EncryptionInTransit {
+        description "All data transfers must use TLS 1.2 or higher"
+        mandatory true
+    }
+
+    requirement AccessControl {
+        description "Role-based access control must be implemented"
+        mandatory true
+    }
+}
+
+policy AccountabilityPolicy {
+    description "Defines roles and responsibilities for records management"
+    principle Accountability
+    status Active
+    owner "Chief Compliance Officer"
+    effective "2023-01-15"
+
+    requirement DesignatedOfficer {
+        description "A Records Management Officer must be designated"
+        mandatory true
+    }
+
+    requirement AnnualReview {
+        description "Policies must be reviewed annually"
+    }
+}
+
+// Organization references the policies
+organization TechStartupInc {
+    description "A technology startup with strong data governance practices"
+    maturity Proactive
+    uses policy DataProtectionPolicy
+    uses policy AccountabilityPolicy
+}</code></pre>
+<h2 id="explanation" tabindex="-1"><a class="header-anchor" href="#explanation">Explanation</a></h2>
+<h3 id="policy-definition-order" tabindex="-1"><a class="header-anchor" href="#policy-definition-order">Policy Definition Order</a></h3>
+<p>Define policies <strong>before</strong> the organization so they can be referenced:</p>
+<pre class="language-garp"><code class="language-garp">// 1. Define policies first
+policy MyPolicy { ... }
+
+// 2. Reference in organization
+organization MyOrg {
+    uses policy MyPolicy
+}</code></pre>
+<h3 id="multiple-policies" tabindex="-1"><a class="header-anchor" href="#multiple-policies">Multiple Policies</a></h3>
+<p>An organization can reference multiple policies:</p>
+<pre class="language-garp"><code class="language-garp">organization MyOrg {
+    uses policy DataProtectionPolicy
+    uses policy AccountabilityPolicy
+    uses policy RetentionPolicy
+    uses policy CompliancePolicy
+}</code></pre>
+<h3 id="addressing-multiple-principles" tabindex="-1"><a class="header-anchor" href="#addressing-multiple-principles">Addressing Multiple Principles</a></h3>
+<p>A mature information governance program typically has policies addressing all 8 GARP principles:</p>
+<table>
+<thead>
+<tr>
+<th>Principle</th>
+<th>Example Policy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accountability</td>
+<td>Roles &amp; Responsibilities Policy</td>
+</tr>
+<tr>
+<td>Integrity</td>
+<td>Data Quality &amp; Audit Policy</td>
+</tr>
+<tr>
+<td>Protection</td>
+<td>Information Security Policy</td>
+</tr>
+<tr>
+<td>Compliance</td>
+<td>Regulatory Compliance Policy</td>
+</tr>
+<tr>
+<td>Availability</td>
+<td>Information Access Policy</td>
+</tr>
+<tr>
+<td>Retention</td>
+<td>Records Retention Policy</td>
+</tr>
+<tr>
+<td>Disposition</td>
+<td>Records Disposition Policy</td>
+</tr>
+<tr>
+<td>Transparency</td>
+<td>IG Communications Policy</td>
+</tr>
+</tbody>
+</table>
+<h2 id="building-a-policy-framework" tabindex="-1"><a class="header-anchor" href="#building-a-policy-framework">Building a Policy Framework</a></h2>
+<p>Here’s how multiple policies work together:</p>
+<pre class="language-garp"><code class="language-garp">// Protection: Security controls
+policy SecurityPolicy {
+    principle Protection
+    status Active
+    // ... requirements
+}
+
+// Compliance: Regulatory adherence
+policy CompliancePolicy {
+    principle Compliance
+    status Active
+    // ... requirements
+}
+
+// Retention: How long to keep records
+policy RetentionPolicy {
+    principle Retention
+    status Active
+    // ... requirements
+}
+
+// Organization uses all policies
+organization Enterprise {
+    maturity Proactive
+    uses policy SecurityPolicy
+    uses policy CompliancePolicy
+    uses policy RetentionPolicy
+}</code></pre>
+<h2 id="next-steps" tabindex="-1"><a class="header-anchor" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li>Add <a href="/examples/intermediate-assessment/">assessments</a> to measure maturity</li>
+<li>Define <a href="/examples/basic-retention/">retention schedules</a> for specific record types</li>
+<li>See the <a href="/examples/advanced-complete/">Complete GARP Program</a> for a full model</li>
+</ul>
+
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <p>GARP Language Documentation</p>
+      <p>Based on <a href="https://en.wikipedia.org/wiki/Generally_Accepted_Recordkeeping_Principles" target="_blank">ARMA International's GARP Framework</a></p>
+    </div>
+  </footer>
+</body>
+</html>

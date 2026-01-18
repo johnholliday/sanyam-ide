@@ -1,0 +1,9 @@
+// Basic Example: A simple service definition
+// Demonstrates the Service construct with operations
+
+service CustomerService {
+    description "Service for managing customer data"
+    operation findById(id: number) -> string
+    operation create(name: string email: string) -> number
+    operation delete(id: number)
+}

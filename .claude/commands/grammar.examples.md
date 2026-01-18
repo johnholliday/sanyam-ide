@@ -15,8 +15,8 @@ Generate syntactically valid, domain-relevant example files for a Langium gramma
 ## Input Resolution
 
 The argument `$ARGUMENTS` should be one of:
-1. **Path to a .langium file** (e.g., `packages/grammar-definitions/grammarName.langium` or absolute path)
-2. **Grammar name** to search for in the `packages/grammar-definitions/` directory (e.g., `grammarName`, `spdevkit`, `novel`)
+1. **Path to a .langium file** (e.g., `packages/grammar-definitions/{name}.langium` or absolute path)
+2. **Grammar name** to search for in the `packages/grammar-definitions/` directory (e.g., `ecml`, `spdevkit`, `novel`)
 
 ### Step 1: Resolve the Grammar File
 
@@ -27,17 +27,17 @@ The argument `$ARGUMENTS` should be one of:
 3. If `$ARGUMENTS` doesn't end with `.langium`, search for a matching grammar:
    - Search `packages/grammar-definitions/**/*.langium` and `packages/grammar-definitions/*.langium` for files matching the name (case-insensitive)
    - If multiple matches found, list them and ask the user to specify
-   - If no matches found, report the error
+   - If no matches found, report the error and stop
 
 ### Step 2: Ensure Package Structure Exists
 
 After resolving the grammar file path, ensure the grammar package folder exists:
 
-1. **Read the grammar file** and extract the grammar name (from `grammar <name>` declaration)
+1. **Read the grammar file** and extract the grammar name (from `grammar {name}` declaration)
 2. **Derive the package name**: `@sanyam-grammar/<lowercase-grammar-name>`
    - Example: `grammar TaskList` → `@sanyam-grammar/tasklist`
-3. **Check if the package exists**: Look for `packages/grammar-definitions/<name>/src/` directory
-   - Use the Glob tool to check: `packages/grammar-definitions/<name>/src/`
+3. **Check if the package exists**: Look for `packages/grammar-definitions/{name}/src/` directory
+   - Use the Glob tool to check: `packages/grammar-definitions/{name}/src/`
 4. **If the package doesn't exist**:
    - Inform the user: "Grammar package structure not found. Creating scaffold..."
    - **Prompt the user for the file extension** using AskUserQuestion:
@@ -52,16 +52,27 @@ After resolving the grammar file path, ensure the grammar package folder exists:
    - Read `langium-config.json` to get the `fileExtensions` array (e.g., `"fileExtensions": [".ecml"]`)
    - Or read `manifest.ts` to get the `fileExtension` property
    - Use that extension for all generated examples
-6. **Set the output paths for auto-save**:
-   - Individual examples: `workspace/<name>/`
-   - Base template: `workspace/<name>/templates/new-file.<ext>`
+6. **Set the output paths for auto-save** (relative to repository root):
+   - Individual examples: `workspace/{name}/` (at repository root, NOT inside the grammar package)
+   - Base template: `workspace/{name}/templates/new-file.<ext>`
    - File extension: Use the extension from step 4 (user prompt) or step 5 (existing config)
+
+7. **Check if workspace folder already exists**:
+   - Use Glob to check if `workspace/{name}/` exists at the repository root
+   - If the folder exists, use AskUserQuestion to confirm:
+     - Question: "The folder workspace/{name}/ already exists. Do you want to replace it with new examples?"
+     - Header: "Replace"
+     - Options:
+       - "Yes, replace existing examples" - "Delete existing folder and generate fresh examples"
+       - "No, cancel" - "Keep existing examples and abort generation"
+   - If user selects "No, cancel", stop the command and report: "Generation cancelled. Existing examples preserved."
+   - If user selects "Yes", proceed with generation (existing files will be overwritten)
 
 ### Step 3: Analyze the Grammar
 
 Extract key information from the grammar content:
 
-1. Grammar name (from `grammar <Name>` declaration)
+1. Grammar name (from `grammar {name}` declaration)
 2. Entry rule (from `entry <RuleName>:` declaration)
 3. All keywords (quoted strings like `'entity'`, `'mapping'`, etc.)
 4. Terminal definitions (especially BOOLEAN, INT, STRING types)
@@ -77,11 +88,13 @@ Generate **6 example files** following this distribution:
 **For each example** (validation loop - max 3 attempts):
 
 1. **Generate** the content following grammar compliance rules
-2. **Save** using the Write tool to:
+2. **Save** using the Write tool to (path relative to repository root):
 
    ```text
-   workspace/<name>/<complexity>-<kebab-name>.<ext>
+   workspace/{name}/<complexity>-<kebab-name>.<ext>
    ```
+
+   **Important**: This is `workspace/` at the repository root, NOT `packages/grammar-definitions/{name}/workspace/`
 
 3. **Validate** using Langium 4.x programmatic API via the following Node.js script (ESM):
 
@@ -149,11 +162,13 @@ Generate **6 example files** following this distribution:
    - Continue to the next example (do not stop the whole process)
    - Do NOT count failed examples in the success summary
 
-**After all examples**, generate and save the base template:
+**After all examples**, generate and save the base template (at repository root):
 
 ```text
-workspace/<name>/templates/new-file.<ext>
+workspace/{name}/templates/new-file.<ext>
 ```
+
+**Important**: This is `workspace/` at the repository root, NOT inside the grammar package.
 
 Note: The base template does NOT require validation (it contains TODO placeholders).
 
@@ -188,7 +203,7 @@ For each generated example, output in this format:
 
 **Description**: [What this example demonstrates]
 
-**Saved to**: `workspace/<name>/[complexity]-[kebab-case-name].[extension]`
+**Saved to**: `workspace/{name}/[complexity]-[kebab-case-name].[extension]`
 
 **Validation**: ✓ Valid (attempt 1 of 3)
 
@@ -222,7 +237,7 @@ For each generated example, output in this format:
 
 After all examples, provide:
 1. A summary: "Generated X of 6 examples successfully (Y failed validation)"
-2. The package location: `workspace/<name>/`
+2. The package location: `workspace/{name}/` (at repository root)
 
 ## Example Workflow
 
@@ -242,12 +257,13 @@ If the user runs `/grammar-examples spdevkit`:
 8. Extract: keywords (`application`, `entity`, `service`, `workflow`), entry rule (`Model`), terminals (`ID`, `STRING`, `INT`)
 9. For each of the 6 examples:
    - Generate content following grammar rules
-   - Save to `workspace/spdevkit/basic-example-name.spdk`
+   - Save to `workspace/spdevkit/basic-example-name.spdk` (at repository root)
    - Validate using Langium 4.x programmatic API
    - If valid: report success
    - If invalid: regenerate with error feedback (up to 3 attempts)
-10. Generate and save base template to `workspace/spdevkit/templates/new-file.spdk`
+10. Generate and save base template to `workspace/spdevkit/templates/new-file.spdk` (at repository root)
 11. Report completion: "Generated 6 of 6 examples successfully"
+12. The package location: `workspace/spdevkit/` (at repository root)
 
 **Another example** with existing package structure - `/grammar-examples ecml`:
 

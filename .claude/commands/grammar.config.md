@@ -19,16 +19,18 @@ This command generates a grammar package with `LanguageContribution` export for 
 - `src/contribution.ts` - `LanguageContribution` factory
 - `package.json` - Package with `sanyam` discovery metadata
 
-It supports three input modes:
+It supports four input modes:
 
 1. **Grammar name** (`mygrammar`) - Uses existing grammar or creates starter
 2. **Grammar file path** (`mygrammar.langium` or path/to/grammar.langium) - Uses specified grammar file
 3. **Natural language description** (`"A language for..."`) - AI-generates grammar
+4. **URL** (`https://example.com/spec.html`) - Fetches content from URL for AI generation
 
 ### Step 1: Parse Arguments and Detect Input Mode
 
 Parse `$ARGUMENTS` to determine the input mode:
 
+- **URL** (starts with `http://` or `https://`): Fetch content from URL → AI generation mode (User Story 3)
 - **Quoted string** (starts and ends with `"` or `'`): Natural language description → AI generation mode (User Story 3)
 - **File path ending in `.langium`**: Direct grammar file reference
 - **Text file path** (ends with `.txt` or `.md`): Read file for description → AI generation mode (User Story 3)
@@ -59,13 +61,13 @@ Based on the detected mode:
 
 Search for the grammar file in the following locations (in order):
 
-1. `packages/grammar-definitions/{name}/src/{name}.langium` (standard package structure)
-2. `packages/grammar-definitions/{name}/{name}.langium` (package dir, no src)
-3. `packages/grammar-definitions/{name}.langium` (root level, no package dir)
+1. `packages/grammar-definitions/.source/{name}.langium` (master source - PRIMARY)
+2. `packages/grammar-definitions/{name}/src/{name}.langium` (existing package)
 
 Use the first location where the file exists. Set:
 - `grammarPath` = the found file path
 - `packageDir` = `packages/grammar-definitions/{name}/` (target package directory)
+- `sourcePath` = `packages/grammar-definitions/.source/{name}.langium` (master source location)
 
 **For file path:**
 
@@ -73,23 +75,28 @@ Use the first location where the file exists. Set:
 - If relative path, resolve from workspace root
 - Extract grammar name from filename (without `.langium` extension)
 - Target directory: `packages/grammar-definitions/{name}/`
+- **Copy the file to `.source/` folder** if not already there (preserving original)
 
 ### Step 3: Check for Existing Grammar and Setup Package
 
 Check if the grammar file was found in Step 2.
 
-**If grammar exists:**
+**If grammar exists (found in .source/ or package):**
 
-1. Ensure the package directory exists: `mkdir -p packages/grammar-definitions/{name}/src`
-2. If the grammar file is NOT in the standard location (`packages/grammar-definitions/{name}/src/{name}.langium`):
-   - Copy/move the grammar file to the standard location
-   - Log: "Moved grammar file to packages/grammar-definitions/{name}/src/{name}.langium"
-3. Proceed to Step 4 (parse existing grammar)
+1. Ensure the `.source/` folder exists: `mkdir -p packages/grammar-definitions/.source`
+2. If grammar was found in package but NOT in `.source/`:
+   - Copy to `.source/{name}.langium` (create master copy)
+   - Log: "Created master copy at packages/grammar-definitions/.source/{name}.langium"
+3. Ensure the package directory exists: `mkdir -p packages/grammar-definitions/{name}/src`
+4. Copy grammar from `.source/` to package: `packages/grammar-definitions/{name}/src/{name}.langium`
+   - Log: "Copied grammar to packages/grammar-definitions/{name}/src/{name}.langium"
+   - **IMPORTANT: NEVER delete or move the grammar from `.source/`**
+5. Proceed to Step 4 (parse the grammar)
 
 **If grammar does NOT exist:**
 
-- For simple name input → User Story 2: Create starter grammar (see separate section below)
-- For quoted string input → User Story 3: AI-generate grammar (see separate section below)
+- For simple name input → User Story 2: Create starter grammar (creates in `.source/` first)
+- For quoted string input → User Story 3: AI-generate grammar (creates in `.source/` first)
 - For explicit file path → Error: "Grammar file not found at '{path}'"
 
 ### Step 4: Read and Parse the Langium Grammar
@@ -527,7 +534,11 @@ Output summary of generated files:
 ```
 Grammar package generated successfully!
 
-Files created:
+Master grammar:
+  packages/grammar-definitions/.source/{name}.langium    - Master source (DO NOT DELETE)
+
+Package files created:
+  packages/grammar-definitions/{name}/src/{name}.langium   - Grammar copy (synced from .source/)
   packages/grammar-definitions/{name}/src/manifest.ts      - GrammarManifest configuration
   packages/grammar-definitions/{name}/src/contribution.ts  - LanguageContribution export
   packages/grammar-definitions/{name}/package.json         - Package with sanyam discovery metadata
@@ -549,40 +560,46 @@ Next steps:
 3. Install workspace dependencies:
    pnpm install
 
-4. The grammar will be auto-discovered by the unified server via:
-   - package.json sanyam.grammar: true
-   - sanyam.contribution path
+4. To modify the grammar:
+   - Edit packages/grammar-definitions/.source/{name}.langium (master)
+   - Re-run /grammar.config {name} to sync changes
 
-Note: The contribution.ts imports from './generated/module.js' which
-is created by 'langium generate'. Run step 1 before building.
+Note: The .source/{name}.langium is the master copy. Changes should be made there
+and synced to the package via /grammar.config. NEVER delete the .source/ file.
 ```
 
 ---
 
 ## User Story 2: Create New Grammar from Scratch
 
-**Trigger**: Simple name provided, but `packages/grammar-definitions/{name}/src/{name}.langium` does not exist
+**Trigger**: Simple name provided, but no grammar exists in `.source/` or package
 
 ### US2 Step 1: Create Grammar Directory Structure
 
 Create the full directory structure:
 
 ```
+packages/grammar-definitions/.source/
+│   └── {name}.langium              <- Master source (created first)
 packages/grammar-definitions/{name}/
 ├── src/
-│   └── {name}.langium
+│   └── {name}.langium              <- Synced copy from .source/
 ├── package.json
 ├── tsconfig.json
 └── langium-config.json
 ```
 
-### US2 Step 2: Copy Starter Template
+### US2 Step 2: Create Grammar in .source Folder
 
 Read the starter template from `.claude/templates/starter-grammar.langium` and:
 
-1. Replace `${GrammarName}` placeholder with PascalCase grammar name
+1. Ensure `.source/` folder exists: `mkdir -p packages/grammar-definitions/.source`
+2. Replace `${GrammarName}` placeholder with PascalCase grammar name
    - Convert `my-grammar` → `MyGrammar`
-2. Write to `packages/grammar-definitions/{name}/src/{name}.langium`
+3. Write master copy to `packages/grammar-definitions/.source/{name}.langium`
+   - Log: "Created master grammar at packages/grammar-definitions/.source/{name}.langium"
+4. Copy to package: `packages/grammar-definitions/{name}/src/{name}.langium`
+   - **IMPORTANT: The .source/ copy is the master - NEVER delete it**
 
 ### US2 Step 3: Continue to Manifest Generation
 
@@ -596,19 +613,25 @@ After completion, add to the output:
 Note: A starter grammar was created since no existing grammar was found.
 The starter template includes basic Task and Workflow types.
 
+Master grammar location: packages/grammar-definitions/.source/{name}.langium
+Package grammar location: packages/grammar-definitions/{name}/src/{name}.langium
+
 To customize your grammar:
-1. Edit packages/grammar-definitions/{name}/src/{name}.langium
-2. Re-run /grammar.config {name} to regenerate the manifest
+1. Edit packages/grammar-definitions/.source/{name}.langium (master copy)
+2. Re-run /grammar.config {name} to regenerate the manifest and sync to package
 ```
 
 ---
 
 ## User Story 3: Create Grammar from Natural Language Description
 
-**Trigger**: Argument is a quoted string or text file path
+**Trigger**: Argument is a quoted string, text file path, or URL
 
 ### US3 Step 1: Extract Description
 
+- **URL**: Use WebFetch to fetch content from the URL. Extract text content for use as the description.
+  - Prompt WebFetch: "Extract all text content from this page that describes a domain, specification, or language. Return the main content without navigation, headers, or footers."
+  - If fetch fails, report error: "Could not fetch content from URL: {url}"
 - **Quoted string**: Remove surrounding quotes
 - **Text file**: Read file contents
 
@@ -622,7 +645,42 @@ From the description, extract a suitable grammar name:
 
 Example: "A language for state machines with states and transitions" → "state-machine"
 
-If name derivation fails, ask user or use generic name like "custom-dsl".
+If name derivation fails, use generic name like "custom-dsl".
+
+### US3 Step 2.1: Confirm Grammar Name
+
+After deriving the grammar name, confirm with the user using AskUserQuestion:
+
+**Question**: "What should the grammar be named?"
+**Header**: "Grammar name"
+**Options**:
+1. `{derived-name}` - "Use the derived name based on the description" (Recommended)
+2. `custom` - "Enter a custom grammar name"
+
+If the user selects "custom" (or "Other"), prompt for the name and validate it using the same rules as Step 1.
+
+Set `{name}` to the confirmed grammar name (normalized to kebab-case, lowercase).
+
+### US3 Step 2.2: Check for Existing Grammar
+
+After confirming the name, check if a grammar already exists at:
+1. `packages/grammar-definitions/.source/{name}.langium`
+2. `packages/grammar-definitions/{name}/src/{name}.langium`
+
+**If grammar exists:**
+
+Use AskUserQuestion to confirm:
+
+**Question**: "A grammar named '{name}' already exists. What would you like to do?"
+**Header**: "Existing grammar"
+**Options**:
+1. `overwrite` - "Overwrite the existing grammar with AI-generated content"
+2. `use-existing` - "Use the existing grammar instead of generating new one" (Recommended)
+3. `rename` - "Choose a different name for the new grammar"
+
+- If `overwrite`: Proceed to US3 Step 3 (AI generation will replace existing)
+- If `use-existing`: Skip to main Step 4 (parse existing grammar)
+- If `rename`: Return to US3 Step 2.1 to choose a different name
 
 ### US3 Step 3: AI Grammar Generation
 
@@ -687,24 +745,41 @@ If both attempts fail:
    //
    // Note: AI generation failed. This is a starter template.
    // Please customize to match your requirements.
-
+   
    grammar {GrammarName}
    // ... rest of starter template
    ```
 
-### US3 Step 7: Continue to Manifest Generation
+### US3 Step 7: Save Grammar and Continue
 
-Proceed with Step 4 (parsing) using the generated/fallback grammar.
+1. Ensure `.source/` folder exists: `mkdir -p packages/grammar-definitions/.source`
+2. Write master copy to `packages/grammar-definitions/.source/{name}.langium`
+   - Log: "Created master grammar at packages/grammar-definitions/.source/{name}.langium"
+3. Copy to package: `packages/grammar-definitions/{name}/src/{name}.langium`
+   - **IMPORTANT: The .source/ copy is the master - NEVER delete it**
+4. Proceed with Step 4 (parsing) using the grammar.
 
 ### US3 Step 8: Notify User
 
 After completion, add status to output:
 
-**If AI generation succeeded:**
+**If AI generation succeeded (from URL):**
+
+```
+Note: Grammar was generated from URL content using AI.
+Source URL: {url}
+Master grammar location: packages/grammar-definitions/.source/{name}.langium
+
+Review and edit the master grammar as needed, then re-run /grammar.config {name} to sync changes.
+```
+
+**If AI generation succeeded (from description/file):**
 
 ```
 Note: Grammar was generated from your description using AI.
-Review packages/grammar-definitions/{name}/src/{name}.langium and adjust as needed.
+Master grammar location: packages/grammar-definitions/.source/{name}.langium
+
+Review and edit the master grammar as needed, then re-run /grammar.config {name} to sync changes.
 ```
 
 **If fallback was used:**
@@ -712,12 +787,31 @@ Review packages/grammar-definitions/{name}/src/{name}.langium and adjust as need
 ```
 Note: AI grammar generation did not produce valid output after 2 attempts.
 A starter template was used instead. Your description has been preserved as a comment.
-Please edit packages/grammar-definitions/{name}/src/{name}.langium to implement your DSL.
+
+Master grammar location: packages/grammar-definitions/.source/{name}.langium
+
+Please edit the master grammar to implement your DSL, then re-run /grammar.config {name}.
 ```
 
 ---
 
 ## Error Handling
+
+### URL Fetch Failure
+
+```
+Error: Could not fetch content from URL: '{url}'
+
+{Specific error message if available}
+
+Please check:
+- The URL is accessible and returns valid content
+- The URL points to a page with text content (not binary/media)
+- Your network connection is working
+
+Alternative: Save the content to a local file and use:
+/grammar.config path/to/content.txt
+```
 
 ### Invalid Grammar Name (FR-010)
 

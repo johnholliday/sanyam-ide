@@ -1,0 +1,6 @@
+// Basic Example: A simple CSF function definition
+// Demonstrates the Function construct with description
+
+function Identify {
+    description "Develop organizational understanding to manage cybersecurity risk"
+}

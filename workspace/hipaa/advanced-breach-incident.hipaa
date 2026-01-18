@@ -1,0 +1,169 @@
+// Advanced Example: Complete Breach Incident with Full Notification Workflow
+// Demonstrates breach documentation, PHI tracking, notifications, and compliance
+
+// PHI categories involved in the breach
+phi MedicalRecords {
+    classification Sensitive
+    description "Patient medical records including diagnoses and treatment plans"
+    identifiers identifier Name
+    identifiers identifier MRN
+    identifiers identifier SSN value "Last 4 digits only"
+    identifiers identifier Dates value "DOB and treatment dates"
+    dataElements "Diagnoses"
+    dataElements "Medications"
+    dataElements "Lab Results"
+    dataElements "Treatment Notes"
+    retentionPeriod "10 years from last encounter"
+    storageLocations "Primary EHR database"
+    storageLocations "Backup servers"
+}
+
+phi InsuranceInformation {
+    classification Standard
+    description "Patient insurance and billing information"
+    identifiers identifier Name
+    identifiers identifier HealthPlanID
+    identifiers identifier AccountNumber
+    dataElements "Insurance carrier"
+    dataElements "Policy number"
+    dataElements "Billing codes"
+    retentionPeriod "7 years"
+    storageLocations "Billing system"
+}
+
+// The breach incident
+breach RansomwareAttack2026 {
+    discoveryDate "2026-01-10"
+    description "Ransomware attack encrypted patient database servers. Attackers exfiltrated data before encryption. Attack vector was phishing email to IT administrator."
+    affectedIndividuals 15420
+    phiInvolved MedicalRecords
+    phiInvolved InsuranceInformation
+    cause Hacking
+    tier Tier3
+
+    // Individual notification (required within 60 days)
+    notifications notify Individual {
+        date "2026-02-15"
+        method "First-class mail with substitute notice on website"
+        status Sent
+    }
+
+    // HHS notification (required within 60 days for 500+ individuals)
+    notifications notify HHS {
+        date "2026-01-12"
+        method "HHS breach portal submission"
+        status Confirmed
+    }
+
+    // Media notification (required for 500+ in single state)
+    notifications notify Media {
+        date "2026-01-15"
+        method "Press release and prominent media outlets"
+        status Sent
+    }
+
+    // State Attorney General notification
+    notifications notify StateAttorney {
+        date "2026-01-14"
+        method "Certified mail to state AG office"
+        status Confirmed
+    }
+
+    status Confirmed
+    remediation "Engaged incident response firm, restored from clean backups, implemented enhanced email security, conducted enterprise-wide password reset, enhanced network segmentation"
+}
+
+// Policy that governs breach response
+policy BreachNotificationPolicy {
+    type Breach
+    version "2.0"
+    effectiveDate "2024-01-01"
+    reviewDate "2025-01-01"
+    owner "Privacy Officer"
+    description "Procedures for breach identification, risk assessment, and notification"
+
+    procedures procedure BreachIdentification {
+        steps "Receive incident report from staff or automated systems"
+        steps "Conduct initial assessment within 24 hours"
+        steps "Determine if PHI was involved"
+        steps "Escalate to Privacy Officer"
+        responsible "IT Security Team"
+    }
+
+    procedures procedure RiskAssessment {
+        steps "Evaluate nature and extent of PHI involved"
+        steps "Assess likelihood PHI was compromised"
+        steps "Determine if breach occurred under HIPAA definition"
+        steps "Document assessment findings"
+        responsible "Privacy Officer"
+    }
+
+    procedures procedure NotificationProcess {
+        steps "Draft notification letters for affected individuals"
+        steps "Submit HHS breach report within 60 days"
+        steps "Notify media if 500+ affected in single state"
+        steps "Notify state attorneys general as required"
+        steps "Document all notifications sent"
+        responsible "Compliance Team"
+    }
+
+    status Active
+}
+
+// Risk assessment triggered by the breach
+riskAssessment PostBreachAssessment {
+    date "2026-01-20"
+    scope "Post-incident security assessment focusing on attack vectors and control gaps"
+    methodology "NIST Incident Response framework"
+
+    findings finding EmailSecurityGap {
+        severity Critical
+        description "Email security controls failed to detect sophisticated phishing attack"
+        recommendation "Implement advanced threat protection and enhanced email filtering"
+        remediation Completed
+    }
+
+    findings finding NetworkSegmentation {
+        severity High
+        description "Flat network allowed lateral movement after initial compromise"
+        recommendation "Implement microsegmentation for PHI systems"
+        remediation InProgress
+        dueDate "2026-04-01"
+    }
+
+    findings finding BackupVerification {
+        severity Medium
+        description "Backup integrity was not regularly verified"
+        recommendation "Implement quarterly backup restoration testing"
+        remediation Completed
+    }
+
+    status Completed
+}
+
+// Safeguard improvements resulting from the breach
+safeguard EnhancedEmailSecurity {
+    category Technical
+    requirement Required
+    description "Advanced email threat protection with AI-based phishing detection"
+    implementation "Microsoft Defender for Office 365 with Safe Links and Safe Attachments"
+    controls control PhishingSimulation {
+        description "Monthly phishing simulations for all staff"
+        evidence "December 2025 simulation results"
+        testDate "2025-12-15"
+        result Pass
+    }
+    status Implemented
+    reviewDate "2026-07-01"
+}
+
+// Training conducted after the breach
+training PostBreachSecurityTraining {
+    topic BreachResponse
+    date "2026-01-25"
+    attendees "All workforce members"
+    duration "1 hour"
+    materials "Phishing awareness training with real attack examples"
+    trainer "External security consultant"
+    acknowledgements ack "All Staff" date "2026-01-31"
+}

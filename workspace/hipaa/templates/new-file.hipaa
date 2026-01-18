@@ -1,0 +1,143 @@
+// HIPAA Compliance Model Template
+// This template provides a starting point for modeling your HIPAA compliance program
+
+// =============================================================================
+// COVERED ENTITIES - Organizations subject to HIPAA
+// =============================================================================
+
+entity MyOrganization {
+    type HealthcareProvider  // Options: HealthPlan, HealthcareProvider, Clearinghouse
+    description "TODO: Describe your organization"
+    contact "TODO: compliance@example.com"
+    // associates MyVendor        // Reference business associates
+    // safeguards MySafeguard     // Reference safeguards
+    // policies MyPolicy          // Reference policies
+}
+
+// =============================================================================
+// BUSINESS ASSOCIATES - Vendors handling PHI
+// =============================================================================
+
+associate MyVendor {
+    description "TODO: Describe the vendor's role"
+    contact "TODO: vendor@example.com"
+    services "TODO: Describe service 1"
+    // agreement MyAgreement  // Reference to BAA
+}
+
+// =============================================================================
+// BUSINESS ASSOCIATE AGREEMENTS
+// =============================================================================
+
+agreement MyAgreement {
+    // coveredEntities MyOrganization
+    // businessAssociates MyVendor
+    effectiveDate "TODO: YYYY-MM-DD"
+    // expirationDate "TODO: YYYY-MM-DD"
+    terms "TODO: Key contract term 1"
+    status Active  // Options: Active, Expired, Pending, Terminated
+}
+
+// =============================================================================
+// PHI CATEGORIES - Protected Health Information
+// =============================================================================
+
+phi MyPhiCategory {
+    classification Standard  // Options: Standard, Sensitive, PsychotherapyNotes, Genetic, Substance
+    description "TODO: Describe the PHI category"
+    identifiers identifier Name
+    // identifiers identifier SSN value "Last 4 digits"
+    dataElements "TODO: Data element 1"
+    retentionPeriod "TODO: 6 years"
+    storageLocations "TODO: Primary database"
+}
+
+// =============================================================================
+// SAFEGUARDS - Security Controls
+// =============================================================================
+
+safeguard MySafeguard {
+    category Administrative  // Options: Administrative, Physical, Technical
+    requirement Required     // Options: Required, Addressable
+    description "TODO: Describe the safeguard"
+    implementation "TODO: How is it implemented"
+    controls control MyControl {
+        description "TODO: Control description"
+        // evidence "TODO: Evidence document"
+        // testDate "TODO: YYYY-MM-DD"
+        result Pass  // Options: Pass, Fail, NotTested, Remediation
+    }
+    status Planned  // Options: Implemented, Partial, Planned, NotApplicable
+    reviewDate "TODO: YYYY-MM-DD"
+}
+
+// =============================================================================
+// POLICIES - Required Documentation
+// =============================================================================
+
+policy MyPolicy {
+    type Privacy  // Options: Privacy, Security, Breach, Access, Sanction, Contingency, DataRetention, Disposal, Encryption, Other
+    version "1.0"
+    effectiveDate "TODO: YYYY-MM-DD"
+    reviewDate "TODO: YYYY-MM-DD"
+    owner "TODO: Policy owner"
+    description "TODO: Policy description"
+    procedures procedure MyProcedure {
+        steps "TODO: Step 1"
+        steps "TODO: Step 2"
+        responsible "TODO: Responsible party"
+    }
+    status Draft  // Options: Draft, Active, UnderReview, Retired
+}
+
+// =============================================================================
+// RISK ASSESSMENTS
+// =============================================================================
+
+riskAssessment MyRiskAssessment {
+    date "TODO: YYYY-MM-DD"
+    scope "TODO: Assessment scope"
+    methodology "TODO: Assessment methodology"
+    findings finding MyFinding {
+        severity Medium  // Options: Critical, High, Medium, Low
+        description "TODO: Finding description"
+        recommendation "TODO: Recommendation"
+        remediation Open  // Options: Open, InProgress, Completed, Accepted
+        dueDate "TODO: YYYY-MM-DD"
+    }
+    status Scheduled  // Options: InProgress, Completed, Scheduled
+}
+
+// =============================================================================
+// TRAINING RECORDS
+// =============================================================================
+
+training MyTraining {
+    topic Privacy  // Options: Privacy, Security, BreachResponse, RoleSpecific, NewHire, Annual, Other
+    date "TODO: YYYY-MM-DD"
+    attendees "TODO: Attendee group"
+    duration "TODO: 1 hour"
+    materials "TODO: Training materials"
+    trainer "TODO: Trainer name"
+    acknowledgements ack "TODO: Employee Name" date "TODO: YYYY-MM-DD"
+}
+
+// =============================================================================
+// BREACH INCIDENTS
+// =============================================================================
+
+breach MyIncident {
+    discoveryDate "TODO: YYYY-MM-DD"
+    description "TODO: Incident description"
+    affectedIndividuals 0
+    // phiInvolved MyPhiCategory
+    cause Other  // Options: Theft, Loss, Unauthorized, Hacking, Improper, Disposal, Other
+    tier Tier1   // Options: Tier1, Tier2, Tier3, Tier4
+    notifications notify Individual {
+        date "TODO: YYYY-MM-DD"
+        method "TODO: Notification method"
+        status Pending  // Options: Pending, Sent, Confirmed, NotRequired
+    }
+    status Investigating  // Options: Investigating, Confirmed, NotABreach, Closed
+    remediation "TODO: Remediation actions"
+}

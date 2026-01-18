@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Template | GARP Language</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/prism.css">
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-container">
+      <a href="/" class="nav-brand">GARP Language</a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/getting-started/">Getting Started</a></li>
+        <li><a href="/language-reference/">Reference</a></li>
+        <li><a href="/examples/">Examples</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="main-container">
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <h3>Documentation</h3>
+        <ul>
+          <li><a href="/">Overview</a></li>
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/language-reference/">Language Reference</a></li>
+        </ul>
+
+        <h3>Core Concepts</h3>
+        <ul>
+          <li><a href="/language-reference/#organizations">Organizations</a></li>
+          <li><a href="/language-reference/#policies">Policies</a></li>
+          <li><a href="/language-reference/#assessments">Assessments</a></li>
+          <li><a href="/language-reference/#retention-schedules">Retention Schedules</a></li>
+          <li><a href="/language-reference/#disposition-rules">Disposition Rules</a></li>
+        </ul>
+
+        <h3>Reference</h3>
+        <ul>
+          <li><a href="/language-reference/#principles">GARP Principles</a></li>
+          <li><a href="/language-reference/#maturity-levels">Maturity Levels</a></li>
+          <li><a href="/language-reference/#enumerations">Enumerations</a></li>
+        </ul>
+
+        <h3>Examples</h3>
+        <ul>
+          
+          <li><a href="/examples/">Examples</a></li>
+          
+          <li><a href="/examples/basic-organization/">Simple Organization</a></li>
+          
+          <li><a href="/examples/basic-policy/">Simple Policy</a></li>
+          
+          <li><a href="/examples/basic-retention/">Retention Schedule</a></li>
+          
+          <li><a href="/examples/intermediate-organization/">Organization with Policies</a></li>
+          
+          <li><a href="/examples/intermediate-assessment/">Assessment with Findings</a></li>
+          
+          <li><a href="/examples/advanced-complete/">Complete GARP Program</a></li>
+          
+          <li><a href="/examples/template/">File Template</a></li>
+          
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1 id="file-template" tabindex="-1"><a class="header-anchor" href="#file-template">File Template</a></h1>
+<p>Use this template when creating new GARP files. It includes all available constructs with TODO placeholders to customize.</p>
+<h2 id="template" tabindex="-1"><a class="header-anchor" href="#template">Template</a></h2>
+<pre class="language-garp"><code class="language-garp">// GARP - Generally Accepted Recordkeeping Principles
+// New file template - customize for your information governance needs
+
+// TODO: Define your organization
+organization YourOrganization {
+    description "TODO: Describe your organization"
+    maturity Essential  // Options: SubStandard, InDevelopment, Essential, Proactive, Transformational
+    // uses policy YourPolicy
+    // assessed by YourAssessment
+}
+
+// TODO: Define policies addressing GARP principles
+// Principles: Accountability, Integrity, Protection, Compliance,
+//             Availability, Retention, Disposition, Transparency
+policy YourPolicy {
+    description "TODO: Describe the policy purpose"
+    principle Accountability  // TODO: Choose appropriate principle
+    status Draft  // Options: Draft, Active, UnderReview, Retired
+    owner "TODO: Policy owner name"
+    effective "YYYY-MM-DD"
+
+    // TODO: Add requirements
+    requirement YourRequirement {
+        description "TODO: Describe the requirement"
+        mandatory true
+    }
+}
+
+// TODO: Define retention schedules
+retention YourRetentionSchedule {
+    description "TODO: Describe retention requirements"
+    recordType "TODO: Type of records covered"
+    period "TODO: e.g., 7 years"
+    trigger "TODO: e.g., creation, termination, expiration"
+    legalBasis "TODO: Legal or regulatory basis"
+}
+
+// TODO: Define disposition rules
+disposition YourDispositionRule {
+    description "TODO: Describe disposition process"
+    method Destroy  // Options: Destroy, Archive, Transfer, Review
+    approval required
+    retention YourRetentionSchedule
+}
+
+// TODO: Create assessments to track maturity
+assessment YourAssessment {
+    description "TODO: Describe assessment scope"
+    date "YYYY-MM-DD"
+    assessor "TODO: Assessor name or firm"
+
+    // Score each principle
+    score Accountability : Essential
+    score Integrity : Essential
+    score Protection : Essential
+    score Compliance : Essential
+    score Availability : Essential
+    score Retention : Essential
+    score Disposition : Essential
+    score Transparency : Essential
+
+    // TODO: Document findings
+    finding YourFinding {
+        description "TODO: Describe the finding"
+        principle Accountability
+        severity Medium  // Options: Critical, High, Medium, Low, Info
+    }
+
+    // TODO: Add recommendations
+    recommendation YourRecommendation {
+        description "TODO: Describe recommended action"
+        principle Accountability
+        priority ShortTerm  // Options: Immediate, ShortTerm, MediumTerm, LongTerm
+        targetLevel Proactive
+    }
+}</code></pre>
+<h2 id="how-to-use-this-template" tabindex="-1"><a class="header-anchor" href="#how-to-use-this-template">How to Use This Template</a></h2>
+<ol>
+<li><strong>Copy the template</strong> to a new <code>.garp</code> file</li>
+<li><strong>Replace <code>TODO:</code> placeholders</strong> with your specific content</li>
+<li><strong>Remove unused sections</strong> - not every file needs all constructs</li>
+<li><strong>Uncomment references</strong> - enable <code>uses policy</code> and <code>assessed by</code> when ready</li>
+<li><strong>Update identifiers</strong> - change <code>YourOrganization</code>, <code>YourPolicy</code>, etc. to meaningful names</li>
+</ol>
+<h2 id="quick-reference" tabindex="-1"><a class="header-anchor" href="#quick-reference">Quick Reference</a></h2>
+<h3 id="maturity-levels" tabindex="-1"><a class="header-anchor" href="#maturity-levels">Maturity Levels</a></h3>
+<ul>
+<li><code>SubStandard</code> - No formal program</li>
+<li><code>InDevelopment</code> - Program being developed</li>
+<li><code>Essential</code> - Minimum requirements met</li>
+<li><code>Proactive</code> - Exceeds requirements</li>
+<li><code>Transformational</code> - Industry leader</li>
+</ul>
+<h3 id="garp-principles" tabindex="-1"><a class="header-anchor" href="#garp-principles">GARP Principles</a></h3>
+<ul>
+<li><code>Accountability</code> - Executive oversight</li>
+<li><code>Integrity</code> - Authenticity and accuracy</li>
+<li><code>Protection</code> - Security and access control</li>
+<li><code>Compliance</code> - Regulatory adherence</li>
+<li><code>Availability</code> - Search and retrieval</li>
+<li><code>Retention</code> - How long to keep</li>
+<li><code>Disposition</code> - How to dispose</li>
+<li><code>Transparency</code> - Documentation and communication</li>
+</ul>
+<h3 id="policy-status" tabindex="-1"><a class="header-anchor" href="#policy-status">Policy Status</a></h3>
+<ul>
+<li><code>Draft</code> - Being developed</li>
+<li><code>Active</code> - Currently in effect</li>
+<li><code>UnderReview</code> - Being revised</li>
+<li><code>Retired</code> - No longer active</li>
+</ul>
+<h3 id="finding-severity" tabindex="-1"><a class="header-anchor" href="#finding-severity">Finding Severity</a></h3>
+<ul>
+<li><code>Critical</code> - Immediate action required</li>
+<li><code>High</code> - Prompt attention needed</li>
+<li><code>Medium</code> - Near-term remediation</li>
+<li><code>Low</code> - Future improvement</li>
+<li><code>Info</code> - Observation only</li>
+</ul>
+<h3 id="recommendation-priority" tabindex="-1"><a class="header-anchor" href="#recommendation-priority">Recommendation Priority</a></h3>
+<ul>
+<li><code>Immediate</code> - Address now</li>
+<li><code>ShortTerm</code> - 1-3 months</li>
+<li><code>MediumTerm</code> - 3-12 months</li>
+<li><code>LongTerm</code> - 1+ years</li>
+</ul>
+<h3 id="disposition-methods" tabindex="-1"><a class="header-anchor" href="#disposition-methods">Disposition Methods</a></h3>
+<ul>
+<li><code>Destroy</code> - Secure destruction</li>
+<li><code>Archive</code> - Long-term storage</li>
+<li><code>Transfer</code> - Move to another system</li>
+<li><code>Review</code> - Evaluate for action</li>
+</ul>
+
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <p>GARP Language Documentation</p>
+      <p>Based on <a href="https://en.wikipedia.org/wiki/Generally_Accepted_Recordkeeping_Principles" target="_blank">ARMA International's GARP Framework</a></p>
+    </div>
+  </footer>
+</body>
+</html>

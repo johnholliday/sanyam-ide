@@ -1,0 +1,59 @@
+// Intermediate Example: Risk Assessment with Findings
+// Demonstrates risk assessment structure with multiple findings and remediation tracking
+
+riskAssessment Annual2025RiskAssessment {
+    date "2025-09-15"
+    scope "Enterprise-wide assessment covering all ePHI systems and processes"
+    methodology "NIST Cybersecurity Framework with HIPAA Security Rule mapping"
+
+    // Critical finding: missing encryption
+    findings finding UnencryptedBackups {
+        severity Critical
+        description "Database backups stored on network shares without encryption"
+        recommendation "Implement AES-256 encryption for all backup files"
+        remediation InProgress
+        dueDate "2026-02-01"
+    }
+
+    // High finding: weak passwords
+    findings finding WeakPasswordPolicy {
+        severity High
+        description "Password policy allows 8-character passwords without complexity"
+        recommendation "Enforce 12-character minimum with complexity requirements"
+        remediation Completed
+    }
+
+    // Medium finding: audit logging gaps
+    findings finding IncompleteAuditLogs {
+        severity Medium
+        description "Audit logs not capturing PHI access in legacy system"
+        recommendation "Implement comprehensive audit logging for all PHI access"
+        remediation Open
+        dueDate "2026-03-15"
+    }
+
+    // Low finding: training documentation
+    findings finding TrainingDocumentation {
+        severity Low
+        description "Some training completion records missing digital signatures"
+        recommendation "Implement electronic signature capture for all training"
+        remediation Accepted
+    }
+
+    status Completed
+}
+
+// Training record addressing one of the findings
+training SecurityAwareness2025 {
+    topic Security
+    date "2025-11-01"
+    attendees "All IT Staff"
+    attendees "Clinical Staff"
+    attendees "Administrative Personnel"
+    duration "2 hours"
+    materials "Security awareness presentation and phishing simulation"
+    trainer "IT Security Team"
+    acknowledgements ack "John Smith" date "2025-11-01"
+    acknowledgements ack "Jane Doe" date "2025-11-02"
+    acknowledgements ack "Bob Johnson" date "2025-11-01"
+}

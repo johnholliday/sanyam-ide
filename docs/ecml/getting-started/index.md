@@ -1,108 +1,98 @@
 ---
+title: "Getting Started"
+description: "Set up your first ECML content model"
 layout: layouts/doc.njk
-title: Getting Started
-description: Installation and first steps with ECML
 eleventyNavigation:
   key: Getting Started
-  order: 1
+  order: 2
 ---
 
 # Getting Started with ECML
 
-This guide will help you get started with the Enterprise Content Modeling Language.
+This guide walks you through creating your first ECML content model.
 
-## Installation
+## Prerequisites
 
-ECML is supported in the Sanyam IDE. To get started:
+- A text editor with ECML language support
+- Basic understanding of content management concepts
 
-1. Install the Sanyam IDE or VS Code extension
-2. Create a new file with the `.ecml` extension
-3. Start writing your content model
+## Your First ECML File
 
-## File Structure
-
-Every ECML file begins with optional pragmas (metadata) followed by statements:
+Create a new file with the `.ecml` extension:
 
 ```ecml
-#Title "My Content Model"
-#Description "A description of what this model represents"
+#Title "My First Content Model"
 #Author "Your Name"
 #Version "1.0"
 
-// Your statements go here
-Actor MyActor "Actor Title" "Description"
+// Define an actor
+Actor Admin "Administrator" "System administrator"
+
+// Define content
+Content Report "Monthly Report" "Monthly financial report"
 ```
+
+## File Structure
+
+An ECML file typically follows this structure:
+
+1. **Pragmas** - File metadata at the top
+2. **Actors** - User and role definitions
+3. **Security** - Labels, permissions, groups
+4. **Content** - Document and data definitions
+5. **Activities/Tasks** - Work items
+6. **Workflows** - Process orchestration
 
 ## Pragmas
 
-Pragmas provide metadata about your model. They start with `#` and are followed by a value in quotes:
-
-| Pragma | Purpose |
-|--------|---------|
-| `#Title` | The title of your content model |
-| `#Description` | A detailed description |
-| `#Author` | The author name |
-| `#Company` | The company or organization |
-| `#Version` | Version number |
-| `#Created` | Creation date |
-| `#Updated` | Last update date |
-| `#Copyright` | Copyright notice |
-| `#License` | License information |
-
-## Basic Concepts
-
-### Actors
-
-Actors represent people, roles, or systems that participate in your enterprise:
+Pragmas provide metadata about your content model:
 
 ```ecml
-Actor Admin "Administrator" "System administrator with full access"
+#Title "Content Model Name"
+#Description "What this model represents"
+#Author "Author Name"
+#Company "Company Name"
+#Version "1.0"
+#Created "2024-01-15"
+#Updated "2024-01-20"
+```
 
-Actor Reviewer "Document Reviewer" "Reviews submitted documents" {
-    department: text "The reviewer's department"
-    level: choice(Junior, Senior, Lead)
+## Defining Actors
+
+Actors represent users and roles:
+
+```ecml
+// Basic actor
+Actor Editor "Content Editor" "Creates and edits content"
+
+// Actor with properties
+Actor Manager "Content Manager" "Manages content lifecycle" {
+    department: text "Marketing"
+    level: integer
 }
 ```
 
-### Content
+## Defining Content
 
-Content represents documents, files, or data artifacts:
+Content represents documents and data:
 
 ```ecml
-Content Report "Monthly Report" "Financial summary"
+// Simple content
+Content Invoice "Invoice Document" "Customer invoice"
 
-Content [format=DOCX, type=Word] Contract "Contract Document" "Legal contract" {
-    contractValue: currency "Total contract value"
-    effectiveDate: date "Start date"
+// Content with attributes
+Content [type=Excel, format=XLSX] Budget "Budget Spreadsheet" "Annual budget"
+
+// Content with properties
+Content Contract "Contract Document" "Legal contract" {
+    effectiveDate: date
+    expirationDate: date
+    value: currency
 }
-```
-
-### Activities and Tasks
-
-Activities represent business processes. They can contain nested tasks:
-
-```ecml
-Activity [Reviewer] ReviewProcess "Review Process" "Document review cycle" {
-    Task CheckFormat "Check Formatting" "Verify formatting"
-    Task ValidateContent "Validate Content" "Review accuracy"
-    dueDate: date "Review deadline"
-}
-```
-
-## Content Flow
-
-Use `<<` for input and `>>` for output to define data flow:
-
-```ecml
-Content Draft "Draft" "Initial draft"
-Content Final "Final" "Approved version"
-
-// Activity outputs to Final, takes input from Draft
-Activity Review "Review" "Review process" << Draft >> Final
 ```
 
 ## Next Steps
 
-- Read the [Language Reference](/language/reference/) for complete syntax documentation
-- Explore [Examples](/examples/) to see real-world usage patterns
-- Check out the [Quick Reference](/language/quick-reference/) for a syntax cheatsheet
+- [Language Reference](/language/reference/) - Complete syntax documentation
+- [Quick Reference](/language/quick-reference/) - Syntax cheatsheet
+- [Examples](/examples/) - See ECML patterns in action

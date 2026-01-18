@@ -1,0 +1,55 @@
+{% extends "layouts/base.njk" %}
+
+{% block main %}
+<div class="doc-layout">
+  <!-- Sidebar navigation -->
+  <aside class="doc-sidebar">
+    <nav class="sidebar-nav" aria-label="Documentation navigation">
+      {% set navPages = collections.all | eleventyNavigation %}
+      <ul class="nav-tree">
+        {% for entry in navPages %}
+        <li class="nav-item{% if entry.url == page.url %} is-active{% endif %}">
+          <a href="{{ entry.url }}">{{ entry.title }}</a>
+          {% if entry.children.length %}
+          <ul class="nav-children">
+            {% for child in entry.children %}
+            <li class="nav-item{% if child.url == page.url %} is-active{% endif %}">
+              <a href="{{ child.url }}">{{ child.title }}</a>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- Main content area -->
+  <article class="doc-content">
+    <!-- Page header -->
+    <header class="doc-header">
+      <h1>{{ title }}</h1>
+      {% if description %}
+      <p class="doc-description">{{ description }}</p>
+      {% endif %}
+    </header>
+
+    <!-- Main content -->
+    <div class="doc-body prose">
+      {{ content | safe }}
+    </div>
+  </article>
+
+  <!-- Table of contents -->
+  {% set tocContent = content | toc %}
+  {% if tocContent %}
+  <aside class="doc-toc">
+    <nav class="toc-nav" aria-label="Table of contents">
+      <h2 class="toc-title">On this page</h2>
+      {{ tocContent | safe }}
+    </nav>
+  </aside>
+  {% endif %}
+</div>
+{% endblock %}

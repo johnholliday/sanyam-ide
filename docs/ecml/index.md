@@ -1,41 +1,54 @@
 ---
+title: "ECML"
+description: "Enterprise Content Modeling Language"
 layout: layouts/home.njk
-title: ECML Documentation
+eleventyNavigation:
+  key: Home
+  order: 1
 ---
 
 # Enterprise Content Modeling Language
 
-**ECML** is a domain-specific language for modeling enterprise content, workflows, security, and compliance requirements. It provides a declarative way to define actors, activities, content artifacts, and their relationships.
+ECML is a domain-specific language for modeling enterprise content management systems, workflows, and information security structures.
 
 ## Key Features
 
-- **Actors** - Define roles and participants in your enterprise
-- **Activities & Tasks** - Model business processes with nested task hierarchies
-- **Content** - Describe documents, files, and data artifacts with attributes
-- **Security** - Configure groups, permissions, and access controls
-- **Compliance** - Apply retention and sensitivity labels
-- **Workflows** - Orchestrate activities with conditional logic
+- **Content Modeling** - Define content types with properties, templates, and formats
+- **Workflow Support** - Model activities, tasks, and workflow sequences
+- **Security & Compliance** - Define security groups, permissions, retention, and sensitivity labels
+- **Actor Definitions** - Model users, roles, and organizational structures
+- **Data Flow** - Specify content input/output relationships
 
-## Quick Start
-
-Create a new `.ecml` file and start defining your model:
+## Quick Example
 
 ```ecml
-#Title "My First Content Model"
+#Title "Document Review Process"
 #Version "1.0"
 
-// Define an actor
-Actor Admin "Administrator" "System administrator with full access"
+Actor Reviewer "Document Reviewer" "Responsible for reviewing documents"
 
-// Define content
-Content Report "Monthly Report" "Financial summary for the month"
+Content [type=Word] ReviewDoc "Review Document" "Document under review"
 
-// Define an activity
-Activity [Admin] GenerateReport "Generate Report" "Create monthly report" >> Report
+Activity [Reviewer] ReviewDocument "Review Document" "Review and approve document" {
+    Task ApproveTask "Approve" "Mark document as approved"
+    Task RejectTask "Reject" "Mark document as rejected"
+}
 ```
 
-## Documentation Sections
+## Getting Started
 
-- **[Getting Started](/getting-started/)** - Installation and first steps
-- **[Language Reference](/language/reference/)** - Complete syntax documentation
-- **[Examples](/examples/)** - Real-world usage patterns
+- [Getting Started Guide](/getting-started/) - Set up your first ECML file
+- [Language Reference](/language/reference/) - Complete syntax documentation
+- [Examples](/examples/) - Real-world ECML patterns
+
+## Core Concepts
+
+| Concept | Description |
+|---------|-------------|
+| **Pragmas** | File metadata like `#Title`, `#Version`, `#Author` |
+| **Actors** | Users, roles, and groups that interact with content |
+| **Content** | Documents, files, and data with properties |
+| **Activities** | High-level work items containing tasks |
+| **Tasks** | Specific actions within activities |
+| **Workflows** | Orchestrated sequences of activities |
+| **Labels** | Retention and sensitivity classifications |

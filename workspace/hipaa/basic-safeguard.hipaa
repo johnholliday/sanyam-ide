@@ -1,0 +1,11 @@
+// Basic Example: A simple safeguard definition
+// Demonstrates the minimal structure for a HIPAA security safeguard
+
+safeguard AccessControl {
+    category Technical
+    requirement Required
+    description "Unique user identification for system access"
+    implementation "Active Directory with MFA"
+    status Implemented
+    reviewDate "2026-01-15"
+}

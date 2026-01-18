@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Policy | GARP Language</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/prism.css">
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-container">
+      <a href="/" class="nav-brand">GARP Language</a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/getting-started/">Getting Started</a></li>
+        <li><a href="/language-reference/">Reference</a></li>
+        <li><a href="/examples/">Examples</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="main-container">
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <h3>Documentation</h3>
+        <ul>
+          <li><a href="/">Overview</a></li>
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/language-reference/">Language Reference</a></li>
+        </ul>
+
+        <h3>Core Concepts</h3>
+        <ul>
+          <li><a href="/language-reference/#organizations">Organizations</a></li>
+          <li><a href="/language-reference/#policies">Policies</a></li>
+          <li><a href="/language-reference/#assessments">Assessments</a></li>
+          <li><a href="/language-reference/#retention-schedules">Retention Schedules</a></li>
+          <li><a href="/language-reference/#disposition-rules">Disposition Rules</a></li>
+        </ul>
+
+        <h3>Reference</h3>
+        <ul>
+          <li><a href="/language-reference/#principles">GARP Principles</a></li>
+          <li><a href="/language-reference/#maturity-levels">Maturity Levels</a></li>
+          <li><a href="/language-reference/#enumerations">Enumerations</a></li>
+        </ul>
+
+        <h3>Examples</h3>
+        <ul>
+          
+          <li><a href="/examples/">Examples</a></li>
+          
+          <li><a href="/examples/basic-organization/">Simple Organization</a></li>
+          
+          <li><a href="/examples/basic-policy/">Simple Policy</a></li>
+          
+          <li><a href="/examples/basic-retention/">Retention Schedule</a></li>
+          
+          <li><a href="/examples/intermediate-organization/">Organization with Policies</a></li>
+          
+          <li><a href="/examples/intermediate-assessment/">Assessment with Findings</a></li>
+          
+          <li><a href="/examples/advanced-complete/">Complete GARP Program</a></li>
+          
+          <li><a href="/examples/template/">File Template</a></li>
+          
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1 id="simple-policy" tabindex="-1"><a class="header-anchor" href="#simple-policy">Simple Policy</a></h1>
+<p>Define a recordkeeping policy with requirements that address a GARP principle.</p>
+<h2 id="example" tabindex="-1"><a class="header-anchor" href="#example">Example</a></h2>
+<pre class="language-garp"><code class="language-garp">// Basic Example: A simple policy with requirements
+// Demonstrates policy structure and nested requirements
+
+policy DataRetentionPolicy {
+    description "Basic policy governing data retention practices"
+    principle Retention
+    status Active
+    owner "Records Manager"
+    effective "2024-01-01"
+
+    requirement MinimumRetention {
+        description "All business records must be retained for minimum 3 years"
+        mandatory true
+    }
+
+    requirement DocumentedSchedules {
+        description "Retention schedules must be documented and approved"
+    }
+}</code></pre>
+<h2 id="explanation" tabindex="-1"><a class="header-anchor" href="#explanation">Explanation</a></h2>
+<h3 id="policy-attributes" tabindex="-1"><a class="header-anchor" href="#policy-attributes">Policy Attributes</a></h3>
+<ul>
+<li><strong><code>description</code></strong> - Explains the policy’s purpose</li>
+<li><strong><code>principle</code></strong> - Links to one of the 8 GARP principles (here: <code>Retention</code>)</li>
+<li><strong><code>status</code></strong> - Current state: <code>Draft</code>, <code>Active</code>, <code>UnderReview</code>, or <code>Retired</code></li>
+<li><strong><code>owner</code></strong> - Person or role responsible for the policy</li>
+<li><strong><code>effective</code></strong> - Date the policy took effect</li>
+</ul>
+<h3 id="requirements" tabindex="-1"><a class="header-anchor" href="#requirements">Requirements</a></h3>
+<p>Requirements are nested within policies:</p>
+<ul>
+<li>Each requirement has a <code>name</code> identifier</li>
+<li>The <code>description</code> explains what must be done</li>
+<li><code>mandatory true</code> marks requirements that must be met for compliance</li>
+</ul>
+<h2 id="the-8-garp-principles" tabindex="-1"><a class="header-anchor" href="#the-8-garp-principles">The 8 GARP Principles</a></h2>
+<p>Choose the principle that best matches your policy’s focus:</p>
+<table>
+<thead>
+<tr>
+<th>Principle</th>
+<th>Focus Area</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Accountability</code></td>
+<td>Executive oversight, roles &amp; responsibilities</td>
+</tr>
+<tr>
+<td><code>Integrity</code></td>
+<td>Authenticity, accuracy, audit trails</td>
+</tr>
+<tr>
+<td><code>Protection</code></td>
+<td>Security, access control, privacy</td>
+</tr>
+<tr>
+<td><code>Compliance</code></td>
+<td>Laws, regulations, standards</td>
+</tr>
+<tr>
+<td><code>Availability</code></td>
+<td>Search, retrieval, accessibility</td>
+</tr>
+<tr>
+<td><code>Retention</code></td>
+<td>How long to keep records</td>
+</tr>
+<tr>
+<td><code>Disposition</code></td>
+<td>How to dispose of records</td>
+</tr>
+<tr>
+<td><code>Transparency</code></td>
+<td>Documentation, communication</td>
+</tr>
+</tbody>
+</table>
+<h2 id="policy-status-workflow" tabindex="-1"><a class="header-anchor" href="#policy-status-workflow">Policy Status Workflow</a></h2>
+<p>Policies typically follow this lifecycle:</p>
+<ol>
+<li><code>Draft</code> - Being written and reviewed</li>
+<li><code>Active</code> - Approved and in effect</li>
+<li><code>UnderReview</code> - Being updated or revised</li>
+<li><code>Retired</code> - No longer applicable</li>
+</ol>
+<h2 id="next-steps" tabindex="-1"><a class="header-anchor" href="#next-steps">Next Steps</a></h2>
+<p>Connect this policy to an organization:</p>
+<pre class="language-garp"><code class="language-garp">organization MyCompany {
+    description "My company"
+    maturity Essential
+    uses policy DataRetentionPolicy
+}</code></pre>
+<p>See the <a href="/examples/intermediate-organization/">Organization with Policies</a> example for a complete model.</p>
+
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <p>GARP Language Documentation</p>
+      <p>Based on <a href="https://en.wikipedia.org/wiki/Generally_Accepted_Recordkeeping_Principles" target="_blank">ARMA International's GARP Framework</a></p>
+    </div>
+  </footer>
+</body>
+</html>

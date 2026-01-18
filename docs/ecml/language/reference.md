@@ -1,405 +1,300 @@
 ---
+title: "Language Reference"
+description: "Complete ECML syntax reference"
 layout: layouts/doc.njk
-title: Language Reference
-description: Complete ECML syntax reference
 eleventyNavigation:
   key: Reference
   parent: Language
   order: 1
 ---
 
-# Language Reference
+# ECML Language Reference
 
-This document provides a complete reference for the ECML syntax.
+Complete reference for all ECML constructs and syntax.
 
-## File Structure
+## Entry Point
 
-An ECML file consists of:
+Every ECML file is a **ContentModel**:
 
-1. **Pragmas** (optional) - Metadata about the model
-2. **Statements** - The actual content model definitions
-
-```ecml
-#Title "Model Title"
-#Version "1.0"
-
-// Statements here
-Actor MyActor "Title" "Description"
+```
+ContentModel:
+    pragmas+=Pragma*
+    statements+=Statement*
 ```
 
 ## Pragmas
 
-Pragmas define metadata for the content model. Each pragma starts with `#` followed by a keyword and a quoted string value.
+Pragmas are metadata directives starting with `#`:
 
 ```ecml
-#Title "Contract Approval System"
-#Description "End-to-end contract workflow"
-#Author "Enterprise Architecture Team"
-#Company "Acme Corporation"
-#Version "2.1"
+#Title "Document Title"
+#Description "Description text"
+#Author "Author Name"
+#Company "Company Name"
 #Created "2024-01-15"
-#Updated "2024-06-20"
-#Copyright "2024 Acme Corporation"
-#License "Proprietary"
+#Updated "2024-01-20"
+#Version "1.0"
+#Copyright "Copyright notice"
+#License "License text"
 ```
 
-### Available Pragmas
+## Statements
 
-| Pragma | Description |
-|--------|-------------|
-| `#Title` | Model title |
-| `#Description` | Detailed description |
-| `#Author` | Author name |
-| `#Company` | Organization name |
-| `#Version` | Version string |
-| `#Created` | Creation date |
-| `#Updated` | Last modification date |
-| `#Copyright` | Copyright notice |
-| `#License` | License information |
+### Actor
 
-## Data Types
-
-ECML supports the following primitive data types for properties:
-
-| Type | Description | Example |
-|------|-------------|---------|
-| `text` | Text string | `name: text` |
-| `integer` | Whole number | `count: integer` |
-| `decimal` | Decimal number | `price: decimal` |
-| `date` | Date value | `dueDate: date` |
-| `boolean` | True/false | `isActive: boolean` |
-| `currency` | Monetary value | `amount: currency` |
-| `memo` | Long text | `notes: memo` |
-| `termset` | Controlled vocabulary | `category: termset` |
-
-### Choice Type
-
-For enumerated values, use the `choice` type:
+Defines users, roles, or participants:
 
 ```ecml
-priority: choice(Low, Medium, High, Critical)
-status: choice(Draft, Review, Approved, Rejected)
-```
-
-## Actors
-
-Actors represent participants in your enterprise model - people, roles, or systems.
-
-### Basic Syntax
-
-```ecml
-Actor <name> <title> [description] [notes]
-```
-
-### Examples
-
-```ecml
-// Simple actor
-Actor Admin "Administrator" "System admin with full access"
-
-// Actor with properties
-Actor Reviewer "Document Reviewer" "Reviews documents" {
-    department: text "Reviewer's department"
-    level: choice(Junior, Senior, Lead)
-}
-
-// Nested actors
-Actor Team "Team" "A team of people" {
-    Actor Lead "Team Lead" "Leads the team"
-    Actor Member "Team Member" "Team member"
+Actor name "Title" "Description" "Notes"
+Actor name "Title" "Description" {
+    property: type
 }
 ```
 
-## Content
-
-Content represents documents, files, and data artifacts.
-
-### Basic Syntax
-
-```ecml
-Content [attributes] <name> <title> [description] [notes] [labels] [flow] [properties]
+**Syntax:**
+```
+Actor:
+    'Actor' name=ID title=TEXT description=TEXT? notes=TEXT? properties=ActorBlock?
 ```
 
-### Attributes
+### Activity
 
-Content can have optional attributes in square brackets:
-
-| Attribute | Values | Description |
-|-----------|--------|-------------|
-| `format` | `TXT`, `DOCX`, `CSV`, `XLSX`, `PDF`, `MD`, `JSON`, `XML` | File format |
-| `type` | `Text`, `Csv`, `Excel`, `Word`, `PowerPoint`, `Markdown`, `Pdf`, `Script`, `Image`, `Diagram`, `Flowchart`, `OrgChart`, `Survey` | Content type |
-| `template` | Qualified name | Template reference |
-| `schema` | Qualified name | Schema reference |
-
-### Examples
+Defines high-level work items:
 
 ```ecml
-// Simple content
-Content Report "Monthly Report" "Financial summary"
-
-// Content with attributes
-Content [format=DOCX, type=Word] Contract "Contract" "Legal contract"
-
-// Content with properties
-Content Invoice "Invoice" "Payment invoice" {
-    amount: currency "Invoice amount"
-    dueDate: date "Payment due date"
-    status: choice(Draft, Sent, Paid, Overdue)
+Activity name "Title" "Description"
+Activity [Role1, Role2] name "Title" "Description" {
+    Task subtask "Subtask" "Description"
 }
 ```
 
-### Labels
-
-Apply retention and sensitivity labels using square brackets after the description:
-
-```ecml
-Content [format=PDF] Report "Report" "Annual report" [SevenYear(Confidential)]
+**Syntax:**
+```
+Activity:
+    'Activity' roles=RoleAssignment? name=ID title=TEXT description=TEXT? notes=TEXT?
+    tasks=TaskBlock? flow=ContentFlow?
 ```
 
-### Content Flow
+### Task
 
-Define input (`<<`) and output (`>>`) relationships:
+Defines specific actions:
 
 ```ecml
-Content Draft "Draft" "Initial draft"
-Content Final "Final" "Final version"
+Task name "Title" "Description"
+Task [Role] name "Title" "Description" {
+    property: type
+}
+```
 
-// Takes Draft as input
-Content Review "Review" "Review copy" << Draft
+**Syntax:**
+```
+Task:
+    'Task' roles=RoleAssignment? name=ID title=TEXT description=TEXT? notes=TEXT?
+    tasks=TaskBlock? flow=ContentFlow?
+```
 
-// Produces Final as output
-Activity Approve "Approve" "Approval process" >> Final
+### Content
+
+Defines documents and data:
+
+```ecml
+Content name "Title" "Description"
+Content [type=Word] name "Title" "Description"
+Content [format=DOCX, template=MyTemplate] name "Title" "Description" {
+    property: type
+}
+```
+
+**Attributes:**
+- `template=QualifiedName` - Template reference
+- `format=ContentFormat` - File format (TXT, DOCX, CSV, XLSX, PDF, MD, JSON, XML)
+- `type=ContentType` - Content type classification
+- `schema=QualifiedName` - Schema reference
+
+**Syntax:**
+```
+Content:
+    'Content' attributes=ContentAttributes? name=ID title=TEXT description=TEXT? notes=TEXT?
+    labels=LabelAssignment? flow=ContentFlow? properties=ContentBlock?
+```
+
+### SecurityGroup
+
+Defines groups of actors:
+
+```ecml
+SecurityGroup [Actor1, Actor2] name "Title" "Description"
+SecurityGroup [Actor1] name "Title" "Description" = [Permission1, Permission2]
+```
+
+**Syntax:**
+```
+SecurityGroup:
+    'SecurityGroup' members=MemberAssignment? name=ID title=TEXT description=TEXT?
+    permAssign=PermissionAssignment?
+```
+
+### Permission
+
+Defines access rights:
+
+```ecml
+Permission name "Title" "Description" "Notes"
+```
+
+**Syntax:**
+```
+Permission:
+    'Permission' name=ID title=TEXT description=TEXT notes=TEXT?
+```
+
+### RetentionLabel
+
+Defines data retention policies:
+
+```ecml
+RetentionLabel name "Title" "Description" "Notes"
+```
+
+**Syntax:**
+```
+RetentionLabel:
+    'RetentionLabel' name=ID title=TEXT description=TEXT notes=TEXT?
+```
+
+### SensitivityLabel
+
+Defines data sensitivity classifications:
+
+```ecml
+SensitivityLabel name "Title" "Description" "Notes"
+```
+
+**Syntax:**
+```
+SensitivityLabel:
+    'SensitivityLabel' name=ID title=TEXT description=TEXT notes=TEXT?
+```
+
+### Workflow
+
+Defines process orchestration:
+
+```ecml
+Workflow name "Title" "Description" {
+    Do Activity1
+    Do Activity2 If condition
+    Repeat Activity3 Until status = complete
+}
+```
+
+**Syntax:**
+```
+Workflow:
+    'Workflow' name=ID title=TEXT description=TEXT? notes=TEXT?
+    '{' elements+=WorkflowElement* '}'
+```
+
+## Content Flow
+
+Content can specify input/output relationships:
+
+```ecml
+// Input from other content
+Content Output "Output" "Output document" << Input1, Input2
+
+// Output to other content
+Content Input "Input" "Input document" >> Output1, Output2
 
 // Both input and output
-Content Processed "Processed" "Processed data" << Draft >> Final
+Content Processor "Processor" "Processes data" << Input >> Output
 ```
 
-## Activities
+## Label Assignment
 
-Activities represent business processes and workflows.
-
-### Basic Syntax
+Assign retention and sensitivity labels to content:
 
 ```ecml
-Activity [roles] <name> <title> [description] [notes] [tasks] [flow]
-```
+// Retention label only
+Content Doc "Doc" "Document" [RetentionLabel]
 
-### Role Assignment
-
-Assign actors to activities using square brackets:
-
-```ecml
-Activity [Reviewer] ReviewDoc "Review Document" "Review the document"
-Activity [Manager, Analyst] AnalyzeData "Analyze Data" "Perform analysis"
-```
-
-### Nested Tasks
-
-Activities can contain tasks and properties:
-
-```ecml
-Activity [Reviewer] ReviewProcess "Review Process" "Complete review" {
-    Task CheckFormat "Check Format" "Verify formatting"
-    Task ValidateData "Validate Data" "Check data accuracy"
-    dueDate: date "Review deadline"
-    priority: choice(High, Medium, Low)
-}
-```
-
-## Tasks
-
-Tasks are similar to activities but represent smaller units of work.
-
-### Basic Syntax
-
-```ecml
-Task [roles] <name> <title> [description] [notes] [subtasks] [flow]
-```
-
-### Examples
-
-```ecml
-// Simple task
-Task Review "Review" "Review the document"
-
-// Task with subtasks
-Task Validate "Validate" "Validation process" {
-    Task CheckFormat "Check Format" "Format validation"
-    Task CheckContent "Check Content" "Content validation"
-}
-```
-
-## Security
-
-### Permissions
-
-Define access permissions:
-
-```ecml
-Permission ReadOnly "Read Only" "View content without modification"
-Permission ReadWrite "Read Write" "Full read and write access"
-Permission Admin "Administrator" "Complete system access"
-```
-
-### Security Groups
-
-Group actors with assigned permissions:
-
-```ecml
-// Define actors first
-Actor Manager "Manager" "Department manager"
-Actor Analyst "Analyst" "Data analyst"
-Actor FullAccess "Full Access" "Role with full access"
-
-// Create security group with members and permissions
-SecurityGroup [Manager, Analyst] DataTeam "Data Team" "Analytics group" = [FullAccess]
-```
-
-### Retention Labels
-
-Define retention policies:
-
-```ecml
-RetentionLabel ThreeYear "3 Year Retention" "Retain for 3 years"
-RetentionLabel SevenYear "7 Year Retention" "Retain for 7 years per regulations"
-RetentionLabel Permanent "Permanent" "Retain indefinitely"
-```
-
-### Sensitivity Labels
-
-Define sensitivity classifications:
-
-```ecml
-SensitivityLabel Public "Public" "Can be shared externally"
-SensitivityLabel Internal "Internal" "Internal use only"
-SensitivityLabel Confidential "Confidential" "Restricted access"
-SensitivityLabel Secret "Secret" "Highly restricted"
-```
-
-### Applying Labels to Content
-
-```ecml
-// Retention only
-Content Report "Report" "Report" [ThreeYear]
+// Retention with sensitivity
+Content Doc "Doc" "Document" [RetentionLabel(SensitivityLabel)]
 
 // Sensitivity only
-Content Memo "Memo" "Internal memo" [(Confidential)]
-
-// Both retention and sensitivity
-Content Contract "Contract" "Legal contract" [SevenYear(Confidential)]
+Content Doc "Doc" "Document" [(SensitivityLabel)]
 ```
 
-## Workflows
+## Workflow Steps
 
-Workflows orchestrate activities with conditional logic.
-
-### Basic Syntax
-
-```ecml
-Workflow <name> <title> [description] [notes] {
-    // workflow steps
-}
-```
-
-### Workflow Steps
-
-#### Do Step
+### Do Step
 
 Execute an activity:
 
 ```ecml
-Do SubmitRequest
-Do ReviewDocument If status = approved
+Do ActivityName
+Do ActivityName If condition
+Do [Activity1, Activity2]  // Sequence
 ```
 
-#### Repeat Step
+### Repeat Step
 
-Repeat activities until a condition is met:
+Repeat until condition:
 
 ```ecml
-Repeat ReviewCycle Until status = approved
-Repeat [Review, Revise] Until this.status = complete
+Repeat ActivityName Until status = complete
+Repeat ActivityName Until field = value If condition
 ```
 
-### Conditions
+## Conditions
 
-#### Status Conditions
+Conditions for workflow control:
 
 ```ecml
-If status = approved
-If status = rejected
-If this.status = complete
+// Field value condition
+Activity.property = "value"
 
-// Available status values:
-// pending, started, approved, rejected, complete, suspended, aborted
+// Status condition
+status = pending
+status = complete
+
+// Workflow property condition
+this.property = value
 ```
 
-#### Field Value Conditions
-
-```ecml
-If Review.priority = "High"
-If Document.classification = "Confidential"
-```
-
-### Complete Workflow Example
-
-```ecml
-Workflow ContractApproval "Contract Approval" "Main approval workflow" {
-    Do SubmitContract
-    Do LegalReview
-    Do FinanceReview If LegalReview.status = approved
-    Repeat [LegalReview, FinanceReview] Until status = approved
-    Do FinalApproval If this.status = approved
-}
-```
+**Status values:** `pending`, `started`, `approved`, `rejected`, `complete`, `suspended`, `aborted`
 
 ## Annotations
 
-Annotations provide additional documentation using block comments:
+Block annotations for documentation:
 
 ```ecml
 <#
-This is a block annotation.
-It can span multiple lines and provides
-additional context for the following element.
+This is a multi-line annotation
+that provides detailed documentation
 #>
-Activity ComplexProcess "Complex Process" "A process that needs explanation"
+
+Actor User "User" "Description"
 ```
 
 ## Comments
 
-ECML supports two comment styles:
+Single and multi-line comments:
 
 ```ecml
-// Single-line comment
+// Single line comment
 
-/*
-   Multi-line comment
-   spanning several lines
-*/
+/* Multi-line
+   comment */
 ```
 
-## Identifiers
+## Terminals
 
-Identifiers must:
-- Start with a letter or underscore
-- Contain only letters, numbers, and underscores
-- Be case-sensitive
-
-```ecml
-Actor MyActor "Title" "Description"    // Valid
-Actor _internal "Title" "Description"  // Valid
-Actor Actor123 "Title" "Description"   // Valid
-```
-
-## String Literals
-
-Use double or single quotes for string values:
-
-```ecml
-#Title "Double quoted string"
-#Author 'Single quoted string'
-
-// Escape sequences supported
-#Description "Line one\nLine two"
-```
+| Terminal | Pattern | Example |
+|----------|---------|---------|
+| `ID` | `[_A-Za-z][_0-9A-Za-z]*` | `MyActor`, `_private` |
+| `TEXT` | `"..."` or `'...'` | `"Hello"`, `'World'` |
+| `INT` | `[0-9]+` | `42`, `100` |
+| `DECIMAL` | `[0-9]+.[0-9]+` | `3.14`, `0.5` |
+| `DATE` | `YYYY-MM-DD` | `2024-01-15` |
+| `ANNOT` | `<#...#>` | `<# annotation #>` |

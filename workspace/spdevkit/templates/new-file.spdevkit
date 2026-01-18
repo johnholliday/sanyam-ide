@@ -1,0 +1,41 @@
+// SPDevKit - Application Development Language
+// New file template - customize for your application needs
+
+// TODO: Define your entities (data models)
+entity YourEntity {
+    // Add properties here
+    // name: string
+    // count: number
+    // active: boolean
+    // createdAt: date
+}
+
+// TODO: Define your services (business logic)
+service YourService {
+    description "TODO: Describe the service purpose"
+    // Add operations here
+    // operation findById(id: number) -> YourEntity
+    // operation create(name: string) -> YourEntity
+    // operation update(id: number name: string) -> boolean
+    // operation delete(id: number)
+}
+
+// TODO: Define your workflows (process orchestration)
+workflow YourWorkflow {
+    description "TODO: Describe the workflow purpose"
+
+    step FirstStep {
+        action "TODO: Describe the action"
+        next SecondStep
+    }
+
+    step SecondStep {
+        action "TODO: Describe the action"
+    }
+}
+
+// TODO: Define your application (deployable unit)
+application YourApplication {
+    description "TODO: Describe your application"
+    version "1.0.0"
+}

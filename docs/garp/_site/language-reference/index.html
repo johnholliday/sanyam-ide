@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Language Reference | GARP Language</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/prism.css">
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-container">
+      <a href="/" class="nav-brand">GARP Language</a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/getting-started/">Getting Started</a></li>
+        <li><a href="/language-reference/">Reference</a></li>
+        <li><a href="/examples/">Examples</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="main-container">
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <h3>Documentation</h3>
+        <ul>
+          <li><a href="/">Overview</a></li>
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/language-reference/">Language Reference</a></li>
+        </ul>
+
+        <h3>Core Concepts</h3>
+        <ul>
+          <li><a href="/language-reference/#organizations">Organizations</a></li>
+          <li><a href="/language-reference/#policies">Policies</a></li>
+          <li><a href="/language-reference/#assessments">Assessments</a></li>
+          <li><a href="/language-reference/#retention-schedules">Retention Schedules</a></li>
+          <li><a href="/language-reference/#disposition-rules">Disposition Rules</a></li>
+        </ul>
+
+        <h3>Reference</h3>
+        <ul>
+          <li><a href="/language-reference/#principles">GARP Principles</a></li>
+          <li><a href="/language-reference/#maturity-levels">Maturity Levels</a></li>
+          <li><a href="/language-reference/#enumerations">Enumerations</a></li>
+        </ul>
+
+        <h3>Examples</h3>
+        <ul>
+          
+          <li><a href="/examples/">Examples</a></li>
+          
+          <li><a href="/examples/basic-organization/">Simple Organization</a></li>
+          
+          <li><a href="/examples/basic-policy/">Simple Policy</a></li>
+          
+          <li><a href="/examples/basic-retention/">Retention Schedule</a></li>
+          
+          <li><a href="/examples/intermediate-organization/">Organization with Policies</a></li>
+          
+          <li><a href="/examples/intermediate-assessment/">Assessment with Findings</a></li>
+          
+          <li><a href="/examples/advanced-complete/">Complete GARP Program</a></li>
+          
+          <li><a href="/examples/template/">File Template</a></li>
+          
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1 id="language-reference" tabindex="-1"><a class="header-anchor" href="#language-reference">Language Reference</a></h1>
+<p>Complete reference documentation for the GARP language syntax and semantics.</p>
+<h2 id="overview" tabindex="-1"><a class="header-anchor" href="#overview">Overview</a></h2>
+<p>A GARP model consists of one or more top-level elements:</p>
+<ul>
+<li><strong>Organization</strong> - An entity with a recordkeeping program</li>
+<li><strong>Policy</strong> - A recordkeeping policy addressing GARP principles</li>
+<li><strong>Assessment</strong> - An evaluation against GARP principles</li>
+<li><strong>RetentionSchedule</strong> - Defines how long records are kept</li>
+<li><strong>DispositionRule</strong> - Defines how records are disposed</li>
+</ul>
+<h2 id="organizations" tabindex="-1"><a class="header-anchor" href="#organizations">Organizations</a></h2>
+<p>An organization represents an entity with an information governance program.</p>
+<h3 id="syntax" tabindex="-1"><a class="header-anchor" href="#syntax">Syntax</a></h3>
+<pre class="language-garp"><code class="language-garp">organization <name> {
+    description "<description>"
+    maturity <MaturityLevel>
+    uses policy <PolicyName>
+    assessed by <AssessmentName>
+}</code></pre>
+<h3 id="attributes" tabindex="-1"><a class="header-anchor" href="#attributes">Attributes</a></h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>description</code></td>
+<td>No</td>
+<td>Text description of the organization</td>
+</tr>
+<tr>
+<td><code>maturity</code></td>
+<td>No</td>
+<td>Overall maturity level (see <a href="#maturity-levels">Maturity Levels</a>)</td>
+</tr>
+<tr>
+<td><code>uses policy</code></td>
+<td>No</td>
+<td>Reference to a Policy (can have multiple)</td>
+</tr>
+<tr>
+<td><code>assessed by</code></td>
+<td>No</td>
+<td>Reference to an Assessment (can have multiple)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example" tabindex="-1"><a class="header-anchor" href="#example">Example</a></h3>
+<pre class="language-garp"><code class="language-garp">organization GlobalEnterprises {
+    description "A multinational corporation with mature IG program"
+    maturity Proactive
+    uses policy DataProtectionPolicy
+    uses policy RetentionPolicy
+    assessed by AnnualAssessment2024
+}</code></pre>
+<h2 id="policies" tabindex="-1"><a class="header-anchor" href="#policies">Policies</a></h2>
+<p>Policies define governance rules that address specific GARP principles.</p>
+<h3 id="syntax-1" tabindex="-1"><a class="header-anchor" href="#syntax-1">Syntax</a></h3>
+<pre class="language-garp"><code class="language-garp">policy <name> {
+    description "<description>"
+    principle <Principle>
+    status <PolicyStatus>
+    owner "<owner name>"
+    effective "<date>"
+
+    requirement <name> {
+        description "<description>"
+        mandatory true
+    }
+}</code></pre>
+<h3 id="attributes-1" tabindex="-1"><a class="header-anchor" href="#attributes-1">Attributes</a></h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>description</code></td>
+<td>No</td>
+<td>Text description of the policy</td>
+</tr>
+<tr>
+<td><code>principle</code></td>
+<td>No</td>
+<td>The GARP principle this policy addresses</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>No</td>
+<td>Current policy status (see <a href="#policy-status">Policy Status</a>)</td>
+</tr>
+<tr>
+<td><code>owner</code></td>
+<td>No</td>
+<td>Person or role responsible for the policy</td>
+</tr>
+<tr>
+<td><code>effective</code></td>
+<td>No</td>
+<td>Effective date (string format)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="requirements" tabindex="-1"><a class="header-anchor" href="#requirements">Requirements</a></h3>
+<p>Policies can contain nested <code>requirement</code> blocks:</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>description</code></td>
+<td>No</td>
+<td>What the requirement entails</td>
+</tr>
+<tr>
+<td><code>mandatory</code></td>
+<td>No</td>
+<td>Set to <code>true</code> for mandatory requirements</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example-1" tabindex="-1"><a class="header-anchor" href="#example-1">Example</a></h3>
+<pre class="language-garp"><code class="language-garp">policy InformationSecurityPolicy {
+    description "Comprehensive policy for protecting information assets"
+    principle Protection
+    status Active
+    owner "Chief Information Security Officer"
+    effective "2024-01-01"
+
+    requirement DataClassification {
+        description "All information must be classified"
+        mandatory true
+    }
+
+    requirement EncryptionStandards {
+        description "AES-256 encryption required for sensitive data"
+        mandatory true
+    }
+
+    requirement AccessReview {
+        description "Access permissions reviewed quarterly"
+    }
+}</code></pre>
+<h2 id="assessments" tabindex="-1"><a class="header-anchor" href="#assessments">Assessments</a></h2>
+<p>Assessments evaluate an organization’s practices against GARP principles and document findings.</p>
+<h3 id="syntax-2" tabindex="-1"><a class="header-anchor" href="#syntax-2">Syntax</a></h3>
+<pre class="language-garp"><code class="language-garp">assessment <name> {
+    description "<description>"
+    date "<date>"
+    assessor "<assessor name>"
+
+    score <Principle> : <MaturityLevel>
+        notes "<notes>"
+
+    finding <name> {
+        description "<description>"
+        principle <Principle>
+        severity <Severity>
+    }
+
+    recommendation <name> {
+        description "<description>"
+        principle <Principle>
+        priority <Priority>
+        targetLevel <MaturityLevel>
+    }
+}</code></pre>
+<h3 id="attributes-2" tabindex="-1"><a class="header-anchor" href="#attributes-2">Attributes</a></h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>description</code></td>
+<td>No</td>
+<td>Assessment scope and purpose</td>
+</tr>
+<tr>
+<td><code>date</code></td>
+<td>No</td>
+<td>Date of assessment</td>
+</tr>
+<tr>
+<td><code>assessor</code></td>
+<td>No</td>
+<td>Person or firm conducting assessment</td>
+</tr>
+</tbody>
+</table>
+<h3 id="principle-scores" tabindex="-1"><a class="header-anchor" href="#principle-scores">Principle Scores</a></h3>
+<p>Score each GARP principle with a maturity level:</p>
+<pre class="language-garp"><code class="language-garp">score Accountability : Proactive
+    notes "Strong executive sponsorship and oversight"</code></pre>
+<p>The <code>notes</code> attribute is optional and provides context for the score.</p>
+<h3 id="findings" tabindex="-1"><a class="header-anchor" href="#findings">Findings</a></h3>
+<p>Document issues or gaps discovered:</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>description</code></td>
+<td>No</td>
+<td>What was found</td>
+</tr>
+<tr>
+<td><code>principle</code></td>
+<td>No</td>
+<td>Related GARP principle</td>
+</tr>
+<tr>
+<td><code>severity</code></td>
+<td>No</td>
+<td>Finding severity (see <a href="#severity-levels">Severity Levels</a>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="recommendations" tabindex="-1"><a class="header-anchor" href="#recommendations">Recommendations</a></h3>
+<p>Suggest improvements:</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>description</code></td>
+<td>No</td>
+<td>Recommended action</td>
+</tr>
+<tr>
+<td><code>principle</code></td>
+<td>No</td>
+<td>Related GARP principle</td>
+</tr>
+<tr>
+<td><code>priority</code></td>
+<td>No</td>
+<td>Implementation priority (see <a href="#priority-levels">Priority Levels</a>)</td>
+</tr>
+<tr>
+<td><code>targetLevel</code></td>
+<td>No</td>
+<td>Target maturity level after implementation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example-2" tabindex="-1"><a class="header-anchor" href="#example-2">Example</a></h3>
+<pre class="language-garp"><code class="language-garp">assessment Q4GARPAudit {
+    description "Quarterly GARP compliance assessment"
+    date "2024-12-15"
+    assessor "External Audit Firm"
+
+    score Accountability : Proactive
+        notes "Clear executive sponsorship"
+    score Integrity : Essential
+        notes "Basic audit trails exist"
+    score Protection : Proactive
+        notes "Robust security controls"
+    score Compliance : Essential
+    score Availability : InDevelopment
+        notes "Search capabilities limited"
+    score Retention : Essential
+    score Disposition : SubStandard
+        notes "No formal process"
+    score Transparency : Essential
+
+    finding DispositionGap {
+        description "No formal disposition process exists"
+        principle Disposition
+        severity Critical
+    }
+
+    finding SearchLimitations {
+        description "Users cannot easily find records"
+        principle Availability
+        severity Medium
+    }
+
+    recommendation ImplementDisposition {
+        description "Establish formal disposition workflow"
+        principle Disposition
+        priority Immediate
+        targetLevel Essential
+    }
+
+    recommendation EnhanceSearch {
+        description "Implement enterprise search solution"
+        principle Availability
+        priority ShortTerm
+        targetLevel Proactive
+    }
+}</code></pre>
+<h2 id="retention-schedules" tabindex="-1"><a class="header-anchor" href="#retention-schedules">Retention Schedules</a></h2>
+<p>Define how long different types of records should be retained.</p>
+<h3 id="syntax-3" tabindex="-1"><a class="header-anchor" href="#syntax-3">Syntax</a></h3>
+<pre class="language-garp"><code class="language-garp">retention <name> {
+    description "<description>"
+    recordType "<record types covered>"
+    period "<retention period>"
+    trigger "<retention trigger>"
+    legalBasis "<legal or regulatory basis>"
+}</code></pre>
+<h3 id="attributes-3" tabindex="-1"><a class="header-anchor" href="#attributes-3">Attributes</a></h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>description</code></td>
+<td>No</td>
+<td>Purpose of this retention schedule</td>
+</tr>
+<tr>
+<td><code>recordType</code></td>
+<td>No</td>
+<td>Types of records covered</td>
+</tr>
+<tr>
+<td><code>period</code></td>
+<td>No</td>
+<td>How long to retain (e.g., “7 years”)</td>
+</tr>
+<tr>
+<td><code>trigger</code></td>
+<td>No</td>
+<td>Event that starts retention (e.g., “creation”, “termination”)</td>
+</tr>
+<tr>
+<td><code>legalBasis</code></td>
+<td>No</td>
+<td>Legal or regulatory requirement</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example-3" tabindex="-1"><a class="header-anchor" href="#example-3">Example</a></h3>
+<pre class="language-garp"><code class="language-garp">retention HRRecords {
+    description "Employee personnel records retention"
+    recordType "Personnel Files, Performance Reviews, Disciplinary Records"
+    period "7 years after termination"
+    trigger "Employee termination date"
+    legalBasis "EEOC Regulations, State Employment Laws"
+}
+
+retention FinancialRecords {
+    description "Financial and tax documentation"
+    recordType "Tax Returns, Audit Reports, Financial Statements"
+    period "Permanent"
+    trigger "Record creation"
+    legalBasis "IRS Regulations, SEC Requirements"
+}</code></pre>
+<h2 id="disposition-rules" tabindex="-1"><a class="header-anchor" href="#disposition-rules">Disposition Rules</a></h2>
+<p>Define how records are disposed after their retention period.</p>
+<h3 id="syntax-4" tabindex="-1"><a class="header-anchor" href="#syntax-4">Syntax</a></h3>
+<pre class="language-garp"><code class="language-garp">disposition <name> {
+    description "<description>"
+    method <DispositionMethod>
+    approval required
+    retention <RetentionScheduleName>
+}</code></pre>
+<h3 id="attributes-4" tabindex="-1"><a class="header-anchor" href="#attributes-4">Attributes</a></h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>description</code></td>
+<td>No</td>
+<td>Description of disposition process</td>
+</tr>
+<tr>
+<td><code>method</code></td>
+<td>No</td>
+<td>How records are disposed (see <a href="#disposition-methods">Disposition Methods</a>)</td>
+</tr>
+<tr>
+<td><code>approval</code></td>
+<td>No</td>
+<td>Set to <code>required</code> if approval needed</td>
+</tr>
+<tr>
+<td><code>retention</code></td>
+<td>No</td>
+<td>Reference to associated retention schedule</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example-4" tabindex="-1"><a class="header-anchor" href="#example-4">Example</a></h3>
+<pre class="language-garp"><code class="language-garp">disposition HRDestruction {
+    description "Secure destruction of HR records"
+    method Destroy
+    approval required
+    retention HRRecords
+}
+
+disposition FinancialArchive {
+    description "Transfer financial records to permanent archive"
+    method Transfer
+    approval required
+    retention FinancialRecords
+}</code></pre>
+<h2 id="principles" tabindex="-1"><a class="header-anchor" href="#principles">Principles</a></h2>
+<p>The 8 GARP principles:</p>
+<table>
+<thead>
+<tr>
+<th>Principle</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Accountability</code></td>
+<td>Senior executive oversight of the IG program</td>
+</tr>
+<tr>
+<td><code>Integrity</code></td>
+<td>Information authenticity and provenance</td>
+</tr>
+<tr>
+<td><code>Protection</code></td>
+<td>Appropriate access controls and security</td>
+</tr>
+<tr>
+<td><code>Compliance</code></td>
+<td>Adherence to laws, regulations, and policies</td>
+</tr>
+<tr>
+<td><code>Availability</code></td>
+<td>Timely location and retrieval of information</td>
+</tr>
+<tr>
+<td><code>Retention</code></td>
+<td>Appropriate retention based on requirements</td>
+</tr>
+<tr>
+<td><code>Disposition</code></td>
+<td>Secure disposal when no longer needed</td>
+</tr>
+<tr>
+<td><code>Transparency</code></td>
+<td>Documented processes available to stakeholders</td>
+</tr>
+</tbody>
+</table>
+<h2 id="maturity-levels" tabindex="-1"><a class="header-anchor" href="#maturity-levels">Maturity Levels</a></h2>
+<p>The 5-level maturity model:</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>SubStandard</code></td>
+<td>No formal program; significant risk</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>InDevelopment</code></td>
+<td>Recognizes need; being developed</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>Essential</code></td>
+<td>Minimum requirements met</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>Proactive</code></td>
+<td>Exceeds requirements; continuous improvement</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>Transformational</code></td>
+<td>Industry leader; strategic value</td>
+</tr>
+</tbody>
+</table>
+<h2 id="policy-status" tabindex="-1"><a class="header-anchor" href="#policy-status">Policy Status</a></h2>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Draft</code></td>
+<td>Policy is being developed</td>
+</tr>
+<tr>
+<td><code>Active</code></td>
+<td>Policy is currently in effect</td>
+</tr>
+<tr>
+<td><code>UnderReview</code></td>
+<td>Policy is being reviewed/updated</td>
+</tr>
+<tr>
+<td><code>Retired</code></td>
+<td>Policy is no longer in effect</td>
+</tr>
+</tbody>
+</table>
+<h2 id="severity-levels" tabindex="-1"><a class="header-anchor" href="#severity-levels">Severity Levels</a></h2>
+<p>For assessment findings:</p>
+<table>
+<thead>
+<tr>
+<th>Severity</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Critical</code></td>
+<td>Immediate action required; major compliance risk</td>
+</tr>
+<tr>
+<td><code>High</code></td>
+<td>Significant issue requiring prompt attention</td>
+</tr>
+<tr>
+<td><code>Medium</code></td>
+<td>Moderate issue to address in near term</td>
+</tr>
+<tr>
+<td><code>Low</code></td>
+<td>Minor issue for future improvement</td>
+</tr>
+<tr>
+<td><code>Info</code></td>
+<td>Informational observation</td>
+</tr>
+</tbody>
+</table>
+<h2 id="priority-levels" tabindex="-1"><a class="header-anchor" href="#priority-levels">Priority Levels</a></h2>
+<p>For recommendations:</p>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Immediate</code></td>
+<td>Address now; critical path</td>
+</tr>
+<tr>
+<td><code>ShortTerm</code></td>
+<td>Address within 1-3 months</td>
+</tr>
+<tr>
+<td><code>MediumTerm</code></td>
+<td>Address within 3-12 months</td>
+</tr>
+<tr>
+<td><code>LongTerm</code></td>
+<td>Address within 1+ years</td>
+</tr>
+</tbody>
+</table>
+<h2 id="disposition-methods" tabindex="-1"><a class="header-anchor" href="#disposition-methods">Disposition Methods</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Destroy</code></td>
+<td>Securely destroy/delete records</td>
+</tr>
+<tr>
+<td><code>Archive</code></td>
+<td>Move to long-term archival storage</td>
+</tr>
+<tr>
+<td><code>Transfer</code></td>
+<td>Transfer to another entity or system</td>
+</tr>
+<tr>
+<td><code>Review</code></td>
+<td>Review for further retention decision</td>
+</tr>
+</tbody>
+</table>
+<h2 id="comments" tabindex="-1"><a class="header-anchor" href="#comments">Comments</a></h2>
+<p>GARP supports both single-line and multi-line comments:</p>
+<pre class="language-garp"><code class="language-garp">// This is a single-line comment
+
+/*
+ * This is a multi-line comment
+ * spanning multiple lines
+ */
+
+organization MyOrg {
+    description "An organization"  // Inline comment
+    maturity Essential
+}</code></pre>
+<h2 id="identifiers" tabindex="-1"><a class="header-anchor" href="#identifiers">Identifiers</a></h2>
+<p>Names (identifiers) must:</p>
+<ul>
+<li>Start with a letter or underscore</li>
+<li>Contain only letters, numbers, and underscores</li>
+<li>Be unique within their scope</li>
+</ul>
+<pre class="language-garp"><code class="language-garp">// Valid identifiers
+organization MyOrg { }
+policy Data_Protection_Policy { }
+retention HR_Records_2024 { }
+
+// Invalid identifiers
+// organization 123Org { }      // Cannot start with number
+// policy My-Policy { }         // Cannot contain hyphen</code></pre>
+<h2 id="strings" tabindex="-1"><a class="header-anchor" href="#strings">Strings</a></h2>
+<p>String values are enclosed in double or single quotes:</p>
+<pre class="language-garp"><code class="language-garp">description "This is a string with double quotes"
+owner 'This is a string with single quotes'</code></pre>
+
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <p>GARP Language Documentation</p>
+      <p>Based on <a href="https://en.wikipedia.org/wiki/Generally_Accepted_Recordkeeping_Principles" target="_blank">ARMA International's GARP Framework</a></p>
+    </div>
+  </footer>
+</body>
+</html>

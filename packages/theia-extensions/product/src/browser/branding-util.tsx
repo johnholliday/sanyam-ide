@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: MIT
  ********************************************************************************/
-
+import { getApplicationMetadata } from './application-config';
 import { WindowService } from '@theia/core/lib/browser/window/window-service';
 import * as React from 'react';
 
@@ -28,13 +28,16 @@ function BrowserLink(props: ExternalBrowserLinkProps): JSX.Element {
 }
 
 export function renderWhatIs(windowService: WindowService): React.ReactNode {
+    const appData = getApplicationMetadata();
     return <div className='gs-section'>
         <h3 className='gs-section-header'>
             What is this?
         </h3>
         <div>
-            The Sanyam IDE is a modern and open IDE for cloud and desktop. The Sanyam IDE is based on the <BrowserLink text="Theia platform"
+            Sanyam is a modern semantic development environment for knowledge workers.  It is available for cloud and desktop and is based on the <BrowserLink text="Theia platform"
                 url="https://sanyam-ide.org" windowService={windowService} ></BrowserLink>.
+            {appData && appData.text && <span>
+                {appData.text.map((paragraph, idx) => <p key={idx}>{paragraph}</p>)}</span>}
         </div>
         <div>
             The IDE is available as a <BrowserLink text="downloadable desktop application" url="https://sanyam-ide.org//#theiaidedownload"
@@ -48,17 +51,12 @@ export function renderWhatIs(windowService: WindowService): React.ReactNode {
 export function renderExtendingCustomizing(windowService: WindowService): React.ReactNode {
     return <div className='gs-section'>
         <h3 className='gs-section-header'>
-            Extending/Customizing the Sanyam IDE
+            Extending/Customizing the Application
         </h3>
         <div >
-            You can extend the Sanyam IDE at runtime by installing VS Code extensions, e.g. from the <BrowserLink text="OpenVSX registry" url="https://open-vsx.org/"
+            You can extend this application at runtime by installing VS Code extensions, e.g. from the <BrowserLink text="OpenVSX registry" url="https://open-vsx.org/"
                 windowService={windowService} ></BrowserLink>, an open marketplace for VS Code extensions. Just open the extension view or browse <BrowserLink
                     text="OpenVSX online" url="https://open-vsx.org/" windowService={windowService} ></BrowserLink>.
-        </div>
-        <div>
-            Furthermore, the Sanyam IDE is based on the flexible Theia platform. Therefore, the Sanyam IDE can serve as a <span className='gs-text-bold'>template</span> for building
-            custom tools and IDEs. Browse <BrowserLink text="the documentation" url="https://sanyam-ide.org/docs/composing_applications/"
-                windowService={windowService} ></BrowserLink> to help you customize and build your own Eclipse Theia-based product.
         </div>
     </div>;
 }
@@ -69,8 +67,8 @@ export function renderSupport(windowService: WindowService): React.ReactNode {
             Professional Support
         </h3>
         <div>
-            Professional support, implementation services, consulting and training for building tools like Sanyam IDE and for building other tools based on Eclipse Theia is
-            available by selected companies as listed on the <BrowserLink text=" Theia support page" url="https://sanyam-ide.org/support/"
+            Professional support, implementation services, consulting and training for building tools like this and for building other tools based on the Sanyam Framework is
+            available by selected companies as listed on the <BrowserLink text=" Sanyam support page" url="https://sanyam-ide.org/support/"
                 windowService={windowService} ></BrowserLink>.
         </div>
     </div>;
@@ -82,17 +80,10 @@ export function renderTickets(windowService: WindowService): React.ReactNode {
             Reporting feature requests and bugs
         </h3>
         <div >
-            The features in the Sanyam IDE are based on Theia and the included
-            extensions/plugins. For bugs in Theia please consider opening an issue in
-            the <BrowserLink text="Theia project on Github" url="https://github.com/johnholliday/sanyam-ide/issues/new/choose"
+            The features of this application are based on the Sanyam Framework and the included
+            extensions/plugins. For bugs in the framework please consider opening an issue in
+            the <BrowserLink text="Sanyam IDE project on Github" url="https://github.com/johnholliday/sanyam-ide/issues/new/choose"
                 windowService={windowService} ></BrowserLink>.
-        </div>
-        <div>
-            Sanyam IDE only packages existing functionality into a product and installers
-            for the product. If you believe there is a mistake in packaging, something needs to be added to the
-            packaging or the installers do not work properly,
-            please <BrowserLink text="open an issue on Github" url="https://github.com/johnholliday/sanyam-ide/issues/new/choose"
-                windowService={windowService} ></BrowserLink> to let us know.
         </div>
     </div>;
 }
@@ -117,7 +108,7 @@ export function renderDocumentation(windowService: WindowService): React.ReactNo
         </h3>
         <div >
             Please see the <BrowserLink text="documentation" url="https://sanyam-ide.org/docs/user_getting_started/"
-                windowService={windowService} ></BrowserLink> on how to use the Sanyam IDE.
+                windowService={windowService} ></BrowserLink> on how to use the IDE.
         </div>
     </div>;
 }

@@ -11,7 +11,14 @@
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js",
       "default": "./lib/index.js"
+    },
+    "./generate-app-grammars": {
+      "types": "./lib/generate-app-grammars.d.ts",
+      "import": "./lib/generate-app-grammars.js"
     }
+  },
+  "bin": {
+    "generate-app-grammars": "./lib/generate-app-grammars.js"
   },
   "files": [
     "lib",

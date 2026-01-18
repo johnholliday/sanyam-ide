@@ -30,3 +30,6 @@ grammars/*/manifest.js
 grammars/*/manifest.d.ts
 grammars/*/*.js.map
 grammars/*/*.d.ts.map
+
+# Auto-generated grammar configuration files
+applications/*/src/language-server/grammars.ts

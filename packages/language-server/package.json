@@ -17,6 +17,10 @@
       "import": "./lib/main.js",
       "default": "./lib/main.js"
     },
+    "./server-factory": {
+      "types": "./lib/server-factory.d.ts",
+      "import": "./lib/server-factory.js"
+    },
     "./extension": {
       "types": "./lib/extension.d.ts",
       "import": "./lib/extension.js"
@@ -24,6 +28,10 @@
     "./language-registry": {
       "types": "./lib/language-registry.d.ts",
       "import": "./lib/language-registry.js"
+    },
+    "./contribution-loader": {
+      "types": "./lib/discovery/contribution-loader.d.ts",
+      "import": "./lib/discovery/contribution-loader.js"
     }
   },
   "files": [
@@ -33,22 +41,18 @@
     "language-configurations"
   ],
   "scripts": {
-    "build": "npm run generate:registry && tsc -b",
+    "build": "tsc -b",
     "build:extension": "npm run build && npm run generate:vsix-manifest",
     "build:vsix": "npm run build && ts-node --esm scripts/build-vsix.ts",
     "clean": "rimraf lib tsconfig.tsbuildinfo syntaxes language-configurations",
     "watch": "tsc -b -w",
-    "generate:registry": "ts-node --esm scripts/generate-grammar-registry.ts",
     "generate:vsix-manifest": "ts-node --esm scripts/generate-vsix-manifest.ts",
     "generate:textmate": "ts-node --esm scripts/build-vsix.ts",
     "package:vsix": "npm run build:vsix && vsce package --no-dependencies"
   },
   "dependencies": {
-    "@sanyam/grammar-scanner": "workspace:*",
     "@sanyam/types": "workspace:*",
-    "@sanyam-grammar/ecml": "workspace:*",
-    "@sanyam-grammar/example-minimal": "workspace:*",
-    "@eclipse-glsp/server-node": "^1.0.0",
+    "@eclipse-glsp/server": "^2.5.0",
     "inversify": "^6.0.1",
     "langium": "^4.1.0",
     "vscode-languageserver": "^9.0.1",

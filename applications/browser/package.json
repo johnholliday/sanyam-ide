@@ -24,15 +24,15 @@
   "theia": {
     "frontend": {
       "config": {
-        "applicationName": "Sanyam IDE",
+        "applicationName": "Enterprise Content Modeling Language IDE",
         "applicationData": {
-          "name": "Sanyam IDE",
-          "description": "AI-Powered Development Environment for Domain-Specific Languages",
+          "name": "Enterprise Content Modeling Language IDE",
+          "description": "Development environment for Enterprise Content Modeling Language domain-specific language",
           "logo": "resources/sanyam-banner.svg",
-          "tagline": "Build intelligent language tools with ease",
+          "tagline": "Build and edit Enterprise Content Modeling Language models with ease",
           "text": [
-            "Sanyam IDE provides a complete development environment for creating and working with domain-specific languages powered by Langium.",
-            "Features include AI-assisted code completion, syntax highlighting, validation, and diagram generation for your custom DSLs."
+            "Enterprise Content Modeling Language IDE provides a complete development environment for creating and working with Enterprise Content Modeling Language files.",
+            "Features include syntax highlighting, validation, code completion, and diagram generation for your Enterprise Content Modeling Language models."
           ],
           "links": [
             {
@@ -148,19 +148,23 @@
     "@theia/workspace": "1.67.0",
     "fs-extra": "^9.0.1",
     "@sanyam-grammar/ecml": "workspace:*",
-    "@sanyam-ide/product": "workspace:*"
+    "@sanyam-ide/product": "workspace:*",
+    "sanyam-language-server": "workspace:*"
   },
   "devDependencies": {
+    "@sanyam/grammar-scanner": "workspace:*",
+    "@sanyam/types": "workspace:*",
     "@theia/cli": "1.67.0",
     "@theia/native-webpack-plugin": "1.67.0"
   },
   "scripts": {
+    "build": "pnpm generate:grammars && npx theia rebuild:browser --cacheRoot ../.. && npx theia build --app-target=\"browser\" --mode development",
+    "build:prod": "pnpm generate:grammars && npx theia rebuild:browser --cacheRoot ../.. && npx theia build --app-target=\"browser\"",
     "clean": "theia clean && rimraf node_modules",
-    "build": "npx theia rebuild:browser --cacheRoot ../.. && npx theia build --app-target=\"browser\" --mode development",
-    "build:prod": "npx theia rebuild:browser --cacheRoot ../.. && npx theia build --app-target=\"browser\"",
+    "generate:grammars": "node ../../packages/grammar-scanner/lib/generate-app-grammars.js",
     "rebuild": "npx theia rebuild:browser --cacheRoot ../..",
     "start": "theia start --port=3002 --plugins=local-dir:../../plugins",
-    "watch": "concurrently --kill-others -n tsc,build -c red,yellow \"tsc -b -w --preserveWatchOutput\" \"pnpm watch:bundle\"",
-    "update:theia": "ts-node ../../scripts/update-theia-version.ts"
+    "update:theia": "ts-node ../../scripts/update-theia-version.ts",
+    "watch": "theia build --watch --mode development"
   }
 }

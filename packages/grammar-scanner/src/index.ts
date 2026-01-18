@@ -14,3 +14,11 @@ export {
   type GrammarScanResult,
   type GrammarScannerOptions,
 } from './grammar-scanner.js';
+
+export {
+  findGrammarPackages,
+  generateGrammarsCode,
+  generateAppGrammars,
+  type GeneratorOptions,
+  type GenerationResult,
+} from './generate-app-grammars.js';

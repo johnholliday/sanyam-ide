@@ -7,9 +7,9 @@
  * @packageDocumentation
  */
 
-import { injectable, inject, postConstruct } from 'inversify';
-import { Widget, BaseWidget, Message, MessageLoop } from '@theia/core/lib/browser';
-import { Emitter, Event, Disposable, DisposableCollection } from '@theia/core/lib/common';
+import { injectable, postConstruct } from 'inversify';
+import { Widget, BaseWidget, Message } from '@theia/core/lib/browser';
+import { Emitter, Event, DisposableCollection } from '@theia/core/lib/common';
 import URI from '@theia/core/lib/common/uri';
 
 /**

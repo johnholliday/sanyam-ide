@@ -13,11 +13,10 @@ import {
   FrontendApplication,
   WidgetManager,
   ApplicationShell,
-  ViewContribution,
   KeybindingContribution,
   KeybindingRegistry,
 } from '@theia/core/lib/browser';
-import { Disposable, DisposableCollection } from '@theia/core/lib/common';
+import { DisposableCollection } from '@theia/core/lib/common';
 import URI from '@theia/core/lib/common/uri';
 
 import { DiagramWidget, DIAGRAM_WIDGET_FACTORY_ID } from '../browser/diagram-widget';
@@ -47,7 +46,7 @@ export const DEFAULT_DIAGRAM_TYPES: DiagramTypeConfiguration[] = [
  */
 @injectable()
 export class GlspContribution
-  implements FrontendApplicationContribution, KeybindingContribution, ViewContribution<DiagramWidget>
+  implements FrontendApplicationContribution, KeybindingContribution
 {
   readonly viewId = DIAGRAM_WIDGET_FACTORY_ID;
   readonly viewLabel = 'Diagram View';

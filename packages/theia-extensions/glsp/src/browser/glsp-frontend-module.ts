@@ -8,7 +8,7 @@
  */
 
 import { ContainerModule, interfaces } from 'inversify';
-import { WidgetFactory, bindViewContribution, FrontendApplicationContribution } from '@theia/core/lib/browser';
+import { WidgetFactory, FrontendApplicationContribution, KeybindingContribution } from '@theia/core/lib/browser';
 import { CommandContribution, MenuContribution } from '@theia/core/lib/common';
 
 // Import GLSP contribution and widget
@@ -52,8 +52,8 @@ export default new ContainerModule((bind: interfaces.Bind) => {
   // Bind GLSP contribution
   bind(GlspContribution).toSelf().inSingletonScope();
   bind(GLSP_FRONTEND_TYPES.GlspContribution).toService(GlspContribution);
-  bindViewContribution(bind, GlspContribution);
   bind(FrontendApplicationContribution).toService(GlspContribution);
+  bind(KeybindingContribution).toService(GlspContribution);
 
   // Bind command contributions
   bind(GlspDiagramCommands).toSelf().inSingletonScope();

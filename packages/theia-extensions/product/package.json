@@ -41,11 +41,12 @@
     "src"
   ],
   "scripts": {
-    "clean": "rimraf lib *.tsbuildinfo",
     "build": "tsc -b",
+    "clean": "rimraf lib *.tsbuildinfo",
     "lint": "eslint --ext js,jsx,ts,tsx src",
     "lint:fix": "eslint --ext js,jsx,ts,tsx src --fix",
-    "update:theia": "ts-node ../../../scripts/update-theia-version.ts"
+    "update:theia": "ts-node ../../../scripts/update-theia-version.ts",
+    "watch": "tsc -b -w"
   },
   "peerDependencies": {
     "@theia/vsx-registry": "1.67.0",

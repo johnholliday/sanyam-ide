@@ -27,4 +27,3 @@ hidden terminal SL_COMMENT: /\/\/[^\n\r]*/;
 
 terminal ID: /[_a-zA-Z][\w_]*/;
 terminal STRING: /"[^"]*"|'[^']*'/;
-terminal INT returns number: /[0-9]+/;

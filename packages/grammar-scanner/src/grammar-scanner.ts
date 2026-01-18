@@ -51,9 +51,8 @@ export interface GrammarScannerOptions {
 /**
  * Scans the pnpm workspace to discover grammar packages.
  *
- * Grammar packages are identified by:
- * 1. Having a `sanyam.grammar: true` field in package.json
- * 2. OR having a package name matching `@sanyam-grammar/*`
+ * Grammar packages are identified by having a `sanyam.grammar: true` field in package.json.
+ * The `@sanyam-grammar/*` naming convention alone is NOT sufficient.
  *
  * @param options - Scanner options
  * @returns Scan result with discovered packages and any warnings
@@ -115,6 +114,9 @@ export async function scanForGrammarPackages(
 /**
  * Try to parse a package.json as a grammar package.
  *
+ * Grammar packages MUST have `sanyam.grammar: true` in package.json.
+ * The `@sanyam-grammar/*` naming convention alone is not sufficient.
+ *
  * @param packageJson - Parsed package.json
  * @param packagePath - Absolute path to the package
  * @returns Scanned package info or undefined if not a grammar package
@@ -125,23 +127,14 @@ function tryParseGrammarPackage(
 ): ScannedGrammarPackage | undefined {
   const { name, version, sanyam } = packageJson;
 
-  // Check for explicit sanyam.grammar flag
+  // REQUIRE explicit sanyam.grammar flag - naming convention alone is insufficient
+  // This prevents non-grammar packages (like documentation sites) with @sanyam-grammar/ prefix
+  // from being included in the registry
   if (sanyam?.grammar === true) {
     return {
       packageName: name,
       languageId: sanyam.languageId ?? extractLanguageIdFromName(name),
       contributionPath: sanyam.contribution ?? './lib/contribution.js',
-      packagePath,
-      version,
-    };
-  }
-
-  // Check for naming convention @sanyam-grammar/*
-  if (name.startsWith('@sanyam-grammar/')) {
-    return {
-      packageName: name,
-      languageId: extractLanguageIdFromName(name),
-      contributionPath: './lib/contribution.js',
       packagePath,
       version,
     };

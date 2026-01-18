@@ -13,7 +13,7 @@ import { codicon, Message } from '@theia/core/lib/browser';
 import { PreferenceService } from '@theia/core/lib/common';
 import { inject, injectable, optional } from '@theia/core/shared/inversify';
 import {
-    renderDocumentation, renderDownloads, renderExtendingCustomizing, renderSourceCode, renderSupport, renderTickets, renderWhatIs, renderCollaboration
+    renderDocumentation, renderDownloads, renderExtendingCustomizing, /*renderSourceCode,*/ renderSupport, renderTickets, renderWhatIs, renderCollaboration
 } from './branding-util';
 
 import { GettingStartedWidget } from '@theia/getting-started/lib/browser/getting-started-widget';
@@ -59,105 +59,106 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
 
     protected render(): React.ReactNode {
         return <div className='gs-container'>
-            <div className='gs-content-container'>
-                <div className='gs-float'>
-                    <div className='gs-logo'>
-                    </div>
+            {this.renderHeader()}
+            {this.renderApplicationLinks()}
+            <hr className='gs-hr' />
+            <div className='gs-two-column'>
+                <div className='gs-sidebar'>
                     {this.renderActions()}
                 </div>
-                {this.renderHeader()}
-                <hr className='gs-hr' />
-                {this.renderApplicationContent()}
-                {this.renderApplicationLinks()}
-                {this.renderInstalledGrammars()}
-                <div className='flex-grid'>
-                    <div className='col'>
-                        {this.renderNews()}
+                <div className='gs-main-content'>
+                    {this.renderInstalledGrammars()}
+                    <div className='flex-grid'>
+                        <div className='col'>
+                            {this.renderNews()}
+                        </div>
+                    </div>
+                    <div className='flex-grid'>
+                        <div className='col'>
+                            {renderWhatIs(this.windowService)}
+                        </div>
+                    </div>
+                    <div className='flex-grid'>
+                        <div className='col'>
+                            {renderExtendingCustomizing(this.windowService)}
+                        </div>
+                    </div>
+                    <div className='flex-grid'>
+                        <div className='col'>
+                            {renderSupport(this.windowService)}
+                        </div>
+                    </div>
+                    <div className='flex-grid'>
+                        <div className='col'>
+                            {renderTickets(this.windowService)}
+                        </div>
+                    </div>
+                    <div className='flex-grid'>
+                        <div className='col'>
+                            {renderDocumentation(this.windowService)}
+                        </div>
+                    </div>
+                    <div className='flex-grid'>
+                        <div className='col'>
+                            {this.renderAIBanner()}
+                        </div>
+                    </div>
+                    <div className='flex-grid'>
+                        <div className='col'>
+                            {renderCollaboration(this.windowService)}
+                        </div>
+                    </div>
+                    <div className='flex-grid'>
+                        <div className='col'>
+                            {renderDownloads()}
+                        </div>
+                    </div>
+                    <div className='gs-preference-container'>
+                        {this.renderPreferences()}
                     </div>
                 </div>
-                <div className='flex-grid'>
-                    <div className='col'>
-                        {renderWhatIs(this.windowService)}
-                    </div>
-                </div>
-                <div className='flex-grid'>
-                    <div className='col'>
-                        {renderExtendingCustomizing(this.windowService)}
-                    </div>
-                </div>
-                <div className='flex-grid'>
-                    <div className='col'>
-                        {renderSupport(this.windowService)}
-                    </div>
-                </div>
-                <div className='flex-grid'>
-                    <div className='col'>
-                        {renderTickets(this.windowService)}
-                    </div>
-                </div>
-                <div className='flex-grid'>
-                    <div className='col'>
-                        {renderSourceCode(this.windowService)}
-                    </div>
-                </div>
-                <div className='flex-grid'>
-                    <div className='col'>
-                        {renderDocumentation(this.windowService)}
-                    </div>
-                </div>
-                <div className='flex-grid'>
-                    <div className='col'>
-                        {this.renderAIBanner()}
-                    </div>
-                </div>
-                <div className='flex-grid'>
-                    <div className='col'>
-                        {renderCollaboration(this.windowService)}
-                    </div>
-                </div>
-                <div className='flex-grid'>
-                    <div className='col'>
-                        {renderDownloads()}
-                    </div>
-                </div>
-            </div>
-            <div className='gs-preference-container'>
-                {this.renderPreferences()}
             </div>
         </div>;
     }
 
     protected renderActions(): React.ReactNode {
-        return <div className='gs-container'>
-            <div className='flex-grid'>
-                <div className='col'>
-                    {this.renderStart()}
-                </div>
-            </div>
-            <div className='flex-grid'>
-                <div className='col'>
-                    {this.renderRecentWorkspaces()}
-                </div>
-            </div>
-            <div className='flex-grid'>
-                <div className='col'>
-                    {this.renderSettings()}
-                </div>
-            </div>
-            <div className='flex-grid'>
-                <div className='col'>
-                    {this.renderHelp()}
-                </div>
+        return <>
+            {this.renderStart()}
+            {this.renderRecentWorkspaces()}
+            {this.renderSettings()}
+            {this.renderAIChat()}
+            {this.renderHelp()}
+        </>;
+    }
+
+    protected renderAIChat(): React.ReactNode {
+        return <div className='gs-section'>
+            <h3 className='gs-section-header'>
+                <i className={codicon('hubot')}></i>
+                AI Assistant
+            </h3>
+            <div className='gs-action-container'>
+                <a
+                    role='button'
+                    tabIndex={0}
+                    onClick={() => this.commandRegistry.executeCommand('aiChat:toggle')}
+                    onKeyDown={(e: React.KeyboardEvent) => this.isEnterKey(e) && this.commandRegistry.executeCommand('aiChat:toggle')}>
+                    Open AI Chat
+                </a>
             </div>
         </div>;
+    }
+
+    protected renderNews(): React.ReactNode {
+        return null;
     }
 
     protected renderHeader(): React.ReactNode {
         const appData = getApplicationMetadata();
         return <div className='gs-header'>
             {appData ? this.renderApplicationHeader(appData) : this.renderDefaultHeader()}
-            {this.renderVersion()}
             {appData && this.renderApplicationTagline(appData)}
+            {this.renderVersion()}
         </div>;
     }
 
@@ -194,11 +195,7 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
         if (!appData?.links?.length) {
             return null;
         }
-        return <div className='gs-app-links gs-section'>
-            <h3 className='gs-section-header'>
-                <i className={codicon('link')}></i>
-                Quick Links
-            </h3>
+        return <div className='gs-app-links'>
             <div className='gs-links-list'>
                 {appData.links.map((link, idx) => this.renderApplicationLink(link, idx))}
             </div>
@@ -221,23 +218,36 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
     }
 
     protected renderVersion(): React.ReactNode {
-        return <div>
-            <p className='gs-sub-header' >
+        return <div className='gs-version-row'>
+            <span className='gs-sub-header'>
                 {this.applicationInfo ? 'Version ' + this.applicationInfo.version : '-'}
-            </p>
-
-            <p className='gs-sub-header' >
-                {'VS Code API Version: ' + this.vscodeApiVersion}
-            </p>
+            </span>
+            <span className='gs-sub-header'>
+                {'VS Code API: ' + this.vscodeApiVersion}
+            </span>
         </div>;
     }
 
     protected renderAIBanner(): React.ReactNode {
-        const framework = super.renderAIBanner();
-        if (React.isValidElement<React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>>(framework)) {
-            return React.cloneElement(framework, { className: 'gs-section' });
-        }
-        return framework;
+        return <div className='gs-section'>
+            <h3 className='gs-section-header'>
+                <i className={codicon('hubot')}></i>
+                AI Features
+            </h3>
+            <div>
+                This IDE includes built-in AI capabilities powered by multiple providers including
+                Anthropic Claude, OpenAI GPT, Google Gemini, Ollama, and more. AI features include:
+            </div>
+            <ul className='gs-ai-features'>
+                <li><strong>AI Chat</strong> — Interactive chat assistant for coding help and questions</li>
+                <li><strong>Code Completion</strong> — AI-powered code suggestions as you type</li>
+                <li><strong>Terminal AI</strong> — Get help with terminal commands</li>
+                <li><strong>MCP Support</strong> — Connect to Model Context Protocol servers</li>
+            </ul>
+            <div>
+                Configure your AI providers in File {'>'} Preferences {'>'} Settings and search for "AI".
+            </div>
+        </div>;
     }
 
     /**

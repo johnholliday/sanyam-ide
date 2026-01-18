@@ -32,13 +32,41 @@
     text-decoration: underline;
 }
 
-.gs-float {
-    float: right;
+/* Container - flex column to allow two-column to fill height */
+.gs-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+/* Two-column layout with full-height sidebar */
+.gs-two-column {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    min-height: 0;
+}
+
+.gs-sidebar {
+    width: 200px;
+    min-width: 200px;
+    padding-right: 20px;
+    border-right: 1px solid var(--theia-widget-border);
+    flex-shrink: 0;
+}
+
+.gs-main-content {
+    flex: 1;
     padding-left: 20px;
+    padding-right: 20px;
+    min-width: 0;
+    overflow-y: auto;
 }
 
 .gs-logo {
-    background-image: var(--theia-branding-logo);
+    /* background-image: var(--theia-branding-logo); */
     background-position: center center;
     background-repeat: no-repeat;
     background-size: contain;
@@ -48,7 +76,7 @@
 }
 
 .ad-logo {
-    background-image: var(--theia-branding-logo);
+    /* background-image: var(--theia-branding-logo); */
     background-position: center center;
     background-repeat: no-repeat;
     background-size: contain;
@@ -158,11 +186,27 @@ ul.theia-aboutExtensions {
     color: var(--theia-descriptionForeground);
 }
 
+/* Header - full width above float */
+.gs-header {
+    width: 100%;
+    clear: both;
+    text-align: center;
+}
+
+.gs-version-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding: 0 20px;
+}
+
 /* Application Metadata Styles */
 .gs-app-header {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 16px;
+    text-align: center;
 }
 
 .gs-app-header h1 {
@@ -170,7 +214,7 @@ ul.theia-aboutExtensions {
 }
 
 .gs-app-logo {
-    height: 64px;
+    height: 120px;
     width: auto;
     object-fit: contain;
 }
@@ -184,11 +228,14 @@ ul.theia-aboutExtensions {
 }
 
 .gs-app-content {
+    width: 100%;
+    box-sizing: border-box;
     margin-top: 16px;
 }
 
 .gs-app-content p {
     color: var(--theia-foreground);
+    font-size: 1.1em;
     line-height: 1.6;
     margin-bottom: 12px;
 }
@@ -198,12 +245,19 @@ ul.theia-aboutExtensions {
 }
 
 .gs-app-links {
+    width: 100%;
     margin-top: 16px;
+    text-align: center;
+}
+
+.gs-app-links .gs-section-header {
+    justify-content: center;
 }
 
 .gs-links-list {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 12px;
     margin-top: 12px;
 }
@@ -228,4 +282,19 @@ ul.theia-aboutExtensions {
 
 .gs-link-item i {
     font-size: 1.1em;
+}
+
+/* AI Features List */
+.gs-ai-features {
+    margin: 12px 0;
+    padding-left: 20px;
+}
+
+.gs-ai-features li {
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+
+.gs-ai-features strong {
+    color: var(--theia-foreground);
 }

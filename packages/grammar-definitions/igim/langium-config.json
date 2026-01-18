@@ -1,5 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/eclipse-langium/langium/main/packages/langium-cli/langium-config-schema.json",
   "projectName": "Igim",
   "languages": [
     {

@@ -17,7 +17,7 @@ import type {
 import { manifest } from './manifest.js';
 import {
   SPDevKitGeneratedModule,
-  SPDevKitGeneratedSharedModule,
+  SpdevkitGeneratedSharedModule,
 } from './generated/module.js';
 
 /**
@@ -56,7 +56,7 @@ const glspProviders: Partial<GlspFeatureProviders> = {
 export const contribution: LanguageContribution = {
   languageId: 'spdevkit',
   fileExtensions: ['.spdevkit'],
-  generatedSharedModule: SPDevKitGeneratedSharedModule as Module<LangiumSharedServices>,
+  generatedSharedModule: SpdevkitGeneratedSharedModule as Module<LangiumSharedServices>,
   generatedModule: SPDevKitGeneratedModule as Module<LangiumServices>,
   manifest,
   lspProviders,

@@ -130,45 +130,44 @@ AssessmentRef:
 /**
  * The 8 GARP Principles
  */
-Principle:
+Principle returns string:
     'Accountability' | 'Integrity' | 'Protection' | 'Compliance' |
     'Availability' | 'Retention' | 'Disposition' | 'Transparency';
 
 /**
  * Maturity Model Levels (1-5)
  */
-MaturityLevel:
+MaturityLevel returns string:
     'SubStandard' | 'InDevelopment' | 'Essential' | 'Proactive' | 'Transformational';
 
 /**
  * Policy Status
  */
-PolicyStatus:
+PolicyStatus returns string:
     'Draft' | 'Active' | 'UnderReview' | 'Retired';
 
 /**
  * Finding Severity
  */
-Severity:
+Severity returns string:
     'Critical' | 'High' | 'Medium' | 'Low' | 'Info';
 
 /**
  * Recommendation Priority
  */
-Priority:
+Priority returns string:
     'Immediate' | 'ShortTerm' | 'MediumTerm' | 'LongTerm';
 
 /**
  * Disposition Methods
  */
-DispositionMethod:
+DispositionMethod returns string:
     'Destroy' | 'Archive' | 'Transfer' | 'Review';
 
 // Terminal rules
 hidden terminal WS: /\s+/;
 terminal ID: /[_a-zA-Z][\w_]*/;
 terminal STRING: /"[^"]*"|'[^']*'/;
-terminal INT: /[0-9]+/;
 
 hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;
 hidden terminal SL_COMMENT: /\/\/[^\n\r]*/;

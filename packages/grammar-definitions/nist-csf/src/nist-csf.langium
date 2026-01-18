@@ -1,7 +1,7 @@
 // NIST Cybersecurity Framework DSL
 // Generated from: https://www.nist.gov/cyberframework
 //
-// Models the NIST CSF structure including Functions, Categories,
+// Models the NIST CSF structure including CoreFunctions, Categories,
 // Subcategories, Profiles, and Informative References.
 
 grammar NistCsf
@@ -12,14 +12,14 @@ entry Model:
 
 // Union type for all top-level elements
 Element:
-    Framework | Profile | Function | Category | Subcategory | Control | InformativeReference;
+    Framework | Profile | CoreFunction | Category | Subcategory | Control | InformativeReference;
 
 // Framework definition - the top-level container
 Framework:
     'framework' name=ID '{'
         ('description' description=STRING)?
         ('version' version=STRING)?
-        (functions+=Function)*
+        (functions+=CoreFunction)*
     '}';
 
 // Profile - industry or organization-specific implementation
@@ -39,15 +39,15 @@ ProfileMapping:
 ImplementationTier returns string:
     'Partial' | 'RiskInformed' | 'Repeatable' | 'Adaptive';
 
-// Core Function - one of the six CSF functions
-Function:
-    'function' name=FunctionName '{'
+// CoreFunction - one of the six CSF functions
+CoreFunction:
+    'function' name=CoreFunctionName '{'
         ('description' description=STRING)?
         (categories+=Category)*
     '}';
 
 // The six core function names
-FunctionName returns string:
+CoreFunctionName returns string:
     'Govern' | 'Identify' | 'Protect' | 'Detect' | 'Respond' | 'Recover';
 
 // Category - groups related outcomes within a function
@@ -95,4 +95,3 @@ hidden terminal SL_COMMENT: /\/\/[^\n\r]*/;
 // Terminal rules
 terminal ID: /[_a-zA-Z][\w_-]*/;
 terminal STRING: /"[^"]*"|'[^']*'/;
-terminal INT returns number: /[0-9]+/;

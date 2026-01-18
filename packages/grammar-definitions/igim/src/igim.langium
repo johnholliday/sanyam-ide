@@ -70,7 +70,7 @@ Stakeholder:
         ('email' email=STRING)?
     '}';
 
-StakeholderRole:
+StakeholderRole returns string:
     'executive' | 'legal' | 'compliance' | 'it' | 'records' | 'privacy' | 'security' | 'business' | 'other';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -91,7 +91,7 @@ Authority:
         ('requirements' '{' requirements+=Requirement+ '}')?
     '}';
 
-AuthorityType:
+AuthorityType returns string:
     'regulation' | 'standard' | 'framework' | 'policy' | 'contract' | 'guideline' | 'best-practice';
 
 Requirement:
@@ -114,10 +114,10 @@ Risk:
         ('mitigations' mitigations+=[Process:ID]* )?
     '}';
 
-RiskCategory:
+RiskCategory returns string:
     'legal' | 'compliance' | 'operational' | 'reputational' | 'security' | 'financial' | 'strategic';
 
-RiskLevel:
+RiskLevel returns string:
     'very-low' | 'low' | 'medium' | 'high' | 'very-high';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -137,7 +137,7 @@ Support:
         ('activities' '{' activities+=Activity+ '}')?
     '}';
 
-SupportType:
+SupportType returns string:
     'change-management' | 'project-management' | 'communications' | 'training' | 'help-desk' | 'documentation';
 
 Activity:
@@ -166,7 +166,7 @@ Process:
         ('steps' '{' steps+=Step+ '}')?
     '}';
 
-ProcessType:
+ProcessType returns string:
     'policy' | 'procedure' | 'workflow' | 'review' | 'audit' | 'monitoring' | 'reporting';
 
 /**
@@ -183,10 +183,10 @@ PolicyDocument:
         ('status' status=DocumentStatus)?
     '}';
 
-DocumentType:
+DocumentType returns string:
     'policy' | 'procedure' | 'standard' | 'guideline' | 'form' | 'template' | 'handbook';
 
-DocumentStatus:
+DocumentStatus returns string:
     'draft' | 'review' | 'approved' | 'published' | 'retired';
 
 Metric:
@@ -222,7 +222,7 @@ Capability:
         ('lifecycleStages' '{' stages+=LifecycleStage+ '}')?
     '}';
 
-CapabilityType:
+CapabilityType returns string:
     'lifecycle' | 'access' | 'search' | 'protection' | 'privacy' | 'retention' | 'disposition';
 
 LifecycleStage:
@@ -232,7 +232,7 @@ LifecycleStage:
         ('controls' '{' controls+=STRING+ '}')?
     '}';
 
-LifecyclePhase:
+LifecyclePhase returns string:
     'creation' | 'capture' | 'classification' | 'storage' | 'use' | 'sharing' | 'archival' | 'disposition';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -252,7 +252,7 @@ Structure:
         ('elements' '{' elements+=StructureElement+ '}')?
     '}';
 
-StructureType:
+StructureType returns string:
     'taxonomy' | 'metadata-schema' | 'information-architecture' | 'technology-architecture' | 'file-format' | 'protocol';
 
 StructureElement:
@@ -285,7 +285,7 @@ Infrastructure:
         ('securityControls' '{' securityControls+=SecurityControl+ '}')?
     '}';
 
-InfrastructureType:
+InfrastructureType returns string:
     'application' | 'database' | 'network' | 'api' | 'content-service' | 'hosting' | 'cloud' | 'server';
 
 SecurityControl:
@@ -295,7 +295,7 @@ SecurityControl:
         ('status' status=Status)?
     '}';
 
-SecurityControlType:
+SecurityControlType returns string:
     'access-control' | 'encryption' | 'monitoring' | 'backup' | 'authentication' | 'authorization' | 'audit';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -330,23 +330,23 @@ Finding:
         ('priority' priority=Priority)?
     '}';
 
-IGArea:
+IGArea returns string:
     'steering-committee' | 'authorities' | 'supports' | 'processes' | 'capabilities' | 'structures' | 'infrastructure';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SHARED ENUMERATIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-MaturityLevel:
+MaturityLevel returns string:
     'initial' | 'developing' | 'defined' | 'managed' | 'optimizing';
 
-Status:
+Status returns string:
     'planned' | 'in-progress' | 'implemented' | 'operational' | 'retired';
 
-Priority:
+Priority returns string:
     'critical' | 'high' | 'medium' | 'low';
 
-Frequency:
+Frequency returns string:
     'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'annually' | 'as-needed';
 
 // ═══════════════════════════════════════════════════════════════════════════════

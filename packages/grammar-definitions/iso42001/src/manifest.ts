@@ -8,6 +8,7 @@
  */
 
 import type { GrammarManifest } from '@sanyam/types';
+import { LOGO_DATA_URL } from './logo.generated.js';
 
 /**
  * ISO 42001 Grammar Manifest
@@ -17,6 +18,7 @@ export const manifest: GrammarManifest = {
   displayName: 'ISO 42001',
   fileExtension: '.iso42001',
   baseExtension: '.iso42001',
+  logo: LOGO_DATA_URL,
   rootTypes: [
     {
       astType: 'Organization',

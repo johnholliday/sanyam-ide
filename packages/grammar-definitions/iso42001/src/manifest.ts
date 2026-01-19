@@ -8,17 +8,19 @@
  */
 
 import type { GrammarManifest } from '@sanyam/types';
-import { LOGO_DATA_URL } from './logo.generated.js';
 
 /**
  * ISO 42001 Grammar Manifest
+ *
+ * Note: Logo is handled by webpack asset bundling. The logo.svg file is copied
+ * to assets/logos/iso42001.svg at build time.
  */
 export const manifest: GrammarManifest = {
   languageId: 'iso42001',
   displayName: 'ISO 42001',
   fileExtension: '.iso42001',
   baseExtension: '.iso42001',
-  logo: LOGO_DATA_URL,
+  // logo field omitted - handled by webpack asset bundling (assets/logos/iso42001.svg)
   rootTypes: [
     {
       astType: 'Organization',

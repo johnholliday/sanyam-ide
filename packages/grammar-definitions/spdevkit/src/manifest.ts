@@ -8,17 +8,19 @@
  */
 
 import type { GrammarManifest } from '@sanyam/types';
-import { LOGO_DATA_URL } from './logo.generated.js';
 
 /**
  * SPDevKit Grammar Manifest
+ *
+ * Note: Logo is handled by webpack asset bundling. The logo.svg file is copied
+ * to assets/logos/spdevkit.svg at build time.
  */
 export const manifest: GrammarManifest = {
   languageId: 'spdevkit',
   displayName: 'SPDevKit',
   fileExtension: '.spdevkit',
   baseExtension: '.spdevkit',
-  logo: LOGO_DATA_URL,
+  // logo field omitted - handled by webpack asset bundling (assets/logos/spdevkit.svg)
   rootTypes: [
     {
       astType: 'Application',

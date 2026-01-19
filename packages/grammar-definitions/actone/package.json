@@ -24,10 +24,9 @@
     "src"
   ],
   "scripts": {
-    "build": "npm run generate:logo && npm run langium:generate && tsc -b tsconfig.json",
-    "generate:logo": "node scripts/encode-logo.js",
+    "build": "npm run langium:generate && tsc -b tsconfig.json",
     "langium:generate": "langium generate",
-    "clean": "rimraf lib src/generated src/logo.generated.ts",
+    "clean": "rimraf lib src/generated",
     "watch": "tsc -b tsconfig.json --watch",
     "lint": "eslint src --ext .ts"
   },

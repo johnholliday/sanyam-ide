@@ -24,17 +24,17 @@
   "theia": {
     "frontend": {
       "config": {
-        "applicationName": "SPDevKit IDE",
+        "applicationName": "Enterprise Content Modeling Language IDE",
         "applicationData": {
-          "name": "SPDevKit IDE",
-          "description": "Development environment for SPDevKit domain-specific language",
+          "name": "Enterprise Content Modeling Language IDE",
+          "description": "Development environment for Enterprise Content Modeling Language domain-specific language",
           "logo": "resources/sanyam-banner.svg",
-          "grammarId": "spdevkit",
-          "grammarLogo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgODAiIHdpZHRoPSIyMDAiIGhlaWdodD0iODAiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzcGRldmtpdEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOWI1OWI2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4ZTQ0YWQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB4PSIyIiB5PSIyIiB3aWR0aD0iMTk2IiBoZWlnaHQ9Ijc2IiByeD0iOCIgZmlsbD0idXJsKCNzcGRldmtpdEdyYWQpIi8+CiAgPHRleHQgeD0iMTAwIiB5PSI1MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNQREVWS0lUPC90ZXh0Pgo8L3N2Zz4K",
-          "tagline": "Build and edit SPDevKit models with ease",
+          "grammarId": "ecml",
+          "grammarLogo": "assets/logos/ecml.svg",
+          "tagline": "Build and edit Enterprise Content Modeling Language models with ease",
           "text": [
-            "SPDevKit IDE provides a complete development environment for creating and working with SPDevKit files.",
-            "Features include syntax highlighting, validation, code completion, and diagram generation for your SPDevKit models."
+            "Enterprise Content Modeling Language IDE provides a complete development environment for creating and working with Enterprise Content Modeling Language files.",
+            "Features include syntax highlighting, validation, code completion, and diagram generation for your Enterprise Content Modeling Language models."
           ],
           "links": [
             {
@@ -149,7 +149,7 @@
     "@theia/vsx-registry": "1.67.0",
     "@theia/workspace": "1.67.0",
     "fs-extra": "^9.0.1",
-    "@sanyam-grammar/spdevkit": "workspace:*",
+    "@sanyam-grammar/ecml": "workspace:*",
     "@sanyam-ide/product": "workspace:*",
     "sanyam-language-server": "workspace:*"
   },

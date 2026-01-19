@@ -9,17 +9,19 @@
  */
 
 import type { GrammarManifest } from '@sanyam/types';
-import { LOGO_DATA_URL } from './logo.generated.js';
 
 /**
  * ActOne Grammar Manifest
+ *
+ * Note: Logo is handled by webpack asset bundling. The logo.svg file is copied
+ * to assets/logos/actone.svg at build time.
  */
 export const manifest: GrammarManifest = {
   languageId: 'actone',
   displayName: 'ActOne Story DSL',
   fileExtension: '.actone',
   baseExtension: '.actone',
-  logo: LOGO_DATA_URL,
+  // logo field omitted - handled by webpack asset bundling (assets/logos/actone.svg)
   packageFile: {
     fileName: 'story.actone',
     displayName: 'Story',

@@ -108,20 +108,18 @@ languageId pattern: /languageId:\s*['"]([^'"]+)['"]/
 displayName pattern: /displayName:\s*['"]([^'"]+)['"]/
 fileExtension pattern: /fileExtension:\s*['"]([^'"]+)['"]/
 rootTypes check: Look for "rootTypes:" followed by array content
-logo pattern: /logo:\s*['"`]([^'"`]+)['"`]/ or /logo:\s*(\w+)/ (for imported constants)
 ```
 
 **Logo field handling:**
 
-The logo may be specified in two ways:
-1. **Inline data URL**: `logo: 'data:image/svg+xml;base64,...'`
-2. **Imported constant**: `logo: LOGO_DATA_URL` (from `./logo.generated.js`)
+Grammar logos are now handled by webpack asset bundling. The logo is NOT read from the manifest.
+Instead, the logo path is derived from the languageId:
 
-If the logo references an imported constant (e.g., `LOGO_DATA_URL`), read the generated file:
-- Check `packages/grammar-definitions/{name}/src/logo.generated.ts`
-- Extract the data URL from: `export const LOGO_DATA_URL = '...'`
+```
+logoPath = `assets/logos/${languageId}.svg`
+```
 
-If no logo is found, use `undefined` (the field is optional).
+Webpack copies `packages/grammar-definitions/{name}/src/logo.svg` to `assets/logos/{languageId}.svg` at build time. The frontend loads this as a static asset, enabling browser caching.
 
 If parsing fails or required fields are missing:
 ```
@@ -150,9 +148,11 @@ interface ParsedManifest {
   displayName: string;    // From manifest
   fileExtension: string;  // From manifest
   rootTypeCount: number;  // Count of rootTypes
-  logo?: string;          // Optional base64 data URL from manifest
+  logoPath: string;       // Asset path: "assets/logos/{languageId}.svg"
 }
 ```
+
+The `logoPath` is always derived as `assets/logos/${languageId}.svg` - webpack bundles the logo at build time.
 
 If ANY grammar validation fails, stop and do not proceed with changes.
 
@@ -176,7 +176,7 @@ If only ONE grammar was specified, derive all metadata from its manifest:
   description: "Development environment for {displayName} domain-specific language",
   logo: "resources/sanyam-banner.svg",
   grammarId: "{languageId}",
-  grammarLogo: "{logo}",  // Optional: base64 data URL from manifest, omit if undefined
+  grammarLogo: "assets/logos/{languageId}.svg",  // Asset path for webpack-bundled logo
   tagline: "Build and edit {displayName} models with ease",
   text: [
     "{displayName} IDE provides a complete development environment for creating and working with {displayName} files.",
@@ -254,8 +254,8 @@ Options:
   name: "{applicationName}",
   description: "{generatedDescription}",
   logo: "resources/sanyam-banner.svg",
-  grammarId: "{first grammar's languageId}",  // Use first selected grammar
-  grammarLogo: "{first grammar's logo}",      // Optional: omit if undefined
+  grammarId: "{first grammar's languageId}",               // Use first selected grammar
+  grammarLogo: "assets/logos/{first grammar's languageId}.svg",  // Asset path for first grammar's logo
   tagline: "{tagline}",
   text: [
     "{applicationName} provides a complete development environment for domain-specific languages.",
@@ -315,7 +315,7 @@ Application metadata:
   - name: "{name}"
   - description: "{description}"
   - grammarId: "{languageId}"
-  - grammarLogo: "{logo}" (if available)
+  - grammarLogo: "assets/logos/{languageId}.svg"
   - tagline: "{tagline}"
 
 Files to modify:
@@ -343,14 +343,14 @@ Read `applications/electron/package.json` and modify:
      "description": "{description}",
      "logo": "resources/sanyam-banner.svg",
      "grammarId": "{languageId}",
-     "grammarLogo": "{logo}",
+     "grammarLogo": "assets/logos/{languageId}.svg",
      "tagline": "{tagline}",
      "text": [...],
      "links": [...]
    }
    ```
 
-   **Note:** Only include `grammarLogo` if the manifest provides a logo. Omit the field entirely if no logo is available.
+   **Note:** The `grammarLogo` is always the webpack asset path `assets/logos/{languageId}.svg`. Webpack copies the logo from the grammar package at build time.
 
 3. **Update dependencies:**
    - Remove all `@sanyam-grammar/*` entries
@@ -392,8 +392,15 @@ Next steps:
 3. Build the applications:
    pnpm build:dev
 
+4. Verify logo bundling (after build):
+   ls applications/electron/lib/assets/logos/
+   ls applications/browser/lib/assets/logos/
+
 The application will now use only the selected grammar(s):
 {list of selected grammars with displayNames}
+
+Note: Grammar logos are bundled by webpack during the build. The grammarLogo field
+uses the asset path "assets/logos/{languageId}.svg" which is served as a static file.
 ```
 
 ---
@@ -447,9 +454,9 @@ Please check file permissions and try again.
         "applicationData": {
           "name": "...",
           "description": "...",
-          "logo": "...",
-          "grammarId": "...",
-          "grammarLogo": "...",
+          "logo": "resources/sanyam-banner.svg",
+          "grammarId": "ecml",
+          "grammarLogo": "assets/logos/ecml.svg",
           "tagline": "...",
           "text": [...],
           "links": [...]
@@ -469,6 +476,9 @@ Please check file permissions and try again.
 }
 ```
 
+**Note:** The `grammarLogo` field uses a webpack asset path (`assets/logos/{languageId}.svg`)
+instead of base64 data URLs. Webpack copies logos from grammar packages at build time.
+
 ### Browser package.json theia section:
 ```json
 {
@@ -479,9 +489,9 @@ Please check file permissions and try again.
         "applicationData": {
           "name": "...",
           "description": "...",
-          "logo": "...",
-          "grammarId": "...",
-          "grammarLogo": "...",
+          "logo": "resources/sanyam-banner.svg",
+          "grammarId": "ecml",
+          "grammarLogo": "assets/logos/ecml.svg",
           "tagline": "...",
           "text": [...],
           "links": [...]

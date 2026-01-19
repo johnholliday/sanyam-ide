@@ -17,7 +17,7 @@ configs[0].module.rules.push({
     loader: require.resolve('@theia/application-manager/lib/expose-loader')
 }); */
 
-// serve favico from root
+// serve favico from root and grammar logos
 // @ts-ignore
 configs[0].plugins.push(
     // @ts-ignore
@@ -31,6 +31,15 @@ configs[0].plugins.push(
                 context: path.resolve('.', '..', '..', 'applications', 'browser', 'resources'),
                 from: '**',
                 to: 'resources'
+            },
+            // Copy grammar logos to assets/logos/ directory for browser caching
+            {
+                from: path.resolve(__dirname, '../../packages/grammar-definitions/*/src/logo.svg'),
+                to({ absoluteFilename }) {
+                    const grammarName = absoluteFilename.split('/grammar-definitions/')[1].split('/')[0];
+                    return `assets/logos/${grammarName}.svg`;
+                },
+                noErrorOnMissing: true
             }
         ]
     })

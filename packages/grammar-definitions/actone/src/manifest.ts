@@ -9,6 +9,7 @@
  */
 
 import type { GrammarManifest } from '@sanyam/types';
+import { LOGO_DATA_URL } from './logo.generated.js';
 
 /**
  * ActOne Grammar Manifest
@@ -18,6 +19,7 @@ export const manifest: GrammarManifest = {
   displayName: 'ActOne Story DSL',
   fileExtension: '.actone',
   baseExtension: '.actone',
+  logo: LOGO_DATA_URL,
   packageFile: {
     fileName: 'story.actone',
     displayName: 'Story',

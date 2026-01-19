@@ -20,8 +20,9 @@
     }
   },
   "scripts": {
-    "build": "npm run langium:generate && tsc -b tsconfig.json",
-    "clean": "rimraf lib src/generated",
+    "build": "npm run generate:logo && npm run langium:generate && tsc -b tsconfig.json",
+    "generate:logo": "node scripts/encode-logo.js",
+    "clean": "rimraf lib src/generated src/logo.generated.ts",
     "langium:generate": "langium generate",
     "watch": "tsc -b tsconfig.json --watch"
   },

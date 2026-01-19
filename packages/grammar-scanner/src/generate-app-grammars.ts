@@ -34,8 +34,10 @@ interface PackageJson {
 export interface GeneratorOptions {
   /** Working directory containing package.json */
   cwd: string;
-  /** Output file path (relative to cwd or absolute) */
+  /** Output file path for language server grammars (relative to cwd or absolute) */
   outputPath: string;
+  /** Output file path for frontend manifest module (relative to cwd or absolute) */
+  frontendOutputPath?: string;
 }
 
 /**
@@ -44,8 +46,10 @@ export interface GeneratorOptions {
 export interface GenerationResult {
   /** Whether generation was successful */
   success: boolean;
-  /** Path to the generated file */
+  /** Path to the generated language server file */
   outputPath: string;
+  /** Path to the generated frontend module file (if requested) */
+  frontendOutputPath?: string;
   /** Number of grammars found */
   grammarCount: number;
   /** List of grammar package names */
@@ -89,6 +93,82 @@ function packageNameToVariable(packageName: string): string {
   const name = packageName.replace('@sanyam-grammar/', '');
   // Remove hyphens to create valid JavaScript identifier
   return name.replace(/-/g, '');
+}
+
+/**
+ * Generate TypeScript code for frontend manifest contributions module.
+ *
+ * This creates a ContainerModule that binds all grammar manifests
+ * as GrammarManifestContribution for the frontend registry.
+ *
+ * @param packages - Array of grammar package names
+ * @param appName - Application name for documentation
+ * @returns Generated TypeScript source code
+ */
+export function generateFrontendManifestsCode(packages: string[], appName?: string): string {
+  const appLabel = appName ?? 'this application';
+
+  if (packages.length === 0) {
+    return `/**
+ * Grammar Manifest Contributions - AUTO-GENERATED
+ *
+ * No @sanyam-grammar/* packages found in package.json.
+ * Add grammar dependencies to enable language support.
+ *
+ * Generated at: ${new Date().toISOString()}
+ */
+
+import { ContainerModule } from '@theia/core/shared/inversify';
+
+/**
+ * Empty frontend module (no grammars configured).
+ */
+export default new ContainerModule(() => {
+  // No grammar manifests to bind
+});
+`;
+  }
+
+  const imports = packages
+    .map((pkg) => {
+      const varName = packageNameToVariable(pkg);
+      return `import { manifest as ${varName}Manifest } from '${pkg}/manifest';`;
+    })
+    .join('\n');
+
+  const bindings = packages
+    .map((pkg) => {
+      const varName = packageNameToVariable(pkg);
+      return `  bind(GrammarManifestContribution).toConstantValue({ manifest: ${varName}Manifest });`;
+    })
+    .join('\n');
+
+  return `/**
+ * Grammar Manifest Contributions - AUTO-GENERATED
+ *
+ * This file is generated from @sanyam-grammar/* dependencies in package.json.
+ * Do not edit manually - run 'pnpm generate:grammars' to regenerate.
+ *
+ * Generated at: ${new Date().toISOString()}
+ * Packages: ${packages.length}
+ */
+
+import { ContainerModule } from '@theia/core/shared/inversify';
+import { GrammarManifestContribution } from '@sanyam/types';
+
+${imports}
+
+/**
+ * Frontend module that registers grammar manifests for ${appLabel}.
+ *
+ * This module binds each grammar's manifest as a GrammarManifestContribution,
+ * making them available to the GrammarRegistry for UI features like the
+ * Getting Started widget and About dialog.
+ */
+export default new ContainerModule((bind) => {
+${bindings}
+});
+`;
 }
 
 /**
@@ -202,7 +282,7 @@ export function getEnabledFileExtensions(): string[] {
  * @returns Generation result
  */
 export function generateAppGrammars(options: GeneratorOptions): GenerationResult {
-  const { cwd, outputPath } = options;
+  const { cwd, outputPath, frontendOutputPath } = options;
 
   try {
     const packageJsonPath = path.resolve(cwd, 'package.json');
@@ -213,9 +293,10 @@ export function generateAppGrammars(options: GeneratorOptions): GenerationResult
     const pkg: PackageJson = JSON.parse(pkgContent);
     const appName = pkg.name ?? 'this application';
 
+    // Generate language server grammars file
     const code = generateGrammarsCode(packages, appName);
 
-    // Determine output path
+    // Determine output path for language server file
     const fullOutputPath = path.isAbsolute(outputPath)
       ? outputPath
       : path.resolve(cwd, outputPath);
@@ -224,15 +305,32 @@ export function generateAppGrammars(options: GeneratorOptions): GenerationResult
     const outputDir = path.dirname(fullOutputPath);
     fs.mkdirSync(outputDir, { recursive: true });
 
-    // Write the file
+    // Write the language server file
     fs.writeFileSync(fullOutputPath, code);
 
-    return {
+    // Generate frontend manifests module if path is provided
+    let fullFrontendPath: string | undefined;
+    if (frontendOutputPath) {
+      const frontendCode = generateFrontendManifestsCode(packages, appName);
+      fullFrontendPath = path.isAbsolute(frontendOutputPath)
+        ? frontendOutputPath
+        : path.resolve(cwd, frontendOutputPath);
+
+      const frontendDir = path.dirname(fullFrontendPath);
+      fs.mkdirSync(frontendDir, { recursive: true });
+      fs.writeFileSync(fullFrontendPath, frontendCode);
+    }
+
+    const result: GenerationResult = {
       success: true,
       outputPath: fullOutputPath,
       grammarCount: packages.length,
       grammarPackages: packages,
     };
+    if (fullFrontendPath) {
+      result.frontendOutputPath = fullFrontendPath;
+    }
+    return result;
   } catch (error) {
     return {
       success: false,
@@ -247,9 +345,10 @@ export function generateAppGrammars(options: GeneratorOptions): GenerationResult
 /**
  * Parse CLI arguments.
  */
-function parseArgs(args: string[]): { cwd: string; outputPath: string; help: boolean } {
+function parseArgs(args: string[]): { cwd: string; outputPath: string; frontendOutputPath: string; help: boolean } {
   let cwd = process.cwd();
   let outputPath = 'src/language-server/grammars.ts';
+  let frontendOutputPath = 'src/frontend/grammar-manifests-module.ts';
   let help = false;
 
   for (let i = 0; i < args.length; i++) {
@@ -259,12 +358,14 @@ function parseArgs(args: string[]): { cwd: string; outputPath: string; help: boo
       help = true;
     } else if (arg === '--output' || arg === '-o') {
       outputPath = args[++i] ?? outputPath;
+    } else if (arg === '--frontend-output' || arg === '-f') {
+      frontendOutputPath = args[++i] ?? frontendOutputPath;
     } else if (arg === '--cwd') {
       cwd = args[++i] ?? cwd;
     }
   }
 
-  return { cwd, outputPath, help };
+  return { cwd, outputPath, frontendOutputPath, help };
 }
 
 /**
@@ -298,7 +399,7 @@ Examples:
  * Main CLI entry point.
  */
 function main(): void {
-  const { cwd, outputPath, help } = parseArgs(process.argv.slice(2));
+  const { cwd, outputPath, frontendOutputPath, help } = parseArgs(process.argv.slice(2));
 
   if (help) {
     printHelp();
@@ -308,11 +409,15 @@ function main(): void {
   console.log('Generating grammar configuration...');
   console.log(`  Working directory: ${cwd}`);
   console.log(`  Output: ${outputPath}`);
+  console.log(`  Frontend output: ${frontendOutputPath}`);
 
-  const result = generateAppGrammars({ cwd, outputPath });
+  const result = generateAppGrammars({ cwd, outputPath, frontendOutputPath });
 
   if (result.success) {
     console.log(`\nGenerated ${result.outputPath}`);
+    if (result.frontendOutputPath) {
+      console.log(`Generated ${result.frontendOutputPath}`);
+    }
     console.log(`  Found ${result.grammarCount} grammar(s):`);
     for (const pkg of result.grammarPackages) {
       console.log(`    - ${pkg}`);

@@ -309,6 +309,7 @@ Create `packages/grammar-definitions/{name}/src/manifest.ts` with the complete `
  */
 
 import type { GrammarManifest } from '@sanyam/types';
+import { LOGO_DATA_URL } from './logo.generated.js';
 
 /**
  * {DisplayName} Grammar Manifest
@@ -318,6 +319,7 @@ export const manifest: GrammarManifest = {
   displayName: '{DisplayName}',
   fileExtension: '.{ext}',
   baseExtension: '.{ext}',
+  logo: LOGO_DATA_URL,
   rootTypes: [
     {
       astType: '{AstType}',
@@ -484,8 +486,9 @@ Create `packages/grammar-definitions/{name}/package.json`:
     }
   },
   "scripts": {
-    "build": "npm run langium:generate && tsc -b tsconfig.json",
-    "clean": "rimraf lib src/generated",
+    "build": "npm run generate:logo && npm run langium:generate && tsc -b tsconfig.json",
+    "generate:logo": "node scripts/encode-logo.js",
+    "clean": "rimraf lib src/generated src/logo.generated.ts",
     "langium:generate": "langium generate",
     "watch": "tsc -b tsconfig.json --watch"
   },
@@ -579,7 +582,103 @@ Create `packages/grammar-definitions/{name}/langium-config.json` for Langium CLI
   - This determines the generated module names: `MyGrammarGeneratedModule`, `MyGrammarGeneratedSharedModule`
 - Mismatched `projectName` causes TypeScript errors when importing generated modules
 
-### Step 12: Update ESLint Configuration
+### Step 12: Generate Logo Infrastructure
+
+Generate a default SVG logo and the build-time encoding infrastructure.
+
+**12.1: Create src/logo.svg**
+
+Generate a default logo SVG using the grammar's display name. Use a gradient background with the grammar name centered:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" width="200" height="80">
+  <defs>
+    <linearGradient id="{languageId}Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:{primaryColor};stop-opacity:1" />
+      <stop offset="100%" style="stop-color:{secondaryColor};stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="196" height="76" rx="8" fill="url(#{languageId}Grad)"/>
+  <text x="100" y="52" font-family="Arial, sans-serif" font-size="{fontSize}" font-weight="bold" fill="white" text-anchor="middle">{SHORT_NAME}</text>
+</svg>
+```
+
+**Color selection heuristics** (based on grammar name):
+```
+if name matches /workflow|flow|process/i → primary: #9b59b6, secondary: #8e44ad (purple)
+if name matches /api|rest|http/i → primary: #e74c3c, secondary: #c0392b (red)
+if name matches /data|model|entity/i → primary: #3498db, secondary: #2c3e50 (blue)
+if name matches /config|settings/i → primary: #95a5a6, secondary: #7f8c8d (gray)
+if name matches /security|auth/i → primary: #27ae60, secondary: #1e8449 (green)
+if name matches /test|spec/i → primary: #f39c12, secondary: #d68910 (orange)
+else → primary: #3498db, secondary: #2c3e50 (default blue)
+```
+
+**Short name derivation:**
+- Use uppercase acronym if grammar name has multiple words (e.g., "my-grammar" → "MG")
+- If single word and ≤6 chars, use uppercase (e.g., "ecml" → "ECML")
+- If single word and >6 chars, use first 4 chars uppercase (e.g., "workflow" → "WORK")
+
+**Font size selection:**
+- 1-4 chars: 36px
+- 5-6 chars: 30px
+- 7+ chars: 24px
+
+**12.2: Create scripts/encode-logo.js**
+
+Create `packages/grammar-definitions/{name}/scripts/encode-logo.js`:
+
+```javascript
+#!/usr/bin/env node
+/**
+ * Encodes the logo.svg file as a base64 data URL and generates a TypeScript module.
+ * Run this script before TypeScript compilation.
+ */
+import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const svgPath = resolve(__dirname, '../src/logo.svg');
+const outputPath = resolve(__dirname, '../src/logo.generated.ts');
+
+const svg = readFileSync(svgPath, 'utf-8');
+const base64 = Buffer.from(svg).toString('base64');
+
+// Split base64 into chunks to avoid exceeding max line length
+const chunkSize = 80;
+const chunks = [];
+for (let i = 0; i < base64.length; i += chunkSize) {
+  chunks.push(base64.slice(i, i + chunkSize));
+}
+
+const base64Lines = chunks.map((chunk) => `  '${chunk}'`).join(' +\n');
+
+const output = `/**
+ * Auto-generated file - do not edit directly.
+ * Generated from logo.svg by scripts/encode-logo.js
+ */
+const BASE64_DATA =
+${base64Lines};
+
+export const LOGO_DATA_URL = \`data:image/svg+xml;base64,\${BASE64_DATA}\`;
+`;
+
+writeFileSync(outputPath, output);
+console.log('Generated logo.generated.ts');
+```
+
+**12.3: Create .gitignore**
+
+Create `packages/grammar-definitions/{name}/.gitignore`:
+
+```
+# Generated files
+src/logo.generated.ts
+```
+
+### Step 13: Update ESLint Configuration
 
 Check if the grammar's tsconfig is already included in `.eslintrc.js`. If not, add it to the `parserOptions.project` array.
 
@@ -597,7 +696,7 @@ project: ['./configs/tsconfig.eslint.json', './packages/theia-extensions/*/tscon
 
 Only modify `.eslintrc.js` if the `packages/grammar-definitions/*/tsconfig.json` pattern is not already present.
 
-### Step 13: Report Completion
+### Step 14: Report Completion
 
 Output summary of generated files:
 
@@ -611,28 +710,33 @@ Package files created:
   packages/grammar-definitions/{name}/src/{name}.langium   - Grammar copy (synced from .source/)
   packages/grammar-definitions/{name}/src/manifest.ts      - GrammarManifest configuration
   packages/grammar-definitions/{name}/src/contribution.ts  - LanguageContribution export
+  packages/grammar-definitions/{name}/src/logo.svg         - Grammar logo (editable SVG)
+  packages/grammar-definitions/{name}/scripts/encode-logo.js - Logo encoding script
   packages/grammar-definitions/{name}/package.json         - Package with sanyam discovery metadata
   packages/grammar-definitions/{name}/tsconfig.json        - TypeScript configuration
   packages/grammar-definitions/{name}/langium-config.json  - Langium CLI configuration
+  packages/grammar-definitions/{name}/.gitignore           - Excludes generated logo file
 
 Grammar: {DisplayName}
 Language ID: {languageId}
 Root Types: {count} ({list of type names})
 Diagramming: Enabled
+Logo: Auto-generated (edit src/logo.svg to customize)
 
 Next steps:
-1. Generate Langium modules:
-   cd packages/grammar-definitions/{name} && pnpm langium:generate
+1. Build the grammar package (generates logo and Langium modules):
+   cd packages/grammar-definitions/{name} && pnpm build
 
-2. Build the grammar package:
-   pnpm build
-
-3. Install workspace dependencies:
+2. Install workspace dependencies:
    pnpm install
 
-4. To modify the grammar:
+3. To modify the grammar:
    - Edit packages/grammar-definitions/.source/{name}.langium (master)
    - Re-run /grammar.config {name} to sync changes
+
+4. To customize the logo:
+   - Edit packages/grammar-definitions/{name}/src/logo.svg
+   - Run pnpm build to regenerate the encoded logo
 
 Note: The .source/{name}.langium is the master copy. Changes should be made there
 and synced to the package via /grammar.config. NEVER delete the .source/ file.
@@ -980,6 +1084,7 @@ interface GrammarManifest {
   displayName: string;
   fileExtension: string;
   baseExtension: string;
+  logo?: string;                    // Base64 data URL for grammar logo
   packageFile?: PackageFileConfig;
   rootTypes: RootTypeConfig[];
   diagrammingEnabled: boolean;

@@ -30,7 +30,9 @@
         "applicationData": {
           "name": "Enterprise Content Modeling Language IDE",
           "description": "Development environment for Enterprise Content Modeling Language domain-specific language",
-          "logo": "resources/sanyam-logo.svg",
+          "logo": "resources/sanyam-banner.svg",
+          "grammarId": "ecml",
+          "grammarLogo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgODAiIHdpZHRoPSIyMDAiIGhlaWdodD0iODAiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJlY21sR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzNDk4ZGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzJjM2U1MDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHg9IjIiIHk9IjIiIHdpZHRoPSIxOTYiIGhlaWdodD0iNzYiIHJ4PSI4IiBmaWxsPSJ1cmwoI2VjbWxHcmFkKSIvPgogIDx0ZXh0IHg9IjEwMCIgeT0iNTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FQ01MPC90ZXh0Pgo8L3N2Zz4K",
           "tagline": "Build and edit Enterprise Content Modeling Language models with ease",
           "text": [
             "Enterprise Content Modeling Language IDE provides a complete development environment for creating and working with Enterprise Content Modeling Language files.",

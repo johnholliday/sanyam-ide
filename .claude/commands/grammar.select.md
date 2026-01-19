@@ -108,7 +108,20 @@ languageId pattern: /languageId:\s*['"]([^'"]+)['"]/
 displayName pattern: /displayName:\s*['"]([^'"]+)['"]/
 fileExtension pattern: /fileExtension:\s*['"]([^'"]+)['"]/
 rootTypes check: Look for "rootTypes:" followed by array content
+logo pattern: /logo:\s*['"`]([^'"`]+)['"`]/ or /logo:\s*(\w+)/ (for imported constants)
 ```
+
+**Logo field handling:**
+
+The logo may be specified in two ways:
+1. **Inline data URL**: `logo: 'data:image/svg+xml;base64,...'`
+2. **Imported constant**: `logo: LOGO_DATA_URL` (from `./logo.generated.js`)
+
+If the logo references an imported constant (e.g., `LOGO_DATA_URL`), read the generated file:
+- Check `packages/grammar-definitions/{name}/src/logo.generated.ts`
+- Extract the data URL from: `export const LOGO_DATA_URL = '...'`
+
+If no logo is found, use `undefined` (the field is optional).
 
 If parsing fails or required fields are missing:
 ```
@@ -137,6 +150,7 @@ interface ParsedManifest {
   displayName: string;    // From manifest
   fileExtension: string;  // From manifest
   rootTypeCount: number;  // Count of rootTypes
+  logo?: string;          // Optional base64 data URL from manifest
 }
 ```
 
@@ -160,7 +174,9 @@ If only ONE grammar was specified, derive all metadata from its manifest:
 {
   name: "{displayName} IDE",
   description: "Development environment for {displayName} domain-specific language",
-  logo: "resources/sanyam-logo.svg",
+  logo: "resources/sanyam-banner.svg",
+  grammarId: "{languageId}",
+  grammarLogo: "{logo}",  // Optional: base64 data URL from manifest, omit if undefined
   tagline: "Build and edit {displayName} models with ease",
   text: [
     "{displayName} IDE provides a complete development environment for creating and working with {displayName} files.",
@@ -237,7 +253,9 @@ Options:
 {
   name: "{applicationName}",
   description: "{generatedDescription}",
-  logo: "resources/sanyam-logo.svg",
+  logo: "resources/sanyam-banner.svg",
+  grammarId: "{first grammar's languageId}",  // Use first selected grammar
+  grammarLogo: "{first grammar's logo}",      // Optional: omit if undefined
   tagline: "{tagline}",
   text: [
     "{applicationName} provides a complete development environment for domain-specific languages.",
@@ -296,6 +314,8 @@ Application metadata:
   - applicationName: "{applicationName}"
   - name: "{name}"
   - description: "{description}"
+  - grammarId: "{languageId}"
+  - grammarLogo: "{logo}" (if available)
   - tagline: "{tagline}"
 
 Files to modify:
@@ -321,12 +341,16 @@ Read `applications/electron/package.json` and modify:
    "applicationData": {
      "name": "{name}",
      "description": "{description}",
-     "logo": "resources/sanyam-logo.svg",
+     "logo": "resources/sanyam-banner.svg",
+     "grammarId": "{languageId}",
+     "grammarLogo": "{logo}",
      "tagline": "{tagline}",
      "text": [...],
      "links": [...]
    }
    ```
+
+   **Note:** Only include `grammarLogo` if the manifest provides a logo. Omit the field entirely if no logo is available.
 
 3. **Update dependencies:**
    - Remove all `@sanyam-grammar/*` entries
@@ -424,6 +448,8 @@ Please check file permissions and try again.
           "name": "...",
           "description": "...",
           "logo": "...",
+          "grammarId": "...",
+          "grammarLogo": "...",
           "tagline": "...",
           "text": [...],
           "links": [...]
@@ -454,6 +480,8 @@ Please check file permissions and try again.
           "name": "...",
           "description": "...",
           "logo": "...",
+          "grammarId": "...",
+          "grammarLogo": "...",
           "tagline": "...",
           "text": [...],
           "links": [...]

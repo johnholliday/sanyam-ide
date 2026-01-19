@@ -8,6 +8,7 @@
  */
 
 import type { GrammarManifest } from '@sanyam/types';
+import { LOGO_DATA_URL } from './logo.generated.js';
 
 /**
  * ECML Grammar Manifest
@@ -17,6 +18,7 @@ export const manifest: GrammarManifest = {
   displayName: 'Enterprise Content Modeling Language',
   fileExtension: '.ecml',
   baseExtension: '.ecml',
+  logo: LOGO_DATA_URL,
   packageFile: {
     fileName: 'model.ecml',
     displayName: 'Content Model',

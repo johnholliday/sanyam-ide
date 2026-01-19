@@ -15,6 +15,7 @@ import { VSXEnvironment } from '@theia/vsx-registry/lib/common/vsx-environment';
 import { WindowService } from '@theia/core/lib/browser/window/window-service';
 import { getApplicationMetadata } from './application-config';
 import { ApplicationMetadata } from '@sanyam/types';
+import { GrammarRegistry } from './grammar-registry';
 
 @injectable()
 export class TheiaIDEAboutDialog extends AboutDialog {
@@ -24,6 +25,9 @@ export class TheiaIDEAboutDialog extends AboutDialog {
 
     @inject(WindowService)
     protected readonly windowService: WindowService;
+
+    @inject(GrammarRegistry)
+    protected readonly grammarRegistry: GrammarRegistry;
 
     protected vscodeApiVersion: string;
 
@@ -86,19 +90,49 @@ export class TheiaIDEAboutDialog extends AboutDialog {
 
     protected renderTitle(): React.ReactNode {
         const appData = getApplicationMetadata();
+        const effectiveLogo = this.resolveEffectiveLogo(appData);
         return <div className='gs-header'>
-            {appData ? this.renderApplicationHeader(appData) : this.renderDefaultHeader()}
+            {appData ? this.renderApplicationHeader(appData, effectiveLogo) : this.renderDefaultHeader()}
             {this.renderVersion()}
         </div>;
+    }
+
+    /**
+     * Resolves the effective logo for the application.
+     * Priority order:
+     * 1. grammarLogo from applicationData (embedded base64 data URL)
+     * 2. Logo from grammar registry (if grammarId is specified)
+     * 3. Default application logo
+     *
+     * @param appData - The application metadata
+     * @returns The effective logo URL or undefined
+     */
+    protected resolveEffectiveLogo(appData: ApplicationMetadata | undefined): string | undefined {
+        if (!appData) {
+            return undefined;
+        }
+        // First priority: embedded grammarLogo in applicationData
+        if (appData.grammarLogo) {
+            return appData.grammarLogo;
+        }
+        // Second priority: look up from grammar registry
+        if (appData.grammarId) {
+            const manifest = this.grammarRegistry.getManifest(appData.grammarId);
+            if (manifest?.logo) {
+                return manifest.logo;
+            }
+        }
+        // Fallback: default application logo
+        return appData.logo;
     }
 
     protected renderDefaultHeader(): React.ReactNode {
         return <h1>Sanyam <span className='gs-blue-header'>IDE</span></h1>;
     }
 
-    protected renderApplicationHeader(appData: ApplicationMetadata): React.ReactNode {
+    protected renderApplicationHeader(appData: ApplicationMetadata, effectiveLogo: string | undefined): React.ReactNode {
         return <div className='gs-app-header'>
-            {appData.logo && <img src={appData.logo} alt={appData.name} className='gs-app-logo' />}
+            {effectiveLogo && <img src={effectiveLogo} alt={appData.name} className='gs-app-logo' />}
             <h1>{appData.name}</h1>
         </div>;
     }

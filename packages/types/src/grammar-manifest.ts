@@ -353,6 +353,14 @@ export interface GrammarManifest {
    * Required if diagrammingEnabled is true.
    */
   readonly diagramTypes?: readonly DiagramTypeConfig[];
+
+  /**
+   * Optional logo for this grammar as a data URL.
+   * Use base64-encoded SVG or PNG for best compatibility.
+   *
+   * @example 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0i...'
+   */
+  readonly logo?: string;
 }
 
 // =============================================================================
@@ -436,6 +444,17 @@ export function validateManifest(manifest: GrammarManifest): ValidationResult {
   // Diagram validation
   if (manifest.diagrammingEnabled && (!manifest.diagramTypes || manifest.diagramTypes.length === 0)) {
     errors.push('diagramTypes required when diagrammingEnabled is true');
+  }
+
+  // Logo validation (must be a data URL if provided)
+  if (manifest.logo !== undefined) {
+    if (typeof manifest.logo !== 'string') {
+      errors.push('logo must be a string');
+    } else if (!manifest.logo.startsWith('data:')) {
+      errors.push('logo must be a data URL (starting with "data:")');
+    } else if (!/^data:image\/(svg\+xml|png|jpeg|gif|webp);base64,/.test(manifest.logo)) {
+      errors.push('logo must be a base64-encoded image data URL (e.g., data:image/svg+xml;base64,...)');
+    }
   }
 
   return {

@@ -4,14 +4,14 @@
  * This file is generated from @sanyam-grammar/* dependencies in package.json.
  * Do not edit manually - run 'pnpm generate:grammars' to regenerate.
  *
- * Generated at: 2026-01-18T23:37:56.951Z
+ * Generated at: 2026-01-19T11:36:04.781Z
  * Packages: 1
  */
 
 import { ContainerModule } from '@theia/core/shared/inversify';
 import { GrammarManifestContribution } from '@sanyam/types';
 
-import { manifest as ecmlManifest } from '@sanyam-grammar/ecml/manifest';
+import { manifest as spdevkitManifest } from '@sanyam-grammar/spdevkit/manifest';
 
 /**
  * Frontend module that registers grammar manifests for sanyam-browser.
@@ -21,5 +21,5 @@ import { manifest as ecmlManifest } from '@sanyam-grammar/ecml/manifest';
  * Getting Started widget and About dialog.
  */
 export default new ContainerModule((bind) => {
-  bind(GrammarManifestContribution).toConstantValue({ manifest: ecmlManifest });
+  bind(GrammarManifestContribution).toConstantValue({ manifest: spdevkitManifest });
 });

@@ -18,6 +18,36 @@ import type { GrammarManifest } from '@sanyam/types';
 export const manifest: GrammarManifest = {
   languageId: 'iso42001',
   displayName: 'ISO 42001',
+  summary: 'A domain-specific language for ISO/IEC 42001:2023 AI Management System assessments, enabling structured documentation of AI governance, risk management, and compliance.',
+  tagline: 'AI governance made structured',
+  keyFeatures: [
+    { feature: 'AI System Registry', description: 'Document and classify AI systems with lifecycle tracking' },
+    { feature: 'Risk Assessment', description: 'Model AI-specific risks with treatment plans and controls' },
+    { feature: 'Control Framework', description: 'Map controls to ISO 42001 Annex A requirements' },
+    { feature: 'Impact Assessment', description: 'Conduct structured AI impact assessments' },
+    { feature: 'Audit Management', description: 'Plan and track internal and external audits' },
+    { feature: 'Visual Compliance', description: 'Visualize AIMS structure with interactive diagrams' },
+  ],
+  coreConcepts: [
+    { concept: 'AIManagementSystem', description: 'The organizational framework for managing AI' },
+    { concept: 'AISystem', description: 'An AI system under management with classification and lifecycle' },
+    { concept: 'RiskRegistry', description: 'Collection of identified AI risks with assessments' },
+    { concept: 'ControlCatalog', description: 'Controls mapped to ISO 42001 requirements' },
+    { concept: 'ImpactAssessment', description: 'Structured assessment of AI system impacts' },
+    { concept: 'StakeholderRegistry', description: 'Registry of interested parties and their needs' },
+  ],
+  quickExample: `organization MyOrg {
+  description "AI-enabled organization"
+  industry TECHNOLOGY
+  size MEDIUM
+}
+
+aims MainAIMS {
+  version "1.0"
+  scope {
+    description "Enterprise AI systems"
+  }
+}`,
   fileExtension: '.iso42001',
   baseExtension: '.iso42001',
   // logo field omitted - handled by webpack asset bundling (assets/logos/iso42001.svg)

@@ -15,6 +15,32 @@ import type { GrammarManifest } from '@sanyam/types';
 export const manifest: GrammarManifest = {
   languageId: 'nist-csf',
   displayName: 'NIST CSF',
+  summary: 'A domain-specific language for implementing the NIST Cybersecurity Framework, enabling structured documentation of functions, categories, controls, and profiles.',
+  tagline: 'Cybersecurity risk, structured',
+  keyFeatures: [
+    { feature: 'Framework Core', description: 'Model the five CSF functions with categories and subcategories' },
+    { feature: 'Profile Management', description: 'Create organization-specific security profiles' },
+    { feature: 'Control Mapping', description: 'Map controls to framework requirements' },
+    { feature: 'Reference Linking', description: 'Link to informative references and standards' },
+    { feature: 'Visual Architecture', description: 'Visualize security framework structure' },
+  ],
+  coreConcepts: [
+    { concept: 'Framework', description: 'The NIST CSF implementation container' },
+    { concept: 'Profile', description: 'An organization-specific security profile' },
+    { concept: 'Function', description: 'A CSF core function (Identify, Protect, etc.)' },
+    { concept: 'Category', description: 'A grouping of cybersecurity outcomes' },
+    { concept: 'Subcategory', description: 'A specific cybersecurity outcome' },
+    { concept: 'Control', description: 'A security control implementation' },
+  ],
+  quickExample: `framework EnterpriseCSF {
+  description "Enterprise cybersecurity framework"
+  version "2.0"
+}
+
+profile CurrentState {
+  description "Current security posture"
+  target "Enterprise"
+}`,
   fileExtension: '.nist-csf',
   baseExtension: '.nist-csf',
   rootTypes: [

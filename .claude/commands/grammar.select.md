@@ -12,6 +12,8 @@ $ARGUMENTS
 
 This command reconfigures the Theia frontend metadata in both the browser and electron applications to align with the selected grammar(s). It also updates the `@sanyam-grammar/*` dependencies to include only the specified grammars.
 
+**Key Change:** Grammar documentation (summary, tagline, keyFeatures, coreConcepts, quickExample) is now read directly from the GrammarManifest at runtime via the GrammarRegistry, not stored in the package.json config.
+
 ## Input Format
 
 - Single grammar: `/grammar.select ecml`
@@ -99,7 +101,6 @@ Read the manifest file and extract:
 - `displayName`: string
 - `fileExtension`: string
 - `rootTypes`: array (check it has at least one entry)
-- `diagrammingEnabled`: boolean
 
 **Validation regex patterns:**
 
@@ -109,17 +110,6 @@ displayName pattern: /displayName:\s*['"]([^'"]+)['"]/
 fileExtension pattern: /fileExtension:\s*['"]([^'"]+)['"]/
 rootTypes check: Look for "rootTypes:" followed by array content
 ```
-
-**Logo field handling:**
-
-Grammar logos are now handled by webpack asset bundling. The logo is NOT read from the manifest.
-Instead, the logo path is derived from the languageId:
-
-```
-logoPath = `assets/logos/${languageId}.svg`
-```
-
-Webpack copies `packages/grammar-definitions/{name}/src/logo.svg` to `assets/logos/{languageId}.svg` at build time. The frontend loads this as a static asset, enabling browser caching.
 
 If parsing fails or required fields are missing:
 ```
@@ -148,11 +138,8 @@ interface ParsedManifest {
   displayName: string;    // From manifest
   fileExtension: string;  // From manifest
   rootTypeCount: number;  // Count of rootTypes
-  logoPath: string;       // Asset path: "assets/logos/{languageId}.svg"
 }
 ```
-
-The `logoPath` is always derived as `assets/logos/${languageId}.svg` - webpack bundles the logo at build time.
 
 If ANY grammar validation fails, stop and do not proceed with changes.
 
@@ -162,7 +149,7 @@ If ANY grammar validation fails, stop and do not proceed with changes.
 
 ### 3.1 Single Grammar Mode
 
-If only ONE grammar was specified, derive all metadata from its manifest:
+If only ONE grammar was specified, derive metadata from its manifest:
 
 **Application Name:**
 ```
@@ -175,8 +162,6 @@ If only ONE grammar was specified, derive all metadata from its manifest:
   name: "{displayName} IDE",
   description: "Development environment for {displayName} domain-specific language",
   logo: "resources/sanyam-banner.svg",
-  grammarId: "{languageId}",
-  grammarLogo: "assets/logos/{languageId}.svg",  // Asset path for webpack-bundled logo
   tagline: "Build and edit {displayName} models with ease",
   text: [
     "{displayName} IDE provides a complete development environment for creating and working with {displayName} files.",
@@ -254,8 +239,6 @@ Options:
   name: "{applicationName}",
   description: "{generatedDescription}",
   logo: "resources/sanyam-banner.svg",
-  grammarId: "{first grammar's languageId}",               // Use first selected grammar
-  grammarLogo: "assets/logos/{first grammar's languageId}.svg",  // Asset path for first grammar's logo
   tagline: "{tagline}",
   text: [
     "{applicationName} provides a complete development environment for domain-specific languages.",
@@ -312,11 +295,13 @@ Dependencies to REMOVE:
 
 Application metadata:
   - applicationName: "{applicationName}"
+  - applicationGrammar: "{languageId}"  (primary grammar for branding)
   - name: "{name}"
   - description: "{description}"
-  - grammarId: "{languageId}"
-  - grammarLogo: "assets/logos/{languageId}.svg"
   - tagline: "{tagline}"
+
+Note: Grammar documentation (summary, features, concepts, examples) is now
+read from the GrammarManifest at runtime via GrammarRegistry.
 
 Files to modify:
   - applications/electron/package.json
@@ -336,23 +321,27 @@ Read `applications/electron/package.json` and modify:
    "applicationName": "{applicationName}"
    ```
 
-2. **Update theia.frontend.config.applicationData:**
+2. **Update theia.frontend.config.applicationGrammar:**
+   ```json
+   "applicationGrammar": "{languageId}"
+   ```
+
+3. **Update theia.frontend.config.applicationData:**
    ```json
    "applicationData": {
      "name": "{name}",
      "description": "{description}",
      "logo": "resources/sanyam-banner.svg",
-     "grammarId": "{languageId}",
-     "grammarLogo": "assets/logos/{languageId}.svg",
      "tagline": "{tagline}",
      "text": [...],
      "links": [...]
    }
    ```
 
-   **Note:** The `grammarLogo` is always the webpack asset path `assets/logos/{languageId}.svg`. Webpack copies the logo from the grammar package at build time.
+   **Note:** The `applicationData` no longer contains grammar documentation fields.
+   Grammar documentation is now read from the GrammarManifest at runtime.
 
-3. **Update dependencies:**
+4. **Update dependencies:**
    - Remove all `@sanyam-grammar/*` entries
    - Add selected `@sanyam-grammar/{name}`: "workspace:*" entries
 
@@ -363,8 +352,9 @@ Use the Edit tool to make these changes. Update each section individually to avo
 Read `applications/browser/package.json` and apply the same changes:
 
 1. Update `theia.frontend.config.applicationName`
-2. Update `theia.frontend.config.applicationData`
-3. Update dependencies (same grammar packages)
+2. Update `theia.frontend.config.applicationGrammar`
+3. Update `theia.frontend.config.applicationData`
+4. Update dependencies (same grammar packages)
 
 **Note:** Browser package may have slightly different config (no electron-specific settings).
 
@@ -399,8 +389,9 @@ Next steps:
 The application will now use only the selected grammar(s):
 {list of selected grammars with displayNames}
 
-Note: Grammar logos are bundled by webpack during the build. The grammarLogo field
-uses the asset path "assets/logos/{languageId}.svg" which is served as a static file.
+Note: Grammar documentation (summary, features, concepts, examples) is now
+loaded from the GrammarManifest at runtime via GrammarRegistry. No need to
+duplicate this information in the package.json config.
 ```
 
 ---
@@ -451,12 +442,11 @@ Please check file permissions and try again.
     "frontend": {
       "config": {
         "applicationName": "...",
+        "applicationGrammar": "ecml",
         "applicationData": {
           "name": "...",
           "description": "...",
           "logo": "resources/sanyam-banner.svg",
-          "grammarId": "ecml",
-          "grammarLogo": "assets/logos/ecml.svg",
           "tagline": "...",
           "text": [...],
           "links": [...]
@@ -476,8 +466,12 @@ Please check file permissions and try again.
 }
 ```
 
-**Note:** The `grammarLogo` field uses a webpack asset path (`assets/logos/{languageId}.svg`)
-instead of base64 data URLs. Webpack copies logos from grammar packages at build time.
+**Notes:**
+- The `applicationGrammar` field specifies the primary grammar ID for branding.
+- The UI components (getting-started widget, about dialog) read grammar documentation
+  (logo, tagline, summary, features, concepts, examples) directly from the GrammarManifest
+  via GrammarRegistry at runtime.
+- The `applicationData` contains only application-level branding, not grammar documentation.
 
 ### Browser package.json theia section:
 ```json
@@ -486,12 +480,11 @@ instead of base64 data URLs. Webpack copies logos from grammar packages at build
     "frontend": {
       "config": {
         "applicationName": "...",
+        "applicationGrammar": "ecml",
         "applicationData": {
           "name": "...",
           "description": "...",
           "logo": "resources/sanyam-banner.svg",
-          "grammarId": "ecml",
-          "grammarLogo": "assets/logos/ecml.svg",
           "tagline": "...",
           "text": [...],
           "links": [...]
@@ -521,6 +514,7 @@ instead of base64 data URLs. Webpack copies logos from grammar packages at build
 
 **Result:**
 - Application name: "Enterprise Content Modeling Language IDE"
+- applicationGrammar: "ecml"
 - Description: "Development environment for Enterprise Content Modeling Language domain-specific language"
 - Dependencies: Only `@sanyam-grammar/ecml`
 - Other grammar packages removed from dependencies
@@ -531,6 +525,7 @@ instead of base64 data URLs. Webpack copies logos from grammar packages at build
 
 **Result:**
 - User prompted for application name, description, tagline
+- applicationGrammar: uses first grammar's languageId ("ecml")
 - All three grammar packages added to dependencies
 - Other grammar packages removed from dependencies
 
@@ -548,3 +543,47 @@ The package directory does not exist at:
 To create this grammar package, run:
   /grammar.config nonexistent
 ```
+
+---
+
+## Migration Notes
+
+This command now generates a simplified configuration structure:
+
+**Before (deprecated):**
+```json
+{
+  "applicationData": {
+    "grammarId": "ecml",
+    "grammarLogo": "assets/logos/ecml.svg",
+    "grammarSummary": "...",
+    "grammarTagline": "...",
+    "grammarKeyFeatures": [...],
+    "grammarCoreConcepts": [...],
+    "grammarQuickExample": "..."
+  }
+}
+```
+
+**After (current):**
+```json
+{
+  "applicationGrammar": "ecml",
+  "applicationData": {
+    "name": "...",
+    "description": "...",
+    "logo": "...",
+    "tagline": "...",
+    "text": [...],
+    "links": [...]
+  }
+}
+```
+
+Grammar documentation is now read from the GrammarManifest at runtime:
+- Logo: `manifest.logo`
+- Tagline: `manifest.tagline`
+- Summary: `manifest.summary`
+- Key Features: `manifest.keyFeatures`
+- Core Concepts: `manifest.coreConcepts`
+- Quick Example: `manifest.quickExample`

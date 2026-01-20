@@ -15,6 +15,33 @@ import type { GrammarManifest } from '@sanyam/types';
 export const manifest: GrammarManifest = {
   languageId: 'garp',
   displayName: 'GARP',
+  summary: 'A domain-specific language for implementing Generally Accepted Recordkeeping Principles, enabling structured records management policies and retention schedules.',
+  tagline: 'Records management by principle',
+  keyFeatures: [
+    { feature: 'Policy Framework', description: 'Define policies aligned to GARP principles' },
+    { feature: 'Retention Schedules', description: 'Configure retention periods and triggers' },
+    { feature: 'Disposition Rules', description: 'Specify disposition methods and approvals' },
+    { feature: 'Maturity Assessment', description: 'Track organizational maturity levels' },
+    { feature: 'Visual Compliance', description: 'Visualize policy relationships and dependencies' },
+  ],
+  coreConcepts: [
+    { concept: 'Organization', description: 'The entity implementing GARP principles' },
+    { concept: 'Policy', description: 'A records management policy aligned to GARP' },
+    { concept: 'Assessment', description: 'An evaluation of GARP compliance' },
+    { concept: 'RetentionSchedule', description: 'Rules for record retention periods' },
+    { concept: 'DispositionRule', description: 'Methods and approvals for record disposition' },
+  ],
+  quickExample: `organization AcmeCorp {
+  description "Corporate records management"
+  maturity Essential
+}
+
+policy RecordsRetention {
+  description "Corporate retention policy"
+  principle Retention
+  status Approved
+  owner "Records Manager"
+}`,
   fileExtension: '.garp',
   baseExtension: '.garp',
   rootTypes: [

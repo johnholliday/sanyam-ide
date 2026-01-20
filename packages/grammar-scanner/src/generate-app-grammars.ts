@@ -18,6 +18,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Package.json structure with dependencies.
@@ -96,21 +97,24 @@ function packageNameToVariable(packageName: string): string {
 }
 
 /**
- * Generate TypeScript code for frontend manifest contributions module.
+ * Generate JavaScript code for frontend manifest map module.
  *
- * This creates a ContainerModule that binds all grammar manifests
- * as GrammarManifestContribution for the frontend registry.
+ * This creates a simple map of language IDs to grammar manifests,
+ * which can be imported by the product extension via webpack alias.
+ *
+ * Note: This generates JavaScript (not TypeScript) because webpack processes
+ * this file directly via the alias and doesn't have ts-loader configured for it.
  *
  * @param packages - Array of grammar package names
  * @param appName - Application name for documentation
- * @returns Generated TypeScript source code
+ * @returns Generated JavaScript source code
  */
 export function generateFrontendManifestsCode(packages: string[], appName?: string): string {
   const appLabel = appName ?? 'this application';
 
   if (packages.length === 0) {
     return `/**
- * Grammar Manifest Contributions - AUTO-GENERATED
+ * Grammar Manifests Map - AUTO-GENERATED
  *
  * No @sanyam-grammar/* packages found in package.json.
  * Add grammar dependencies to enable language support.
@@ -118,14 +122,11 @@ export function generateFrontendManifestsCode(packages: string[], appName?: stri
  * Generated at: ${new Date().toISOString()}
  */
 
-import { ContainerModule } from '@theia/core/shared/inversify';
-
 /**
- * Empty frontend module (no grammars configured).
+ * Map of language IDs to grammar manifests for ${appLabel}.
+ * @type {Record<string, import('@sanyam/types').GrammarManifest>}
  */
-export default new ContainerModule(() => {
-  // No grammar manifests to bind
-});
+export const grammarManifests = {};
 `;
   }
 
@@ -136,38 +137,37 @@ export default new ContainerModule(() => {
     })
     .join('\n');
 
-  const bindings = packages
+  const entries = packages
     .map((pkg) => {
       const varName = packageNameToVariable(pkg);
-      return `  bind(GrammarManifestContribution).toConstantValue({ manifest: ${varName}Manifest });`;
+      return `  [${varName}Manifest.languageId]: ${varName}Manifest,`;
     })
     .join('\n');
 
   return `/**
- * Grammar Manifest Contributions - AUTO-GENERATED
+ * Grammar Manifests Map - AUTO-GENERATED
  *
  * This file is generated from @sanyam-grammar/* dependencies in package.json.
  * Do not edit manually - run 'pnpm generate:grammars' to regenerate.
+ *
+ * This module is imported by the product extension via webpack alias (@app/grammar-manifests).
  *
  * Generated at: ${new Date().toISOString()}
  * Packages: ${packages.length}
  */
 
-import { ContainerModule } from '@theia/core/shared/inversify';
-import { GrammarManifestContribution } from '@sanyam/types';
-
 ${imports}
 
 /**
- * Frontend module that registers grammar manifests for ${appLabel}.
+ * Map of language IDs to grammar manifests for ${appLabel}.
  *
- * This module binds each grammar's manifest as a GrammarManifestContribution,
- * making them available to the GrammarRegistry for UI features like the
- * Getting Started widget and About dialog.
+ * These manifests are automatically discovered from @sanyam-grammar/* package.json dependencies.
+ * The product extension imports this map and registers it with the GrammarRegistry.
+ * @type {Record<string, import('@sanyam/types').GrammarManifest>}
  */
-export default new ContainerModule((bind) => {
-${bindings}
-});
+export const grammarManifests = {
+${entries}
+};
 `;
 }
 
@@ -348,7 +348,7 @@ export function generateAppGrammars(options: GeneratorOptions): GenerationResult
 function parseArgs(args: string[]): { cwd: string; outputPath: string; frontendOutputPath: string; help: boolean } {
   let cwd = process.cwd();
   let outputPath = 'src/language-server/grammars.ts';
-  let frontendOutputPath = 'src/frontend/grammar-manifests-module.ts';
+  let frontendOutputPath = 'src/frontend/grammar-manifests-module.js';
   let help = false;
 
   for (let i = 0; i < args.length; i++) {
@@ -431,5 +431,54 @@ function main(): void {
   }
 }
 
-// Run if invoked directly
-main();
+/**
+ * Patch the Theia-generated frontend index.js to load grammar manifests.
+ *
+ * This adds an import statement to load the grammar-manifests-module
+ * as part of the frontend startup sequence, making manifests available
+ * to the GrammarRegistry for UI features like the Getting Started widget.
+ *
+ * @param cwd - Working directory containing src-gen/frontend/index.js
+ * @returns true if patched successfully, false if skipped or failed
+ */
+export function patchGeneratedIndex(cwd: string): boolean {
+  const indexPath = path.resolve(cwd, 'src-gen/frontend/index.js');
+
+  if (!fs.existsSync(indexPath)) {
+    console.log('  Skipping index.js patch (run theia build first)');
+    return false;
+  }
+
+  let content = fs.readFileSync(indexPath, 'utf-8');
+
+  // Already patched?
+  if (content.includes('grammar-manifests-module')) {
+    console.log('  Already patched');
+    return true;
+  }
+
+  // Find the insertion point: before 'await start()'
+  // This ensures all other modules are loaded before we load grammar manifests
+  const marker = 'await start();';
+  const insertPoint = content.indexOf(marker);
+
+  if (insertPoint === -1) {
+    console.warn('  Could not find insertion point (await start())');
+    return false;
+  }
+
+  // Insert the load statement for grammar-manifests-module
+  // The path is relative from src-gen/frontend/index.js to src/frontend/grammar-manifests-module
+  const importLine = "await load(container, import('../../src/frontend/grammar-manifests-module'));\n        ";
+  content = content.slice(0, insertPoint) + importLine + content.slice(insertPoint);
+
+  fs.writeFileSync(indexPath, content);
+  console.log('  Patched index.js to load grammar manifests');
+  return true;
+}
+
+// Run if invoked directly (not when imported by another module)
+const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
+if (isMainModule) {
+  main();
+}

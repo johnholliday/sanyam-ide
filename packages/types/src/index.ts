@@ -23,6 +23,9 @@ export {
   type ToolPaletteGroup,
   type ToolPaletteConfig,
   type DiagramTypeConfig,
+  // Documentation types
+  type KeyFeature,
+  type CoreConcept,
   // Root type configuration
   type PackageFileConfig,
   type RootTypeConfig,
@@ -40,6 +43,15 @@ export {
   GrammarManifestContribution,
   type GrammarManifestContribution as GrammarManifestContributionInterface
 } from './grammar-manifest-contribution.js';
+
+// Re-export GrammarManifest for the map type
+import type { GrammarManifest } from './grammar-manifest.js';
+
+/**
+ * Map of language IDs to grammar manifests.
+ * Used by applications to provide grammar manifests to the product extension via webpack alias.
+ */
+export type GrammarManifestMap = Record<string, GrammarManifest>;
 
 export {
   // Application metadata for frontend config

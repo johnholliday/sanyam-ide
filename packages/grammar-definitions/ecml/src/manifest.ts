@@ -18,6 +18,27 @@ import type { GrammarManifest } from '@sanyam/types';
 export const manifest: GrammarManifest = {
   languageId: 'ecml',
   displayName: 'Enterprise Content Modeling Language',
+  summary: 'A domain-specific language for modeling enterprise content management workflows, security policies, and compliance requirements.',
+  tagline: 'Model content, secure by design',
+  keyFeatures: [
+    { feature: 'Content Lifecycle', description: 'Model complete content lifecycle from creation to archival' },
+    { feature: 'Security Policies', description: 'Define security groups and granular permissions' },
+    { feature: 'Compliance Labels', description: 'Manage retention and sensitivity labels for regulatory compliance' },
+    { feature: 'Visual Workflows', description: 'Design and visualize content workflows with drag-and-drop diagrams' },
+    { feature: 'Actor Modeling', description: 'Define actors and their access control relationships' },
+  ],
+  coreConcepts: [
+    { concept: 'Actor', description: 'A user or system that interacts with content' },
+    { concept: 'Activity', description: 'A business process or workflow step' },
+    { concept: 'Task', description: 'A discrete unit of work within an activity' },
+    { concept: 'Content', description: 'A document or data item being managed' },
+    { concept: 'SecurityGroup', description: 'A collection of permissions assigned to actors' },
+    { concept: 'Workflow', description: 'A sequence of activities that process content' },
+  ],
+  quickExample: `Actor Admin "Administrator" "System administrator"
+Content Policy "Security Policy" "Organization security policy"
+SecurityGroup Admins "Admin Group" "Administrative users"
+Permission FullAccess "Full Access" "Complete system access"`,
   fileExtension: '.ecml',
   baseExtension: '.ecml',
   // logo field omitted - handled by webpack asset bundling (assets/logos/ecml.svg)

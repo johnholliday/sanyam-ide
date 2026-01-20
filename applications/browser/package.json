@@ -25,13 +25,12 @@
     "frontend": {
       "config": {
         "applicationName": "Enterprise Content Modeling Language IDE",
+        "applicationGrammar": "ecml",
         "applicationData": {
           "name": "Enterprise Content Modeling Language IDE",
           "description": "Development environment for Enterprise Content Modeling Language domain-specific language",
           "logo": "resources/sanyam-banner.svg",
-          "grammarId": "ecml",
-          "grammarLogo": "assets/logos/ecml.svg",
-          "tagline": "Build and edit Enterprise Content Modeling Language models with ease",
+          "tagline": "Build and edit Enterprise Content models with ease",
           "text": [
             "Enterprise Content Modeling Language IDE provides a complete development environment for creating and working with Enterprise Content Modeling Language files.",
             "Features include syntax highlighting, validation, code completion, and diagram generation for your Enterprise Content Modeling Language models."

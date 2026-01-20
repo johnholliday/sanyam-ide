@@ -13,8 +13,8 @@ import { injectable, inject, optional } from '@theia/core/shared/inversify';
 import { renderDocumentation, renderDownloads, /* renderSourceCode, */ renderSupport, renderTickets, renderWhatIs } from './branding-util';
 import { VSXEnvironment } from '@theia/vsx-registry/lib/common/vsx-environment';
 import { WindowService } from '@theia/core/lib/browser/window/window-service';
-import { getApplicationMetadata } from './application-config';
-import { ApplicationMetadata } from '@sanyam/types';
+import { getApplicationMetadata, getApplicationGrammar, getApplicationName } from './application-config';
+import type { GrammarManifest } from '@sanyam/types';
 import { GrammarRegistry } from './grammar-registry';
 
 @injectable()
@@ -42,6 +42,18 @@ export class TheiaIDEAboutDialog extends AboutDialog {
             ? await this.environment.getVscodeApiVersion()
             : 'unknown';
         super.doInit();
+    }
+
+    /**
+     * Get the primary grammar manifest based on applicationGrammar config.
+     * Returns undefined if no applicationGrammar is configured or the grammar is not found.
+     */
+    protected getPrimaryGrammarManifest(): GrammarManifest | undefined {
+        const grammarId = getApplicationGrammar();
+        if (!grammarId) {
+            return undefined;
+        }
+        return this.grammarRegistry.getManifest(grammarId);
     }
 
     protected render(): React.ReactNode {
@@ -90,9 +102,10 @@ export class TheiaIDEAboutDialog extends AboutDialog {
 
     protected renderTitle(): React.ReactNode {
         const appData = getApplicationMetadata();
-        const effectiveLogo = this.resolveEffectiveLogo(appData);
+        const effectiveLogo = this.resolveEffectiveLogo();
+        const appName = getApplicationName();
         return <div className='gs-header'>
-            {appData ? this.renderApplicationHeader(appData, effectiveLogo) : this.renderDefaultHeader()}
+            {appData ? this.renderApplicationHeader(appName, effectiveLogo) : this.renderDefaultHeader()}
             {this.renderVersion()}
         </div>;
     }
@@ -100,40 +113,38 @@ export class TheiaIDEAboutDialog extends AboutDialog {
     /**
      * Resolves the effective logo for the application.
      * Priority order:
-     * 1. grammarLogo from applicationData (embedded base64 data URL)
-     * 2. Logo from grammar registry (if grammarId is specified)
-     * 3. Default application logo
+     * 1. Logo from primary grammar manifest (if applicationGrammar is configured)
+     * 2. Application logo from applicationData
+     * 3. Fallback default logo
      *
-     * @param appData - The application metadata
-     * @returns The effective logo URL or undefined
+     * @returns The effective logo URL
      */
-    protected resolveEffectiveLogo(appData: ApplicationMetadata | undefined): string | undefined {
-        if (!appData) {
-            return undefined;
+    protected resolveEffectiveLogo(): string {
+        const appData = getApplicationMetadata();
+
+        // First priority: logo from primary grammar manifest (if applicationGrammar configured)
+        const manifest = this.getPrimaryGrammarManifest();
+        if (manifest?.logo) {
+            return manifest.logo;
         }
-        // First priority: embedded grammarLogo in applicationData
-        if (appData.grammarLogo) {
-            return appData.grammarLogo;
+
+        // Second priority: application logo from applicationData
+        if (appData?.logo) {
+            return appData.logo;
         }
-        // Second priority: look up from grammar registry
-        if (appData.grammarId) {
-            const manifest = this.grammarRegistry.getManifest(appData.grammarId);
-            if (manifest?.logo) {
-                return manifest.logo;
-            }
-        }
-        // Fallback: default application logo
-        return appData.logo;
+
+        // Fallback: default logo
+        return 'resources/sanyam-banner.svg';
     }
 
     protected renderDefaultHeader(): React.ReactNode {
         return <h1>Sanyam <span className='gs-blue-header'>IDE</span></h1>;
     }
 
-    protected renderApplicationHeader(appData: ApplicationMetadata, effectiveLogo: string | undefined): React.ReactNode {
+    protected renderApplicationHeader(appName: string, effectiveLogo: string): React.ReactNode {
         return <div className='gs-app-header'>
-            {effectiveLogo && <img src={effectiveLogo} alt={appData.name} className='gs-app-logo' />}
-            <h1>{appData.name}</h1>
+            <img src={effectiveLogo} alt={appName} className='gs-app-logo' />
+            <h1>{appName}</h1>
         </div>;
     }
 

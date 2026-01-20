@@ -298,3 +298,74 @@ ul.theia-aboutExtensions {
 .gs-ai-features strong {
     color: var(--theia-foreground);
 }
+
+/* Grammar Documentation Section */
+.gs-grammar-documentation {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--theia-widget-border);
+}
+
+.gs-feature-list {
+    margin: 12px 0;
+    padding-left: 20px;
+}
+
+.gs-feature-list li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.gs-feature-list strong {
+    color: var(--theia-foreground);
+}
+
+.gs-concepts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.gs-concept-item {
+    background-color: var(--theia-editor-background);
+    border: 1px solid var(--theia-widget-border);
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.gs-concept-item:hover {
+    border-color: var(--theia-focusBorder);
+}
+
+.gs-concept-name {
+    display: block;
+    font-weight: 600;
+    font-size: 1.05em;
+    color: var(--theia-foreground);
+    margin-bottom: 4px;
+}
+
+.gs-concept-desc {
+    display: block;
+    font-size: 0.9em;
+    color: var(--theia-descriptionForeground);
+    line-height: 1.4;
+}
+
+.gs-code-example {
+    background-color: var(--theia-editor-background);
+    border: 1px solid var(--theia-widget-border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-top: 12px;
+    overflow-x: auto;
+    font-family: var(--theia-code-font-family);
+    font-size: 0.9em;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.gs-code-example code {
+    color: var(--theia-foreground);
+}

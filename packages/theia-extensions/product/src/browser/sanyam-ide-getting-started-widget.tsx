@@ -19,9 +19,9 @@ import {
 import { GettingStartedWidget } from '@theia/getting-started/lib/browser/getting-started-widget';
 import { VSXEnvironment } from '@theia/vsx-registry/lib/common/vsx-environment';
 import { WindowService } from '@theia/core/lib/browser/window/window-service';
-import type { GrammarManifest, RootTypeConfig, ApplicationMetadata, ApplicationLink } from '@sanyam/types';
+import type { GrammarManifest, RootTypeConfig, ApplicationLink, KeyFeature, CoreConcept } from '@sanyam/types';
 import { GrammarRegistry } from './grammar-registry';
-import { getApplicationMetadata } from './application-config';
+import { getApplicationMetadata, getApplicationGrammar, getApplicationName } from './application-config';
 
 @injectable()
 export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
@@ -49,6 +49,22 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
         this.update();
     }
 
+    /**
+     * Get the primary grammar manifest based on applicationGrammar config.
+     * Returns undefined if no applicationGrammar is configured or the grammar is not found.
+     */
+    protected getPrimaryGrammarManifest(): GrammarManifest | undefined {
+        const grammarId = getApplicationGrammar();
+        console.log('[GettingStarted] applicationGrammar:', grammarId);
+        console.log('[GettingStarted] registry manifests:', this.grammarRegistry.manifests.length);
+        if (!grammarId) {
+            return undefined;
+        }
+        const manifest = this.grammarRegistry.getManifest(grammarId);
+        console.log('[GettingStarted] found manifest:', manifest?.languageId, manifest?.displayName);
+        return manifest;
+    }
+
     protected onActivateRequest(msg: Message): void {
         super.onActivateRequest(msg);
         const htmlElement = document.getElementById('alwaysShowWelcomePage');
@@ -67,6 +83,7 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
                     {this.renderActions()}
                 </div>
                 <div className='gs-main-content'>
+                    {this.renderGrammarDocumentation()}
                     {this.renderInstalledGrammars()}
                     <div className='flex-grid'>
                         <div className='col'>
@@ -155,10 +172,16 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
 
     protected renderHeader(): React.ReactNode {
         const appData = getApplicationMetadata();
-        const effectiveLogo = this.resolveEffectiveLogo(appData);
+        const effectiveLogo = this.resolveEffectiveLogo();
+        const appName = getApplicationName();
+        const manifest = this.getPrimaryGrammarManifest();
+
+        // Resolve tagline: prefer manifest tagline, fall back to applicationData
+        const tagline = manifest?.tagline ?? appData?.tagline;
+
         return <div className='gs-header'>
-            {appData ? this.renderApplicationHeader(appData, effectiveLogo) : this.renderDefaultHeader()}
-            {appData && this.renderApplicationTagline(appData)}
+            {appData ? this.renderApplicationHeader(appName, effectiveLogo) : this.renderDefaultHeader()}
+            {tagline && <p className='gs-tagline'>{tagline}</p>}
             {this.renderVersion()}
         </div>;
     }
@@ -166,48 +189,45 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
     /**
      * Resolves the effective logo for the application.
      * Priority order:
-     * 1. grammarLogo from applicationData (embedded base64 data URL)
-     * 2. Logo from grammar registry (if grammarId is specified)
-     * 3. Default application logo
+     * 1. Explicit logo from primary grammar manifest
+     * 2. Conventional grammar logo path (assets/logos/{languageId}.svg)
+     * 3. Application logo from applicationData
+     * 4. Fallback default logo
      *
-     * @param appData - The application metadata
-     * @returns The effective logo URL or undefined
+     * @returns The effective logo URL
      */
-    protected resolveEffectiveLogo(appData: ApplicationMetadata | undefined): string | undefined {
-        if (!appData) {
-            return undefined;
+    protected resolveEffectiveLogo(): string {
+        const appData = getApplicationMetadata();
+        const manifest = this.getPrimaryGrammarManifest();
+
+        // First priority: explicit logo from primary grammar manifest
+        if (manifest?.logo) {
+            return manifest.logo;
         }
-        // First priority: embedded grammarLogo in applicationData
-        if (appData.grammarLogo) {
-            return appData.grammarLogo;
+
+        // Second priority: conventional grammar logo path (webpack copies to assets/logos/)
+        if (manifest?.languageId) {
+            return `assets/logos/${manifest.languageId}.svg`;
         }
-        // Second priority: look up from grammar registry
-        if (appData.grammarId) {
-            const manifest = this.grammarRegistry.getManifest(appData.grammarId);
-            if (manifest?.logo) {
-                return manifest.logo;
-            }
+
+        // Third priority: application logo from applicationData
+        if (appData?.logo) {
+            return appData.logo;
         }
-        // Fallback: default application logo
-        return appData.logo;
+
+        // Fallback: default logo
+        return 'resources/sanyam-banner.svg';
     }
 
     protected renderDefaultHeader(): React.ReactNode {
         return <h1>Sanyam <span className='gs-blue-header'>IDE</span></h1>;
     }
 
-    protected renderApplicationHeader(appData: ApplicationMetadata, effectiveLogo: string | undefined): React.ReactNode {
+    protected renderApplicationHeader(appName: string, effectiveLogo: string): React.ReactNode {
         return <div className='gs-app-header'>
-            {effectiveLogo && <img src={effectiveLogo} alt={appData.name} className='gs-app-logo' />}
-            <h1>{appData.name}</h1>
+            <img src={effectiveLogo} alt={appName} className='gs-app-logo' />
+            <h1>{appName}</h1>
         </div>;
-    }
-
-    protected renderApplicationTagline(appData: ApplicationMetadata): React.ReactNode {
-        if (!appData.tagline) {
-            return null;
-        }
-        return <p className='gs-tagline'>{appData.tagline}</p>;
     }
 
     protected renderApplicationContent(): React.ReactNode {
@@ -336,6 +356,111 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
                     </span>
                 )}
             </div>
+        </div>;
+    }
+
+    // =========================================================================
+    // Grammar Documentation Rendering (from GrammarManifest)
+    // =========================================================================
+
+    /**
+     * Renders the grammar documentation section from the primary grammar manifest.
+     * This includes summary, key features, core concepts, and quick example.
+     */
+    protected renderGrammarDocumentation(): React.ReactNode {
+        const manifest = this.getPrimaryGrammarManifest();
+        if (!manifest) {
+            return null;
+        }
+
+        // Check if manifest has any documentation content
+        const hasContent = manifest.summary || manifest.keyFeatures?.length || manifest.coreConcepts?.length || manifest.quickExample;
+        if (!hasContent) {
+            return null;
+        }
+
+        return <div className='gs-grammar-documentation'>
+            {this.renderGrammarSummary(manifest)}
+            {this.renderKeyFeatures(manifest)}
+            {this.renderCoreConcepts(manifest)}
+            {this.renderQuickExample(manifest)}
+        </div>;
+    }
+
+    /**
+     * Renders the grammar summary.
+     */
+    protected renderGrammarSummary(manifest: GrammarManifest): React.ReactNode {
+        if (!manifest.summary) {
+            return null;
+        }
+        return <div className='gs-section'>
+            <h3 className='gs-section-header'>
+                <i className={codicon('info')}></i>
+                About {manifest.displayName}
+            </h3>
+            <p>{manifest.summary}</p>
+        </div>;
+    }
+
+    /**
+     * Renders the key features list.
+     */
+    protected renderKeyFeatures(manifest: GrammarManifest): React.ReactNode {
+        if (!manifest.keyFeatures?.length) {
+            return null;
+        }
+        return <div className='gs-section'>
+            <h3 className='gs-section-header'>
+                <i className={codicon('star')}></i>
+                Key Features
+            </h3>
+            <ul className='gs-feature-list'>
+                {manifest.keyFeatures.map((kf: KeyFeature, idx: number) => (
+                    <li key={idx}>
+                        <strong>{kf.feature}</strong> — {kf.description}
+                    </li>
+                ))}
+            </ul>
+        </div>;
+    }
+
+    /**
+     * Renders the core concepts list.
+     */
+    protected renderCoreConcepts(manifest: GrammarManifest): React.ReactNode {
+        if (!manifest.coreConcepts?.length) {
+            return null;
+        }
+        return <div className='gs-section'>
+            <h3 className='gs-section-header'>
+                <i className={codicon('symbol-class')}></i>
+                Core Concepts
+            </h3>
+            <div className='gs-concepts-grid'>
+                {manifest.coreConcepts.map((cc: CoreConcept, idx: number) => (
+                    <div key={idx} className='gs-concept-item'>
+                        <span className='gs-concept-name'>{cc.concept}</span>
+                        <span className='gs-concept-desc'>{cc.description}</span>
+                    </div>
+                ))}
+            </div>
+        </div>;
+    }
+
+    /**
+     * Renders the quick example code block.
+     */
+    protected renderQuickExample(manifest: GrammarManifest): React.ReactNode {
+        if (!manifest.quickExample) {
+            return null;
+        }
+        return <div className='gs-section'>
+            <h3 className='gs-section-header'>
+                <i className={codicon('code')}></i>
+                Quick Example
+            </h3>
+            <pre className='gs-code-example'><code>{manifest.quickExample}</code></pre>
         </div>;
     }
 }

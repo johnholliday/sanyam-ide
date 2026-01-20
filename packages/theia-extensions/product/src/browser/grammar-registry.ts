@@ -8,17 +8,21 @@
  ********************************************************************************/
 
 import { FrontendApplicationContribution } from '@theia/core/lib/browser';
-import { ContributionProvider } from '@theia/core/lib/common';
-import { inject, injectable, named } from '@theia/core/shared/inversify';
-import type { GrammarManifest } from '@sanyam/types';
-import { GrammarManifestContribution } from '@sanyam/types';
+import { inject, injectable } from '@theia/core/shared/inversify';
+import type { GrammarManifest, GrammarManifestMap } from '@sanyam/types';
 
 /**
- * Registry service that collects all registered grammar manifests.
+ * Injection token for the grammar manifest map.
+ * The map is provided by each application via webpack alias.
+ */
+export const GrammarManifestMapToken = Symbol('GrammarManifestMap');
+
+/**
+ * Registry service that provides access to grammar manifests.
  *
- * This service uses Theia's ContributionProvider pattern to gather
- * grammar manifest contributions during application initialization,
- * ensuring all manifests are available before widgets render.
+ * The grammar manifests are provided by the application at build time via
+ * webpack alias (@app/grammar-manifests), making them available to UI
+ * components like the Getting Started widget and About dialog.
  *
  * @example
  * ```typescript
@@ -27,24 +31,24 @@ import { GrammarManifestContribution } from '@sanyam/types';
  *
  * // Access manifests
  * const manifests = this.grammarRegistry.manifests;
+ * const ecmlManifest = this.grammarRegistry.getManifest('ecml');
  * ```
  */
 @injectable()
 export class GrammarRegistry implements FrontendApplicationContribution {
 
-    @inject(ContributionProvider) @named(GrammarManifestContribution)
-    protected readonly contributionProvider: ContributionProvider<GrammarManifestContribution>;
+    @inject(GrammarManifestMapToken)
+    protected readonly manifestMap: GrammarManifestMap;
 
     protected _manifests: readonly GrammarManifest[] = [];
 
     /**
      * Called during application initialization, before widgets are created.
-     * Collects all grammar manifest contributions.
+     * Converts the manifest map to an array for easier iteration.
      */
     initialize(): void {
-        this._manifests = Object.freeze(
-            this.contributionProvider.getContributions().map(c => c.manifest)
-        );
+        this._manifests = Object.freeze(Object.values(this.manifestMap));
+        console.log('[GrammarRegistry] Initialized with', this._manifests.length, 'manifest(s)');
     }
 
     /**
@@ -61,7 +65,7 @@ export class GrammarRegistry implements FrontendApplicationContribution {
      * @returns The manifest if found, undefined otherwise
      */
     getManifest(languageId: string): GrammarManifest | undefined {
-        return this._manifests.find(m => m.languageId === languageId);
+        return this.manifestMap[languageId];
     }
 
     /**
@@ -71,6 +75,6 @@ export class GrammarRegistry implements FrontendApplicationContribution {
      * @returns True if the grammar is registered
      */
     hasGrammar(languageId: string): boolean {
-        return this._manifests.some(m => m.languageId === languageId);
+        return languageId in this.manifestMap;
     }
 }

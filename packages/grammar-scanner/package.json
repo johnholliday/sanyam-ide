@@ -15,10 +15,15 @@
     "./generate-app-grammars": {
       "types": "./lib/generate-app-grammars.d.ts",
       "import": "./lib/generate-app-grammars.js"
+    },
+    "./patch-index": {
+      "types": "./lib/patch-index.d.ts",
+      "import": "./lib/patch-index.js"
     }
   },
   "bin": {
-    "generate-app-grammars": "./lib/generate-app-grammars.js"
+    "generate-app-grammars": "./lib/generate-app-grammars.js",
+    "patch-index": "./lib/patch-index.js"
   },
   "files": [
     "lib",

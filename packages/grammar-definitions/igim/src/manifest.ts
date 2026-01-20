@@ -17,6 +17,32 @@ import type { GrammarManifest } from '@sanyam/types';
 export const manifest: GrammarManifest = {
   languageId: 'igim',
   displayName: 'Information Governance Implementation Model',
+  summary: 'A domain-specific language for implementing ARMA International\'s seven-area Information Governance Implementation Model, covering steering committees, authorities, processes, and infrastructure.',
+  tagline: 'Govern information systematically',
+  keyFeatures: [
+    { feature: 'Seven-Area Framework', description: 'Model all IGIM areas from steering to infrastructure' },
+    { feature: 'Maturity Assessment', description: 'Assess and track IG program maturity' },
+    { feature: 'Risk Management', description: 'Document and manage information risks' },
+    { feature: 'Process Documentation', description: 'Define IG processes with metrics and steps' },
+    { feature: 'Visual Governance', description: 'Visualize IG program components and dependencies' },
+  ],
+  coreConcepts: [
+    { concept: 'IGProgram', description: 'The top-level information governance program' },
+    { concept: 'SteeringCommittee', description: 'The IG leadership and governance body' },
+    { concept: 'Authority', description: 'Regulatory and compliance requirements' },
+    { concept: 'Process', description: 'An IG process with steps and metrics' },
+    { concept: 'Capability', description: 'An information lifecycle capability' },
+    { concept: 'Infrastructure', description: 'Technology supporting IG activities' },
+  ],
+  quickExample: `program EnterpriseIG {
+  description "Enterprise Information Governance"
+  maturity developing
+
+  committee IGBoard {
+    description "IG Steering Committee"
+    meets monthly
+  }
+}`,
   fileExtension: '.igim',
   baseExtension: '.igim',
   rootTypes: [

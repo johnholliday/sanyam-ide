@@ -11,19 +11,22 @@ import '../../src/browser/style/index.css';
 
 import { FrontendApplicationContribution, WidgetFactory } from '@theia/core/lib/browser';
 import { AboutDialog } from '@theia/core/lib/browser/about-dialog';
-import { bindContributionProvider, CommandContribution } from '@theia/core/lib/common';
+import { CommandContribution } from '@theia/core/lib/common';
 import { ContainerModule } from '@theia/core/shared/inversify';
 import { GettingStartedWidget } from '@theia/getting-started/lib/browser/getting-started-widget';
 import { MenuContribution } from '@theia/core/lib/common/menu';
-import { GrammarManifestContribution } from '@sanyam/types';
-import { GrammarRegistry } from './grammar-registry';
+import { GrammarRegistry, GrammarManifestMapToken } from './grammar-registry';
 import { TheiaIDEAboutDialog } from './sanyam-ide-about-dialog';
 import { TheiaIDEContribution } from './sanyam-ide-contribution';
 import { TheiaIDEGettingStartedWidget } from './sanyam-ide-getting-started-widget';
 
+// Import grammar manifests via webpack alias - resolved at bundle time
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import { grammarManifests } from '@app/grammar-manifests';
+
 export default new ContainerModule((bind, _unbind, isBound, rebind) => {
-    // Grammar manifest contribution provider and registry
-    bindContributionProvider(bind, GrammarManifestContribution);
+    // Grammar manifest map - provided by application via webpack alias
+    bind(GrammarManifestMapToken).toConstantValue(grammarManifests);
     bind(GrammarRegistry).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(GrammarRegistry);
 

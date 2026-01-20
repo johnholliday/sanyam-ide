@@ -19,6 +19,34 @@ import type { GrammarManifest } from '@sanyam/types';
 export const manifest: GrammarManifest = {
   languageId: 'actone',
   displayName: 'ActOne Story DSL',
+  summary: 'A domain-specific language for fiction writers orchestrating multi-agent AI story generation with characters, worlds, scenes, and plot arcs.',
+  tagline: 'Craft stories with AI agents',
+  keyFeatures: [
+    { feature: 'Character Modeling', description: 'Define characters with personality traits, goals, and voice styles' },
+    { feature: 'World Building', description: 'Create immersive worlds with locations, rules, and time settings' },
+    { feature: 'Scene Composition', description: 'Design scenes with participants, atmosphere, and triggers' },
+    { feature: 'Plot Arcs', description: 'Structure stories with beats, conflicts, and resolution patterns' },
+    { feature: 'Visual Story Maps', description: 'Visualize character webs and scene timelines' },
+  ],
+  coreConcepts: [
+    { concept: 'Story', description: 'The top-level container for all narrative elements' },
+    { concept: 'Character', description: 'A person with personality, goals, and voice' },
+    { concept: 'World', description: 'The setting with locations, rules, and time' },
+    { concept: 'Scene', description: 'A dramatic unit with participants and atmosphere' },
+    { concept: 'Plot', description: 'The narrative arc with beats and conflicts' },
+    { concept: 'Interaction', description: 'A dialogue pattern between characters' },
+  ],
+  quickExample: `story "The Journey" {
+  generate {
+    temperature: 0.8,
+    max_tokens: 2000
+  }
+
+  character Hero {
+    bio: "A reluctant adventurer",
+    personality: { curiosity: 80, ambition: 60 }
+  }
+}`,
   fileExtension: '.actone',
   baseExtension: '.actone',
   // logo field omitted - handled by webpack asset bundling (assets/logos/actone.svg)

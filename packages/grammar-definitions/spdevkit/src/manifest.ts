@@ -18,6 +18,30 @@ import type { GrammarManifest } from '@sanyam/types';
 export const manifest: GrammarManifest = {
   languageId: 'spdevkit',
   displayName: 'SPDevKit',
+  summary: 'A domain-specific language for modeling applications, entities, services, and workflows with visual diagram support.',
+  tagline: 'Build applications with precision',
+  keyFeatures: [
+    { feature: 'Application Modeling', description: 'Define complete application structures declaratively' },
+    { feature: 'Entity Definitions', description: 'Create typed entity schemas with properties' },
+    { feature: 'Service Operations', description: 'Define services with input/output specifications' },
+    { feature: 'Workflow Design', description: 'Model multi-step workflows with conditional logic' },
+    { feature: 'Visual Architecture', description: 'Visualize application architecture with interactive diagrams' },
+  ],
+  coreConcepts: [
+    { concept: 'Application', description: 'A top-level container for related components' },
+    { concept: 'Entity', description: 'A data structure with typed properties' },
+    { concept: 'Service', description: 'A business operation with defined inputs and outputs' },
+    { concept: 'Workflow', description: 'A sequence of steps for process automation' },
+  ],
+  quickExample: `application MyApp {
+  description "Sample application"
+  version "1.0.0"
+}
+
+entity User {
+  name: string
+  email: string
+}`,
   fileExtension: '.spdevkit',
   baseExtension: '.spdevkit',
   // logo field omitted - handled by webpack asset bundling (assets/logos/spdevkit.svg)

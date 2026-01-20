@@ -4,9 +4,12 @@
         "rootDir": "src",
         "outDir": "lib",
         "baseUrl": ".",
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "paths": {
+            "@app/grammar-manifests": ["./src/browser/grammar-manifests.stub.ts"]
+        }
     },
     "include": [
-        "src",
+        "src"
     ]
 }

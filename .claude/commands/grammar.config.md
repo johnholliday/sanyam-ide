@@ -298,6 +298,42 @@ Group tools by category. Create one "Elements" group with items for each rootTyp
 
 Create `packages/grammar-definitions/{name}/src/manifest.ts` with the complete `GrammarManifest` export:
 
+**Documentation fields generation:**
+
+Before generating the manifest, derive the documentation properties:
+
+**Summary generation:**
+- Pattern: "A domain-specific language for {domain} with support for {key features}"
+- Derive domain from grammar name/display name
+- Include 2-3 main capabilities from rootTypes
+- Keep to 1-2 sentences
+
+**Tagline generation:**
+- Keep under 10 words
+- Focus on the primary value proposition
+- Heuristics based on grammar type:
+  - workflow → "Streamline your {domain} workflows"
+  - security → "Secure by design"
+  - model → "Model {domain} with precision"
+  - compliance → "{Domain} compliance made simple"
+  - default → "Simplify {domain} development"
+
+**Key features generation:**
+- Format: `{ feature: '{FeatureName}', description: '{FeatureDescription}' }`
+- Generate 3-5 features based on rootTypes and grammar capabilities
+- Include diagramming if enabled: `{ feature: 'Visual Diagrams', description: 'Create and edit diagrams interactively' }`
+- Add standard features: `{ feature: 'Type-safe Syntax', description: 'IDE-supported validation and autocomplete' }`
+
+**Core concepts generation:**
+- Extract from rootTypes: `{ concept: astType, description: 'Description based on displayName' }`
+- Derive description from context (e.g., Task → "A discrete unit of work in the process")
+- Include 4-6 most important concepts from rootTypes
+
+**Quick example generation:**
+- Generate 3-5 lines showing basic syntax
+- Use placeholder values demonstrating key elements
+- Show at least 2 different element types from rootTypes
+
 ```typescript
 /**
  * {DisplayName} Grammar Manifest
@@ -319,6 +355,20 @@ import type { GrammarManifest } from '@sanyam/types';
 export const manifest: GrammarManifest = {
   languageId: '{languageId}',
   displayName: '{DisplayName}',
+  summary: '{Generated summary based on grammar analysis}',
+  tagline: '{Generated tagline}',
+  keyFeatures: [
+    { feature: '{FeatureName1}', description: '{Description of feature 1}' },
+    { feature: '{FeatureName2}', description: '{Description of feature 2}' },
+    { feature: '{FeatureName3}', description: '{Description of feature 3}' },
+    // ... additional features as appropriate
+  ],
+  coreConcepts: [
+    { concept: '{ConceptName1}', description: '{Description of concept 1}' },
+    { concept: '{ConceptName2}', description: '{Description of concept 2}' },
+    // ... derived from astType names in rootTypes
+  ],
+  quickExample: `{Multi-line example showing basic syntax}`,
   fileExtension: '.{ext}',
   baseExtension: '.{ext}',
   // logo field omitted - handled by webpack asset bundling (assets/logos/{languageId}.svg)
@@ -1004,16 +1054,25 @@ mkdir -p packages/grammar-definitions/{name}/src
 Before writing the manifest, validate using `validateManifest()` logic from `@sanyam/types`:
 
 1. `languageId` is lowercase alphanumeric with hyphens, starts with letter
-2. `fileExtension` and `baseExtension` start with `.`
-3. `rootTypes` has at least one entry
-4. Each `rootType.astType` is PascalCase
-5. Each `rootType.fileSuffix` starts with `.`
-6. Each `rootType.displayName` is non-empty
-7. Each `rootType.folder` is non-empty
-8. Each `rootType.icon` is non-empty
-9. Each `rootType.template` is non-empty
-10. If `diagrammingEnabled` is true, `diagramTypes` has at least one entry
-11. Each `diagramType` has valid `nodeTypes`, `edgeTypes`, and `toolPalette`
+2. `summary` is non-empty string
+3. `tagline` is non-empty string
+4. `keyFeatures` is non-empty array with valid entries:
+   - Each entry has non-empty `feature` string
+   - Each entry has non-empty `description` string
+5. `coreConcepts` is non-empty array with valid entries:
+   - Each entry has non-empty `concept` string
+   - Each entry has non-empty `description` string
+6. `quickExample` is non-empty string
+7. `fileExtension` and `baseExtension` start with `.`
+8. `rootTypes` has at least one entry
+9. Each `rootType.astType` is PascalCase
+10. Each `rootType.fileSuffix` starts with `.`
+11. Each `rootType.displayName` is non-empty
+12. Each `rootType.folder` is non-empty
+13. Each `rootType.icon` is non-empty
+14. Each `rootType.template` is non-empty
+15. If `diagrammingEnabled` is true, `diagramTypes` has at least one entry
+16. Each `diagramType` has valid `nodeTypes`, `edgeTypes`, and `toolPalette`
 
 If validation fails, report specific errors and do not write the manifest.
 
@@ -1023,12 +1082,35 @@ If validation fails, report specific errors and do not write the manifest.
 
 The generated code must conform to these types from `@sanyam/types`:
 
+### KeyFeature
+
+```typescript
+interface KeyFeature {
+  feature: string;       // The feature name
+  description: string;   // Description of what this feature provides
+}
+```
+
+### CoreConcept
+
+```typescript
+interface CoreConcept {
+  concept: string;       // The concept name
+  description: string;   // Description of what this concept represents
+}
+```
+
 ### GrammarManifest
 
 ```typescript
 interface GrammarManifest {
   languageId: string;
   displayName: string;
+  summary: string;                  // Brief description (1-2 sentences)
+  tagline: string;                  // Short marketing tagline (<10 words)
+  keyFeatures: KeyFeature[];        // List of key features
+  coreConcepts: CoreConcept[];      // List of core domain concepts
+  quickExample: string;             // Code snippet showing basic usage
   fileExtension: string;
   baseExtension: string;
   logo?: string;                    // Base64 data URL for grammar logo

@@ -9,8 +9,8 @@
     "vscode": "^1.85.0"
   },
   "type": "module",
-  "main": "./lib/main.js",
-  "types": "./lib/main.d.ts",
+  "main": "./out/extension.js",
+  "types": "./lib/extension.d.ts",
   "exports": {
     ".": {
       "types": "./lib/main.d.ts",
@@ -36,19 +36,18 @@
   },
   "files": [
     "lib",
-    "src",
+    "out",
     "syntaxes",
     "language-configurations"
   ],
   "scripts": {
     "build": "tsc -b",
-    "build:extension": "npm run build && npm run generate:vsix-manifest",
-    "build:vsix": "npm run build && ts-node --esm scripts/build-vsix.ts",
-    "clean": "rimraf lib tsconfig.tsbuildinfo syntaxes language-configurations",
+    "build:bundle": "node esbuild.mjs",
+    "build:extension": "npm run build:vsix && npm run build && npm run build:bundle",
+    "build:vsix": "ts-node --esm scripts/build-vsix.ts",
+    "clean": "rimraf lib out tsconfig.tsbuildinfo syntaxes language-configurations src/generated",
     "watch": "tsc -b -w",
-    "generate:vsix-manifest": "ts-node --esm scripts/generate-vsix-manifest.ts",
-    "generate:textmate": "ts-node --esm scripts/build-vsix.ts",
-    "package:vsix": "npm run build:vsix && vsce package --no-dependencies"
+    "package:vsix": "npm run build:extension && vsce package --no-dependencies"
   },
   "dependencies": {
     "@sanyam/types": "workspace:*",
@@ -93,44 +92,27 @@
     "url": "https://github.com/johnholliday/sanyam-ide/issues"
   },
   "activationEvents": [
-    "onLanguage:ecml",
-    "onLanguage:example-minimal"
+    "onLanguage:spdevkit"
   ],
   "contributes": {
     "languages": [
       {
-        "id": "ecml",
+        "id": "spdevkit",
         "aliases": [
-          "Ecml",
-          "ecml"
+          "Spdevkit",
+          "spdevkit"
         ],
         "extensions": [
-          ".ecml"
+          ".spdk"
         ],
-        "configuration": "./language-configurations/ecml.json"
-      },
-      {
-        "id": "example-minimal",
-        "aliases": [
-          "Example-minimal",
-          "example-minimal"
-        ],
-        "extensions": [
-          ".example"
-        ],
-        "configuration": "./language-configurations/example-minimal.json"
+        "configuration": "./language-configurations/spdevkit.json"
       }
     ],
     "grammars": [
       {
-        "language": "ecml",
-        "scopeName": "source.ecml",
-        "path": "./syntaxes/ecml.tmLanguage.json"
-      },
-      {
-        "language": "example-minimal",
-        "scopeName": "source.example-minimal",
-        "path": "./syntaxes/example-minimal.tmLanguage.json"
+        "language": "spdevkit",
+        "scopeName": "source.spdevkit",
+        "path": "./syntaxes/spdevkit.tmLanguage.json"
       }
     ]
   }

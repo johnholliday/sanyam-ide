@@ -15,6 +15,7 @@ import {
   ServerOptions,
   TransportKind,
 } from 'vscode-languageclient/node.js';
+import { DOCUMENT_SELECTOR } from './generated/vsix-config.js';
 
 /**
  * The language client instance.
@@ -31,9 +32,9 @@ let client: LanguageClient | undefined;
 export async function activate(context: ExtensionContext): Promise<void> {
   console.log('Activating Sanyam Language Extension...');
 
-  // Path to the server module
+  // Path to the server module (bundled by esbuild as CommonJS)
   const serverModule = context.asAbsolutePath(
-    path.join('lib', 'main.js')
+    path.join('out', 'main.js')
   );
 
   // Server options - run the server as a Node.js module
@@ -52,23 +53,11 @@ export async function activate(context: ExtensionContext): Promise<void> {
   };
 
   // Client options - configure which documents the client handles
+  // DOCUMENT_SELECTOR is generated from application grammar dependencies
   const clientOptions: LanguageClientOptions = {
-    // Document selector for all supported languages
-    // This will be generated based on discovered grammars
-    documentSelector: [
-      { scheme: 'file', language: 'ecml' },
-      { scheme: 'file', language: 'spdevkit' },
-      { scheme: 'file', language: 'actone' },
-      { scheme: 'file', language: 'iso-42001' },
-      // Wildcard for any language we support
-      { scheme: 'file', pattern: '**/*.{ecml,spdk,story,task,act,char,iso42001}' },
-    ],
+    documentSelector: DOCUMENT_SELECTOR,
     synchronize: {
-      // Notify server about file changes to these patterns
-      fileEvents: [
-        // Workspace configuration files
-        // workspaceFolder.createFileSystemWatcher('**/*.{ecml,spdk,story}'),
-      ],
+      fileEvents: [],
     },
     outputChannelName: 'Sanyam Language Server',
   };

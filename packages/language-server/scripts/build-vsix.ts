@@ -6,6 +6,10 @@
  * - Generated TextMate grammars from Langium grammars
  * - Language configurations
  * - VSIX manifest contributions
+ * - Generated vsix-config.ts for dynamic document selector
+ *
+ * IMPORTANT: This script only includes grammars that are dependencies of the
+ * application packages (electron and browser), NOT all grammars in the workspace.
  *
  * Usage:
  *   ts-node --esm scripts/build-vsix.ts
@@ -20,7 +24,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import {
-  scanForGrammarPackages,
+  findGrammarPackages,
   type ScannedGrammarPackage,
 } from '@sanyam/grammar-scanner';
 
@@ -33,6 +37,57 @@ const __dirname = path.dirname(__filename);
 interface GrammarPackageWithConfig extends ScannedGrammarPackage {
   langiumConfigPath: string | null;
   grammarPath: string | null;
+}
+
+/**
+ * Get all grammar packages that are dependencies of applications.
+ *
+ * This ensures we only include grammars that are actually used by the
+ * electron and/or browser applications, not every grammar in the workspace.
+ *
+ * @param workspaceRoot - Root directory of the workspace
+ * @returns Array of scanned grammar packages from application dependencies
+ */
+async function getApplicationGrammarPackages(workspaceRoot: string): Promise<ScannedGrammarPackage[]> {
+  const applicationDirs = [
+    path.join(workspaceRoot, 'applications/electron'),
+    path.join(workspaceRoot, 'applications/browser'),
+  ];
+
+  // Collect unique grammar package names from all applications
+  const grammarPackageNames = new Set<string>();
+  for (const appDir of applicationDirs) {
+    const packageJsonPath = path.join(appDir, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+      const packages = findGrammarPackages(packageJsonPath);
+      packages.forEach((name: string) => grammarPackageNames.add(name));
+    }
+  }
+
+  // Resolve each package to get its metadata
+  const packages: ScannedGrammarPackage[] = [];
+  for (const packageName of grammarPackageNames) {
+    // Convert @sanyam-grammar/spdevkit to packages/grammar-definitions/spdevkit
+    const grammarName = packageName.replace('@sanyam-grammar/', '');
+    const packagePath = path.join(workspaceRoot, 'packages/grammar-definitions', grammarName);
+
+    if (fs.existsSync(packagePath)) {
+      const pkgJsonPath = path.join(packagePath, 'package.json');
+      const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+
+      packages.push({
+        packageName,
+        languageId: pkgJson.sanyam?.languageId ?? grammarName,
+        contributionPath: pkgJson.sanyam?.contribution ?? './lib/src/contribution.js',
+        packagePath,
+        version: pkgJson.version,
+      });
+    } else {
+      console.warn(`  Warning: Package path not found for ${packageName}: ${packagePath}`);
+    }
+  }
+
+  return packages;
 }
 
 /**
@@ -412,13 +467,34 @@ function updatePackageJson(
 }
 
 /**
- * Get file extensions for a package from its manifest.
+ * Get file extensions for a package from its contribution.ts file.
+ *
+ * Looks for fileExtensions array in src/contribution.ts first,
+ * then falls back to src/manifest.ts for single fileExtension.
  */
 function getExtensionsForPackage(pkg: GrammarPackageWithConfig): string[] {
-  // Read manifest from package
   const packageDir = pkg.packagePath;
-  const manifestPath = path.join(packageDir, 'manifest.ts');
 
+  // Try contribution.ts first (has fileExtensions array)
+  const contributionPath = path.join(packageDir, 'src', 'contribution.ts');
+  if (fs.existsSync(contributionPath)) {
+    try {
+      const content = fs.readFileSync(contributionPath, 'utf-8');
+      // Match fileExtensions: ['.ext1', '.ext2']
+      const match = content.match(/fileExtensions:\s*\[([^\]]+)\]/);
+      if (match) {
+        const extensions = match[1].match(/['"]([^'"]+)['"]/g);
+        if (extensions) {
+          return extensions.map((e: string) => e.replace(/['"]/g, ''));
+        }
+      }
+    } catch {
+      // Fall through to manifest
+    }
+  }
+
+  // Fallback to manifest.ts (note: src/manifest.ts)
+  const manifestPath = path.join(packageDir, 'src', 'manifest.ts');
   if (fs.existsSync(manifestPath)) {
     try {
       const content = fs.readFileSync(manifestPath, 'utf-8');
@@ -432,16 +508,101 @@ function getExtensionsForPackage(pkg: GrammarPackageWithConfig): string[] {
     }
   }
 
-  // Default mapping
-  const extensionMap: Record<string, string[]> = {
-    ecml: ['.ecml'],
-    spdevkit: ['.spdk'],
-    actone: ['.actone'],
-    'iso-42001': ['.iso42001'],
-    'example-minimal': ['.example'],
-  };
+  // Last resort fallback
+  return [`.${pkg.languageId}`];
+}
 
-  return extensionMap[pkg.languageId] ?? [`.${pkg.languageId}`];
+/**
+ * Generate the vsix-config.ts file with document selector configuration.
+ *
+ * This file is imported by extension.ts to dynamically configure
+ * the language client's document selector based on discovered grammars.
+ */
+function generateVsixConfig(packages: readonly GrammarPackageWithConfig[]): void {
+  const generatedDir = path.resolve(__dirname, '../src/generated');
+  if (!fs.existsSync(generatedDir)) {
+    fs.mkdirSync(generatedDir, { recursive: true });
+  }
+
+  const languages = packages.map((p) => p.languageId);
+  const extensions = packages.flatMap((p) => getExtensionsForPackage(p));
+  const uniqueExtensions = [...new Set(extensions)];
+
+  // Generate extension patterns without the leading dot for the pattern
+  const extensionPatterns = uniqueExtensions.map((e) => e.replace(/^\./, ''));
+
+  const code = `/**
+ * VSIX Configuration - AUTO-GENERATED
+ *
+ * Generated by build-vsix.ts from application grammar dependencies.
+ * Do not edit manually.
+ */
+import type { DocumentSelector } from 'vscode-languageclient';
+
+export const SUPPORTED_LANGUAGES = ${JSON.stringify(languages, null, 2)} as const;
+
+export const FILE_EXTENSIONS = ${JSON.stringify(uniqueExtensions, null, 2)} as const;
+
+export const DOCUMENT_SELECTOR: DocumentSelector = [
+${languages.map((l) => `  { scheme: 'file', language: '${l}' },`).join('\n')}
+  { scheme: 'file', pattern: '**/*.{${extensionPatterns.join(',')}}' },
+];
+`;
+
+  fs.writeFileSync(
+    path.join(generatedDir, 'vsix-config.ts'),
+    code,
+    'utf-8'
+  );
+  console.log('Generated: src/generated/vsix-config.ts');
+}
+
+/**
+ * Generate the server-contributions.ts file with grammar contribution imports.
+ *
+ * This file is imported by main.ts to load grammar contributions for the
+ * language server when running as a bundled VSIX plugin.
+ */
+function generateServerContributions(packages: readonly GrammarPackageWithConfig[]): void {
+  const generatedDir = path.resolve(__dirname, '../src/generated');
+  if (!fs.existsSync(generatedDir)) {
+    fs.mkdirSync(generatedDir, { recursive: true });
+  }
+
+  // Generate import statements and contribution array
+  const imports = packages.map((pkg, index) => {
+    // Use the package name for the import (will be bundled by esbuild)
+    return `import { contribution as contribution${index} } from '${pkg.packageName}/contribution';`;
+  });
+
+  const contributionRefs = packages.map((_, index) => `contribution${index}`);
+
+  const code = `/**
+ * Server Contributions - AUTO-GENERATED
+ *
+ * Generated by build-vsix.ts from application grammar dependencies.
+ * Do not edit manually.
+ *
+ * This file imports all grammar contributions for the language server.
+ */
+import type { LanguageContributionInterface } from '../server-factory.js';
+
+${imports.join('\n')}
+
+/**
+ * All grammar contributions for the bundled VSIX.
+ */
+export const GRAMMAR_CONTRIBUTIONS: LanguageContributionInterface[] = [
+  ${contributionRefs.join(',\n  ')},
+];
+`;
+
+  fs.writeFileSync(
+    path.join(generatedDir, 'server-contributions.ts'),
+    code,
+    'utf-8'
+  );
+  console.log('Generated: src/generated/server-contributions.ts');
 }
 
 async function main(): Promise<void> {
@@ -464,21 +625,23 @@ async function main(): Promise<void> {
     fs.mkdirSync(languageConfigDir, { recursive: true });
   }
 
-  // Scan for grammar packages
-  console.log('Scanning for grammar packages...');
-  const result = await scanForGrammarPackages({ workspaceRoot });
+  // Get grammar packages from application dependencies (not all workspace grammars)
+  console.log('Scanning application dependencies for grammar packages...');
+  const packages = await getApplicationGrammarPackages(workspaceRoot);
 
-  if (result.warnings.length > 0) {
-    console.warn('\nWarnings:');
-    for (const warning of result.warnings) {
-      console.warn(`  - ${warning}`);
-    }
+  if (packages.length === 0) {
+    console.warn('\nWarning: No @sanyam-grammar/* packages found in application dependencies.');
+    console.warn('Add grammar dependencies to applications/electron or applications/browser package.json');
   }
 
-  console.log(`Found ${result.packages.length} grammar package(s)\n`);
+  console.log(`Found ${packages.length} grammar package(s) from application dependencies\n`);
+  for (const pkg of packages) {
+    console.log(`  - ${pkg.packageName} (${pkg.languageId})`);
+  }
+  console.log('');
 
   // Find Langium configurations
-  const packagesWithConfig = result.packages.map(findLangiumConfig);
+  const packagesWithConfig = packages.map(findLangiumConfig);
 
   // Generate TextMate grammars
   console.log('Generating TextMate grammars...');
@@ -504,6 +667,14 @@ async function main(): Promise<void> {
   // Update package.json
   console.log('\nUpdating package.json...');
   updatePackageJson(packagesWithConfig);
+
+  // Generate vsix-config.ts for extension.ts
+  console.log('\nGenerating vsix-config.ts...');
+  generateVsixConfig(packagesWithConfig);
+
+  // Generate server-contributions.ts for main.ts
+  console.log('\nGenerating server-contributions.ts...');
+  generateServerContributions(packagesWithConfig);
 
   // Report results
   console.log('\n=== Build Summary ===');

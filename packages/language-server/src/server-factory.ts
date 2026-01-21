@@ -266,6 +266,7 @@ export async function createLanguageServer(
       initialized = true;
 
       // Return capabilities
+      // Only advertise capabilities that have registered handlers
       return {
         capabilities: {
           textDocumentSync: TextDocumentSyncKind.Incremental,
@@ -275,57 +276,29 @@ export async function createLanguageServer(
           },
           hoverProvider: true,
           definitionProvider: true,
-          declarationProvider: true,
-          typeDefinitionProvider: true,
-          implementationProvider: true,
           referencesProvider: true,
           documentSymbolProvider: true,
-          workspaceSymbolProvider: true,
-          documentHighlightProvider: true,
-          codeActionProvider: {
-            codeActionKinds: [
-              'quickfix',
-              'refactor',
-              'refactor.extract',
-              'refactor.inline',
-              'refactor.rewrite',
-              'source',
-              'source.organizeImports',
-            ],
-          },
-          renameProvider: { prepareProvider: true },
-          documentFormattingProvider: true,
-          documentRangeFormattingProvider: true,
-          foldingRangeProvider: true,
-          selectionRangeProvider: true,
-          semanticTokensProvider: {
-            legend: {
-              tokenTypes: [
-                'namespace', 'type', 'class', 'enum', 'interface',
-                'struct', 'typeParameter', 'parameter', 'variable',
-                'property', 'enumMember', 'event', 'function',
-                'method', 'macro', 'keyword', 'modifier', 'comment',
-                'string', 'number', 'regexp', 'operator', 'decorator',
-              ],
-              tokenModifiers: [
-                'declaration', 'definition', 'readonly', 'static',
-                'deprecated', 'abstract', 'async', 'modification',
-                'documentation', 'defaultLibrary',
-              ],
-            },
-            full: { delta: true },
-            range: true,
-          },
-          callHierarchyProvider: true,
-          typeHierarchyProvider: true,
-          inlayHintProvider: { resolveProvider: true },
-          codeLensProvider: { resolveProvider: true },
-          documentLinkProvider: { resolveProvider: true },
-          signatureHelpProvider: {
-            triggerCharacters: ['(', ','],
-            retriggerCharacters: [')'],
-          },
-          linkedEditingRangeProvider: true,
+          // Note: The following capabilities are not yet implemented
+          // and are commented out to avoid "Unhandled method" errors:
+          // - declarationProvider
+          // - typeDefinitionProvider
+          // - implementationProvider
+          // - workspaceSymbolProvider
+          // - documentHighlightProvider
+          // - codeActionProvider
+          // - renameProvider
+          // - documentFormattingProvider
+          // - documentRangeFormattingProvider
+          // - foldingRangeProvider
+          // - selectionRangeProvider
+          // - semanticTokensProvider
+          // - callHierarchyProvider
+          // - typeHierarchyProvider
+          // - inlayHintProvider
+          // - codeLensProvider
+          // - documentLinkProvider
+          // - signatureHelpProvider
+          // - linkedEditingRangeProvider
         },
       };
     } catch (error) {

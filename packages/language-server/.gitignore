@@ -1,0 +1,10 @@
+# Generated output directories
+lib/
+out/
+syntaxes/
+language-configurations/
+src/generated/
+
+# Build artifacts
+tsconfig.tsbuildinfo
+*.vsix

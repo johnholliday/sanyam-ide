@@ -43,6 +43,45 @@
       ],
       "cache": true
     },
+    "sanyam-language-server#build": {
+      "dependsOn": [
+        "^build",
+        "sanyam-language-server#build:vsix"
+      ],
+      "outputs": [
+        "lib/**",
+        "*.tsbuildinfo"
+      ],
+      "cache": true
+    },
+    "sanyam-language-server#build:bundle": {
+      "dependsOn": [
+        "sanyam-language-server#build"
+      ],
+      "outputs": [
+        "out/**"
+      ],
+      "inputs": [
+        "esbuild.mjs",
+        "lib/**"
+      ],
+      "cache": true
+    },
+    "sanyam-language-server#build:vsix": {
+      "outputs": [
+        "syntaxes/**",
+        "language-configurations/**",
+        "src/generated/**"
+      ],
+      "inputs": [
+        "scripts/build-vsix.ts",
+        "../grammar-definitions/*/src/contribution.ts",
+        "../grammar-definitions/*/manifest.ts",
+        "../grammar-definitions/*/*.langium",
+        "../../applications/*/package.json"
+      ],
+      "cache": true
+    },
     "lint": {
       "cache": true
     },

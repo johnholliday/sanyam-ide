@@ -2,10 +2,11 @@
  * Unified Language Server Entry Point
  *
  * Default entry point for the unified LSP/GLSP language server.
- * This module starts a server with no pre-configured grammars.
+ * When built with build-vsix.ts, this loads grammar contributions from
+ * the generated server-contributions.ts file.
  *
- * For applications that want to include specific grammars, use the
- * server-factory module instead and pass the desired contributions:
+ * For applications that want to include specific grammars programmatically,
+ * use the server-factory module instead and pass the desired contributions:
  *
  * @example
  * ```typescript
@@ -23,22 +24,26 @@
  */
 
 import { createLanguageServer, type LanguageContributionInterface } from './server-factory.js';
+import { GRAMMAR_CONTRIBUTIONS } from './generated/server-contributions.js';
 
 /**
  * Start the language server.
  *
- * This default entry point starts the server with no grammars loaded.
- * Applications should use the server-factory directly to specify their
- * grammar contributions.
+ * Loads grammar contributions from the generated server-contributions.ts file.
+ * The contributions are determined at build time by build-vsix.ts based on
+ * the application's grammar dependencies.
  */
 async function main(): Promise<void> {
   console.log('Starting Sanyam Language Server...');
-  console.log('NOTE: No grammars configured. Use server-factory to specify contributions.');
-  console.log('');
 
-  // Start with empty contributions
-  // Applications should use createLanguageServer directly with their grammars
-  const contributions: LanguageContributionInterface[] = [];
+  const contributions: LanguageContributionInterface[] = GRAMMAR_CONTRIBUTIONS;
+
+  if (contributions.length === 0) {
+    console.log('NOTE: No grammars configured. Use server-factory to specify contributions.');
+  } else {
+    console.log(`Loading ${contributions.length} grammar contribution(s) from VSIX bundle...`);
+  }
+  console.log('');
 
   const server = await createLanguageServer({
     contributions,

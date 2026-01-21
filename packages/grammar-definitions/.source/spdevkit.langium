@@ -1,3 +1,9 @@
+// =============================================================================
+// @name = "SPDevKit"
+// @tagline = "SharePoint Development Kit"
+// @description = "A development environment for modeling collaborative applications for SharePoint Online."
+// @extension = ".spdk"
+// =============================================================================
 grammar SPDevKit
 
 // Entry point - the main model containing all top-level elements

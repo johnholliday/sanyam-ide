@@ -74,9 +74,9 @@ importers:
 
   applications/browser:
     dependencies:
-      '@sanyam-grammar/ecml':
+      '@sanyam-grammar/spdevkit':
         specifier: workspace:*
-        version: link:../../packages/grammar-definitions/ecml
+        version: link:../../packages/grammar-definitions/spdevkit
       '@sanyam-ide/product':
         specifier: workspace:*
         version: link:../../packages/theia-extensions/product
@@ -309,9 +309,9 @@ importers:
 
   applications/electron:
     dependencies:
-      '@sanyam-grammar/ecml':
+      '@sanyam-grammar/spdevkit':
         specifier: workspace:*
-        version: link:../../packages/grammar-definitions/ecml
+        version: link:../../packages/grammar-definitions/spdevkit
       '@sanyam-ide/glsp':
         specifier: workspace:*
         version: link:../../packages/theia-extensions/glsp

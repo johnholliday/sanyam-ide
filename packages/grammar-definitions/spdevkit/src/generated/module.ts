@@ -4,18 +4,18 @@
  ******************************************************************************/
 
 import type { LangiumSharedCoreServices, LangiumCoreServices, LangiumGeneratedCoreServices, LangiumGeneratedSharedCoreServices, LanguageMetaData, Module } from 'langium';
-import { SpdevkitAstReflection } from './ast.js';
+import { SPDevKitAstReflection } from './ast.js';
 import { SPDevKitGrammar } from './grammar.js';
 
 export const SPDevKitLanguageMetaData = {
     languageId: 'spdevkit',
-    fileExtensions: ['.spdevkit'],
+    fileExtensions: ['.spdk'],
     caseInsensitive: false,
     mode: 'development'
 } as const satisfies LanguageMetaData;
 
-export const SpdevkitGeneratedSharedModule: Module<LangiumSharedCoreServices, LangiumGeneratedSharedCoreServices> = {
-    AstReflection: () => new SpdevkitAstReflection()
+export const SPDevKitGeneratedSharedModule: Module<LangiumSharedCoreServices, LangiumGeneratedSharedCoreServices> = {
+    AstReflection: () => new SPDevKitAstReflection()
 };
 
 export const SPDevKitGeneratedModule: Module<LangiumCoreServices, LangiumGeneratedCoreServices> = {

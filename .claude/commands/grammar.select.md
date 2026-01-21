@@ -138,10 +138,46 @@ interface ParsedManifest {
   displayName: string;    // From manifest
   fileExtension: string;  // From manifest
   rootTypeCount: number;  // Count of rootTypes
+  langiumMetadata?: {     // Extracted from .langium file comments
+    name?: string;
+    tagline?: string;
+    description?: string;
+  };
 }
 ```
 
 If ANY grammar validation fails, stop and do not proceed with changes.
+
+### 2.5 Extract Langium File Metadata
+
+For each grammar, attempt to extract metadata from specially formatted comments in the `.langium` file:
+
+1. **Read langium-config.json**: `packages/grammar-definitions/{name}/langium-config.json`
+2. **Extract grammar path**: Get path from `languages[0].grammar`
+3. **Read the .langium file**: `packages/grammar-definitions/{name}/{grammarPath}`
+4. **Scan for metadata comments**: Look for lines matching `// @{token} = "{value}"`
+
+**Supported tokens:**
+| Token | Field |
+|-------|-------|
+| `@name` | `langiumMetadata.name` |
+| `@tagline` | `langiumMetadata.tagline` |
+| `@description` | `langiumMetadata.description` |
+
+**Regex pattern for extraction:**
+```
+\/\/\s*@(name|tagline|description)\s*=\s*"([^"]+)"
+```
+
+**Example .langium file header:**
+```langium
+// @name = "E C M L"
+// @tagline = "Enterprise Content Modeling Language"
+// @description = "A development environment for modeling enterprise content"
+grammar Ecml
+```
+
+**Fallback behavior:** If langium-config.json or the .langium file cannot be read, or no metadata comments are found, continue without error. The `langiumMetadata` field will be undefined, and auto-generated defaults will be used in Step 3.
 
 ---
 
@@ -149,22 +185,24 @@ If ANY grammar validation fails, stop and do not proceed with changes.
 
 ### 3.1 Single Grammar Mode
 
-If only ONE grammar was specified, derive metadata from its manifest:
+If only ONE grammar was specified, derive metadata from its manifest and langiumMetadata (if available).
+
+**Metadata priority:** Values extracted from `.langium` file comments take precedence over auto-generated defaults.
 
 **Application Name:**
 ```
-{displayName} IDE
+langiumMetadata.name ?? "{displayName} IDE"
 ```
 
 **Application Data:**
 ```typescript
 {
-  name: "{displayName} IDE",
-  description: "Development environment for {displayName} domain-specific language",
+  name: langiumMetadata.name ?? "{displayName} IDE",
+  description: langiumMetadata.description ?? "Development environment for {displayName} domain-specific language",
   logo: "resources/sanyam-banner.svg",
-  tagline: "Build and edit {displayName} models with ease",
+  tagline: langiumMetadata.tagline ?? "Build and edit {displayName} models with ease",
   text: [
-    "{displayName} IDE provides a complete development environment for creating and working with {displayName} files.",
+    "{resolvedName} provides a complete development environment for creating and working with {displayName} files.",
     "Features include syntax highlighting, validation, code completion, and diagram generation for your {displayName} models."
   ],
   links: [
@@ -187,9 +225,40 @@ If only ONE grammar was specified, derive metadata from its manifest:
 }
 ```
 
+Where `{resolvedName}` is `langiumMetadata.name ?? "{displayName} IDE"`.
+
+**Example with langiumMetadata (ecml):**
+```typescript
+// From ecml.langium:
+// @name = "E C M L"
+// @tagline = "Enteprise Content Modeling Language"
+// @description = "A development environment for modeling enterprise content"
+
+{
+  name: "E C M L",                                        // from @name
+  description: "A development environment for modeling enterprise content",  // from @description
+  tagline: "Enteprise Content Modeling Language",         // from @tagline
+  // ...
+}
+```
+
+**Example without langiumMetadata (spdevkit):**
+```typescript
+// No @name/@tagline/@description comments in spdevkit.langium
+
+{
+  name: "SPDevKit IDE",                                   // auto-generated
+  description: "Development environment for SPDevKit domain-specific language",  // auto-generated
+  tagline: "Build and edit SPDevKit models with ease",    // auto-generated
+  // ...
+}
+```
+
 ### 3.2 Multiple Grammar Mode
 
-If MULTIPLE grammars were specified, prompt the user for metadata using AskUserQuestion:
+If MULTIPLE grammars were specified, prompt the user for metadata using AskUserQuestion.
+
+**Note:** When the first grammar has `langiumMetadata` values, include them as additional options in the prompts.
 
 **Question 1: Application Name**
 ```
@@ -198,6 +267,7 @@ Header: "App Name"
 Options:
   - "Sanyam IDE" - "Generic multi-grammar IDE name (Recommended)"
   - "{First Grammar displayName} IDE" - "Use first selected grammar name"
+  - "{langiumMetadata.name}" - "Use name from .langium comments" (only if langiumMetadata.name exists)
   - "Custom" - "Enter a custom application name"
 ```
 
@@ -210,6 +280,7 @@ Header: "Description"
 Options:
   - "Multi-language" - "Generic description covering multiple grammars (Recommended)"
   - "List grammars" - "Description that lists all selected grammar names"
+  - "{langiumMetadata.description}" - "Use description from .langium comments" (only if langiumMetadata.description exists)
 ```
 
 **Generate description based on choice:**
@@ -224,12 +295,18 @@ List grammars:
 "Development environment supporting {displayName1}, {displayName2}, and {displayName3} languages"
 ```
 
+From langiumMetadata:
+```
+"{langiumMetadata.description}"
+```
+
 **Question 3: Tagline**
 ```
 Question: "What tagline should be displayed?"
 Header: "Tagline"
 Options:
   - "Build intelligent language tools with ease" - "Generic Sanyam tagline (Recommended)"
+  - "{langiumMetadata.tagline}" - "Use tagline from .langium comments" (only if langiumMetadata.tagline exists)
   - "Custom" - "Enter a custom tagline"
 ```
 
@@ -294,11 +371,17 @@ Dependencies to REMOVE:
   - @sanyam-grammar/{oldName}
 
 Application metadata:
-  - applicationName: "{applicationName}"
-  - applicationGrammar: "{languageId}"  (primary grammar for branding)
-  - name: "{name}"
-  - description: "{description}"
-  - tagline: "{tagline}"
+  - applicationName: "{applicationName}"  {source attribution}
+  - applicationGrammar: "{languageId}"    (primary grammar for branding)
+  - name: "{name}"                        {source attribution}
+  - description: "{description}"          {source attribution}
+  - tagline: "{tagline}"                  {source attribution}
+
+Source attribution legend:
+  - (from @name)        = extracted from .langium file comment
+  - (from @tagline)     = extracted from .langium file comment
+  - (from @description) = extracted from .langium file comment
+  - (auto-generated)    = derived from manifest displayName
 
 Note: Grammar documentation (summary, features, concepts, examples) is now
 read from the GrammarManifest at runtime via GrammarRegistry.
@@ -306,6 +389,36 @@ read from the GrammarManifest at runtime via GrammarRegistry.
 Files to modify:
   - applications/electron/package.json
   - applications/browser/package.json
+```
+
+**Example preview with langiumMetadata (ecml):**
+```
+Application metadata:
+  - applicationName: "E C M L"                                        (from @name)
+  - applicationGrammar: "ecml"                                        (primary grammar for branding)
+  - name: "E C M L"                                                   (from @name)
+  - description: "A development environment for modeling enterprise content"  (from @description)
+  - tagline: "Enteprise Content Modeling Language"                    (from @tagline)
+```
+
+**Example preview without langiumMetadata (spdevkit):**
+```
+Application metadata:
+  - applicationName: "SPDevKit IDE"                                   (auto-generated)
+  - applicationGrammar: "spdevkit"                                    (primary grammar for branding)
+  - name: "SPDevKit IDE"                                              (auto-generated)
+  - description: "Development environment for SPDevKit domain-specific language"  (auto-generated)
+  - tagline: "Build and edit SPDevKit models with ease"               (auto-generated)
+```
+
+**Example preview with partial langiumMetadata:**
+```
+Application metadata:
+  - applicationName: "My Language"                                    (from @name)
+  - applicationGrammar: "mylang"                                      (primary grammar for branding)
+  - name: "My Language"                                               (from @name)
+  - description: "Development environment for My Language domain-specific language"  (auto-generated)
+  - tagline: "Build and edit My Language models with ease"            (auto-generated)
 ```
 
 ---
@@ -508,28 +621,57 @@ Please check file permissions and try again.
 
 ## Examples
 
-### Example 1: Single Grammar Selection
+### Example 1: Single Grammar Selection (with langiumMetadata)
 
 **Command:** `/grammar.select ecml`
 
+**ecml.langium contains:**
+```langium
+// @name = "E C M L"
+// @tagline = "Enteprise Content Modeling Language"
+// @description = "A development environment for modeling enterprise content"
+grammar Ecml
+```
+
 **Result:**
-- Application name: "Enterprise Content Modeling Language IDE"
+- Application name: "E C M L" (from @name)
 - applicationGrammar: "ecml"
-- Description: "Development environment for Enterprise Content Modeling Language domain-specific language"
+- Description: "A development environment for modeling enterprise content" (from @description)
+- Tagline: "Enteprise Content Modeling Language" (from @tagline)
 - Dependencies: Only `@sanyam-grammar/ecml`
 - Other grammar packages removed from dependencies
 
-### Example 2: Multiple Grammar Selection
+### Example 2: Single Grammar Selection (without langiumMetadata)
+
+**Command:** `/grammar.select spdevkit`
+
+**spdevkit.langium contains:** (no @name/@tagline/@description comments)
+```langium
+grammar SPDevKit
+entry Model:
+...
+```
+
+**Result:**
+- Application name: "SPDevKit IDE" (auto-generated)
+- applicationGrammar: "spdevkit"
+- Description: "Development environment for SPDevKit domain-specific language" (auto-generated)
+- Tagline: "Build and edit SPDevKit models with ease" (auto-generated)
+- Dependencies: Only `@sanyam-grammar/spdevkit`
+- Other grammar packages removed from dependencies
+
+### Example 3: Multiple Grammar Selection
 
 **Command:** `/grammar.select ecml, spdevkit, nist-csf`
 
 **Result:**
 - User prompted for application name, description, tagline
+- Prompts include options from ecml's langiumMetadata if present
 - applicationGrammar: uses first grammar's languageId ("ecml")
 - All three grammar packages added to dependencies
 - Other grammar packages removed from dependencies
 
-### Example 3: Invalid Grammar
+### Example 4: Invalid Grammar
 
 **Command:** `/grammar.select nonexistent`
 

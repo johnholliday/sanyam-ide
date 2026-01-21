@@ -19,7 +19,7 @@ export const manifest: GrammarManifest = {
   languageId: 'ecml',
   displayName: 'Enterprise Content Modeling Language',
   summary: 'A domain-specific language for modeling enterprise content management workflows, security policies, and compliance requirements.',
-  tagline: 'Model content, secure by design',
+  tagline: 'Enterprise Content Modeling Language',
   keyFeatures: [
     { feature: 'Content Lifecycle', description: 'Model complete content lifecycle from creation to archival' },
     { feature: 'Security Policies', description: 'Define security groups and granular permissions' },

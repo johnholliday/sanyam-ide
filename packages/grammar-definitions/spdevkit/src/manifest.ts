@@ -12,14 +12,15 @@ import type { GrammarManifest } from '@sanyam/types';
 /**
  * SPDevKit Grammar Manifest
  *
- * Note: Logo is handled by webpack asset bundling. The logo.svg file is copied
+ * Note: Fields populated from @{token} comments in the grammar file are marked with [tag].
+ * Logo is handled by webpack asset bundling. The logo.svg file is copied
  * to assets/logos/spdevkit.svg at build time.
  */
 export const manifest: GrammarManifest = {
   languageId: 'spdevkit',
-  displayName: 'SPDevKit',
-  summary: 'A domain-specific language for modeling applications, entities, services, and workflows with visual diagram support.',
-  tagline: 'Build applications with precision',
+  displayName: 'SPDevKit',  // [tag] @name
+  summary: 'A development environment for modeling collaborative applications for SharePoint Online.',  // [tag] @description
+  tagline: 'SharePoint Development Kit',  // [tag] @tagline
   keyFeatures: [
     { feature: 'Application Modeling', description: 'Define complete application structures declaratively' },
     { feature: 'Entity Definitions', description: 'Create typed entity schemas with properties' },
@@ -42,8 +43,8 @@ entity User {
   name: string
   email: string
 }`,
-  fileExtension: '.spdevkit',
-  baseExtension: '.spdevkit',
+  fileExtension: '.spdk',  // [tag] @extension
+  baseExtension: '.spdk',  // [tag] @extension
   // logo field omitted - handled by webpack asset bundling (assets/logos/spdevkit.svg)
   rootTypes: [
     {

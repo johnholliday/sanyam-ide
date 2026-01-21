@@ -1,5 +1,8 @@
 // =============================================================================
-//  ECML – Enterprise Content Modeling Language
+// @name = "E C M L"
+// @tagline = "Enteprise Content Modeling Language"
+// @description = "A development environment for modeling enterprise content"
+// @extension = ".ecml"
 // =============================================================================
 grammar Ecml
 

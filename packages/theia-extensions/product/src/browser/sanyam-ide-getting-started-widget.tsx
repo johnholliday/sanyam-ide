@@ -226,7 +226,7 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
     protected renderApplicationHeader(appName: string, effectiveLogo: string): React.ReactNode {
         return <div className='gs-app-header'>
             <img src={effectiveLogo} alt={appName} className='gs-app-logo' />
-            <h1>{appName}</h1>
+            {/*<h1>{appName}</h1>*/}
         </div>;
     }
 

@@ -1,10 +1,10 @@
 {
-  "projectName": "Spdevkit",
+  "projectName": "SPDevKit",
   "languages": [
     {
       "id": "spdevkit",
       "grammar": "src/spdevkit.langium",
-      "fileExtensions": [".spdevkit"]
+      "fileExtensions": [".spdk"]
     }
   ],
   "out": "src/generated"

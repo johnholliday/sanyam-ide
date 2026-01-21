@@ -6,7 +6,7 @@
 /* eslint-disable */
 import * as langium from 'langium';
 
-export const SpdevkitTerminals = {
+export const SPDevKitTerminals = {
     WS: /\s+/,
     ML_COMMENT: /\/\*[\s\S]*?\*\//,
     SL_COMMENT: /\/\/[^\n\r]*/,
@@ -14,9 +14,9 @@ export const SpdevkitTerminals = {
     STRING: /"[^"]*"|'[^']*'/,
 };
 
-export type SpdevkitTerminalNames = keyof typeof SpdevkitTerminals;
+export type SPDevKitTerminalNames = keyof typeof SPDevKitTerminals;
 
-export type SpdevkitKeywordNames =
+export type SPDevKitKeywordNames =
     | "("
     | ")"
     | "->"
@@ -39,7 +39,7 @@ export type SpdevkitKeywordNames =
     | "{"
     | "}";
 
-export type SpdevkitTokenNames = SpdevkitTerminalNames | SpdevkitKeywordNames;
+export type SPDevKitTokenNames = SPDevKitTerminalNames | SPDevKitKeywordNames;
 
 export interface Application extends langium.AstNode {
     readonly $container: Model;
@@ -240,7 +240,7 @@ export function isWorkflow(item: unknown): item is Workflow {
     return reflection.isInstance(item, Workflow.$type);
 }
 
-export type SpdevkitAstType = {
+export type SPDevKitAstType = {
     Application: Application
     Element: Element
     Entity: Entity
@@ -254,7 +254,7 @@ export type SpdevkitAstType = {
     Workflow: Workflow
 }
 
-export class SpdevkitAstReflection extends langium.AbstractAstReflection {
+export class SPDevKitAstReflection extends langium.AbstractAstReflection {
     override readonly types = {
         Application: {
             name: Application.$type,
@@ -417,4 +417,4 @@ export class SpdevkitAstReflection extends langium.AbstractAstReflection {
     } as const satisfies langium.AstMetaData
 }
 
-export const reflection = new SpdevkitAstReflection();
+export const reflection = new SPDevKitAstReflection();

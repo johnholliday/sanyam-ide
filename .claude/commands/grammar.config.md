@@ -178,6 +178,70 @@ Use AskUserQuestion:
 2. `continue` - "Continue without fixing (build will fail)"
 3. `abort` - "Stop and manually fix the grammar"
 
+### Step 4.2: Extract Language Tags from Comments
+
+After validation, scan the grammar file for specially formatted single-line comments that provide explicit metadata values. These tags take precedence over AI-derived values.
+
+**Supported tags:**
+
+| Tag | Maps to | Description |
+|-----|---------|-------------|
+| `@name` | `displayName` | Human-readable name for the language |
+| `@tagline` | `tagline` | Short marketing tagline (<10 words) |
+| `@description` | `summary` | Brief description (1-2 sentences) |
+| `@extension` | `fileExtension` | Primary file extension including dot |
+
+**Comment format:**
+
+```
+// @{token} = "{value}"
+```
+
+**Extraction regex:**
+
+```
+/@(name|tagline|description|extension)\s*=\s*"([^"]+)"/g
+```
+
+**Processing:**
+1. Scan the entire grammar file for matching patterns
+2. Store extracted values in a `languageTags` object:
+   ```typescript
+   interface LanguageTags {
+     name?: string;        // → displayName
+     tagline?: string;     // → tagline
+     description?: string; // → summary
+     extension?: string;   // → fileExtension
+   }
+   ```
+3. Pass `languageTags` to Step 7 for manifest generation
+
+**Validation:**
+- If `@extension` is provided, validate it starts with `.`
+- If validation fails, report warning and ignore the invalid tag
+- Missing tags are acceptable (AI derivation will be used as fallback)
+
+**Example extraction:**
+
+For grammar file:
+```langium
+// @name = "E C M L"
+// @tagline = "Enterprise Content Modeling Language"
+// @description = "A development environment for modeling enterprise content"
+// @extension = ".ecml"
+grammar Ecml
+```
+
+Results in:
+```typescript
+languageTags = {
+  name: "E C M L",
+  tagline: "Enterprise Content Modeling Language",
+  description: "A development environment for modeling enterprise content",
+  extension: ".ecml"
+}
+```
+
 ### Step 5: Generate rootTypes from Parser Rules
 
 For each extracted entry rule and significant parser rule, create a `RootTypeConfig`:
@@ -300,23 +364,33 @@ Create `packages/grammar-definitions/{name}/src/manifest.ts` with the complete `
 
 **Documentation fields generation:**
 
-Before generating the manifest, derive the documentation properties:
+Before generating the manifest, derive the documentation properties. **Use language tags from Step 4.2 when available**, otherwise derive automatically:
 
-**Summary generation:**
-- Pattern: "A domain-specific language for {domain} with support for {key features}"
+**displayName:**
+- If `languageTags.name` exists → use it directly
+- Otherwise → derive from grammar name (convert kebab-case to Title Case)
+
+**summary:**
+- If `languageTags.description` exists → use it directly
+- Otherwise → generate pattern: "A domain-specific language for {domain} with support for {key features}"
 - Derive domain from grammar name/display name
 - Include 2-3 main capabilities from rootTypes
 - Keep to 1-2 sentences
 
-**Tagline generation:**
-- Keep under 10 words
-- Focus on the primary value proposition
-- Heuristics based on grammar type:
+**tagline:**
+- If `languageTags.tagline` exists → use it directly
+- Otherwise → generate based on grammar type heuristics:
   - workflow → "Streamline your {domain} workflows"
   - security → "Secure by design"
   - model → "Model {domain} with precision"
   - compliance → "{Domain} compliance made simple"
   - default → "Simplify {domain} development"
+- Keep under 10 words
+- Focus on the primary value proposition
+
+**fileExtension and baseExtension:**
+- If `languageTags.extension` exists → use it directly
+- Otherwise → derive as `.{languageId}` (e.g., `.ecml`)
 
 **Key features generation:**
 - Format: `{ feature: '{FeatureName}', description: '{FeatureDescription}' }`
@@ -349,14 +423,15 @@ import type { GrammarManifest } from '@sanyam/types';
 /**
  * {DisplayName} Grammar Manifest
  *
- * Note: Logo is handled by webpack asset bundling. The logo.svg file is copied
+ * Note: Fields populated from @{token} comments in the grammar file are marked with [tag].
+ * Logo is handled by webpack asset bundling. The logo.svg file is copied
  * to assets/logos/{languageId}.svg at build time.
  */
 export const manifest: GrammarManifest = {
   languageId: '{languageId}',
-  displayName: '{DisplayName}',
-  summary: '{Generated summary based on grammar analysis}',
-  tagline: '{Generated tagline}',
+  displayName: '{DisplayName}',  // [tag] if @name provided
+  summary: '{Summary from @description tag or AI-derived}',  // [tag] if @description provided
+  tagline: '{Tagline from @tagline tag or AI-derived}',  // [tag] if @tagline provided
   keyFeatures: [
     { feature: '{FeatureName1}', description: '{Description of feature 1}' },
     { feature: '{FeatureName2}', description: '{Description of feature 2}' },
@@ -369,8 +444,8 @@ export const manifest: GrammarManifest = {
     // ... derived from astType names in rootTypes
   ],
   quickExample: `{Multi-line example showing basic syntax}`,
-  fileExtension: '.{ext}',
-  baseExtension: '.{ext}',
+  fileExtension: '.{ext}',  // [tag] if @extension provided
+  baseExtension: '.{ext}',  // [tag] if @extension provided
   // logo field omitted - handled by webpack asset bundling (assets/logos/{languageId}.svg)
   rootTypes: [
     {

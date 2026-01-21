@@ -1,9 +1,0 @@
-// Basic Example: A simple entity definition
-// Demonstrates the Entity construct with primitive type properties
-
-entity Customer {
-    id: number
-    name: string
-    email: string
-    active: boolean
-}

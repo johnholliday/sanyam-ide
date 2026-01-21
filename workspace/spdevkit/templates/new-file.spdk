@@ -1,0 +1,31 @@
+// SPDevKit - SharePoint Development Kit
+// TODO: Add your model elements below
+
+// Define entities for your data model
+entity MyEntity {
+    name: string = "TODO: Set name"
+    // TODO: Add more properties
+}
+
+// Define services for business logic
+service MyService {
+    description "TODO: Describe the service"
+    operation myOperation(param: string)
+    // TODO: Add more operations
+}
+
+// Define workflows for process orchestration
+workflow MyWorkflow {
+    description "TODO: Describe the workflow"
+    step start {
+        action "TODO: Define action"
+        // TODO: Add next step reference
+    }
+}
+
+// Define application to tie elements together
+application MyApplication {
+    description "TODO: Describe the application"
+    version "0.1.0"
+    MyEntity
+}

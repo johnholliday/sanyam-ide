@@ -1,0 +1,19 @@
+// Intermediate Example: Full Service with Operations
+// Demonstrates a service with multiple operations and return types
+
+entity Document {
+    title: string
+    content: string
+    createdDate: date
+    isPublished: boolean
+}
+
+service DocumentService {
+    description "Manages document lifecycle operations"
+    operation createDocument(title: string content: string) -> Document
+    operation getDocument(documentId: number) -> Document
+    operation updateDocument(documentId: number title: string content: string) -> Document
+    operation deleteDocument(documentId: number) -> boolean
+    operation publishDocument(documentId: number) -> boolean
+    operation searchDocuments(query: string) -> Document
+}

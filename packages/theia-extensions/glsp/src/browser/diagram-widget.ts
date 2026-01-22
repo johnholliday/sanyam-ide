@@ -379,10 +379,22 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         }
 
         try {
-            // Create Sprotty diagram manager
+            // Create Sprotty diagram manager with UI extensions enabled
             this.sprottyManager = new SprottyDiagramManager({
                 diagramId: this.svgContainer.id,
                 needsMoveAction: true,
+                uiExtensions: {
+                    enableToolPalette: true,
+                    enableValidation: true,
+                    enableEditLabel: true,
+                    enableCommandPalette: true,
+                    enableEdgeCreation: true,
+                    enableHelperLines: true,
+                    enableMarqueeSelection: true,
+                    enableResizeHandles: true,
+                    enablePopup: true,
+                    enableMinimap: true,
+                },
             });
 
             // Set up event callbacks
@@ -413,8 +425,20 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             };
             this.sprottyManager.setCallbacks(callbacks);
 
+            // Initialize UI extensions and set parent container
+            this.sprottyManager.initializeUIExtensions();
+
+            // Set parent container for UI extensions (the diagram container)
+            const diagramContainer = this.svgContainer.parentElement;
+            if (diagramContainer) {
+                this.sprottyManager.setUIExtensionsParentContainer(diagramContainer);
+            }
+
             this.sprottyInitialized = true;
             console.log(`[DiagramWidget] Sprotty initialized for: ${this.uri}`);
+
+            // Request tool palette from server
+            await this.sprottyManager.requestToolPalette();
 
             // Load initial model
             await this.loadModel();

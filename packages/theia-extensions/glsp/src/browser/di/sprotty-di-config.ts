@@ -31,6 +31,7 @@ import {
     SLabelView,
     SCompartmentImpl,
     SCompartmentView,
+    SRoutingHandleView,
     configureViewerOptions,
     loadDefaultModules,
     LocalModelSource,
@@ -39,6 +40,7 @@ import {
     SModelElementImpl,
     SPortImpl,
 } from 'sprotty';
+import { SRoutingHandleImpl } from 'sprotty/lib/features/routing/model';
 import { Action } from 'sprotty-protocol';
 import {
     SModelRoot,
@@ -50,6 +52,18 @@ import {
     SelectAllAction,
     SetViewportAction,
 } from 'sprotty-protocol';
+
+import {
+    createUIExtensionsModule,
+    initializeUIExtensions,
+    setUIExtensionsParentContainer,
+    UIExtensionsModuleOptions,
+    UIExtensionRegistry,
+    UI_EXTENSION_REGISTRY,
+    RequestToolPaletteAction,
+} from '../ui-extensions';
+
+import { createElkLayoutModule } from '../layout';
 
 /**
  * Service identifier for the diagram ID.
@@ -73,6 +87,8 @@ export const SanyamModelTypes = {
     COMPARTMENT: 'comp:main',
     COMPARTMENT_HEADER: 'comp:header',
     PORT: 'port:default',
+    ROUTING_POINT: 'routing-point',
+    VOLATILE_ROUTING_POINT: 'volatile-routing-point',
 } as const;
 
 /**
@@ -180,6 +196,10 @@ function createSanyamDiagramModule(): ContainerModule {
         // Ports (using CircularNodeView for small port rendering)
         configureModelElement(context, SanyamModelTypes.PORT, SPortImpl, CircularNodeView);
 
+        // Routing points (for edge routing handles)
+        configureModelElement(context, SanyamModelTypes.ROUTING_POINT, SRoutingHandleImpl, SRoutingHandleView);
+        configureModelElement(context, SanyamModelTypes.VOLATILE_ROUTING_POINT, SRoutingHandleImpl, SRoutingHandleView);
+
         // Bind custom mouse listener
         bind(SanyamMouseListener).toSelf().inSingletonScope();
         bind(TYPES.MouseListener).toService(SanyamMouseListener);
@@ -194,6 +214,8 @@ export interface CreateDiagramContainerOptions {
     diagramId: string;
     /** Whether to enable move action support */
     needsMoveAction?: boolean;
+    /** UI Extensions options */
+    uiExtensions?: Partial<UIExtensionsModuleOptions>;
 }
 
 /**
@@ -211,8 +233,13 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
     // Load Sanyam-specific module
     container.load(createSanyamDiagramModule());
 
+    // Load ELK layout module BEFORE binding LocalModelSource
+    // This ensures IModelLayoutEngine is available when LocalModelSource is instantiated
+    container.load(createElkLayoutModule());
+
     // Bind LocalModelSource to TYPES.ModelSource directly on the container
     // (modelSourceModule provides the wiring but not the actual binding)
+    // NOTE: This must be bound AFTER the ELK module so layoutEngine is injected properly
     container.bind(TYPES.ModelSource).to(LocalModelSource).inSingletonScope();
     container.bind(DIAGRAM_ID).toConstantValue(options.diagramId);
 
@@ -223,6 +250,23 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
         baseDiv: options.diagramId,
         hiddenDiv: `${options.diagramId}-hidden`,
     });
+
+    // Load UI Extensions module if any extensions are enabled
+    const uiExtensionsOptions: UIExtensionsModuleOptions = {
+        diagramContainerId: options.diagramId,
+        enableToolPalette: options.uiExtensions?.enableToolPalette ?? true,
+        enableValidation: options.uiExtensions?.enableValidation ?? true,
+        enableEditLabel: options.uiExtensions?.enableEditLabel ?? true,
+        enableCommandPalette: options.uiExtensions?.enableCommandPalette ?? true,
+        enableEdgeCreation: options.uiExtensions?.enableEdgeCreation ?? true,
+        enableHelperLines: options.uiExtensions?.enableHelperLines ?? true,
+        enableMarqueeSelection: options.uiExtensions?.enableMarqueeSelection ?? true,
+        enableResizeHandles: options.uiExtensions?.enableResizeHandles ?? true,
+        enablePopup: options.uiExtensions?.enablePopup ?? true,
+        enableMinimap: options.uiExtensions?.enableMinimap ?? true,
+    };
+
+    container.load(createUIExtensionsModule(uiExtensionsOptions));
 
     return container;
 }
@@ -240,11 +284,28 @@ export class SprottyDiagramManager {
     private modelSource: LocalModelSource;
     private mouseListener: SanyamMouseListener;
     private currentRoot: SModelRootImpl | undefined;
+    private uiExtensionsOptions: UIExtensionsModuleOptions;
+    private uiExtensionsInitialized: boolean = false;
 
     constructor(options: CreateDiagramContainerOptions) {
         this.container = createSanyamDiagramContainer(options);
         this.modelSource = this.container.get<LocalModelSource>(TYPES.ModelSource);
         this.mouseListener = this.container.get<SanyamMouseListener>(SanyamMouseListener);
+
+        // Store UI extensions options for later initialization
+        this.uiExtensionsOptions = {
+            diagramContainerId: options.diagramId,
+            enableToolPalette: options.uiExtensions?.enableToolPalette ?? true,
+            enableValidation: options.uiExtensions?.enableValidation ?? true,
+            enableEditLabel: options.uiExtensions?.enableEditLabel ?? true,
+            enableCommandPalette: options.uiExtensions?.enableCommandPalette ?? true,
+            enableEdgeCreation: options.uiExtensions?.enableEdgeCreation ?? true,
+            enableHelperLines: options.uiExtensions?.enableHelperLines ?? true,
+            enableMarqueeSelection: options.uiExtensions?.enableMarqueeSelection ?? true,
+            enableResizeHandles: options.uiExtensions?.enableResizeHandles ?? true,
+            enablePopup: options.uiExtensions?.enablePopup ?? true,
+            enableMinimap: options.uiExtensions?.enableMinimap ?? true,
+        };
     }
 
     /**
@@ -357,9 +418,59 @@ export class SprottyDiagramManager {
     }
 
     /**
+     * Initialize UI extensions.
+     * Call this after the diagram container is added to the DOM.
+     */
+    initializeUIExtensions(): void {
+        if (this.uiExtensionsInitialized) {
+            return;
+        }
+
+        initializeUIExtensions(this.container, this.uiExtensionsOptions);
+        this.uiExtensionsInitialized = true;
+    }
+
+    /**
+     * Set the parent container element for UI extensions.
+     * This allows UI extensions to render their DOM elements.
+     *
+     * @param parentElement - The HTML element to use as parent for UI extension containers
+     */
+    setUIExtensionsParentContainer(parentElement: HTMLElement): void {
+        setUIExtensionsParentContainer(this.container, parentElement, this.uiExtensionsOptions);
+    }
+
+    /**
+     * Get the UI extension registry.
+     */
+    getUIExtensionRegistry(): UIExtensionRegistry | undefined {
+        try {
+            return this.container.get<UIExtensionRegistry>(UI_EXTENSION_REGISTRY);
+        } catch {
+            return undefined;
+        }
+    }
+
+    /**
+     * Request the tool palette from the server.
+     * Dispatches a RequestToolPaletteAction to fetch palette items.
+     */
+    async requestToolPalette(): Promise<void> {
+        if (this.uiExtensionsOptions.enableToolPalette) {
+            await this.modelSource.actionDispatcher.dispatch(RequestToolPaletteAction.create());
+        }
+    }
+
+    /**
      * Dispose the diagram manager.
      */
     dispose(): void {
+        // Clean up UI extensions
+        const registry = this.getUIExtensionRegistry();
+        if (registry) {
+            registry.dispose();
+        }
+
         // Clean up resources
         this.currentRoot = undefined;
     }

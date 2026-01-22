@@ -14,8 +14,10 @@
     "@theia/editor": "1.67.0",
     "@theia/filesystem": "1.67.0",
     "@theia/monaco": "1.67.0",
+    "elkjs": "^0.11.0",
     "inversify": "^6.0.1",
     "sprotty": "^1.4.0",
+    "sprotty-elk": "^1.4.0",
     "sprotty-protocol": "^1.4.0"
   },
   "devDependencies": {

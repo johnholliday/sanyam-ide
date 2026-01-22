@@ -944,6 +944,9 @@ importers:
       '@theia/monaco':
         specifier: 1.67.0
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3)
+      elkjs:
+        specifier: ^0.11.0
+        version: 0.11.0
       inversify:
         specifier: ^6.0.1
         version: 6.2.2(reflect-metadata@0.2.2)
@@ -951,6 +954,9 @@ importers:
         specifier: ^18.2.0
         version: 18.3.1
       sprotty:
+        specifier: ^1.4.0
+        version: 1.4.0(reflect-metadata@0.2.2)
+      sprotty-elk:
         specifier: ^1.4.0
         version: 1.4.0(reflect-metadata@0.2.2)
       sprotty-protocol:
@@ -4596,6 +4602,12 @@ packages:
     engines: {node: '>= 12.20.55'}
     hasBin: true
 
+  elkjs@0.11.0:
+    resolution: {integrity: sha512-u4J8h9mwEDaYMqo0RYJpqNMFDoMK7f+pu4GjcV+N8jIC7TRdORgzkfSjTJemhqONFfH6fBI3wpysgWbhgVWIXw==}
+
+  elkjs@0.8.2:
+    resolution: {integrity: sha512-L6uRgvZTH+4OF5NE/MBbzQx/WYpru1xCBE9respNj6qznEewGUIfhzmm7horWWxbNO2M0WckQypGctR8lH79xQ==}
+
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
 
@@ -7956,6 +7968,9 @@ packages:
 
   sprintf-js@1.1.3:
     resolution: {integrity: sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA==}
+
+  sprotty-elk@1.4.0:
+    resolution: {integrity: sha512-ewSoKgqmgR3lw0EQpjYOrlzpPofCB7UyXr5k9vfpF2ho5HEswGcpoPzLtqojB5UM0TlBYnm1S59ekN+RMhY4ng==}
 
   sprotty-protocol@1.4.0:
     resolution: {integrity: sha512-+AAskW3Mzcq5UhMnummp4wwJ1dYdgT7/utmWoHtjfrK7JTJq9G/VWWlHnTnQGzHHyma03Loy2AozToXoArQuAQ==}
@@ -15849,6 +15864,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  elkjs@0.11.0: {}
+
+  elkjs@0.8.2: {}
+
   emoji-regex@8.0.0: {}
 
   emoji-regex@9.2.2: {}
@@ -19852,6 +19871,15 @@ snapshots:
 
   sprintf-js@1.1.3:
     optional: true
+
+  sprotty-elk@1.4.0(reflect-metadata@0.2.2):
+    dependencies:
+      elkjs: 0.8.2
+      sprotty-protocol: 1.4.0
+    optionalDependencies:
+      inversify: 6.2.2(reflect-metadata@0.2.2)
+    transitivePeerDependencies:
+      - reflect-metadata
 
   sprotty-protocol@1.4.0: {}
 

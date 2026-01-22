@@ -57,3 +57,6 @@ export {
 
 // Re-export GModelRoot from sprotty-di-config with an alias to avoid conflict
 export type { GModelRoot as SprottyGModelRoot } from './di/sprotty-di-config';
+
+// UI Extensions exports
+export * from './ui-extensions';

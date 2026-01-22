@@ -559,3 +559,735 @@ circle.sprotty-port.mouseover {
     stroke-width: 1px;
     stroke-dasharray: 5, 5;
 }
+
+/* ============================================
+   Sanyam UI Extensions - Tool Palette
+   ============================================ */
+
+.sanyam-tool-palette-container {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    min-width: 180px;
+    max-width: 250px;
+    max-height: calc(100% - 20px);
+    background-color: var(--theia-sideBar-background, #252526);
+    border: 1px solid var(--theia-sideBar-border, #454545);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px var(--theia-widget-shadow, rgba(0, 0, 0, 0.36));
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    overflow: hidden;
+}
+
+.sanyam-tool-palette-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background-color: var(--theia-activityBar-background, #333333);
+    border-bottom: 1px solid var(--theia-sideBar-border, #454545);
+}
+
+.sanyam-tool-palette-title {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--theia-foreground, #cccccc);
+}
+
+.sanyam-tool-palette-collapse {
+    background: none;
+    border: none;
+    color: var(--theia-foreground, #cccccc);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 3px;
+}
+
+.sanyam-tool-palette-collapse:hover {
+    background-color: var(--theia-list-hoverBackground, #2a2d2e);
+}
+
+.sanyam-tool-palette-search {
+    padding: 8px;
+    border-bottom: 1px solid var(--theia-sideBar-border, #454545);
+}
+
+.sanyam-tool-palette-search input {
+    width: 100%;
+    padding: 4px 8px;
+    background-color: var(--theia-input-background, #3c3c3c);
+    border: 1px solid var(--theia-input-border, #3c3c3c);
+    border-radius: 3px;
+    color: var(--theia-input-foreground, #cccccc);
+    font-size: 12px;
+}
+
+.sanyam-tool-palette-search input:focus {
+    border-color: var(--theia-focusBorder, #007fd4);
+    outline: none;
+}
+
+.sanyam-tool-palette-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+.sanyam-tool-palette-group {
+    margin-bottom: 4px;
+}
+
+.sanyam-tool-palette-group-header {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.sanyam-tool-palette-group-header:hover {
+    background-color: var(--theia-list-hoverBackground, #2a2d2e);
+}
+
+.sanyam-tool-palette-group-chevron {
+    margin-right: 6px;
+    font-size: 10px;
+    transition: transform 0.15s ease;
+}
+
+.sanyam-tool-palette-group.collapsed .sanyam-tool-palette-group-chevron {
+    transform: rotate(-90deg);
+}
+
+.sanyam-tool-palette-group-icon {
+    margin-right: 6px;
+    width: 16px;
+    text-align: center;
+}
+
+.sanyam-tool-palette-group-label {
+    flex: 1;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--theia-foreground, #cccccc);
+    text-transform: uppercase;
+}
+
+.sanyam-tool-palette-group-items {
+    display: block;
+}
+
+.sanyam-tool-palette-group.collapsed .sanyam-tool-palette-group-items {
+    display: none;
+}
+
+.sanyam-tool-palette-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 12px 4px 32px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 12px;
+    color: var(--theia-foreground, #cccccc);
+}
+
+.sanyam-tool-palette-item:hover {
+    background-color: var(--theia-list-hoverBackground, #2a2d2e);
+}
+
+.sanyam-tool-palette-item.selected {
+    background-color: var(--theia-list-activeSelectionBackground, #094771);
+    color: var(--theia-list-activeSelectionForeground, #ffffff);
+}
+
+.sanyam-tool-palette-item-icon {
+    margin-right: 8px;
+    width: 16px;
+    text-align: center;
+}
+
+.sanyam-tool-palette-item-label {
+    flex: 1;
+}
+
+.sanyam-tool-palette-footer {
+    padding: 8px;
+    border-top: 1px solid var(--theia-sideBar-border, #454545);
+}
+
+.sanyam-tool-palette-footer button {
+    width: 100%;
+    padding: 4px 8px;
+    background-color: var(--theia-button-background, #0e639c);
+    border: none;
+    border-radius: 3px;
+    color: var(--theia-button-foreground, #ffffff);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.sanyam-tool-palette-footer button:hover {
+    background-color: var(--theia-button-hoverBackground, #1177bb);
+}
+
+/* ============================================
+   Sanyam UI Extensions - Validation Markers
+   ============================================ */
+
+.sanyam-validation-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 50;
+}
+
+/* SVG validation markers */
+.sanyam-marker-badge {
+    font-family: 'codicon';
+    font-size: 12px;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.sanyam-marker-badge.error {
+    fill: var(--theia-editorError-foreground, #f48771);
+}
+
+.sanyam-marker-badge.warning {
+    fill: var(--theia-editorWarning-foreground, #cca700);
+}
+
+.sanyam-marker-badge.info {
+    fill: var(--theia-editorInfo-foreground, #75beff);
+}
+
+.sanyam-marker-border.error {
+    stroke: var(--theia-editorError-foreground, #f48771);
+    stroke-width: 2px;
+    fill: none;
+}
+
+.sanyam-marker-border.warning {
+    stroke: var(--theia-editorWarning-foreground, #cca700);
+    stroke-width: 2px;
+    fill: none;
+}
+
+.sanyam-marker-border.info {
+    stroke: var(--theia-editorInfo-foreground, #75beff);
+    stroke-width: 2px;
+    fill: none;
+}
+
+/* ============================================
+   Sanyam UI Extensions - Edit Label
+   ============================================ */
+
+.sanyam-edit-label-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 200;
+}
+
+.sanyam-edit-label-input-container {
+    position: absolute;
+    pointer-events: auto;
+}
+
+.sanyam-edit-label-input {
+    padding: 2px 6px;
+    background-color: var(--theia-input-background, #3c3c3c);
+    border: 1px solid var(--theia-focusBorder, #007fd4);
+    border-radius: 2px;
+    color: var(--theia-input-foreground, #cccccc);
+    font-family: var(--theia-ui-font-family, 'Segoe UI', sans-serif);
+    font-size: 12px;
+    min-width: 80px;
+    outline: none;
+    box-shadow: 0 2px 8px var(--theia-widget-shadow, rgba(0, 0, 0, 0.36));
+}
+
+.sanyam-edit-label-input.error {
+    border-color: var(--theia-inputValidation-errorBorder, #f48771);
+}
+
+.sanyam-edit-label-input.warning {
+    border-color: var(--theia-inputValidation-warningBorder, #cca700);
+}
+
+.sanyam-edit-label-validation {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    padding: 4px 8px;
+    margin-top: 2px;
+    font-size: 11px;
+    border-radius: 2px;
+    white-space: nowrap;
+    z-index: 201;
+}
+
+.sanyam-edit-label-validation.error {
+    background-color: var(--theia-inputValidation-errorBackground, rgba(244, 135, 113, 0.2));
+    border: 1px solid var(--theia-inputValidation-errorBorder, #f48771);
+    color: var(--theia-foreground, #cccccc);
+}
+
+.sanyam-edit-label-validation.warning {
+    background-color: var(--theia-inputValidation-warningBackground, rgba(204, 167, 0, 0.2));
+    border: 1px solid var(--theia-inputValidation-warningBorder, #cca700);
+    color: var(--theia-foreground, #cccccc);
+}
+
+/* ============================================
+   Sanyam UI Extensions - Command Palette
+   ============================================ */
+
+.sanyam-command-palette-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 300;
+}
+
+.sanyam-command-palette {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 400px;
+    max-height: 300px;
+    background-color: var(--theia-quickInput-background, #252526);
+    border: 1px solid var(--theia-quickInput-border, #454545);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px var(--theia-widget-shadow, rgba(0, 0, 0, 0.36));
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sanyam-command-palette-input-container {
+    padding: 8px;
+    border-bottom: 1px solid var(--theia-quickInput-border, #454545);
+}
+
+.sanyam-command-palette-input {
+    width: 100%;
+    padding: 6px 10px;
+    background-color: var(--theia-input-background, #3c3c3c);
+    border: 1px solid var(--theia-input-border, #3c3c3c);
+    border-radius: 3px;
+    color: var(--theia-input-foreground, #cccccc);
+    font-size: 13px;
+    outline: none;
+}
+
+.sanyam-command-palette-input:focus {
+    border-color: var(--theia-focusBorder, #007fd4);
+}
+
+.sanyam-command-palette-results {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+.sanyam-command-palette-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+.sanyam-command-palette-item:hover,
+.sanyam-command-palette-item.focused {
+    background-color: var(--theia-list-hoverBackground, #2a2d2e);
+}
+
+.sanyam-command-palette-item.selected {
+    background-color: var(--theia-list-activeSelectionBackground, #094771);
+    color: var(--theia-list-activeSelectionForeground, #ffffff);
+}
+
+.sanyam-command-palette-item-icon {
+    margin-right: 10px;
+    width: 16px;
+    text-align: center;
+}
+
+.sanyam-command-palette-item-label {
+    flex: 1;
+    font-size: 13px;
+}
+
+.sanyam-command-palette-item-category {
+    font-size: 11px;
+    color: var(--theia-descriptionForeground, #989898);
+    margin-left: 8px;
+}
+
+.sanyam-command-palette-empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--theia-descriptionForeground, #989898);
+    font-size: 12px;
+}
+
+/* ============================================
+   Sanyam UI Extensions - Edge Creation
+   ============================================ */
+
+.sanyam-edge-creation-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 150;
+}
+
+.sanyam-edge-preview {
+    stroke: var(--theia-focusBorder, #007fd4);
+    stroke-width: 2px;
+    stroke-dasharray: 5, 5;
+    fill: none;
+}
+
+.sanyam-edge-preview-arrowhead {
+    fill: var(--theia-focusBorder, #007fd4);
+}
+
+/* Valid/Invalid target highlighting */
+.sanyam-edge-valid-target {
+    stroke: var(--theia-testing-iconPassed, #73c991) !important;
+    stroke-width: 3px !important;
+}
+
+.sanyam-edge-invalid-target {
+    stroke: var(--theia-testing-iconFailed, #f48771) !important;
+    stroke-width: 2px !important;
+    stroke-dasharray: 3, 3;
+}
+
+.sanyam-connection-point {
+    fill: var(--theia-focusBorder, #007fd4);
+    stroke: var(--theia-editor-background, #1e1e1e);
+    stroke-width: 2px;
+}
+
+/* ============================================
+   Sanyam UI Extensions - Helper Lines
+   ============================================ */
+
+.sanyam-helper-lines-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 60;
+}
+
+.sanyam-helper-line {
+    stroke: var(--theia-editor-lineHighlightBorder, #264f78);
+    stroke-width: 1px;
+    stroke-dasharray: 4, 4;
+}
+
+.sanyam-helper-line.center {
+    stroke: var(--theia-focusBorder, #007fd4);
+}
+
+.sanyam-helper-line.edge {
+    stroke: var(--theia-editor-lineHighlightBorder, #264f78);
+}
+
+/* ============================================
+   Sanyam UI Extensions - Marquee Selection
+   ============================================ */
+
+.sanyam-marquee-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 70;
+}
+
+.sanyam-marquee-rect {
+    fill: var(--theia-editor-selectionBackground, rgba(38, 79, 120, 0.3));
+    stroke: var(--theia-focusBorder, #007fd4);
+    stroke-width: 1px;
+    stroke-dasharray: 5, 5;
+}
+
+/* ============================================
+   Sanyam UI Extensions - Resize Handles
+   ============================================ */
+
+.sanyam-resize-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 80;
+}
+
+.sanyam-resize-handle {
+    fill: var(--theia-focusBorder, #007fd4);
+    stroke: var(--theia-editor-background, #1e1e1e);
+    stroke-width: 1px;
+    pointer-events: auto;
+}
+
+.sanyam-resize-handle:hover {
+    fill: var(--theia-button-hoverBackground, #1177bb);
+}
+
+.sanyam-resize-handle.nw { cursor: nwse-resize; }
+.sanyam-resize-handle.n { cursor: ns-resize; }
+.sanyam-resize-handle.ne { cursor: nesw-resize; }
+.sanyam-resize-handle.e { cursor: ew-resize; }
+.sanyam-resize-handle.se { cursor: nwse-resize; }
+.sanyam-resize-handle.s { cursor: ns-resize; }
+.sanyam-resize-handle.sw { cursor: nesw-resize; }
+.sanyam-resize-handle.w { cursor: ew-resize; }
+
+.sanyam-resize-preview {
+    fill: none;
+    stroke: var(--theia-focusBorder, #007fd4);
+    stroke-width: 1px;
+    stroke-dasharray: 5, 5;
+}
+
+/* ============================================
+   Sanyam UI Extensions - Popup/Tooltip
+   ============================================ */
+
+.sanyam-popup-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 250;
+}
+
+.sanyam-popup {
+    min-width: 200px;
+    max-width: 350px;
+    background-color: var(--theia-editorWidget-background, #252526);
+    border: 1px solid var(--theia-editorWidget-border, #454545);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px var(--theia-widget-shadow, rgba(0, 0, 0, 0.36));
+    font-size: 12px;
+    color: var(--theia-foreground, #cccccc);
+    overflow: hidden;
+}
+
+.sanyam-popup.pinned {
+    border-color: var(--theia-focusBorder, #007fd4);
+}
+
+.sanyam-popup-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: var(--theia-activityBar-background, #333333);
+    border-bottom: 1px solid var(--theia-editorWidget-border, #454545);
+}
+
+.sanyam-popup-icon {
+    margin-right: 8px;
+    font-size: 14px;
+}
+
+.sanyam-popup-title {
+    font-weight: 600;
+    flex: 1;
+}
+
+.sanyam-popup-content {
+    padding: 8px 12px;
+}
+
+.sanyam-popup-property {
+    display: flex;
+    margin-bottom: 4px;
+}
+
+.sanyam-popup-property-name {
+    color: var(--theia-descriptionForeground, #989898);
+    margin-right: 8px;
+    min-width: 60px;
+}
+
+.sanyam-popup-property-value {
+    flex: 1;
+    word-break: break-word;
+}
+
+.sanyam-popup-markers {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--theia-editorWidget-border, #454545);
+}
+
+.sanyam-popup-marker {
+    display: flex;
+    align-items: flex-start;
+    padding: 4px 0;
+    font-size: 11px;
+}
+
+.sanyam-popup-marker::before {
+    font-family: 'codicon';
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+.sanyam-popup-marker.error::before {
+    content: '\eb5d';
+    color: var(--theia-editorError-foreground, #f48771);
+}
+
+.sanyam-popup-marker.warning::before {
+    content: '\ea6c';
+    color: var(--theia-editorWarning-foreground, #cca700);
+}
+
+.sanyam-popup-marker.info::before {
+    content: '\ea74';
+    color: var(--theia-editorInfo-foreground, #75beff);
+}
+
+.sanyam-popup-actions {
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--theia-editorWidget-border, #454545);
+}
+
+.sanyam-popup-action {
+    padding: 4px 8px;
+    background-color: var(--theia-button-secondaryBackground, #3a3d41);
+    border: none;
+    border-radius: 3px;
+    color: var(--theia-button-secondaryForeground, #cccccc);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.sanyam-popup-action:hover {
+    background-color: var(--theia-button-secondaryHoverBackground, #45494e);
+}
+
+/* ============================================
+   Sanyam UI Extensions - Minimap
+   ============================================ */
+
+.sanyam-minimap-container {
+    background-color: var(--theia-minimap-background, rgba(37, 37, 38, 0.9));
+    border: 1px solid var(--theia-sideBar-border, #454545);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px var(--theia-widget-shadow, rgba(0, 0, 0, 0.36));
+    overflow: hidden;
+}
+
+.sanyam-minimap-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    padding: 0 8px;
+    background-color: var(--theia-activityBar-background, #333333);
+    cursor: pointer;
+    user-select: none;
+}
+
+.sanyam-minimap-toggle:hover {
+    background-color: var(--theia-list-hoverBackground, #2a2d2e);
+}
+
+.sanyam-minimap-canvas {
+    display: block;
+    background-color: var(--theia-editor-background, #1e1e1e);
+}
+
+.sanyam-minimap-viewport {
+    position: absolute;
+    border: 1px solid var(--theia-focusBorder, #007fd4);
+    background-color: rgba(0, 125, 212, 0.15);
+    cursor: move;
+    pointer-events: auto;
+}
+
+.sanyam-minimap-viewport:hover {
+    background-color: rgba(0, 125, 212, 0.25);
+}
+
+/* Position classes for minimap */
+.sanyam-minimap-container.position-top-left {
+    top: 10px;
+    left: 10px;
+}
+
+.sanyam-minimap-container.position-top-right {
+    top: 10px;
+    right: 10px;
+}
+
+.sanyam-minimap-container.position-bottom-left {
+    bottom: 10px;
+    left: 10px;
+}
+
+.sanyam-minimap-container.position-bottom-right {
+    bottom: 10px;
+    right: 10px;
+}
+
+/* ============================================
+   Light Theme Adjustments for UI Extensions
+   ============================================ */
+
+.theia-light .sanyam-tool-palette-container {
+    background-color: var(--theia-sideBar-background, #f3f3f3);
+    border-color: var(--theia-sideBar-border, #e7e7e7);
+}
+
+.theia-light .sanyam-command-palette {
+    background-color: var(--theia-quickInput-background, #ffffff);
+    border-color: var(--theia-quickInput-border, #e0e0e0);
+}
+
+.theia-light .sanyam-popup {
+    background-color: var(--theia-editorWidget-background, #f3f3f3);
+    border-color: var(--theia-editorWidget-border, #c8c8c8);
+}
+
+.theia-light .sanyam-minimap-container {
+    background-color: var(--theia-minimap-background, rgba(243, 243, 243, 0.9));
+    border-color: var(--theia-sideBar-border, #e7e7e7);
+}

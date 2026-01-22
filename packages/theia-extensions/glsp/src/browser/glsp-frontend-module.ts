@@ -2,28 +2,54 @@
  * GLSP Frontend Module (T083)
  *
  * Inversify container module for GLSP frontend integration in Theia.
- * Binds diagram widgets, contributions, and GLSP client services.
+ * Binds diagram widgets, composite editors, contributions, and GLSP client services.
  *
  * @packageDocumentation
  */
 
-import { ContainerModule, interfaces } from 'inversify';
-import { WidgetFactory, FrontendApplicationContribution, KeybindingContribution } from '@theia/core/lib/browser';
-import { CommandContribution, MenuContribution } from '@theia/core/lib/common';
+// CSS imports - must be in the frontend module for webpack to bundle them
+import './style/index.css';
+import './style/sprotty.css';
 
-// Import GLSP contribution and widget
+import { ContainerModule, interfaces } from 'inversify';
+import { WidgetFactory, FrontendApplicationContribution, KeybindingContribution, OpenHandler } from '@theia/core/lib/browser';
+import { CommandContribution, MenuContribution, PreferenceContribution } from '@theia/core/lib/common';
+
+// Diagram widget imports
 import { GlspContribution } from '../common/glsp-contribution';
 import { DiagramWidget, DiagramWidgetFactory, DIAGRAM_WIDGET_FACTORY_ID } from './diagram-widget';
 import { GlspDiagramCommands } from './glsp-commands';
 import { GlspDiagramMenus } from './glsp-menus';
 
+// Composite editor imports
+import {
+    CompositeEditorWidget,
+    CompositeEditorWidgetFactory,
+    COMPOSITE_EDITOR_WIDGET_FACTORY_ID,
+} from './composite-editor-widget';
+import { CompositeEditorOpenHandler } from './composite-editor-open-handler';
+import { CompositeEditorContribution } from './composite-editor-contribution';
+import { CompositeEditorContextKeyService } from './composite-editor-context-key-service';
+
+// Language client for diagram operations
+import { DiagramLanguageClient, LanguageClientProviderSymbol } from './diagram-language-client';
+
+// Diagram preferences
+import { diagramPreferenceSchema } from './diagram-preferences';
+
+// Note: Sprotty types are re-exported from di/sprotty-di-config via index.ts
+
 /**
  * Service identifiers for GLSP frontend services.
  */
 export const GLSP_FRONTEND_TYPES = {
-  DiagramWidgetFactory: Symbol.for('DiagramWidgetFactory'),
-  GlspContribution: Symbol.for('GlspContribution'),
-  DiagramManager: Symbol.for('DiagramManager'),
+    DiagramWidgetFactory: Symbol.for('DiagramWidgetFactory'),
+    GlspContribution: Symbol.for('GlspContribution'),
+    DiagramManager: Symbol.for('DiagramManager'),
+    CompositeEditorWidgetFactory: Symbol.for('CompositeEditorWidgetFactory'),
+    DiagramLanguageClient: Symbol.for('DiagramLanguageClient'),
+    LanguageClientProvider: LanguageClientProviderSymbol,
+    SprottyDiagramManager: Symbol.for('SprottyDiagramManager'),
 };
 
 /**
@@ -31,11 +57,16 @@ export const GLSP_FRONTEND_TYPES = {
  *
  * This module sets up:
  * - Diagram widget factory for creating diagram views
+ * - Composite editor widget for text/diagram synchronized editing
  * - GLSP contribution for diagram type registration
  * - Command and menu contributions for diagram operations
  * - Frontend application contribution for initialization
  */
 export default new ContainerModule((bind: interfaces.Bind) => {
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Diagram Widget Bindings
+  // ═══════════════════════════════════════════════════════════════════════════════
+
   // Bind the diagram widget factory
   bind(DiagramWidgetFactory).toSelf().inSingletonScope();
   bind(GLSP_FRONTEND_TYPES.DiagramWidgetFactory).toService(DiagramWidgetFactory);
@@ -62,6 +93,52 @@ export default new ContainerModule((bind: interfaces.Bind) => {
   // Bind menu contributions
   bind(GlspDiagramMenus).toSelf().inSingletonScope();
   bind(MenuContribution).toService(GlspDiagramMenus);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Diagram Language Client (for server communication)
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Bind the diagram language client service
+  bind(DiagramLanguageClient).toSelf().inSingletonScope();
+  bind(GLSP_FRONTEND_TYPES.DiagramLanguageClient).toService(DiagramLanguageClient);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Composite Editor Bindings
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Bind the composite editor widget factory
+  bind(CompositeEditorWidgetFactory).toSelf().inSingletonScope();
+  bind(GLSP_FRONTEND_TYPES.CompositeEditorWidgetFactory).toService(CompositeEditorWidgetFactory);
+
+  // Register widget factory with Theia
+  bind(WidgetFactory).toDynamicValue((ctx) => ({
+    id: COMPOSITE_EDITOR_WIDGET_FACTORY_ID,
+    createWidget: (options: CompositeEditorWidget.Options) => {
+      const factory = ctx.container.get(CompositeEditorWidgetFactory);
+      return factory.createWidget(options);
+    },
+  })).inSingletonScope();
+
+  // Bind composite editor open handler
+  bind(CompositeEditorOpenHandler).toSelf().inSingletonScope();
+  bind(OpenHandler).toService(CompositeEditorOpenHandler);
+
+  // Bind composite editor contribution (commands, keybindings, menus)
+  bind(CompositeEditorContribution).toSelf().inSingletonScope();
+  bind(CommandContribution).toService(CompositeEditorContribution);
+  bind(KeybindingContribution).toService(CompositeEditorContribution);
+  bind(MenuContribution).toService(CompositeEditorContribution);
+
+  // Bind context key service for composite editor
+  bind(CompositeEditorContextKeyService).toSelf().inSingletonScope();
+  bind(FrontendApplicationContribution).toService(CompositeEditorContextKeyService);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Diagram Preferences
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Register diagram preferences schema
+  bind(PreferenceContribution).toConstantValue({ schema: diagramPreferenceSchema });
 });
 
 /**

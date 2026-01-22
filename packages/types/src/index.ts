@@ -131,3 +131,18 @@ export {
   type ConvertOptions,
   type ConvertResult,
 } from './model-api.js';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Widget Factory IDs
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export {
+  // Symbol-based factory IDs for decoupled widget lookup
+  DIAGRAM_WIDGET_FACTORY_ID,
+  COMPOSITE_EDITOR_WIDGET_FACTORY_ID,
+  FORM_WIDGET_FACTORY_ID,
+  // String-based factory IDs for WidgetFactory registration
+  DIAGRAM_WIDGET_FACTORY_ID_STRING,
+  COMPOSITE_EDITOR_WIDGET_FACTORY_ID_STRING,
+  FORM_WIDGET_FACTORY_ID_STRING,
+} from './widget-ids.js';

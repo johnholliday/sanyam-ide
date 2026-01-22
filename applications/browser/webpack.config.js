@@ -15,6 +15,12 @@ configs[0].resolve = configs[0].resolve || {};
 configs[0].resolve.alias = configs[0].resolve.alias || {};
 configs[0].resolve.alias['@app/grammar-manifests'] = path.resolve(__dirname, 'src/frontend/grammar-manifests-module.js');
 
+// IMPORTANT: Deduplicate sprotty and inversify to ensure Symbol identifiers match across chunks
+// Without this, different chunks may get different Symbol instances, causing DI binding failures
+configs[0].resolve.alias['sprotty'] = path.resolve(__dirname, '../../node_modules/sprotty');
+configs[0].resolve.alias['sprotty-protocol'] = path.resolve(__dirname, '../../node_modules/sprotty-protocol');
+configs[0].resolve.alias['inversify'] = path.resolve(__dirname, '../../node_modules/inversify');
+
 /**
  * Expose bundled modules on window.theia.moduleName namespace, e.g.
  * window['theia']['@theia/core/lib/common/uri'].

@@ -77,6 +77,9 @@ importers:
       '@sanyam-grammar/spdevkit':
         specifier: workspace:*
         version: link:../../packages/grammar-definitions/spdevkit
+      '@sanyam-ide/glsp':
+        specifier: workspace:*
+        version: link:../../packages/theia-extensions/glsp
       '@sanyam-ide/product':
         specifier: workspace:*
         version: link:../../packages/theia-extensions/product
@@ -917,9 +920,15 @@ importers:
       '@eclipse-glsp/client':
         specifier: ^2.5.0
         version: 2.5.0(inversify@6.2.2(reflect-metadata@0.2.2))(reflect-metadata@0.2.2)
-      '@eclipse-glsp/theia-integration':
+      '@eclipse-glsp/protocol':
         specifier: ^2.5.0
-        version: 2.5.0(@theia/core@1.67.0(@theia/electron@1.67.0(electron@38.4.0)))(@theia/filesystem@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3))(@theia/messages@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@theia/monaco@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3))(inversify@6.2.2(reflect-metadata@0.2.2))(reflect-metadata@0.2.2)
+        version: 2.5.0(inversify@6.2.2(reflect-metadata@0.2.2))
+      '@lumino/messaging':
+        specifier: ^2.0.0
+        version: 2.0.4
+      '@sanyam-ide/product':
+        specifier: workspace:*
+        version: link:../product
       '@sanyam/types':
         specifier: workspace:*
         version: link:../../types
@@ -932,6 +941,9 @@ importers:
       '@theia/filesystem':
         specifier: 1.67.0
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3)
+      '@theia/monaco':
+        specifier: 1.67.0
+        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3)
       inversify:
         specifier: ^6.0.1
         version: 6.2.2(reflect-metadata@0.2.2)
@@ -941,6 +953,9 @@ importers:
       sprotty:
         specifier: ^1.4.0
         version: 1.4.0(reflect-metadata@0.2.2)
+      sprotty-protocol:
+        specifier: ^1.4.0
+        version: 1.4.0
     devDependencies:
       rimraf:
         specifier: ^5.0.5
@@ -1749,14 +1764,6 @@ packages:
     resolution: {integrity: sha512-pjVoa0iXoRPivFuKxmxYETGlIIwVmW1tKVd2jKauci4m11a48yenaFGqEtlxHJPRBnXrRKTPdoSmTtovKM5lhA==}
     peerDependencies:
       inversify: ^6.1.3
-
-  '@eclipse-glsp/theia-integration@2.5.0':
-    resolution: {integrity: sha512-FNhkPWxvT91NtXN/CuVIZQXFNWLOIgkXyaWA6Mi7aPEyd8pPrjK6Al/h8W/9AwLHSDS0gajf0dKgYXCXih2BRg==}
-    peerDependencies:
-      '@theia/core': ^1.60.0
-      '@theia/filesystem': ^1.60.0
-      '@theia/messages': ^1.60.0
-      '@theia/monaco': ^1.60.0
 
   '@electron/asar@3.2.18':
     resolution: {integrity: sha512-2XyvMe3N3Nrs8cV39IKELRHTYUWFKrmqqSY1U+GMlc0jvqjIVnoxhNd2H4JolWQncbJi1DCvb5TNxZuI2fEjWg==}
@@ -10081,20 +10088,6 @@ snapshots:
       vscode-jsonrpc: 8.2.0
     transitivePeerDependencies:
       - reflect-metadata
-
-  '@eclipse-glsp/theia-integration@2.5.0(@theia/core@1.67.0(@theia/electron@1.67.0(electron@38.4.0)))(@theia/filesystem@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3))(@theia/messages@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@theia/monaco@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3))(inversify@6.2.2(reflect-metadata@0.2.2))(reflect-metadata@0.2.2)':
-    dependencies:
-      '@eclipse-glsp/client': 2.5.0(inversify@6.2.2(reflect-metadata@0.2.2))(reflect-metadata@0.2.2)
-      '@theia/core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
-      '@theia/filesystem': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3)
-      '@theia/messages': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@theia/monaco': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3)
-      ws: 8.19.0
-    transitivePeerDependencies:
-      - bufferutil
-      - inversify
-      - reflect-metadata
-      - utf-8-validate
 
   '@electron/asar@3.2.18':
     dependencies:

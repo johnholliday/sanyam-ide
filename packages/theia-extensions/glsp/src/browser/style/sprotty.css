@@ -1,0 +1,561 @@
+/********************************************************************************
+ * Copyright (C) 2024 Sanyam IDE contributors.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ *
+ * SPDX-License-Identifier: MIT
+ ********************************************************************************/
+
+/* ============================================
+   Sprotty Diagram Styles
+   ============================================ */
+
+/* Main diagram container */
+.sanyam-diagram {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.sanyam-diagram svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* ============================================
+   Sprotty Container Styles
+   ============================================ */
+
+/* Sprotty visible container - must fill available space */
+.sanyam-diagram-svg-container {
+    width: 100%;
+    height: 100%;
+}
+
+/* SVG element created by Sprotty - fill container */
+.sanyam-diagram-svg-container > svg.sprotty-graph {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* ============================================
+   Sprotty Default Overrides
+   ============================================ */
+
+/* Graph/canvas background - transparent to show container's pattern background */
+.sprotty-graph {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+/* ============================================
+   Diagram Background Patterns (Preference-driven)
+   ============================================ */
+
+/* CSS custom properties for diagram backgrounds - set via JavaScript preferences */
+.sanyam-diagram-svg-container {
+    --diagram-bg-color: var(--theia-editor-background, #1e1e1e);
+    --diagram-pattern-opacity: 0.3;
+    --diagram-dots-color: rgba(128, 128, 128, 0.3);
+    --diagram-dots-size: 1px;
+    --diagram-dots-spacing: 20px;
+    --diagram-grid-color: rgba(128, 128, 128, 0.3);
+    --diagram-grid-size: 20px;
+}
+
+/* No background pattern - solid color */
+.sanyam-diagram-svg-container.bg-none {
+    background-color: var(--diagram-bg-color);
+    background-image: none;
+}
+
+/* Dots pattern background */
+.sanyam-diagram-svg-container.bg-dots {
+    background-color: var(--diagram-bg-color);
+    background-image: radial-gradient(
+        circle,
+        var(--diagram-dots-color) var(--diagram-dots-size),
+        transparent var(--diagram-dots-size)
+    );
+    background-size: var(--diagram-dots-spacing) var(--diagram-dots-spacing);
+    background-position: 0 0;
+}
+
+/* Grid pattern background */
+.sanyam-diagram-svg-container.bg-grid {
+    background-color: var(--diagram-bg-color);
+    background-image:
+        linear-gradient(var(--diagram-grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--diagram-grid-color) 1px, transparent 1px);
+    background-size: var(--diagram-grid-size) var(--diagram-grid-size);
+    background-position: 0 0;
+}
+
+/* Custom image background - uses pseudo-element for opacity control */
+.sanyam-diagram-svg-container.bg-image {
+    background-color: var(--diagram-bg-color);
+    position: relative;
+}
+
+/* Image overlay with opacity - uses ::before pseudo-element */
+.sanyam-diagram-svg-container.bg-image::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: var(--diagram-image-url);
+    background-repeat: repeat;
+    background-size: auto;
+    background-position: 0 0;
+    opacity: var(--diagram-pattern-opacity, 0.3);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Ensure Sprotty SVG is above the image overlay */
+.sanyam-diagram-svg-container.bg-image > svg.sprotty-graph {
+    position: relative;
+    z-index: 1;
+}
+
+/* Light theme adjustments for background patterns
+ * Note: Actual colors with opacity are set dynamically via JavaScript preferences
+ */
+.theia-light .sanyam-diagram-svg-container {
+    --diagram-bg-color: var(--theia-editor-background, #ffffff);
+    --diagram-dots-color: rgba(0, 0, 0, 0.15);
+    --diagram-grid-color: rgba(0, 0, 0, 0.15);
+}
+
+/* High contrast theme adjustments */
+.theia-hcDark .sanyam-diagram-svg-container {
+    --diagram-dots-color: var(--theia-contrastBorder, rgba(111, 195, 223, 0.4));
+    --diagram-grid-color: var(--theia-contrastBorder, rgba(111, 195, 223, 0.3));
+}
+
+.theia-hcLight .sanyam-diagram-svg-container {
+    --diagram-dots-color: var(--theia-contrastBorder, rgba(15, 74, 133, 0.4));
+    --diagram-grid-color: var(--theia-contrastBorder, rgba(15, 74, 133, 0.3));
+}
+
+/* Default node styling - Sprotty's RectangularNodeView
+ * Note: The rect element ITSELF has the sprotty-node class, not a parent g
+ */
+rect.sprotty-node {
+    fill: var(--theia-textCodeBlock-background, #2d2d30) !important;
+    stroke: var(--theia-foreground, #cccccc) !important;
+    stroke-width: 1px !important;
+}
+
+/* Circular nodes (ports) */
+circle.sprotty-node,
+circle.sprotty-port {
+    fill: var(--theia-editor-background, #2d2d30);
+    stroke: var(--theia-foreground, #cccccc);
+    stroke-width: 1px;
+}
+
+/* Default edge styling - Sprotty's PolylineEdgeView */
+.sprotty-edge path,
+.sprotty-edge line {
+    fill: none !important;
+    stroke: var(--theia-foreground, #cccccc) !important;
+    stroke-width: 1px !important;
+}
+
+/* Default label styling - text element has sprotty-label class */
+text.sprotty-label {
+    fill: var(--theia-foreground, #cccccc) !important;
+    font-family: var(--theia-ui-font-family, 'Segoe UI', sans-serif);
+    font-size: 12px;
+}
+
+/* Selection feedback - rect/circle with selected class */
+rect.sprotty-node.selected,
+circle.sprotty-node.selected,
+circle.sprotty-port.selected {
+    stroke: var(--theia-focusBorder, #007fd4) !important;
+    stroke-width: 2px !important;
+}
+
+.sprotty-edge.selected path,
+.sprotty-edge.selected line {
+    stroke: var(--theia-focusBorder, #007fd4) !important;
+    stroke-width: 2px !important;
+}
+
+/* Hover feedback */
+rect.sprotty-node.mouseover,
+circle.sprotty-node.mouseover,
+circle.sprotty-port.mouseover {
+    stroke: var(--theia-list-hoverForeground, #ffffff);
+    filter: brightness(1.1);
+}
+
+.sprotty-edge.mouseover path,
+.sprotty-edge.mouseover line {
+    stroke: var(--theia-list-hoverForeground, #ffffff);
+}
+
+/* ============================================
+   Sanyam Node Styles
+   ============================================ */
+
+.sanyam-node {
+    cursor: pointer;
+}
+
+.sanyam-node-body {
+    fill: var(--theia-editor-background, #1e1e1e);
+    stroke: var(--theia-foreground, #cccccc);
+    stroke-width: 1px;
+}
+
+.sanyam-node.selected .sanyam-node-body {
+    stroke: var(--theia-focusBorder, #007fd4);
+    stroke-width: 2px;
+}
+
+.sanyam-node.mouseover .sanyam-node-body {
+    stroke: var(--theia-list-hoverForeground, #ffffff);
+}
+
+.sanyam-node-header {
+    fill: none;
+}
+
+.sanyam-node-header-bg {
+    fill: var(--theia-sideBar-background, #252526);
+    stroke: none;
+}
+
+.sanyam-node-icon {
+    font-family: 'codicon';
+    font-size: 14px;
+    fill: var(--theia-foreground, #cccccc);
+}
+
+/* Node type-specific styles */
+.sanyam-node-entity .sanyam-node-body {
+    fill: var(--theia-textCodeBlock-background, #2d2d30);
+}
+
+.sanyam-node-entity .sanyam-node-header-bg {
+    fill: var(--theia-activityBar-background, #333333);
+}
+
+.sanyam-node-component .sanyam-node-body {
+    fill: var(--theia-dropdown-background, #3c3c3c);
+}
+
+.sanyam-node-component .sanyam-node-header-bg {
+    fill: var(--theia-button-background, #0e639c);
+}
+
+.sanyam-node-interface .sanyam-node-body {
+    fill: var(--theia-editor-background, #1e1e1e);
+    stroke-dasharray: 5, 3;
+}
+
+/* ============================================
+   Sanyam Edge Styles
+   ============================================ */
+
+.sanyam-edge {
+    cursor: pointer;
+}
+
+.sanyam-edge-path {
+    fill: none;
+    stroke: var(--theia-foreground, #cccccc);
+    stroke-width: 1px;
+}
+
+.sanyam-edge.selected .sanyam-edge-path {
+    stroke: var(--theia-focusBorder, #007fd4);
+    stroke-width: 2px;
+}
+
+.sanyam-edge.mouseover .sanyam-edge-path {
+    stroke: var(--theia-list-hoverForeground, #ffffff);
+}
+
+.sanyam-edge-arrowhead {
+    fill: var(--theia-foreground, #cccccc);
+    stroke: none;
+}
+
+.sanyam-edge.selected .sanyam-edge-arrowhead {
+    fill: var(--theia-focusBorder, #007fd4);
+}
+
+/* Edge type-specific styles */
+.sanyam-edge-path.inheritance {
+    stroke-dasharray: none;
+}
+
+.sanyam-edge-path.composition {
+    stroke-width: 1.5px;
+}
+
+.sanyam-edge-path.association {
+    stroke-dasharray: 5, 5;
+}
+
+/* ============================================
+   Sanyam Label Styles
+   ============================================ */
+
+.sanyam-label {
+    fill: var(--theia-foreground, #cccccc);
+    font-family: var(--theia-ui-font-family, 'Segoe UI', sans-serif);
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.sanyam-label-heading {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* ============================================
+   Sanyam Compartment Styles
+   ============================================ */
+
+.sanyam-compartment {
+    /* Container styling handled by children */
+}
+
+.sanyam-compartment-header {
+    font-weight: 600;
+}
+
+/* ============================================
+   Sprotty Hidden Container
+   ============================================ */
+
+.sprotty-hidden {
+    position: absolute;
+    visibility: hidden;
+    left: -10000px;
+    top: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+/* ============================================
+   Sprotty Projection Bars (scroll indicators)
+   ============================================ */
+
+.sprotty-projection-bar {
+    background-color: var(--theia-scrollbar-shadow, rgba(0, 0, 0, 0.25));
+    border-radius: 2px;
+}
+
+.sprotty-projection-bar.vertical {
+    width: 4px;
+}
+
+.sprotty-projection-bar.horizontal {
+    height: 4px;
+}
+
+/* ============================================
+   Sprotty Popup (tooltip)
+   ============================================ */
+
+.sprotty-popup {
+    background-color: var(--theia-editorWidget-background, #252526);
+    border: 1px solid var(--theia-editorWidget-border, #454545);
+    border-radius: 3px;
+    padding: 8px 12px;
+    box-shadow: 0 2px 8px var(--theia-widget-shadow, rgba(0, 0, 0, 0.36));
+    font-family: var(--theia-ui-font-family, 'Segoe UI', sans-serif);
+    font-size: 12px;
+    color: var(--theia-foreground, #cccccc);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* ============================================
+   Sprotty Command Palette
+   ============================================ */
+
+.sprotty-command-palette {
+    background-color: var(--theia-quickInput-background, #252526);
+    border: 1px solid var(--theia-quickInput-border, #454545);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px var(--theia-widget-shadow, rgba(0, 0, 0, 0.36));
+}
+
+.sprotty-command-palette input {
+    background-color: var(--theia-input-background, #3c3c3c);
+    border: 1px solid var(--theia-input-border, #3c3c3c);
+    color: var(--theia-input-foreground, #cccccc);
+}
+
+.sprotty-command-palette input:focus {
+    border-color: var(--theia-focusBorder, #007fd4);
+    outline: none;
+}
+
+/* ============================================
+   Light Theme Adjustments
+   ============================================ */
+
+.theia-light .sanyam-node-body {
+    fill: var(--theia-editor-background, #ffffff);
+    stroke: var(--theia-foreground, #616161);
+}
+
+.theia-light .sanyam-node-header-bg {
+    fill: var(--theia-sideBar-background, #f3f3f3);
+}
+
+.theia-light .sanyam-edge-path {
+    stroke: var(--theia-foreground, #616161);
+}
+
+.theia-light .sanyam-label {
+    fill: var(--theia-foreground, #616161);
+}
+
+.theia-light .sanyam-edge-arrowhead {
+    fill: var(--theia-foreground, #616161);
+}
+
+/* ============================================
+   High Contrast Theme Adjustments
+   ============================================ */
+
+.theia-hcDark .sanyam-node-body,
+.theia-hcLight .sanyam-node-body {
+    stroke-width: 2px;
+}
+
+.theia-hcDark .sanyam-edge-path,
+.theia-hcLight .sanyam-edge-path {
+    stroke-width: 2px;
+}
+
+.theia-hcDark .sanyam-node.selected .sanyam-node-body,
+.theia-hcLight .sanyam-node.selected .sanyam-node-body {
+    stroke-width: 3px;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+
+.sanyam-node,
+.sanyam-edge {
+    transition: stroke 0.15s ease, fill 0.15s ease, stroke-width 0.15s ease;
+}
+
+/* Disable animations when user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .sanyam-node,
+    .sanyam-edge {
+        transition: none;
+    }
+}
+
+/* ============================================
+   Routing Handles (for edge editing)
+   ============================================ */
+
+.sprotty-routing-handle {
+    fill: var(--theia-focusBorder, #007fd4);
+    stroke: var(--theia-editor-background, #1e1e1e);
+    stroke-width: 1px;
+    cursor: pointer;
+}
+
+.sprotty-routing-handle:hover {
+    fill: var(--theia-button-hoverBackground, #1177bb);
+}
+
+/* ============================================
+   Resize Handles
+   ============================================ */
+
+.sprotty-resize-handle {
+    fill: var(--theia-focusBorder, #007fd4);
+    stroke: var(--theia-editor-background, #1e1e1e);
+    stroke-width: 1px;
+    cursor: nwse-resize;
+}
+
+.sprotty-resize-handle.nw,
+.sprotty-resize-handle.se {
+    cursor: nwse-resize;
+}
+
+.sprotty-resize-handle.ne,
+.sprotty-resize-handle.sw {
+    cursor: nesw-resize;
+}
+
+.sprotty-resize-handle.n,
+.sprotty-resize-handle.s {
+    cursor: ns-resize;
+}
+
+.sprotty-resize-handle.e,
+.sprotty-resize-handle.w {
+    cursor: ew-resize;
+}
+
+/* ============================================
+   Tool Palette Integration
+   ============================================ */
+
+.sanyam-diagram-tool-palette .sprotty-tool-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin: 2px;
+    border: none;
+    border-radius: 4px;
+    background-color: transparent;
+    color: var(--theia-foreground, #cccccc);
+    cursor: pointer;
+}
+
+.sanyam-diagram-tool-palette .sprotty-tool-button:hover {
+    background-color: var(--theia-list-hoverBackground, #2a2d2e);
+}
+
+.sanyam-diagram-tool-palette .sprotty-tool-button.active {
+    background-color: var(--theia-list-activeSelectionBackground, #094771);
+    color: var(--theia-list-activeSelectionForeground, #ffffff);
+}
+
+/* ============================================
+   Connection Preview (for edge creation)
+   ============================================ */
+
+.sprotty-edge-creation {
+    stroke: var(--theia-focusBorder, #007fd4);
+    stroke-dasharray: 5, 5;
+    fill: none;
+    pointer-events: none;
+}
+
+/* ============================================
+   Marquee Selection
+   ============================================ */
+
+.sprotty-marquee {
+    fill: var(--theia-editor-selectionBackground, rgba(38, 79, 120, 0.5));
+    stroke: var(--theia-focusBorder, #007fd4);
+    stroke-width: 1px;
+    stroke-dasharray: 5, 5;
+}

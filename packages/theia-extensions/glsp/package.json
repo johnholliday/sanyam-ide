@@ -2,17 +2,21 @@
   "private": true,
   "name": "@sanyam-ide/glsp",
   "version": "1.67.100",
-  "description": "GLSP Frontend Integration for Sanyam IDE",
+  "description": "GLSP Frontend Integration for Sanyam IDE - Includes Diagram Widget and Composite Editor",
   "license": "MIT",
   "dependencies": {
-    "@sanyam/types": "workspace:*",
     "@eclipse-glsp/client": "^2.5.0",
-    "@eclipse-glsp/theia-integration": "^2.5.0",
+    "@eclipse-glsp/protocol": "^2.5.0",
+    "@lumino/messaging": "^2.0.0",
+    "@sanyam/types": "workspace:*",
+    "@sanyam-ide/product": "workspace:*",
     "@theia/core": "1.67.0",
     "@theia/editor": "1.67.0",
     "@theia/filesystem": "1.67.0",
+    "@theia/monaco": "1.67.0",
     "inversify": "^6.0.1",
-    "sprotty": "^1.4.0"
+    "sprotty": "^1.4.0",
+    "sprotty-protocol": "^1.4.0"
   },
   "devDependencies": {
     "rimraf": "^5.0.5",
@@ -26,7 +30,8 @@
   "keywords": [
     "theia-extension",
     "glsp",
-    "diagram"
+    "diagram",
+    "composite-editor"
   ],
   "repository": {
     "type": "git",
@@ -41,7 +46,8 @@
     "src"
   ],
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b && pnpm copy:css",
+    "copy:css": "mkdir -p lib/browser/style && cp -r src/browser/style/* lib/browser/style/",
     "clean": "rimraf lib *.tsbuildinfo",
     "lint": "eslint --ext js,jsx,ts,tsx src",
     "lint:fix": "eslint --ext js,jsx,ts,tsx src --fix",

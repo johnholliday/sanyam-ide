@@ -596,6 +596,10 @@ export async function createLanguageServer(
     return { count: astServer.getSubscriptionCount() };
   });
 
+  // Debounce map for document change notifications
+  const diagramUpdateTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const DIAGRAM_UPDATE_DEBOUNCE_MS = 300;
+
   // Document change handlers for GLSP and Model API synchronization
   documents.onDidChangeContent((change) => {
     if (!initialized) return;
@@ -605,6 +609,35 @@ export async function createLanguageServer(
     if (langiumDoc) {
       if (glspServer) {
         glspServer.onDocumentChanged(langiumDoc);
+
+        // Debounce diagram model updates
+        const existingTimer = diagramUpdateTimers.get(change.document.uri);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+        }
+
+        const timer = setTimeout(async () => {
+          diagramUpdateTimers.delete(change.document.uri);
+          if (!glspServer) return;
+          try {
+            // Reload the diagram model and send notification
+            const context = await glspServer.loadModel(langiumDoc, CancellationToken.None);
+            if (context.gModel) {
+              connection.sendNotification('glsp/modelUpdated', {
+                uri: change.document.uri,
+                gModel: context.gModel,
+                metadata: {
+                  positions: context.metadata?.positions ? Object.fromEntries(context.metadata.positions) : {},
+                  sizes: context.metadata?.sizes ? Object.fromEntries(context.metadata.sizes) : {},
+                },
+              });
+            }
+          } catch (error) {
+            console.error('Error sending diagram model update:', error);
+          }
+        }, DIAGRAM_UPDATE_DEBOUNCE_MS);
+
+        diagramUpdateTimers.set(change.document.uri, timer);
       }
       if (astServer) {
         astServer.onDocumentChanged(langiumDoc);

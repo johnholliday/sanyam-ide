@@ -1,0 +1,371 @@
+/********************************************************************************
+ * Copyright (C) 2020 EclipseSource and others.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ *
+ * SPDX-License-Identifier: MIT
+ ********************************************************************************/
+
+:root {
+    --theia-branding-logo: url(../icons/spdevkit.png);
+}
+
+.theia-icon {
+    background-image: url("../icons/512-512.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.gs-blue-header {
+    color: #5088e7;
+    text-transform: capitalize;
+    font-weight: 600;
+}
+
+.gs-text-bold {
+    font-weight: 600;
+}
+
+.gs-text-underline {
+    text-decoration: underline;
+}
+
+/* Container - flex column to allow two-column to fill height */
+.gs-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+/* Two-column layout with full-height sidebar */
+.gs-two-column {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    min-height: 0;
+}
+
+.gs-sidebar {
+    width: 200px;
+    min-width: 200px;
+    padding-right: 20px;
+    border-right: 1px solid var(--theia-widget-border);
+    flex-shrink: 0;
+}
+
+.gs-main-content {
+    flex: 1;
+    padding-left: 20px;
+    padding-right: 20px;
+    min-width: 0;
+    overflow-y: auto;
+}
+
+.gs-logo {
+    /* background-image: var(--theia-branding-logo); */
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    width: 250px;
+    height: 118px;
+    padding: 20px;
+}
+
+.ad-logo {
+    /* background-image: var(--theia-branding-logo); */
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    width: 250px;
+    height: 118px;
+    padding: 20px;
+}
+
+.ad-float {
+    float: right;
+}
+
+.ad-container {
+    padding: 20px;
+    width: 1150px;
+    height: 700;
+}
+
+ul.theia-aboutExtensions {
+    height: 450px;
+    overflow: hidden;
+    overflow-y: scroll;
+    list-style-type: none;
+    padding: 0;
+    margin-left: 10px;
+}
+
+/* Grammar Cards */
+.gs-grammar-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.gs-grammar-card {
+    background-color: var(--theia-editor-background);
+    border: 1px solid var(--theia-widget-border);
+    border-radius: 6px;
+    padding: 12px;
+    min-width: 200px;
+    max-width: 280px;
+    flex: 1 1 200px;
+}
+
+.gs-grammar-card:hover {
+    border-color: var(--theia-focusBorder);
+}
+
+.gs-grammar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+}
+
+.gs-grammar-name {
+    font-weight: 600;
+    font-size: 1.1em;
+    color: var(--theia-foreground);
+}
+
+.gs-grammar-ext {
+    font-family: var(--theia-code-font-family);
+    font-size: 0.9em;
+    color: var(--theia-descriptionForeground);
+    background-color: var(--theia-badge-background);
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.gs-grammar-details {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+    color: var(--theia-descriptionForeground);
+}
+
+.gs-grammar-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.gs-grammar-stat i {
+    font-size: 0.9em;
+}
+
+.gs-grammar-types {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.gs-grammar-type-tag {
+    font-size: 0.75em;
+    background-color: var(--theia-button-secondaryBackground);
+    color: var(--theia-button-secondaryForeground);
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.gs-grammar-type-tag.gs-grammar-more {
+    background-color: transparent;
+    border: 1px solid var(--theia-widget-border);
+    color: var(--theia-descriptionForeground);
+}
+
+/* Header - full width above float */
+.gs-header {
+    width: 100%;
+    clear: both;
+    text-align: center;
+}
+
+.gs-version-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding: 0 20px;
+}
+
+/* Application Metadata Styles */
+.gs-app-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+}
+
+.gs-app-header h1 {
+    margin: 0;
+}
+
+.gs-app-logo {
+    height: 120px;
+    width: auto;
+    object-fit: contain;
+}
+
+.gs-tagline {
+    font-size: 1.1em;
+    color: var(--theia-descriptionForeground);
+    margin-top: 8px;
+    margin-bottom: 0;
+    font-style: italic;
+}
+
+.gs-app-content {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 16px;
+}
+
+.gs-app-content p {
+    color: var(--theia-foreground);
+    font-size: 1.1em;
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+.gs-app-content p:last-child {
+    margin-bottom: 0;
+}
+
+.gs-app-links {
+    width: 100%;
+    margin-top: 16px;
+    text-align: center;
+}
+
+.gs-app-links .gs-section-header {
+    justify-content: center;
+}
+
+.gs-links-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.gs-link-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background-color: var(--theia-button-secondaryBackground);
+    color: var(--theia-button-secondaryForeground);
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.95em;
+    transition: background-color 0.15s ease;
+}
+
+.gs-link-item:hover {
+    background-color: var(--theia-button-secondaryHoverBackground);
+    text-decoration: none;
+}
+
+.gs-link-item i {
+    font-size: 1.1em;
+}
+
+/* AI Features List */
+.gs-ai-features {
+    margin: 12px 0;
+    padding-left: 20px;
+}
+
+.gs-ai-features li {
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+
+.gs-ai-features strong {
+    color: var(--theia-foreground);
+}
+
+/* Grammar Documentation Section */
+.gs-grammar-documentation {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--theia-widget-border);
+}
+
+.gs-feature-list {
+    margin: 12px 0;
+    padding-left: 20px;
+}
+
+.gs-feature-list li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.gs-feature-list strong {
+    color: var(--theia-foreground);
+}
+
+.gs-concepts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.gs-concept-item {
+    background-color: var(--theia-editor-background);
+    border: 1px solid var(--theia-widget-border);
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.gs-concept-item:hover {
+    border-color: var(--theia-focusBorder);
+}
+
+.gs-concept-name {
+    display: block;
+    font-weight: 600;
+    font-size: 1.05em;
+    color: var(--theia-foreground);
+    margin-bottom: 4px;
+}
+
+.gs-concept-desc {
+    display: block;
+    font-size: 0.9em;
+    color: var(--theia-descriptionForeground);
+    line-height: 1.4;
+}
+
+.gs-code-example {
+    background-color: var(--theia-editor-background);
+    border: 1px solid var(--theia-widget-border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-top: 12px;
+    overflow-x: auto;
+    font-family: var(--theia-code-font-family);
+    font-size: 0.9em;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.gs-code-example code {
+    color: var(--theia-foreground);
+}

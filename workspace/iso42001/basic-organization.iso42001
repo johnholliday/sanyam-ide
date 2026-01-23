@@ -1,0 +1,27 @@
+// Basic Example: Organization Context
+// Defines an organization with context analysis per ISO 42001 Clause 4
+
+organization AcmeCorp {
+    description "Acme Corporation - Technology Solutions Provider"
+    industry TECHNOLOGY
+    size MEDIUM
+
+    locations { HQ, "United States", "California" }
+
+    context {
+        internal {
+            issue ResourceLimitations {
+                description "Limited AI expertise within the organization"
+                category ORGANIZATIONAL
+                relevance HIGH
+            }
+        }
+        external {
+            issue AIRegulations {
+                description "Emerging AI regulations require compliance framework"
+                category REGULATORY
+                relevance CRITICAL
+            }
+        }
+    }
+}

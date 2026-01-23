@@ -1,0 +1,22 @@
+// Intermediate Example: Entity Relationships
+// Demonstrates multiple entities with cross-references
+
+entity User {
+    displayName: string = "User Name"
+    email: string = "user@example.com"
+    isActive: boolean
+}
+
+entity Project {
+    name: string = "My Project"
+    owner: User
+    startDate: date
+}
+
+entity Task {
+    title: string = "New Task"
+    assignee: User
+    project: Project
+    priority: number
+    isComplete: boolean
+}

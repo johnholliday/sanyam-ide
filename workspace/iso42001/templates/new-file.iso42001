@@ -1,0 +1,104 @@
+// ISO 42001 Assessment Model Template
+// Customize this template for your organization's AIMS
+
+// =============================================================================
+// ORGANIZATION (Clause 4)
+// =============================================================================
+
+organization ${name} {
+    description "TODO: Organization description"
+    industry TECHNOLOGY  // TODO: Update industry sector
+    size MEDIUM  // TODO: Update organization size
+
+    context {
+        internal {
+            // TODO: Add internal context issues
+        }
+        external {
+            // TODO: Add external context issues
+        }
+    }
+
+    aiRoles {
+        // TODO: Define AI governance roles
+    }
+}
+
+// =============================================================================
+// AI MANAGEMENT SYSTEM (Clause 4.3, 5, 6)
+// =============================================================================
+
+aims ${name}AIMS {
+    version "1.0"
+    organization ${name}
+
+    scope {
+        description "TODO: Define AIMS scope"
+    }
+
+    policy {
+        statement "TODO: Define AI policy statement"
+        principles {
+            // TODO: Add AI principles
+        }
+    }
+
+    objectives {
+        // TODO: Add AI objectives
+    }
+}
+
+// =============================================================================
+// AI SYSTEMS (Annex A.4)
+// =============================================================================
+
+// TODO: Add aiSystem definitions for each AI system in scope
+
+// =============================================================================
+// CONTROLS (Annex A)
+// =============================================================================
+
+// TODO: Add controlCatalog with control implementations
+
+// =============================================================================
+// RISKS (Clause 6.1)
+// =============================================================================
+
+// TODO: Add riskRegistry with identified AI risks
+
+// =============================================================================
+// STAKEHOLDERS (Clause 4.2)
+// =============================================================================
+
+// TODO: Add stakeholderRegistry
+
+// =============================================================================
+// DOCUMENTATION (Clause 7.5)
+// =============================================================================
+
+// TODO: Add documentRegistry
+
+// =============================================================================
+// AUDITS (Clause 9.2)
+// =============================================================================
+
+// TODO: Add auditProgram
+// Example with date fields:
+// auditProgram AnnualAudits {
+//     description "Annual audit program"
+//     year 2024
+//     objectives "Verify AIMS conformity"
+//
+//     audit InternalAudit {
+//         type INTERNAL
+//         scope "Full AIMS"
+//         plannedDate 2024-06-15
+//         status PLANNED
+//     }
+// }
+
+// =============================================================================
+// IMPROVEMENT (Clause 10)
+// =============================================================================
+
+// TODO: Add improvementPlan

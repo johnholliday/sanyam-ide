@@ -1,0 +1,31 @@
+// Intermediate Example: Function with nested categories and subcategories
+// Demonstrates the hierarchical CSF structure
+
+function Identify {
+    description "Develop organizational understanding to manage cybersecurity risk"
+
+    category AssetManagement {
+        id "ID.AM"
+        description "Data, personnel, devices, systems, and facilities that enable the organization to achieve business purposes"
+
+        subcategory PhysicalDevices {
+            id "ID.AM-1"
+            description "Physical devices and systems within the organization are inventoried"
+        }
+
+        subcategory SoftwarePlatforms {
+            id "ID.AM-2"
+            description "Software platforms and applications within the organization are inventoried"
+        }
+    }
+
+    category RiskAssessment {
+        id "ID.RA"
+        description "The organization understands the cybersecurity risk to organizational operations"
+
+        subcategory VulnerabilityIdentification {
+            id "ID.RA-1"
+            description "Asset vulnerabilities are identified and documented"
+        }
+    }
+}

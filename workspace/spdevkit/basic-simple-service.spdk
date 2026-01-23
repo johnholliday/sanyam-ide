@@ -1,0 +1,8 @@
+// Basic Example: Simple Service
+// Demonstrates defining a service with operations
+
+service TaskService {
+    description "Manages task-related operations"
+    operation createTask(title: string)
+    operation deleteTask(taskId: number)
+}

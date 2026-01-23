@@ -13,8 +13,15 @@
 
 /**
  * Available shapes for diagram nodes.
+ *
+ * - `rectangle`: Standard rectangular box
+ * - `rounded`: Rectangle with rounded corners
+ * - `ellipse`: Oval/circular shape
+ * - `diamond`: Rotated square (decision points)
+ * - `hexagon`: Six-sided polygon (actions/operations)
+ * - `pill`: Rectangle with fully rounded ends
  */
-export type NodeShape = 'rectangle' | 'ellipse' | 'diamond' | 'hexagon';
+export type NodeShape = 'rectangle' | 'rounded' | 'ellipse' | 'diamond' | 'hexagon' | 'pill';
 
 /**
  * Input types for template wizard fields.
@@ -85,11 +92,30 @@ export interface DiagramNodeConfig {
   /** Visual shape of the node */
   readonly shape: NodeShape;
 
-  /** CSS class for styling */
+  /**
+   * CSS class for styling.
+   *
+   * Uses grammar-qualified naming: `{GrammarName}.{AstType}`
+   * Example: `Workflow.Step`, `Ecml.Actor`
+   *
+   * This enables targeted CSS styling per grammar:
+   * ```css
+   * .Workflow.Step { fill: #d1fae5; stroke: #059669; }
+   * .Workflow.Step.selected { stroke: #2563eb; }
+   * ```
+   */
   readonly cssClass: string;
 
   /** Default dimensions for new nodes */
   readonly defaultSize: Size;
+
+  /**
+   * Hover tooltip template.
+   *
+   * Supports `${name}` placeholder for dynamic content.
+   * Example: `"Step: ${name}"` → `"Step: ProcessOrder"`
+   */
+  readonly tooltip?: string;
 }
 
 /**
@@ -206,6 +232,32 @@ export interface DiagramTypeConfig {
 }
 
 // =============================================================================
+// Documentation Types
+// =============================================================================
+
+/**
+ * A key feature or capability of the grammar.
+ */
+export interface KeyFeature {
+  /** The feature name */
+  readonly feature: string;
+
+  /** Description of what this feature provides */
+  readonly description: string;
+}
+
+/**
+ * A core concept defined by the grammar.
+ */
+export interface CoreConcept {
+  /** The concept name */
+  readonly concept: string;
+
+  /** Description of what this concept represents */
+  readonly description: string;
+}
+
+// =============================================================================
 // Root Type Configuration
 // =============================================================================
 
@@ -318,6 +370,46 @@ export interface GrammarManifest {
   readonly displayName: string;
 
   /**
+   * Brief description of the grammar's purpose and capabilities.
+   * Typically 1-2 sentences.
+   *
+   * @example 'A domain-specific language for modeling enterprise content workflows and security policies.'
+   */
+  readonly summary: string;
+
+  /**
+   * Short marketing-style tagline for the grammar.
+   * Should be catchy and memorable, under 10 words.
+   *
+   * @example 'Model content, secure by design'
+   */
+  readonly tagline: string;
+
+  /**
+   * List of key features or capabilities of the grammar.
+   * Each entry has a feature name and description.
+   *
+   * @example [{ feature: 'Visual Workflows', description: 'Model complex workflows with drag-and-drop diagrams' }]
+   */
+  readonly keyFeatures: readonly KeyFeature[];
+
+  /**
+   * List of core domain concepts defined by the grammar.
+   * Each entry has a concept name and description.
+   *
+   * @example [{ concept: 'Actor', description: 'A user or system that interacts with content' }]
+   */
+  readonly coreConcepts: readonly CoreConcept[];
+
+  /**
+   * A quick code example showing basic grammar usage.
+   * Should be 3-10 lines demonstrating the core syntax.
+   *
+   * @example 'Actor Admin "Administrator" "System administrator"\nContent Policy "Policy Doc" "Security policy document"'
+   */
+  readonly quickExample: string;
+
+  /**
    * Primary file extension including the dot.
    *
    * @example '.spdk', '.myapp'
@@ -353,6 +445,14 @@ export interface GrammarManifest {
    * Required if diagrammingEnabled is true.
    */
   readonly diagramTypes?: readonly DiagramTypeConfig[];
+
+  /**
+   * Optional logo for this grammar as a data URL.
+   * Use base64-encoded SVG or PNG for best compatibility.
+   *
+   * @example 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0i...'
+   */
+  readonly logo?: string;
 }
 
 // =============================================================================
@@ -375,6 +475,13 @@ export function isGrammarManifest(value: unknown): value is GrammarManifest {
   return (
     typeof obj['languageId'] === 'string' &&
     typeof obj['displayName'] === 'string' &&
+    typeof obj['summary'] === 'string' &&
+    typeof obj['tagline'] === 'string' &&
+    Array.isArray(obj['keyFeatures']) &&
+    obj['keyFeatures'].length > 0 &&
+    Array.isArray(obj['coreConcepts']) &&
+    obj['coreConcepts'].length > 0 &&
+    typeof obj['quickExample'] === 'string' &&
     typeof obj['fileExtension'] === 'string' &&
     typeof obj['baseExtension'] === 'string' &&
     Array.isArray(obj['rootTypes']) &&
@@ -409,6 +516,49 @@ export function validateManifest(manifest: GrammarManifest): ValidationResult {
     errors.push('languageId must be lowercase alphanumeric with hyphens, starting with a letter');
   }
 
+  // Summary validation
+  if (!manifest.summary || manifest.summary.trim().length === 0) {
+    errors.push('summary must be a non-empty string');
+  }
+
+  // Tagline validation
+  if (!manifest.tagline || manifest.tagline.trim().length === 0) {
+    errors.push('tagline must be a non-empty string');
+  }
+
+  // Key features validation
+  if (!manifest.keyFeatures || manifest.keyFeatures.length === 0) {
+    errors.push('keyFeatures must have at least one entry');
+  } else {
+    manifest.keyFeatures.forEach((kf, index) => {
+      if (!kf.feature || kf.feature.trim().length === 0) {
+        errors.push(`keyFeatures[${index}].feature must be a non-empty string`);
+      }
+      if (!kf.description || kf.description.trim().length === 0) {
+        errors.push(`keyFeatures[${index}].description must be a non-empty string`);
+      }
+    });
+  }
+
+  // Core concepts validation
+  if (!manifest.coreConcepts || manifest.coreConcepts.length === 0) {
+    errors.push('coreConcepts must have at least one entry');
+  } else {
+    manifest.coreConcepts.forEach((cc, index) => {
+      if (!cc.concept || cc.concept.trim().length === 0) {
+        errors.push(`coreConcepts[${index}].concept must be a non-empty string`);
+      }
+      if (!cc.description || cc.description.trim().length === 0) {
+        errors.push(`coreConcepts[${index}].description must be a non-empty string`);
+      }
+    });
+  }
+
+  // Quick example validation
+  if (!manifest.quickExample || manifest.quickExample.trim().length === 0) {
+    errors.push('quickExample must be a non-empty string');
+  }
+
   // File extension validation
   if (!manifest.fileExtension.startsWith('.')) {
     errors.push('fileExtension must start with a dot');
@@ -436,6 +586,17 @@ export function validateManifest(manifest: GrammarManifest): ValidationResult {
   // Diagram validation
   if (manifest.diagrammingEnabled && (!manifest.diagramTypes || manifest.diagramTypes.length === 0)) {
     errors.push('diagramTypes required when diagrammingEnabled is true');
+  }
+
+  // Logo validation (must be a data URL if provided)
+  if (manifest.logo !== undefined) {
+    if (typeof manifest.logo !== 'string') {
+      errors.push('logo must be a string');
+    } else if (!manifest.logo.startsWith('data:')) {
+      errors.push('logo must be a data URL (starting with "data:")');
+    } else if (!/^data:image\/(svg\+xml|png|jpeg|gif|webp);base64,/.test(manifest.logo)) {
+      errors.push('logo must be a base64-encoded image data URL (e.g., data:image/svg+xml;base64,...)');
+    }
   }
 
   return {

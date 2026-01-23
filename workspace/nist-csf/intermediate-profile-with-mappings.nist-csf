@@ -1,0 +1,33 @@
+// Intermediate Example: Profile with subcategory mappings to implementation tiers
+// Demonstrates the Profile and ProfileMapping constructs
+
+// First define the subcategories that will be referenced
+subcategory PhysicalDevices {
+    id "ID.AM-1"
+    description "Physical devices and systems within the organization are inventoried"
+}
+
+subcategory SoftwarePlatforms {
+    id "ID.AM-2"
+    description "Software platforms and applications within the organization are inventoried"
+}
+
+subcategory IncidentResponse {
+    id "RS.RP-1"
+    description "Response plan is executed during or after an incident"
+}
+
+// Profile with mappings to the defined subcategories
+profile ManufacturingBaseline {
+    description "Manufacturing sector CSF implementation profile"
+    target "Manufacturing Organizations"
+
+    mapping PhysicalDevices -> Repeatable
+        notes "Critical for OT/IT asset visibility"
+
+    mapping SoftwarePlatforms -> RiskInformed
+        notes "Software inventory process established"
+
+    mapping IncidentResponse -> Adaptive
+        notes "Mature incident response capability"
+}

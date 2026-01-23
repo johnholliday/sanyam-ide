@@ -2,23 +2,84 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["lib/**", "*.tsbuildinfo"],
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "lib/**",
+        "*.tsbuildinfo"
+      ],
       "cache": true
     },
     "build:prod": {
-      "dependsOn": ["^build"],
-      "outputs": ["lib/**", "*.tsbuildinfo"],
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "lib/**",
+        "*.tsbuildinfo"
+      ],
       "cache": true
     },
-    "sanyam-ide-electron-app#build": {
-      "dependsOn": ["^build", "sanyam-browser#build"],
-      "outputs": ["lib/**", "*.tsbuildinfo"],
+    "sanyam-electron#build": {
+      "dependsOn": [
+        "^build",
+        "sanyam-browser#build"
+      ],
+      "outputs": [
+        "lib/**",
+        "*.tsbuildinfo"
+      ],
       "cache": true
     },
-    "sanyam-ide-electron-app#build:prod": {
-      "dependsOn": ["^build", "sanyam-browser#build:prod"],
-      "outputs": ["lib/**", "*.tsbuildinfo"],
+    "sanyam-electron#build:prod": {
+      "dependsOn": [
+        "^build",
+        "sanyam-browser#build:prod"
+      ],
+      "outputs": [
+        "lib/**",
+        "*.tsbuildinfo"
+      ],
+      "cache": true
+    },
+    "sanyam-language-server#build": {
+      "dependsOn": [
+        "^build",
+        "sanyam-language-server#build:vsix"
+      ],
+      "outputs": [
+        "lib/**",
+        "*.tsbuildinfo"
+      ],
+      "cache": true
+    },
+    "sanyam-language-server#build:bundle": {
+      "dependsOn": [
+        "sanyam-language-server#build"
+      ],
+      "outputs": [
+        "out/**"
+      ],
+      "inputs": [
+        "esbuild.mjs",
+        "lib/**"
+      ],
+      "cache": true
+    },
+    "sanyam-language-server#build:vsix": {
+      "outputs": [
+        "syntaxes/**",
+        "language-configurations/**",
+        "src/generated/**"
+      ],
+      "inputs": [
+        "scripts/build-vsix.ts",
+        "../grammar-definitions/*/src/contribution.ts",
+        "../grammar-definitions/*/manifest.ts",
+        "../grammar-definitions/*/*.langium",
+        "../../applications/*/package.json"
+      ],
       "cache": true
     },
     "lint": {
@@ -28,7 +89,9 @@
       "cache": false
     },
     "test": {
-      "dependsOn": ["build"],
+      "dependsOn": [
+        "build"
+      ],
       "cache": true
     },
     "clean": {

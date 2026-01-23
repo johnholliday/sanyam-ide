@@ -1,0 +1,102 @@
+// Intermediate Example: Healthcare organization with policies and safeguards
+// Demonstrates relationships between entities, safeguards, and policies
+
+// Define the healthcare provider
+entity RegionalMedicalCenter {
+    type HealthcareProvider
+    description "A 300-bed regional hospital providing comprehensive medical services"
+    contact "hipaa-officer@regionalmedicl.org"
+    safeguards EncryptionAtRest
+    safeguards AccessManagement
+    policies PrivacyPolicy
+    policies SecurityPolicy
+}
+
+// Define the business associate (IT vendor)
+associate CloudEHRVendor {
+    description "Electronic Health Record system provider"
+    contact "security@cloudehr.example.com"
+    services "EHR hosting and maintenance"
+    services "Data backup and recovery"
+    services "Technical support"
+}
+
+// Business Associate Agreement
+agreement CloudEHRAgreement {
+    coveredEntities RegionalMedicalCenter
+    businessAssociates CloudEHRVendor
+    effectiveDate "2025-01-01"
+    expirationDate "2028-01-01"
+    terms "Data encryption required in transit and at rest"
+    terms "72-hour breach notification requirement"
+    terms "Annual security audit required"
+    status Active
+}
+
+// Technical safeguard for encryption
+safeguard EncryptionAtRest {
+    category Technical
+    requirement Addressable
+    description "Encryption of ePHI at rest using AES-256"
+    implementation "Full disk encryption on all servers and workstations"
+    controls control EncryptionVerification {
+        description "Quarterly verification of encryption status"
+        evidence "Encryption audit report Q4 2025"
+        testDate "2025-10-15"
+        result Pass
+    }
+    status Implemented
+    reviewDate "2026-04-15"
+}
+
+// Administrative safeguard for access
+safeguard AccessManagement {
+    category Administrative
+    requirement Required
+    description "Workforce security and access management procedures"
+    implementation "Role-based access control with regular access reviews"
+    controls control BackgroundChecks {
+        description "Background checks for all workforce members"
+        testDate "2025-09-01"
+        result Pass
+    }
+    controls control AccessReviews {
+        description "Quarterly access rights reviews"
+        testDate "2025-12-01"
+        result Pass
+    }
+    status Implemented
+}
+
+// Privacy policy
+policy PrivacyPolicy {
+    type Privacy
+    version "3.2"
+    effectiveDate "2024-01-01"
+    reviewDate "2025-01-01"
+    owner "Privacy Officer"
+    description "Notice of Privacy Practices and minimum necessary standard"
+    procedures procedure PatientAccess {
+        steps "Patient submits written request"
+        steps "Verify patient identity"
+        steps "Provide records within 30 days"
+        responsible "Health Information Management"
+    }
+    status Active
+}
+
+// Security policy
+policy SecurityPolicy {
+    type Security
+    version "2.1"
+    effectiveDate "2024-06-01"
+    description "Information security policies and procedures"
+    procedures procedure IncidentResponse {
+        steps "Identify and contain the incident"
+        steps "Notify Privacy Officer within 24 hours"
+        steps "Document all actions taken"
+        steps "Conduct post-incident review"
+        responsible "IT Security Team"
+    }
+    status Active
+}

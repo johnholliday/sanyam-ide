@@ -1,0 +1,15 @@
+{
+    "extends": "../../../configs/base.tsconfig.json",
+    "compilerOptions": {
+        "rootDir": "src",
+        "outDir": "lib",
+        "baseUrl": ".",
+        "esModuleInterop": true,
+        "paths": {
+            "@app/grammar-manifests": ["./src/browser/grammar-manifests.stub.ts"]
+        }
+    },
+    "include": [
+        "src"
+    ]
+}

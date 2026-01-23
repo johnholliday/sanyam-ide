@@ -1,5 +1,6 @@
 packages:
-  - 'applications/*'
-  - 'theia-extensions/*'
   - 'packages/*'
-  - 'grammars/*'
+  - 'packages/theia-extensions/*'
+  - 'packages/grammar-definitions/*'
+  - 'applications/*'
+  - 'docs/*'

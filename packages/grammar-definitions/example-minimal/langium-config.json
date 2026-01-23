@@ -1,0 +1,11 @@
+{
+  "projectName": "ExampleMinimal",
+  "languages": [
+    {
+      "id": "example-minimal",
+      "grammar": "src/example-minimal.langium",
+      "fileExtensions": [".exm", ".example"]
+    }
+  ],
+  "out": "src/generated"
+}

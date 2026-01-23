@@ -1,0 +1,11 @@
+{
+  "projectName": "Garp",
+  "languages": [
+    {
+      "id": "garp",
+      "grammar": "src/garp.langium",
+      "fileExtensions": [".garp"]
+    }
+  ],
+  "out": "src/generated"
+}

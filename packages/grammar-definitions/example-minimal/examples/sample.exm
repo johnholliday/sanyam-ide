@@ -1,0 +1,34 @@
+// Example Minimal Language Sample File
+// This demonstrates the basic syntax of the example-minimal language
+
+// Simple boxes
+box Input {
+    label "User Input"
+    color blue
+}
+
+box Process {
+    label "Data Processing"
+    color green
+}
+
+box Output {
+    label "Results"
+    color yellow
+}
+
+// Arrows connecting boxes
+arrow inputToProcess {
+    from Input
+    to Process
+    label "raw data"
+}
+
+arrow processToOutput {
+    from Process
+    to Output
+    label "processed data"
+}
+
+// Minimal box (no body)
+box Logger

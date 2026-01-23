@@ -1,0 +1,4 @@
+// Basic Example: Defining a Permission
+// Permissions control access to resources
+
+Permission ReadOnly "Read Only" "View content without modification"

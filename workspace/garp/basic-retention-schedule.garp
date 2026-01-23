@@ -1,0 +1,17 @@
+// Basic Example: A retention schedule and disposition rule
+// Demonstrates how to define record retention periods and disposal methods
+
+retention FinancialRecords {
+    description "Retention schedule for financial documents"
+    recordType "Financial Statements and Tax Records"
+    period "7 years"
+    trigger "End of fiscal year"
+    legalBasis "IRS Revenue Procedure 98-25"
+}
+
+disposition FinancialDisposal {
+    description "Secure disposal of financial records after retention"
+    method Destroy
+    approval required
+    retention FinancialRecords
+}

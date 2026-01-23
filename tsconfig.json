@@ -7,19 +7,22 @@
   },
   "references": [
     {
-      "path": "theia-extensions/launcher"
+      "path": "packages/theia-extensions/glsp"
     },
     {
-      "path": "theia-extensions/product"
+      "path": "packages/theia-extensions/launcher"
     },
     {
-      "path": "theia-extensions/updater"
+      "path": "packages/theia-extensions/product"
+    },
+    {
+      "path": "packages/theia-extensions/updater"
     },
     {
       "path": "applications/electron"
     },
     {
       "path": "applications/browser"
-    },
+    }
   ]
 }

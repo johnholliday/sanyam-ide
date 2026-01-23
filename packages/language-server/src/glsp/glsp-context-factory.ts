@@ -1,0 +1,235 @@
+/**
+ * GLSP Context Factory (T064)
+ *
+ * Creates GLSP context objects for diagram operations.
+ *
+ * @packageDocumentation
+ */
+
+import type { LangiumDocument, AstNode } from 'langium';
+import type { LangiumServices } from 'langium/lsp';
+import type { CancellationToken } from 'vscode-languageserver';
+import type {
+  GlspContext,
+  GlspContextConfig,
+  ModelMetadata,
+  GModelRoot,
+  GModelElement,
+  Point,
+  Dimension,
+} from '@sanyam/types';
+
+// Re-export types for convenience
+export type { GlspContext, GlspContextConfig, ModelMetadata, GModelRoot, GModelElement };
+
+/**
+ * Model state interface for GLSP operations.
+ */
+export interface ModelState {
+  /** The source document */
+  readonly document: LangiumDocument;
+  /** The root AST node */
+  readonly root: AstNode;
+  /** The GModel representation */
+  gModel: GModelRoot;
+  /** Whether the model is dirty (has unsaved changes) */
+  isDirty: boolean;
+  /** Model metadata (positions, sizes, etc.) */
+  metadata: ModelMetadata;
+}
+
+/**
+ * Extended GModel node element with layout options.
+ */
+export interface GModelNode extends GModelElement {
+  position?: Point;
+  size?: Dimension;
+  layoutOptions?: Record<string, unknown>;
+}
+
+/**
+ * Extended GModel edge element.
+ */
+export interface GModelEdge extends GModelElement {
+  sourceId: string;
+  targetId: string;
+  routingPoints?: Point[];
+}
+
+/**
+ * Extended GModel label element.
+ */
+export interface GModelLabel extends GModelElement {
+  text: string;
+  alignment?: Point;
+}
+
+/**
+ * Create a new model state from a Langium document.
+ *
+ * @param document - The source Langium document
+ * @returns A new ModelState instance
+ */
+export function createModelState(document: LangiumDocument): ModelState {
+  const root = document.parseResult?.value;
+  if (!root) {
+    throw new Error('Document has no parsed content');
+  }
+
+  return {
+    document,
+    root,
+    gModel: createEmptyGModel(document.uri.toString()),
+    isDirty: false,
+    metadata: {
+      positions: new Map(),
+      sizes: new Map(),
+      routingPoints: new Map(),
+      collapsed: new Set(),
+    },
+  };
+}
+
+/**
+ * Create an empty GModel root.
+ *
+ * @param id - The model ID
+ * @returns An empty GModelRoot
+ */
+export function createEmptyGModel(id: string): GModelRoot {
+  return {
+    id: `root_${id}`,
+    type: 'graph',
+    children: [],
+    revision: 0,
+  };
+}
+
+/**
+ * Create a GLSP context for a diagram operation.
+ *
+ * @param modelState - The current model state
+ * @param services - Langium services
+ * @param _token - Cancellation token (unused but kept for API compatibility)
+ * @param config - Optional configuration
+ * @returns A GlspContext instance
+ */
+export function createGlspContext(
+  modelState: ModelState,
+  services: LangiumServices,
+  _token: CancellationToken,
+  config?: GlspContextConfig
+): GlspContext {
+  return {
+    document: modelState.document,
+    services,
+    root: modelState.root,
+    gModel: modelState.gModel,
+    metadata: modelState.metadata,
+    config: {
+      autoLayout: config?.autoLayout ?? true,
+      validation: config?.validation ?? true,
+      ...config,
+    },
+  };
+}
+
+/**
+ * Factory for creating GLSP contexts.
+ */
+export class GlspContextFactory {
+  private modelStates: Map<string, ModelState> = new Map();
+
+  constructor(private readonly services: LangiumServices) {}
+
+  /**
+   * Get or create a model state for a document.
+   *
+   * @param document - The Langium document
+   * @returns The model state
+   */
+  getOrCreateModelState(document: LangiumDocument): ModelState {
+    const uri = document.uri.toString();
+    let state = this.modelStates.get(uri);
+
+    if (!state) {
+      state = createModelState(document);
+      this.modelStates.set(uri, state);
+    }
+
+    return state;
+  }
+
+  /**
+   * Create a context for a diagram operation.
+   *
+   * @param document - The source document
+   * @param token - Cancellation token
+   * @param config - Optional configuration
+   * @returns A GlspContext instance
+   */
+  createContext(
+    document: LangiumDocument,
+    token: CancellationToken,
+    config?: GlspContextConfig
+  ): GlspContext {
+    const modelState = this.getOrCreateModelState(document);
+    return createGlspContext(modelState, this.services, token, config);
+  }
+
+  /**
+   * Update the model state for a document.
+   *
+   * @param document - The updated document
+   */
+  updateModelState(document: LangiumDocument): void {
+    const uri = document.uri.toString();
+    const existingState = this.modelStates.get(uri);
+
+    if (existingState) {
+      // Preserve metadata when updating
+      const newState = createModelState(document);
+      newState.metadata = existingState.metadata;
+      newState.gModel.revision = (existingState.gModel.revision ?? 0) + 1;
+      this.modelStates.set(uri, newState);
+    }
+  }
+
+  /**
+   * Remove the model state for a document.
+   *
+   * @param uri - The document URI
+   */
+  removeModelState(uri: string): void {
+    this.modelStates.delete(uri);
+  }
+
+  /**
+   * Get all active model states.
+   *
+   * @returns Iterator over model states
+   */
+  getAllModelStates(): IterableIterator<ModelState> {
+    return this.modelStates.values();
+  }
+
+  /**
+   * Check if a model state exists for a URI.
+   *
+   * @param uri - The document URI
+   * @returns True if model state exists
+   */
+  hasModelState(uri: string): boolean {
+    return this.modelStates.has(uri);
+  }
+}
+
+/**
+ * Create a GlspContextFactory instance.
+ *
+ * @param services - Langium services
+ * @returns A new GlspContextFactory
+ */
+export function createGlspContextFactory(services: LangiumServices): GlspContextFactory {
+  return new GlspContextFactory(services);
+}

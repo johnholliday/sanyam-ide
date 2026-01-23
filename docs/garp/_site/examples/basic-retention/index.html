@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retention Schedule | GARP Language</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/prism.css">
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-container">
+      <a href="/" class="nav-brand">GARP Language</a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/getting-started/">Getting Started</a></li>
+        <li><a href="/language-reference/">Reference</a></li>
+        <li><a href="/examples/">Examples</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="main-container">
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <h3>Documentation</h3>
+        <ul>
+          <li><a href="/">Overview</a></li>
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/language-reference/">Language Reference</a></li>
+        </ul>
+
+        <h3>Core Concepts</h3>
+        <ul>
+          <li><a href="/language-reference/#organizations">Organizations</a></li>
+          <li><a href="/language-reference/#policies">Policies</a></li>
+          <li><a href="/language-reference/#assessments">Assessments</a></li>
+          <li><a href="/language-reference/#retention-schedules">Retention Schedules</a></li>
+          <li><a href="/language-reference/#disposition-rules">Disposition Rules</a></li>
+        </ul>
+
+        <h3>Reference</h3>
+        <ul>
+          <li><a href="/language-reference/#principles">GARP Principles</a></li>
+          <li><a href="/language-reference/#maturity-levels">Maturity Levels</a></li>
+          <li><a href="/language-reference/#enumerations">Enumerations</a></li>
+        </ul>
+
+        <h3>Examples</h3>
+        <ul>
+          
+          <li><a href="/examples/">Examples</a></li>
+          
+          <li><a href="/examples/basic-organization/">Simple Organization</a></li>
+          
+          <li><a href="/examples/basic-policy/">Simple Policy</a></li>
+          
+          <li><a href="/examples/basic-retention/">Retention Schedule</a></li>
+          
+          <li><a href="/examples/intermediate-organization/">Organization with Policies</a></li>
+          
+          <li><a href="/examples/intermediate-assessment/">Assessment with Findings</a></li>
+          
+          <li><a href="/examples/advanced-complete/">Complete GARP Program</a></li>
+          
+          <li><a href="/examples/template/">File Template</a></li>
+          
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1 id="retention-schedule" tabindex="-1"><a class="header-anchor" href="#retention-schedule">Retention Schedule</a></h1>
+<p>Define how long different types of records should be retained before disposition.</p>
+<h2 id="example" tabindex="-1"><a class="header-anchor" href="#example">Example</a></h2>
+<pre class="language-garp"><code class="language-garp">// Basic Example: A retention schedule
+// Demonstrates specifying retention requirements for a record type
+
+retention FinancialRecords {
+    description "Retention schedule for financial and accounting records"
+    recordType "General Ledger, Accounts Payable/Receivable, Tax Records"
+    period "7 years"
+    trigger "End of fiscal year"
+    legalBasis "IRS Regulations 26 CFR, SOX Section 802"
+}</code></pre>
+<h2 id="explanation" tabindex="-1"><a class="header-anchor" href="#explanation">Explanation</a></h2>
+<h3 id="retention-attributes" tabindex="-1"><a class="header-anchor" href="#retention-attributes">Retention Attributes</a></h3>
+<ul>
+<li><strong><code>description</code></strong> - Purpose and scope of this schedule</li>
+<li><strong><code>recordType</code></strong> - What types of records are covered</li>
+<li><strong><code>period</code></strong> - How long to retain (can be a duration or “Permanent”)</li>
+<li><strong><code>trigger</code></strong> - Event that starts the retention clock</li>
+<li><strong><code>legalBasis</code></strong> - Legal, regulatory, or business justification</li>
+</ul>
+<h3 id="common-retention-triggers" tabindex="-1"><a class="header-anchor" href="#common-retention-triggers">Common Retention Triggers</a></h3>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>When Retention Starts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Record creation</td>
+<td>When the record is first created</td>
+</tr>
+<tr>
+<td>End of fiscal year</td>
+<td>After the fiscal year ends</td>
+</tr>
+<tr>
+<td>Contract expiration</td>
+<td>When a contract terminates</td>
+</tr>
+<tr>
+<td>Employee termination</td>
+<td>When employee leaves organization</td>
+</tr>
+<tr>
+<td>Project completion</td>
+<td>When a project is closed</td>
+</tr>
+<tr>
+<td>Last activity</td>
+<td>Last modification or access</td>
+</tr>
+</tbody>
+</table>
+<h3 id="common-retention-periods" tabindex="-1"><a class="header-anchor" href="#common-retention-periods">Common Retention Periods</a></h3>
+<table>
+<thead>
+<tr>
+<th>Period</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 year</td>
+<td>Short-term operational records</td>
+</tr>
+<tr>
+<td>3 years</td>
+<td>General business correspondence</td>
+</tr>
+<tr>
+<td>7 years</td>
+<td>Tax and financial records</td>
+</tr>
+<tr>
+<td>10 years</td>
+<td>Contracts, employment records</td>
+</tr>
+<tr>
+<td>Permanent</td>
+<td>Corporate records, audit reports</td>
+</tr>
+</tbody>
+</table>
+<h2 id="linking-to-disposition" tabindex="-1"><a class="header-anchor" href="#linking-to-disposition">Linking to Disposition</a></h2>
+<p>Retention schedules are referenced by disposition rules:</p>
+<pre class="language-garp"><code class="language-garp">retention FinancialRecords {
+    description "Financial record retention"
+    period "7 years"
+    trigger "End of fiscal year"
+    legalBasis "IRS Regulations"
+}
+
+disposition FinancialDisposition {
+    description "Secure destruction of financial records"
+    method Destroy
+    approval required
+    retention FinancialRecords
+}</code></pre>
+<p>The <code>retention</code> reference in the disposition rule links these together, ensuring records are disposed according to the defined schedule.</p>
+<h2 id="multiple-schedules-example" tabindex="-1"><a class="header-anchor" href="#multiple-schedules-example">Multiple Schedules Example</a></h2>
+<p>Organizations typically have multiple retention schedules:</p>
+<pre class="language-garp"><code class="language-garp">retention EmailRecords {
+    description "Business email retention"
+    recordType "Email communications with business value"
+    period "3 years"
+    trigger "Message date"
+    legalBasis "Business records best practices"
+}
+
+retention ContractRecords {
+    description "Contract and agreement retention"
+    recordType "Vendor contracts, NDAs, service agreements"
+    period "10 years after expiration"
+    trigger "Contract expiration"
+    legalBasis "Statute of Limitations"
+}
+
+retention HRRecords {
+    description "Employee records retention"
+    recordType "Personnel files, performance reviews"
+    period "7 years after termination"
+    trigger "Employee termination date"
+    legalBasis "EEOC Regulations"
+}</code></pre>
+<h2 id="next-steps" tabindex="-1"><a class="header-anchor" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li>Define <a href="/examples/advanced-complete/#disposition-rules">disposition rules</a> for each retention schedule</li>
+<li>Link retention policies to your organization</li>
+<li>See the <a href="/examples/advanced-complete/">Complete GARP Program</a> for a full model</li>
+</ul>
+
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <p>GARP Language Documentation</p>
+      <p>Based on <a href="https://en.wikipedia.org/wiki/Generally_Accepted_Recordkeeping_Principles" target="_blank">ARMA International's GARP Framework</a></p>
+    </div>
+  </footer>
+</body>
+</html>

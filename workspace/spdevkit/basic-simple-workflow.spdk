@@ -1,0 +1,17 @@
+// Basic Example: Simple Workflow
+// Demonstrates defining a workflow with steps
+
+workflow ApprovalProcess {
+    description "Simple document approval workflow"
+    step submit {
+        action "Submit document for review"
+        next review
+    }
+    step review {
+        action "Review submitted document"
+        next approve
+    }
+    step approve {
+        action "Approve or reject the document"
+    }
+}

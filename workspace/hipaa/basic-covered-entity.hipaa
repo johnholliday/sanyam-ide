@@ -1,0 +1,8 @@
+// Basic Example: A simple healthcare provider entity
+// Demonstrates the minimal structure for a covered entity
+
+entity AcmeClinic {
+    type HealthcareProvider
+    description "A primary care clinic providing outpatient services"
+    contact "compliance@acmeclinic.com"
+}

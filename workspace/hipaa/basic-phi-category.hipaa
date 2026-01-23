@@ -1,0 +1,15 @@
+// Basic Example: A simple PHI data category
+// Demonstrates the minimal structure for tracking protected health information
+
+phi PatientDemographics {
+    classification Standard
+    description "Basic patient demographic information"
+    identifiers identifier Name
+    identifiers identifier Address
+    identifiers identifier Phone
+    identifiers identifier Email
+    dataElements "Full Name"
+    dataElements "Date of Birth"
+    dataElements "Gender"
+    retentionPeriod "6 years"
+}

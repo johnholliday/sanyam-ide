@@ -1,0 +1,74 @@
+// Intermediate Example: A GARP assessment with findings and recommendations
+// Demonstrates scoring against the 8 principles and documenting gaps
+
+assessment Q4_2024_GARPAudit {
+    description "Quarterly GARP compliance assessment for Q4 2024"
+    date "2024-12-15"
+    assessor "External Audit Firm - InfoGov Consultants"
+
+    // Scores for each of the 8 GARP principles
+    score Accountability : Proactive
+        notes "Strong executive sponsorship and clear RIM officer designation"
+
+    score Integrity : Essential
+        notes "Basic audit trails in place but metadata management needs improvement"
+
+    score Protection : Proactive
+        notes "Robust security controls with encryption and access management"
+
+    score Compliance : Essential
+        notes "Meeting regulatory requirements but reactive approach"
+
+    score Availability : InDevelopment
+        notes "Search and retrieval capabilities are limited"
+
+    score Retention : Essential
+        notes "Retention schedules exist but not consistently applied"
+
+    score Disposition : SubStandard
+        notes "No formal disposition process in place"
+
+    score Transparency : Essential
+        notes "Policies documented but not widely communicated"
+
+    // Key findings from the assessment
+    finding DispositionGap {
+        description "Organization lacks a formal disposition process for records past retention"
+        principle Disposition
+        severity Critical
+    }
+
+    finding MetadataInconsistency {
+        description "Metadata standards are not consistently applied across systems"
+        principle Integrity
+        severity High
+    }
+
+    finding SearchLimitations {
+        description "Users report difficulty finding records when needed"
+        principle Availability
+        severity Medium
+    }
+
+    // Recommendations for improvement
+    recommendation ImplementDisposition {
+        description "Establish a formal disposition workflow with approval gates"
+        principle Disposition
+        priority Immediate
+        targetLevel Essential
+    }
+
+    recommendation MetadataGovernance {
+        description "Create metadata standards and implement validation controls"
+        principle Integrity
+        priority ShortTerm
+        targetLevel Proactive
+    }
+
+    recommendation EnhanceSearch {
+        description "Implement enterprise search with full-text indexing"
+        principle Availability
+        priority MediumTerm
+        targetLevel Proactive
+    }
+}

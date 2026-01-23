@@ -1,0 +1,119 @@
+{
+  "name": "sanyam-language-server",
+  "displayName": "Sanyam Language Server",
+  "publisher": "sanyam",
+  "version": "0.0.1",
+  "description": "Unified LSP/GLSP Language Server for Sanyam IDE",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "type": "module",
+  "main": "./out/extension.js",
+  "types": "./lib/extension.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/main.d.ts",
+      "import": "./lib/main.js",
+      "default": "./lib/main.js"
+    },
+    "./server-factory": {
+      "types": "./lib/server-factory.d.ts",
+      "import": "./lib/server-factory.js"
+    },
+    "./extension": {
+      "types": "./lib/extension.d.ts",
+      "import": "./lib/extension.js"
+    },
+    "./language-registry": {
+      "types": "./lib/language-registry.d.ts",
+      "import": "./lib/language-registry.js"
+    },
+    "./contribution-loader": {
+      "types": "./lib/discovery/contribution-loader.d.ts",
+      "import": "./lib/discovery/contribution-loader.js"
+    }
+  },
+  "files": [
+    "lib",
+    "out",
+    "syntaxes",
+    "language-configurations"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "build:bundle": "node esbuild.mjs",
+    "build:extension": "npm run build:vsix && npm run build && npm run build:bundle",
+    "build:vsix": "ts-node --esm scripts/build-vsix.ts",
+    "clean": "rimraf lib out tsconfig.tsbuildinfo syntaxes language-configurations src/generated",
+    "watch": "tsc -b -w",
+    "package:vsix": "npm run build:extension && vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "@sanyam/types": "workspace:*",
+    "@eclipse-glsp/server": "^2.5.0",
+    "inversify": "^6.0.1",
+    "langium": "^4.1.0",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.11",
+    "vscode-uri": "^3.0.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.6.3",
+    "vsce": "^2.15.0",
+    "vscode-languageclient": "^9.0.1",
+    "yaml": "^2.3.4"
+  },
+  "peerDependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "peerDependenciesMeta": {
+    "vscode-languageclient": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "langium",
+    "lsp",
+    "glsp",
+    "language-server",
+    "diagram"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnholliday/sanyam-ide.git"
+  },
+  "bugs": {
+    "url": "https://github.com/johnholliday/sanyam-ide/issues"
+  },
+  "activationEvents": [
+    "onLanguage:spdevkit"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "spdevkit",
+        "aliases": [
+          "Spdevkit",
+          "spdevkit"
+        ],
+        "extensions": [
+          ".spdk"
+        ],
+        "configuration": "./language-configurations/spdevkit.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "spdevkit",
+        "scopeName": "source.spdevkit",
+        "path": "./syntaxes/spdevkit.tmLanguage.json"
+      }
+    ]
+  }
+}

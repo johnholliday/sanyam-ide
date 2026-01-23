@@ -1,0 +1,76 @@
+// GARP - Generally Accepted Recordkeeping Principles
+// New file template - customize for your information governance needs
+
+// TODO: Define your organization
+organization YourOrganization {
+    description "TODO: Describe your organization"
+    maturity Essential  // Options: SubStandard, InDevelopment, Essential, Proactive, Transformational
+    // uses policy YourPolicy
+    // assessed by YourAssessment
+}
+
+// TODO: Define policies addressing GARP principles
+// Principles: Accountability, Integrity, Protection, Compliance,
+//             Availability, Retention, Disposition, Transparency
+policy YourPolicy {
+    description "TODO: Describe the policy purpose"
+    principle Accountability  // TODO: Choose appropriate principle
+    status Draft  // Options: Draft, Active, UnderReview, Retired
+    owner "TODO: Policy owner name"
+    effective "YYYY-MM-DD"
+
+    // TODO: Add requirements
+    requirement YourRequirement {
+        description "TODO: Describe the requirement"
+        mandatory true
+    }
+}
+
+// TODO: Define retention schedules
+retention YourRetentionSchedule {
+    description "TODO: Describe retention requirements"
+    recordType "TODO: Type of records covered"
+    period "TODO: e.g., 7 years"
+    trigger "TODO: e.g., creation, termination, expiration"
+    legalBasis "TODO: Legal or regulatory basis"
+}
+
+// TODO: Define disposition rules
+disposition YourDispositionRule {
+    description "TODO: Describe disposition process"
+    method Destroy  // Options: Destroy, Archive, Transfer, Review
+    approval required
+    retention YourRetentionSchedule
+}
+
+// TODO: Create assessments to track maturity
+assessment YourAssessment {
+    description "TODO: Describe assessment scope"
+    date "YYYY-MM-DD"
+    assessor "TODO: Assessor name or firm"
+
+    // Score each principle
+    score Accountability : Essential
+    score Integrity : Essential
+    score Protection : Essential
+    score Compliance : Essential
+    score Availability : Essential
+    score Retention : Essential
+    score Disposition : Essential
+    score Transparency : Essential
+
+    // TODO: Document findings
+    finding YourFinding {
+        description "TODO: Describe the finding"
+        principle Accountability
+        severity Medium  // Options: Critical, High, Medium, Low, Info
+    }
+
+    // TODO: Add recommendations
+    recommendation YourRecommendation {
+        description "TODO: Describe recommended action"
+        principle Accountability
+        priority ShortTerm  // Options: Immediate, ShortTerm, MediumTerm, LongTerm
+        targetLevel Proactive
+    }
+}

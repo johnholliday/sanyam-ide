@@ -43,7 +43,7 @@
       "outFiles": [
         "${workspaceFolder}/applications/electron/src-gen/**/*.js",
         "${workspaceFolder}/applications/electron/lib/**/*.js",
-        "${workspaceFolder}/theia-extensions/*/lib/**/*.js",
+        "${workspaceFolder}/packages/theia-extensions/*/lib/**/*.js",
         "${workspaceFolder}/node_modules/@theia/*/lib/**/*.js"
       ],
       "smartStep": true,
@@ -71,7 +71,7 @@
       "outFiles": [
         "${workspaceFolder}/applications/browser/src-gen/**/*.js",
         "${workspaceFolder}/applications/browser/lib/**/*.js",
-        "${workspaceFolder}/theia-extensions/**/lib/**/*.js",
+        "${workspaceFolder}/packages/theia-extensions/**/lib/**/*.js",
         "${workspaceFolder}/node_modules/@theia/*/lib/**/*.js"
       ],
       "smartStep": true,
@@ -115,7 +115,7 @@
       "outFiles": [
         "${workspaceFolder}/applications/browser/src-gen/**/*.js",
         "${workspaceFolder}/applications/browser/lib/**/*.js",
-        "${workspaceFolder}/theia-extensions/**/lib/**/*.js",
+        "${workspaceFolder}/packages/theia-extensions/**/lib/**/*.js",
         "${workspaceFolder}/node_modules/@theia/*/lib/**/*.js"
       ],
       "smartStep": true,

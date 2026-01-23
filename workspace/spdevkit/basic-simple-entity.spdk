@@ -1,0 +1,8 @@
+// Basic Example: Simple Entity
+// Demonstrates defining a single entity with various property types
+
+entity Task {
+    title: string = "Default title"
+    isComplete: boolean
+    priority: number
+}

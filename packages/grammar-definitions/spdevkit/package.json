@@ -1,0 +1,50 @@
+{
+  "name": "@sanyam-grammar/spdevkit",
+  "version": "0.0.1",
+  "description": "Grammar package for SPDevKit",
+  "type": "module",
+  "main": "./lib/contribution.js",
+  "types": "./lib/contribution.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/contribution.d.ts",
+      "import": "./lib/contribution.js"
+    },
+    "./contribution": {
+      "types": "./lib/contribution.d.ts",
+      "import": "./lib/contribution.js"
+    },
+    "./manifest": {
+      "types": "./lib/manifest.d.ts",
+      "import": "./lib/manifest.js"
+    },
+    "./diagram": {
+      "types": "./lib/diagram/index.d.ts",
+      "import": "./lib/diagram/index.js"
+    }
+  },
+  "scripts": {
+    "build": "npm run langium:generate && tsc -b tsconfig.json && npm run copy:css",
+    "copy:css": "mkdir -p lib/diagram && cp src/diagram/styles.css lib/diagram/",
+    "clean": "rimraf lib src/generated",
+    "langium:generate": "langium generate",
+    "watch": "tsc -b tsconfig.json --watch"
+  },
+  "sanyam": {
+    "grammar": true,
+    "languageId": "spdevkit",
+    "contribution": "./lib/contribution.js",
+    "diagramModule": "./lib/diagram/module.js"
+  },
+  "dependencies": {
+    "langium": "^4.1.0",
+    "sprotty": "^1.4.0",
+    "inversify": "^6.0.2"
+  },
+  "devDependencies": {
+    "@sanyam/types": "workspace:*",
+    "langium-cli": "^4.0.0",
+    "rimraf": "^5.0.0",
+    "typescript": "~5.6.3"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "name": "@sanyam-grammar/actone",
+  "version": "0.1.0",
+  "description": "Grammar package for ActOne - a DSL for fiction writers orchestrating multi-agent AI story generation",
+  "type": "module",
+  "main": "./lib/contribution.js",
+  "types": "./lib/contribution.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/contribution.d.ts",
+      "import": "./lib/contribution.js"
+    },
+    "./contribution": {
+      "types": "./lib/contribution.d.ts",
+      "import": "./lib/contribution.js"
+    },
+    "./manifest": {
+      "types": "./lib/manifest.d.ts",
+      "import": "./lib/manifest.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "npm run langium:generate && tsc -b tsconfig.json",
+    "langium:generate": "langium generate",
+    "clean": "rimraf lib src/generated",
+    "watch": "tsc -b tsconfig.json --watch",
+    "lint": "eslint src --ext .ts"
+  },
+  "sanyam": {
+    "grammar": true,
+    "languageId": "actone",
+    "contribution": "./lib/contribution.js"
+  },
+  "dependencies": {
+    "langium": "^4.1.0"
+  },
+  "devDependencies": {
+    "@sanyam/types": "workspace:*",
+    "langium-cli": "^4.0.0",
+    "rimraf": "^5.0.0",
+    "typescript": "~5.6.3"
+  }
+}

@@ -1,0 +1,8 @@
+// Basic Example: An informative reference to external standard
+// Demonstrates the InformativeReference construct
+
+reference NIST_SP_800_53 {
+    standard "NIST SP 800-53 Rev 5"
+    section "Security and Privacy Controls"
+    url "https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final"
+}

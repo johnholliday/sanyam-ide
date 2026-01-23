@@ -8,8 +8,11 @@ export interface ApplicationLink {
 }
 
 /**
- * Rich application metadata for customizing the IDE branding and welcome page.
- * This extends Theia's built-in applicationName with additional fields.
+ * Simplified application metadata for IDE branding.
+ * Grammar documentation is now read from GrammarManifest via GrammarRegistry at runtime.
+ *
+ * Note: The `applicationGrammar` field is configured at the top-level `theia.frontend.config`
+ * level (not inside applicationData). Use `getApplicationGrammar()` to access it.
  */
 export interface ApplicationMetadata {
     readonly name: string;

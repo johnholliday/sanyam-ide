@@ -1,0 +1,8 @@
+// Basic Example: Minimal Character
+// Demonstrates the simplest possible character definition with just a bio.
+
+story "The Wanderer" {
+    character Elara {
+        bio: "A wandering traveler seeking lost memories.",
+    }
+}

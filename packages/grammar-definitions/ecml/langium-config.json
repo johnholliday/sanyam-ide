@@ -1,0 +1,11 @@
+{
+  "projectName": "Ecml",
+  "languages": [
+    {
+      "id": "ecml",
+      "grammar": "src/ecml.langium",
+      "fileExtensions": [".ecml"]
+    }
+  ],
+  "out": "src/generated"
+}

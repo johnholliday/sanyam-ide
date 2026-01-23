@@ -1,0 +1,86 @@
+// Advanced Example: Complete SharePoint Application
+// Demonstrates a full application with entities, services, and workflows
+
+// Data Model - Define the core entities
+entity Site {
+    name: string = "Site Name"
+    url: string = "https://contoso.sharepoint.com"
+    isActive: boolean
+}
+
+entity DocumentLibrary {
+    name: string = "Documents"
+    site: Site
+    quotaGB: number
+}
+
+entity Document {
+    title: string = "Untitled Document"
+    library: DocumentLibrary
+    author: User
+    createdDate: date
+    modifiedDate: date
+    isPublished: boolean
+}
+
+entity User {
+    displayName: string = "User Name"
+    email: string = "user@contoso.com"
+    isAdmin: boolean
+}
+
+entity Permission {
+    user: User
+    document: Document
+    canRead: boolean
+    canWrite: boolean
+    canDelete: boolean
+}
+
+// Business Services
+service DocumentService {
+    description "Manages document lifecycle in SharePoint"
+    operation createDocument(title: string library: DocumentLibrary author: User) -> Document
+    operation getDocument(documentId: number) -> Document
+    operation updateDocument(documentId: number title: string) -> Document
+    operation deleteDocument(documentId: number) -> boolean
+    operation publishDocument(documentId: number) -> boolean
+}
+
+service PermissionService {
+    description "Manages document permissions"
+    operation grantPermission(user: User document: Document canRead: boolean canWrite: boolean) -> Permission
+    operation revokePermission(permissionId: number) -> boolean
+    operation checkAccess(user: User document: Document) -> boolean
+}
+
+// Workflow Definition
+workflow DocumentApproval {
+    description "Multi-stage document approval workflow"
+    step draft {
+        action "Author creates and edits document"
+        next review
+    }
+    step review {
+        action "Reviewer examines document content"
+        next approve
+    }
+    step approve {
+        action "Manager approves or rejects document"
+        next publish
+    }
+    step publish {
+        action "Document is published to the library"
+    }
+}
+
+// Application Definition - only entities are referenced
+application SharePointDocumentManager {
+    description "A complete document management solution for SharePoint Online"
+    version "1.0.0"
+    Site
+    DocumentLibrary
+    Document
+    User
+    Permission
+}

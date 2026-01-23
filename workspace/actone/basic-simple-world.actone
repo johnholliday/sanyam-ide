@@ -1,0 +1,15 @@
+// Basic Example: Simple World
+// Demonstrates a minimal world definition with locations and time.
+
+story "Coastal Town" {
+    world Seaside {
+        locations: {
+            Harbor: "A weathered dock with fishing boats creaking against the pier.",
+            Tavern: "A dimly lit establishment smelling of salt and ale."
+        },
+        time: {
+            period: "Late 19th century",
+            clock: "Twilight, as the sun dips below the horizon"
+        }
+    }
+}

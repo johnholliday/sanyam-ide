@@ -1,0 +1,458 @@
+/**
+ * GLSP Server (T081, T113)
+ *
+ * Main GLSP server implementation for diagram operations.
+ * Uses the provider resolver pattern for consistent handling of:
+ * - Disabled feature checks
+ * - Custom provider resolution
+ * - Deep merge for partial overrides
+ *
+ * @packageDocumentation
+ */
+
+import type { LangiumCoreServices, LangiumDocument } from 'langium';
+import type { CancellationToken } from 'vscode-languageserver';
+import type { GlspContext, LanguageContribution, GlspFeatureProviders } from '@sanyam/types';
+import { GlspContextFactory, createGlspContextFactory } from './glsp-context-factory.js';
+import { LangiumSourceModelStorage, createLangiumSourceModelStorage } from './langium-source-model-storage.js';
+import { ManifestDrivenGModelFactory, createManifestDrivenGModelFactory } from './manifest-converter.js';
+import {
+  OperationHandlerRegistry,
+  ProviderRegistry,
+  allDefaultGlspHandlers,
+  allDefaultGlspProviders,
+} from './glsp-server-module.js';
+import {
+  GlspProviderResolver,
+  createGlspProviderResolver,
+  type GlspProviderResolverOptions,
+} from './provider-resolver.js';
+import type { CreateNodeOperation, CreateNodeResult } from './handlers/create-node-handler.js';
+import type { DeleteElementOperation, DeleteElementResult } from './handlers/delete-element-handler.js';
+import type { ChangeBoundsOperation, ChangeBoundsResult } from './handlers/change-bounds-handler.js';
+import type { ReconnectEdgeOperation, ReconnectEdgeResult } from './handlers/reconnect-edge-handler.js';
+import type { CreateEdgeOperation, CreateEdgeResult } from './handlers/create-edge-handler.js';
+import type { LayoutResult, LayoutOptions } from './providers/layout-provider.js';
+import type { ValidationResult } from './providers/diagram-validation-provider.js';
+import type { ToolPalette } from './providers/tool-palette-provider.js';
+import type { ContextMenu } from './providers/context-menu-provider.js';
+
+/**
+ * Operation type union.
+ */
+export type Operation =
+  | CreateNodeOperation
+  | DeleteElementOperation
+  | ChangeBoundsOperation
+  | ReconnectEdgeOperation
+  | CreateEdgeOperation;
+
+/**
+ * Operation result type union.
+ */
+export type OperationResult =
+  | CreateNodeResult
+  | DeleteElementResult
+  | ChangeBoundsResult
+  | ReconnectEdgeResult
+  | CreateEdgeResult;
+
+/**
+ * GLSP server configuration.
+ */
+export interface GlspServerConfig {
+  /** Custom providers */
+  providers?: Partial<GlspFeatureProviders>;
+  /** Whether to enable auto-layout */
+  autoLayout?: boolean;
+  /** Whether to enable validation */
+  validation?: boolean;
+  /** Provider resolver options */
+  resolverOptions?: Partial<GlspProviderResolverOptions>;
+  /** Enable debug logging for provider resolution */
+  logResolution?: boolean;
+}
+
+/**
+ * GLSP Server for diagram operations.
+ *
+ * Uses the provider resolver pattern to resolve providers based on
+ * language contributions, supporting:
+ * - Custom provider overrides
+ * - Deep merge for partial overrides
+ * - Disabled feature handling
+ * - Resolution logging
+ */
+export class GlspServer {
+  private contextFactory: GlspContextFactory;
+  private sourceModelStorage: LangiumSourceModelStorage;
+  private gModelFactory: ManifestDrivenGModelFactory;
+  private handlerRegistry: OperationHandlerRegistry;
+  private providerRegistry: ProviderRegistry;
+  private providerResolver: GlspProviderResolver;
+  private languageContributions: Map<string, LanguageContribution> = new Map();
+  private config: GlspServerConfig;
+
+  constructor(
+    private readonly services: LangiumCoreServices,
+    config?: GlspServerConfig
+  ) {
+    this.config = config ?? {};
+    // Cast to LangiumServices - the GLSP context factory uses a subset of services
+    this.contextFactory = createGlspContextFactory(services as any);
+    this.sourceModelStorage = createLangiumSourceModelStorage(services);
+    this.gModelFactory = createManifestDrivenGModelFactory();
+
+    // Initialize registries
+    this.handlerRegistry = new OperationHandlerRegistry();
+    this.providerRegistry = new ProviderRegistry();
+
+    // Initialize provider resolver
+    this.providerResolver = createGlspProviderResolver({
+      logResolution: this.config.logResolution ?? false,
+      deepMerge: true,
+      ...this.config.resolverOptions,
+    });
+
+    // Register default handlers
+    this.registerDefaultHandlers();
+
+    // Register default providers and set them in the resolver
+    this.registerDefaultProviders();
+  }
+
+  /**
+   * Register default operation handlers.
+   */
+  private registerDefaultHandlers(): void {
+    this.handlerRegistry.register('createNode', allDefaultGlspHandlers.createNode);
+    this.handlerRegistry.register('delete', allDefaultGlspHandlers.deleteElement);
+    this.handlerRegistry.register('changeBounds', allDefaultGlspHandlers.changeBounds);
+    this.handlerRegistry.register('reconnectEdge', allDefaultGlspHandlers.reconnectEdge);
+    this.handlerRegistry.register('createEdge', allDefaultGlspHandlers.createEdge);
+  }
+
+  /**
+   * Register default providers.
+   */
+  private registerDefaultProviders(): void {
+    const customProviders = this.config.providers ?? {};
+
+    // Register in provider registry for backward compatibility
+    this.providerRegistry.register(
+      'astToGModel',
+      customProviders.astToGModel ?? allDefaultGlspProviders.astToGModel
+    );
+    this.providerRegistry.register(
+      'gmodelToAst',
+      customProviders.gmodelToAst ?? allDefaultGlspProviders.gmodelToAst
+    );
+    this.providerRegistry.register(
+      'toolPalette',
+      customProviders.toolPalette ?? allDefaultGlspProviders.toolPalette
+    );
+    this.providerRegistry.register(
+      'validation',
+      customProviders.validation ?? allDefaultGlspProviders.validation
+    );
+    this.providerRegistry.register(
+      'layout',
+      customProviders.layout ?? allDefaultGlspProviders.layout
+    );
+    this.providerRegistry.register(
+      'contextMenu',
+      customProviders.contextMenu ?? allDefaultGlspProviders.contextMenu
+    );
+
+    // Set defaults in the provider resolver for language-specific resolution
+    this.providerResolver.setDefaultProviders(allDefaultGlspProviders as unknown as GlspFeatureProviders);
+  }
+
+  /**
+   * Register a language contribution.
+   */
+  registerLanguage(contribution: LanguageContribution): void {
+    this.languageContributions.set(contribution.languageId, contribution);
+
+    // Configure GModel factory from manifest
+    if (contribution.manifest) {
+      this.gModelFactory.configure(contribution);
+    }
+  }
+
+  /**
+   * Get language contribution for a document.
+   */
+  private getContribution(document: LangiumDocument): LanguageContribution | undefined {
+    const languageId = document.textDocument.languageId;
+    return this.languageContributions.get(languageId);
+  }
+
+  /**
+   * Create a GLSP context for a document.
+   */
+  createContext(
+    document: LangiumDocument,
+    token: CancellationToken
+  ): GlspContext {
+    const context = this.contextFactory.createContext(document, token, {
+      autoLayout: this.config.autoLayout,
+      validation: this.config.validation,
+    });
+
+    // Add contribution to context
+    const contribution = this.getContribution(document);
+    if (contribution) {
+      (context as any).manifest = contribution.manifest;
+    }
+
+    return context;
+  }
+
+  /**
+   * Load a diagram model for a document.
+   */
+  async loadModel(
+    document: LangiumDocument,
+    token: CancellationToken
+  ): Promise<GlspContext> {
+    // Create context
+    const context = this.createContext(document, token);
+    const contribution = this.getContribution(document);
+
+    // Load from storage
+    await this.sourceModelStorage.load(document.uri.toString(), {
+      loadMetadata: true,
+    });
+
+    // Convert AST to GModel using resolver if contribution exists
+    const astToGModel = this.getResolvedProvider('astToGModel', contribution);
+    if (astToGModel?.convert && contribution?.manifest) {
+      // Create conversion context
+      const conversionContext = {
+        manifest: contribution.manifest,
+        diagramType: contribution.manifest.diagramTypes?.[0] ?? { astType: 'Model', displayName: 'Model', diagramId: 'model' },
+        idCounter: { value: 0 },
+        nodeMap: new Map(),
+        idMap: new Map(),
+      };
+      const gModelResult = astToGModel.convert(document.parseResult.value, conversionContext as any);
+      // Handle both sync and async results
+      const gModel = gModelResult instanceof Promise ? await gModelResult : gModelResult;
+      context.gModel = gModel;
+    }
+
+    // Apply auto-layout if enabled and no positions exist
+    if (this.config.autoLayout && context.metadata?.positions?.size === 0) {
+      this.applyLayout(context, undefined, contribution);
+    }
+
+    return context;
+  }
+
+  /**
+   * Get a resolved provider for a feature.
+   *
+   * Uses the provider resolver when a contribution is available,
+   * otherwise falls back to the provider registry.
+   */
+  private getResolvedProvider<K extends keyof GlspFeatureProviders>(
+    featureName: K,
+    contribution?: LanguageContribution
+  ): GlspFeatureProviders[K] | undefined {
+    if (contribution) {
+      // Use resolver for language-specific resolution
+      const { provider, isDisabled } = this.providerResolver.resolve(featureName, contribution);
+      if (isDisabled) {
+        return undefined;
+      }
+      return provider;
+    }
+
+    // Fall back to provider registry
+    return this.providerRegistry.get<GlspFeatureProviders[K]>(featureName);
+  }
+
+  /**
+   * Execute a diagram operation.
+   */
+  executeOperation(context: GlspContext, operation: Operation): OperationResult {
+    const handler = this.handlerRegistry.get(operation.kind);
+    if (!handler) {
+      return {
+        success: false,
+        error: `Unknown operation kind: ${operation.kind}`,
+      } as OperationResult;
+    }
+
+    if (!handler.canExecute(context, operation)) {
+      return {
+        success: false,
+        error: `Cannot execute operation: ${operation.kind}`,
+      } as OperationResult;
+    }
+
+    return handler.execute(context, operation);
+  }
+
+  /**
+   * Undo an operation.
+   */
+  undoOperation(context: GlspContext, result: OperationResult, operation: Operation): boolean {
+    const handler = this.handlerRegistry.get(operation.kind);
+    if (!handler?.undo) {
+      return false;
+    }
+
+    return handler.undo(context, result);
+  }
+
+  /**
+   * Validate the diagram model.
+   *
+   * Uses the provider resolver to get the validation provider,
+   * respecting disabled features and custom overrides.
+   */
+  validate(context: GlspContext, contribution?: LanguageContribution): ValidationResult {
+    const validation = this.getResolvedProvider('validation', contribution);
+    if (!validation) {
+      return { markers: [], isValid: true, errorCount: 0, warningCount: 0 };
+    }
+    return (validation as any).validate(context);
+  }
+
+  /**
+   * Apply layout to the diagram.
+   *
+   * Uses the provider resolver to get the layout provider,
+   * respecting disabled features and custom overrides.
+   */
+  applyLayout(
+    context: GlspContext,
+    options?: Partial<LayoutOptions>,
+    contribution?: LanguageContribution
+  ): LayoutResult {
+    const layout = this.getResolvedProvider('layout', contribution);
+    if (!layout) {
+      return {
+        positions: new Map(),
+        routingPoints: new Map(),
+        bounds: { width: 0, height: 0 },
+      };
+    }
+    return (layout as any).layout(context, options);
+  }
+
+  /**
+   * Get the tool palette.
+   *
+   * Uses the provider resolver to get the tool palette provider,
+   * respecting disabled features and custom overrides.
+   */
+  getToolPalette(context: GlspContext, contribution?: LanguageContribution): ToolPalette {
+    const toolPalette = this.getResolvedProvider('toolPalette', contribution);
+    if (!toolPalette) {
+      return { groups: [] };
+    }
+    return (toolPalette as any).getToolPalette(context);
+  }
+
+  /**
+   * Get context menu for selected elements.
+   *
+   * Uses the provider resolver to get the context menu provider,
+   * respecting disabled features and custom overrides.
+   */
+  getContextMenu(
+    context: GlspContext,
+    selectedIds: string[],
+    position?: { x: number; y: number },
+    contribution?: LanguageContribution
+  ): ContextMenu {
+    const contextMenu = this.getResolvedProvider('contextMenu', contribution);
+    if (!contextMenu) {
+      return { items: [] };
+    }
+    return (contextMenu as any).getContextMenu(context, selectedIds, position);
+  }
+
+  /**
+   * Check if a GLSP feature is enabled for a language.
+   */
+  isFeatureEnabled(
+    featureName: keyof GlspFeatureProviders,
+    contribution?: LanguageContribution
+  ): boolean {
+    if (!contribution) {
+      return this.providerRegistry.get(featureName) !== undefined;
+    }
+    return this.providerResolver.isEnabled(featureName, contribution);
+  }
+
+  /**
+   * Save the diagram model.
+   */
+  async saveModel(context: GlspContext): Promise<boolean> {
+    const modelState = (context as any).modelState;
+    if (!modelState) {
+      return false;
+    }
+
+    const result = await this.sourceModelStorage.save(modelState, {
+      saveMetadata: true,
+    });
+
+    return result.success;
+  }
+
+  /**
+   * Handle document change event.
+   */
+  onDocumentChanged(document: LangiumDocument): void {
+    this.contextFactory.updateModelState(document);
+    this.sourceModelStorage.onDocumentChanged(document);
+  }
+
+  /**
+   * Handle document close event.
+   */
+  onDocumentClosed(uri: string): void {
+    this.contextFactory.removeModelState(uri);
+    this.sourceModelStorage.removeModelState(uri);
+  }
+
+  /**
+   * Get registered operation kinds.
+   */
+  getSupportedOperations(): string[] {
+    return this.handlerRegistry.getKinds();
+  }
+
+  /**
+   * Register a custom operation handler.
+   */
+  registerHandler(kind: string, handler: any): void {
+    this.handlerRegistry.register(kind, handler);
+  }
+
+  /**
+   * Register a custom provider.
+   */
+  registerProvider(name: string, provider: any): void {
+    this.providerRegistry.register(name, provider);
+  }
+}
+
+/**
+ * Create a GLSP server instance.
+ *
+ * @param services - Langium services
+ * @param config - Optional configuration
+ * @returns A new GlspServer instance
+ */
+export function createGlspServer(
+  services: LangiumCoreServices,
+  config?: GlspServerConfig
+): GlspServer {
+  return new GlspServer(services, config);
+}

@@ -1,0 +1,7 @@
+// Basic Example: A simple organization definition
+// Demonstrates the minimal structure for an organization entity
+
+organization AcmeCorp {
+    description "Acme Corporation - A mid-sized manufacturing company"
+    maturity Essential
+}

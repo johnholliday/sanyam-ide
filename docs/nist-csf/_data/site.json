@@ -1,0 +1,7 @@
+{
+  "title": "NIST CSF",
+  "description": "Documentation for the NIST Cybersecurity Framework DSL",
+  "language": "en",
+  "languageId": "nist-csf",
+  "fileExtension": ".nist-csf"
+}

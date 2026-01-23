@@ -1,0 +1,115 @@
+/* Prism.js syntax highlighting theme for GARP */
+
+code[class*="language-"],
+pre[class*="language-"] {
+  color: #1e293b;
+  background: none;
+  font-family: 'Fira Code', Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+  font-size: 0.875em;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.7;
+  tab-size: 2;
+  hyphens: none;
+}
+
+pre[class*="language-"] {
+  padding: 1em;
+  margin: 0.5em 0;
+  overflow: auto;
+  border-radius: 0.5em;
+  background: #f1f5f9;
+}
+
+:not(pre) > code[class*="language-"] {
+  padding: 0.1em 0.3em;
+  border-radius: 0.3em;
+  white-space: normal;
+  background: #f1f5f9;
+}
+
+/* Keywords */
+.token.keyword {
+  color: #7c3aed;
+  font-weight: 500;
+}
+
+/* Strings */
+.token.string {
+  color: #059669;
+}
+
+/* Comments */
+.token.comment {
+  color: #64748b;
+  font-style: italic;
+}
+
+/* Numbers */
+.token.number {
+  color: #0891b2;
+}
+
+/* Operators */
+.token.operator {
+  color: #64748b;
+}
+
+/* Punctuation */
+.token.punctuation {
+  color: #475569;
+}
+
+/* Property names / identifiers */
+.token.property,
+.token.class-name {
+  color: #2563eb;
+}
+
+/* Function names */
+.token.function {
+  color: #dc2626;
+}
+
+/* Boolean */
+.token.boolean {
+  color: #7c3aed;
+}
+
+/* GARP-specific tokens */
+.language-garp .token.keyword {
+  color: #7c3aed;
+}
+
+.language-garp .token.type {
+  color: #2563eb;
+}
+
+.language-garp .token.principle {
+  color: #0891b2;
+  font-weight: 500;
+}
+
+.language-garp .token.maturity {
+  color: #059669;
+}
+
+/* Line highlighting */
+.line-highlight {
+  background: linear-gradient(to right, rgba(37, 99, 235, 0.1) 70%, transparent);
+}
+
+/* Line numbers */
+pre[class*="language-"].line-numbers {
+  position: relative;
+  padding-left: 3.8em;
+  counter-reset: linenumber;
+}
+
+pre[class*="language-"].line-numbers > code {
+  position: relative;
+  white-space: inherit;
+}

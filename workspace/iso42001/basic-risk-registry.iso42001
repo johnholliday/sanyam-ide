@@ -1,0 +1,25 @@
+// Basic Example: Risk Registry
+// Defines AI risks per ISO 42001 Clause 6.1
+
+riskRegistry MainRisks {
+    description "Primary AI risk registry for the organization"
+    methodology "ISO 31000 aligned risk assessment methodology"
+
+    risk BiasInRecommendations {
+        description "Risk of biased recommendations affecting certain user groups"
+        category ETHICAL
+        source ALGORITHM_BIAS
+
+        assessment {
+            likelihood POSSIBLE
+            impact MAJOR
+            inherentRisk HIGH
+        }
+
+        treatment {
+            strategy MITIGATE
+            description "Implement bias testing and fairness metrics"
+            status PLANNED
+        }
+    }
+}

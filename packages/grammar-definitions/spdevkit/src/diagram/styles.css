@@ -1,0 +1,147 @@
+/**
+ * SPDevKit Diagram Styles
+ *
+ * Grammar-qualified CSS classes for SPDevKit diagram elements.
+ *
+ * Class naming convention:
+ *   Nodes: .SPDevKit.{RuleName}  (e.g., .SPDevKit.Entity)
+ *   Edges: .SPDevKit.edge.{kind} (e.g., .SPDevKit.edge.containment)
+ *   State: .selected, .mouseover, .highlighted
+ *
+ * Customize by editing this file or overriding in your application CSS.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   Base Styles
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sprotty-graph.SPDevKit {
+  background-color: #fafafa;
+}
+
+.sprotty-node.SPDevKit {
+  cursor: pointer;
+  stroke-width: 2px;
+  transition: fill 0.15s ease, stroke-width 0.1s ease;
+}
+
+.sprotty-node.SPDevKit.selected {
+  stroke-width: 3px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
+}
+
+.sprotty-edge.SPDevKit {
+  cursor: crosshair;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Node Styles - SPDevKit
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Application (rounded) - Blue tones for main application container */
+.SPDevKit.Application {
+  fill: #dbeafe;
+  stroke: #2563eb;
+}
+
+.SPDevKit.Application.mouseover {
+  fill: #bfdbfe;
+}
+
+.SPDevKit.Application.selected {
+  stroke: #1d4ed8;
+}
+
+/* Entity (rectangle) - Indigo tones for data structures */
+.SPDevKit.Entity {
+  fill: #e0e7ff;
+  stroke: #4f46e5;
+}
+
+.SPDevKit.Entity.mouseover {
+  fill: #c7d2fe;
+}
+
+.SPDevKit.Entity.selected {
+  stroke: #4338ca;
+}
+
+/* Service (hexagon) - Green tones for operations */
+.SPDevKit.Service {
+  fill: #d1fae5;
+  stroke: #059669;
+}
+
+.SPDevKit.Service.mouseover {
+  fill: #a7f3d0;
+}
+
+.SPDevKit.Service.selected {
+  stroke: #047857;
+}
+
+/* Workflow (rounded) - Purple tones for processes */
+.SPDevKit.Workflow {
+  fill: #ede9fe;
+  stroke: #7c3aed;
+}
+
+.SPDevKit.Workflow.mouseover {
+  fill: #ddd6fe;
+}
+
+.SPDevKit.Workflow.selected {
+  stroke: #6d28d9;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Edge Styles - SPDevKit
+   ═══════════════════════════════════════════════════════════════════ */
+
+.SPDevKit.edge.containment {
+  stroke: #1e40af;
+  stroke-width: 2px;
+}
+
+.SPDevKit.edge.containment.optional {
+  stroke-dasharray: 4, 2;
+}
+
+.SPDevKit.containment-diamond {
+  fill: #1e40af;
+}
+
+.SPDevKit.edge.reference {
+  stroke: #6366f1;
+  stroke-width: 1.5px;
+  stroke-dasharray: 6, 3;
+}
+
+.SPDevKit.edge.reference.optional {
+  opacity: 0.7;
+}
+
+.SPDevKit.reference-arrow {
+  fill: #6366f1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Label Styles - SPDevKit
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sprotty-label.SPDevKit {
+  fill: #111827;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+}
+
+.SPDevKit.name-label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.SPDevKit.type-label {
+  fill: #6b7280;
+  font-style: italic;
+  font-size: 11px;
+}

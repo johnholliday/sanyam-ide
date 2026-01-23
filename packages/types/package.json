@@ -23,7 +23,12 @@
     "clean": "rimraf lib tsconfig.tsbuildinfo",
     "watch": "tsc -b -w"
   },
+  "dependencies": {
+    "langium": "^4.1.0",
+    "vscode-languageserver": "^9.0.1"
+  },
   "devDependencies": {
+    "inversify": "^6.0.2",
     "rimraf": "^5.0.5",
     "typescript": "~5.6.3"
   }

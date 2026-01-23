@@ -1,0 +1,4 @@
+// Basic Example: Defining Content
+// Content represents documents, files, or data artifacts
+
+Content Report "Monthly Report" "Financial summary for the month"

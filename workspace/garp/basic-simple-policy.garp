@@ -1,0 +1,10 @@
+// Basic Example: A simple policy definition
+// Demonstrates a recordkeeping policy addressing the Retention principle
+
+policy RecordRetentionPolicy {
+    description "Company-wide policy for retaining business records"
+    principle Retention
+    status Active
+    owner "Records Management Department"
+    effective "2024-01-01"
+}

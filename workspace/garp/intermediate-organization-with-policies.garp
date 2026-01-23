@@ -1,0 +1,51 @@
+// Intermediate Example: Organization with multiple policies
+// Demonstrates policy references and requirements within policies
+
+// Define policies first so they can be referenced
+policy DataProtectionPolicy {
+    description "Policy for protecting sensitive data and PII"
+    principle Protection
+    status Active
+    owner "Information Security Officer"
+    effective "2023-06-01"
+
+    requirement EncryptionAtRest {
+        description "All sensitive data must be encrypted at rest"
+        mandatory true
+    }
+
+    requirement EncryptionInTransit {
+        description "All data transfers must use TLS 1.2 or higher"
+        mandatory true
+    }
+
+    requirement AccessControl {
+        description "Role-based access control must be implemented"
+        mandatory true
+    }
+}
+
+policy AccountabilityPolicy {
+    description "Defines roles and responsibilities for records management"
+    principle Accountability
+    status Active
+    owner "Chief Compliance Officer"
+    effective "2023-01-15"
+
+    requirement DesignatedOfficer {
+        description "A Records Management Officer must be designated"
+        mandatory true
+    }
+
+    requirement AnnualReview {
+        description "Policies must be reviewed annually"
+    }
+}
+
+// Organization references the policies
+organization TechStartupInc {
+    description "A technology startup with strong data governance practices"
+    maturity Proactive
+    uses policy DataProtectionPolicy
+    uses policy AccountabilityPolicy
+}

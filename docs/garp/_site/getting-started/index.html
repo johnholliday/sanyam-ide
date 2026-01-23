@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Getting Started | GARP Language</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/prism.css">
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-container">
+      <a href="/" class="nav-brand">GARP Language</a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/getting-started/">Getting Started</a></li>
+        <li><a href="/language-reference/">Reference</a></li>
+        <li><a href="/examples/">Examples</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="main-container">
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <h3>Documentation</h3>
+        <ul>
+          <li><a href="/">Overview</a></li>
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/language-reference/">Language Reference</a></li>
+        </ul>
+
+        <h3>Core Concepts</h3>
+        <ul>
+          <li><a href="/language-reference/#organizations">Organizations</a></li>
+          <li><a href="/language-reference/#policies">Policies</a></li>
+          <li><a href="/language-reference/#assessments">Assessments</a></li>
+          <li><a href="/language-reference/#retention-schedules">Retention Schedules</a></li>
+          <li><a href="/language-reference/#disposition-rules">Disposition Rules</a></li>
+        </ul>
+
+        <h3>Reference</h3>
+        <ul>
+          <li><a href="/language-reference/#principles">GARP Principles</a></li>
+          <li><a href="/language-reference/#maturity-levels">Maturity Levels</a></li>
+          <li><a href="/language-reference/#enumerations">Enumerations</a></li>
+        </ul>
+
+        <h3>Examples</h3>
+        <ul>
+          
+          <li><a href="/examples/">Examples</a></li>
+          
+          <li><a href="/examples/basic-organization/">Simple Organization</a></li>
+          
+          <li><a href="/examples/basic-policy/">Simple Policy</a></li>
+          
+          <li><a href="/examples/basic-retention/">Retention Schedule</a></li>
+          
+          <li><a href="/examples/intermediate-organization/">Organization with Policies</a></li>
+          
+          <li><a href="/examples/intermediate-assessment/">Assessment with Findings</a></li>
+          
+          <li><a href="/examples/advanced-complete/">Complete GARP Program</a></li>
+          
+          <li><a href="/examples/template/">File Template</a></li>
+          
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1 id="getting-started-with-garp" tabindex="-1"><a class="header-anchor" href="#getting-started-with-garp">Getting Started with GARP</a></h1>
+<p>This guide will walk you through the basics of the GARP language, from your first organization definition to a complete information governance model.</p>
+<h2 id="your-first-garp-file" tabindex="-1"><a class="header-anchor" href="#your-first-garp-file">Your First GARP File</a></h2>
+<p>Create a new file with the <code>.garp</code> extension and start by defining your organization:</p>
+<pre class="language-garp"><code class="language-garp">organization MyCompany {
+    description "My company's information governance program"
+    maturity Essential
+}</code></pre>
+<p>This defines an organization at the <strong>Essential</strong> maturity level - meeting minimum requirements for information governance.</p>
+<h2 id="adding-a-policy" tabindex="-1"><a class="header-anchor" href="#adding-a-policy">Adding a Policy</a></h2>
+<p>Policies define the rules and requirements for managing information. Each policy should address one of the 8 GARP principles:</p>
+<pre class="language-garp"><code class="language-garp">policy RecordsRetentionPolicy {
+    description "Governs how long different types of records are retained"
+    principle Retention
+    status Active
+    owner "Records Manager"
+    effective "2024-01-01"
+
+    requirement MinimumRetention {
+        description "All business records must be retained for at least 3 years"
+        mandatory true
+    }
+
+    requirement LegalHold {
+        description "Records under legal hold are exempt from normal disposition"
+        mandatory true
+    }
+}</code></pre>
+<div class="callout callout-tip">
+<strong>Tip:</strong> Use the <code>mandatory true</code> attribute to mark requirements that must be met for compliance.
+</div>
+<h2 id="linking-policies-to-organizations" tabindex="-1"><a class="header-anchor" href="#linking-policies-to-organizations">Linking Policies to Organizations</a></h2>
+<p>Connect your policies to your organization using the <code>uses policy</code> syntax:</p>
+<pre class="language-garp"><code class="language-garp">organization MyCompany {
+    description "My company's information governance program"
+    maturity Essential
+    uses policy RecordsRetentionPolicy
+}
+
+policy RecordsRetentionPolicy {
+    description "Governs how long different types of records are retained"
+    principle Retention
+    status Active
+    owner "Records Manager"
+    effective "2024-01-01"
+}</code></pre>
+<h2 id="defining-retention-schedules" tabindex="-1"><a class="header-anchor" href="#defining-retention-schedules">Defining Retention Schedules</a></h2>
+<p>Retention schedules specify how long different types of records should be kept:</p>
+<pre class="language-garp"><code class="language-garp">retention FinancialRecords {
+    description "Retention schedule for financial documents"
+    recordType "Invoices, Purchase Orders, Financial Statements"
+    period "7 years"
+    trigger "End of fiscal year"
+    legalBasis "IRS Regulations, SOX Compliance"
+}
+
+retention HRRecords {
+    description "Employee personnel files"
+    recordType "Employment Records, Performance Reviews"
+    period "7 years after termination"
+    trigger "Employee termination date"
+    legalBasis "EEOC Regulations, State Employment Laws"
+}</code></pre>
+<h2 id="creating-disposition-rules" tabindex="-1"><a class="header-anchor" href="#creating-disposition-rules">Creating Disposition Rules</a></h2>
+<p>Disposition rules define how records are handled after their retention period expires:</p>
+<pre class="language-garp"><code class="language-garp">disposition FinancialDisposition {
+    description "Secure destruction of financial records"
+    method Destroy
+    approval required
+    retention FinancialRecords
+}
+
+disposition HRArchival {
+    description "Archive terminated employee files"
+    method Archive
+    retention HRRecords
+}</code></pre>
+<p>The available disposition methods are:</p>
+<ul>
+<li><strong>Destroy</strong> - Securely destroy the records</li>
+<li><strong>Archive</strong> - Move to long-term archival storage</li>
+<li><strong>Transfer</strong> - Transfer to another entity or system</li>
+<li><strong>Review</strong> - Review for further action</li>
+</ul>
+<h2 id="conducting-an-assessment" tabindex="-1"><a class="header-anchor" href="#conducting-an-assessment">Conducting an Assessment</a></h2>
+<p>Assessments measure your organization’s maturity against GARP principles:</p>
+<pre class="language-garp"><code class="language-garp">assessment AnnualGARPReview {
+    description "Annual GARP maturity assessment"
+    date "2024-12-01"
+    assessor "InfoGov Consulting Partners"
+
+    // Score each of the 8 principles
+    score Accountability : Proactive
+        notes "Strong executive sponsorship"
+    score Integrity : Essential
+        notes "Basic audit trails in place"
+    score Protection : Proactive
+        notes "Encryption deployed, access controls implemented"
+    score Compliance : Essential
+        notes "Meeting regulatory requirements"
+    score Availability : InDevelopment
+        notes "Search capabilities need improvement"
+    score Retention : Essential
+        notes "Retention schedules exist but not consistently applied"
+    score Disposition : SubStandard
+        notes "No formal disposition process"
+    score Transparency : Essential
+        notes "Policies documented but not widely communicated"
+}</code></pre>
+<h2 id="adding-findings-and-recommendations" tabindex="-1"><a class="header-anchor" href="#adding-findings-and-recommendations">Adding Findings and Recommendations</a></h2>
+<p>Document issues discovered during assessments:</p>
+<pre class="language-garp"><code class="language-garp">assessment AnnualGARPReview {
+    description "Annual GARP maturity assessment"
+    date "2024-12-01"
+    assessor "InfoGov Consulting Partners"
+
+    score Disposition : SubStandard
+        notes "No formal disposition process"
+
+    finding DispositionGap {
+        description "Organization lacks formal disposition procedures"
+        principle Disposition
+        severity Critical
+    }
+
+    recommendation ImplementDisposition {
+        description "Establish disposition workflow with approval gates"
+        principle Disposition
+        priority Immediate
+        targetLevel Essential
+    }
+}</code></pre>
+<h2 id="complete-example" tabindex="-1"><a class="header-anchor" href="#complete-example">Complete Example</a></h2>
+<p>Here’s a complete GARP model bringing all concepts together:</p>
+<pre class="language-garp"><code class="language-garp">// Retention schedules
+retention ContractRecords {
+    description "Business contracts and agreements"
+    recordType "Vendor Contracts, NDAs, Service Agreements"
+    period "10 years after expiration"
+    trigger "Contract expiration date"
+    legalBasis "Statute of Limitations"
+}
+
+// Disposition rules
+disposition ContractDisposition {
+    description "Secure destruction of expired contracts"
+    method Destroy
+    approval required
+    retention ContractRecords
+}
+
+// Policy
+policy ContractManagementPolicy {
+    description "Policy governing contract lifecycle management"
+    principle Retention
+    status Active
+    owner "Legal Department"
+    effective "2024-01-01"
+
+    requirement ContractTracking {
+        description "All contracts must be tracked in the CLM system"
+        mandatory true
+    }
+
+    requirement ExpirationMonitoring {
+        description "Contracts approaching expiration must be reviewed"
+        mandatory true
+    }
+}
+
+// Assessment
+assessment Q4Review {
+    description "Q4 2024 Contract Management Review"
+    date "2024-12-15"
+    assessor "Internal Audit"
+
+    score Retention : Proactive
+        notes "Consistent application of retention schedules"
+
+    finding AutomationGap {
+        description "Disposition process is manual and error-prone"
+        principle Disposition
+        severity Medium
+    }
+
+    recommendation AutomateDisposition {
+        description "Implement automated disposition workflows"
+        principle Disposition
+        priority ShortTerm
+        targetLevel Proactive
+    }
+}
+
+// Organization
+organization AcmeCorp {
+    description "A corporation with strong contract governance"
+    maturity Proactive
+    uses policy ContractManagementPolicy
+    assessed by Q4Review
+}</code></pre>
+<h2 id="next-steps" tabindex="-1"><a class="header-anchor" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li>Explore the <a href="/language-reference/">Language Reference</a> for complete syntax documentation</li>
+<li>See more <a href="/examples/">Examples</a> of GARP models</li>
+<li>Learn about the <a href="/#what-is-garp">8 GARP Principles</a> in detail</li>
+</ul>
+
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <p>GARP Language Documentation</p>
+      <p>Based on <a href="https://en.wikipedia.org/wiki/Generally_Accepted_Recordkeeping_Principles" target="_blank">ARMA International's GARP Framework</a></p>
+    </div>
+  </footer>
+</body>
+</html>

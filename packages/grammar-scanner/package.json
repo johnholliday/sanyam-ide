@@ -1,0 +1,56 @@
+{
+  "name": "@sanyam/grammar-scanner",
+  "version": "0.0.1",
+  "description": "Build-time grammar package discovery for Sanyam IDE",
+  "license": "MIT",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "default": "./lib/index.js"
+    },
+    "./generate-app-grammars": {
+      "types": "./lib/generate-app-grammars.d.ts",
+      "import": "./lib/generate-app-grammars.js"
+    },
+    "./patch-index": {
+      "types": "./lib/patch-index.d.ts",
+      "import": "./lib/patch-index.js"
+    }
+  },
+  "bin": {
+    "generate-app-grammars": "./lib/generate-app-grammars.js",
+    "patch-index": "./lib/patch-index.js"
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf lib tsconfig.tsbuildinfo",
+    "watch": "tsc -b -w"
+  },
+  "dependencies": {
+    "@sanyam/types": "workspace:*",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "rimraf": "^5.0.5",
+    "typescript": "~5.6.3"
+  },
+  "keywords": [
+    "grammar",
+    "discovery",
+    "build-tool",
+    "sanyam"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnholliday/sanyam-ide.git"
+  }
+}

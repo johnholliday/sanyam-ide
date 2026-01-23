@@ -30,6 +30,7 @@ If you have a Langium grammar file:
 ```
 
 This will:
+
 1. Look for `grammars/mygrammar/mygrammar.langium`
 2. Parse the grammar to extract AST types
 3. Generate `grammars/mygrammar/manifest.ts`
@@ -43,6 +44,7 @@ If no grammar exists:
 ```
 
 This will:
+
 1. Create `grammars/taskflow/taskflow.langium` with a starter template
 2. Generate `grammars/taskflow/manifest.ts`
 
@@ -55,6 +57,7 @@ Describe your DSL in plain English:
 ```
 
 This will:
+
 1. Use AI to generate an appropriate Langium grammar
 2. Create `grammars/api-model/api-model.langium`
 3. Generate the manifest
@@ -106,7 +109,7 @@ Add the grammar package as a workspace dependency:
 // In your application's package.json
 {
   "dependencies": {
-    "@sanyam/grammar-mygrammar": "workspace:*"
+    "@sanyam-grammar/mygrammar": "workspace:*"
   }
 }
 ```
@@ -116,7 +119,7 @@ Add the grammar package as a workspace dependency:
 In your platform initialization code:
 
 ```typescript
-import { MYGRAMMAR_MANIFEST } from '@sanyam/grammar-mygrammar';
+import { MYGRAMMAR_MANIFEST } from '@sanyam-grammar/mygrammar';
 import { GrammarRegistry } from '@sanyam/platform-core';
 
 // Register the grammar with the platform
@@ -129,7 +132,7 @@ registry.register(MYGRAMMAR_MANIFEST);
 The manifest provides everything needed for language server configuration:
 
 ```typescript
-import { MYGRAMMAR_MANIFEST } from '@sanyam/grammar-mygrammar';
+import { MYGRAMMAR_MANIFEST } from '@sanyam-grammar/mygrammar';
 
 // Use manifest for VS Code language contribution
 const languageContribution = {
@@ -276,6 +279,7 @@ Generates a grammar for state machine modeling with diagram support.
 4. **Build the language**: Use Langium CLI to generate language services
 
 For more information:
+
 - [Langium Documentation](https://langium.org/docs/)
 - [SANYAM Platform Guide](./PLATFORM.md)
 - [GrammarManifest Type Reference](./contracts/grammar-manifest.ts)

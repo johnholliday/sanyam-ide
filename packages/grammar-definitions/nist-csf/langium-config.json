@@ -1,0 +1,11 @@
+{
+  "projectName": "NistCsf",
+  "languages": [
+    {
+      "id": "nist-csf",
+      "grammar": "src/nist-csf.langium",
+      "fileExtensions": [".nist-csf"]
+    }
+  ],
+  "out": "src/generated"
+}

@@ -6,6 +6,15 @@
 const configs = require('./gen-webpack.config.js');
 const nodeConfig = require('./gen-webpack.node.config.js');
 const TerserPlugin = require('terser-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const path = require('path');
+
+// Configure webpack alias for grammar manifests
+// This allows the product extension to import @app/grammar-manifests
+// which resolves to this application's generated grammar-manifests module
+configs[0].resolve = configs[0].resolve || {};
+configs[0].resolve.alias = configs[0].resolve.alias || {};
+configs[0].resolve.alias['@app/grammar-manifests'] = path.resolve(__dirname, 'src/frontend/grammar-manifests-module.js');
 
 /**
  * Expose bundled modules on window.theia.moduleName namespace, e.g.
@@ -41,6 +50,24 @@ for (const config of configs) {
         ]
     };
 }
+
+// Copy grammar logos to assets/logos/ directory for browser caching
+// @ts-ignore
+configs[0].plugins.push(
+    // @ts-ignore
+    new CopyWebpackPlugin({
+        patterns: [
+            {
+                from: path.resolve(__dirname, '../../packages/grammar-definitions/*/src/logo.svg'),
+                to({ absoluteFilename }) {
+                    const grammarName = absoluteFilename.split('/grammar-definitions/')[1].split('/')[0];
+                    return `assets/logos/${grammarName}.svg`;
+                },
+                noErrorOnMissing: true
+            }
+        ]
+    })
+);
 
 module.exports = [
     ...configs,

@@ -294,15 +294,20 @@ export function createNode(
   id: string,
   type: string,
   position?: Point,
-  size?: Dimension
+  size?: Dimension,
+  cssClasses?: string[]
 ): GModelNode {
-  return {
+  const node: GModelNode = {
     id,
     type,
     position: position ?? { x: 0, y: 0 },
     size: size ?? { width: 100, height: 50 },
     children: [],
   };
+  if (cssClasses && cssClasses.length > 0) {
+    node.cssClasses = cssClasses;
+  }
+  return node;
 }
 
 /**

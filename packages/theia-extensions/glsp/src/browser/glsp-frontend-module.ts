@@ -33,6 +33,7 @@ import { CompositeEditorContextKeyService } from './composite-editor-context-key
 
 // Language client for diagram operations
 import { DiagramLanguageClient, LanguageClientProviderSymbol } from './diagram-language-client';
+import { SanyamLanguageClientProvider } from './sanyam-language-client-provider';
 
 // Diagram preferences
 import { diagramPreferenceSchema } from './diagram-preferences';
@@ -97,6 +98,11 @@ export default new ContainerModule((bind: interfaces.Bind) => {
   // ═══════════════════════════════════════════════════════════════════════════════
   // Diagram Language Client (for server communication)
   // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Bind the language client provider for GLSP communication
+  bind(SanyamLanguageClientProvider).toSelf().inSingletonScope();
+  bind(LanguageClientProviderSymbol).toService(SanyamLanguageClientProvider);
+  bind(GLSP_FRONTEND_TYPES.LanguageClientProvider).toService(SanyamLanguageClientProvider);
 
   // Bind the diagram language client service
   bind(DiagramLanguageClient).toSelf().inSingletonScope();

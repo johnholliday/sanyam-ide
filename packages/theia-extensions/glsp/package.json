@@ -7,7 +7,9 @@
   "dependencies": {
     "@eclipse-glsp/client": "^2.5.0",
     "@eclipse-glsp/protocol": "^2.5.0",
+    "@eclipse-glsp/theia-integration": "2.5.0-theia1.65.0",
     "@lumino/messaging": "^2.0.0",
+    "sanyam-language-server": "workspace:*",
     "@sanyam/types": "workspace:*",
     "@sanyam-ide/product": "workspace:*",
     "@theia/core": "1.67.0",
@@ -26,7 +28,8 @@
   },
   "theiaExtensions": [
     {
-      "frontend": "lib/browser/glsp-frontend-module"
+      "frontend": "lib/browser/glsp-frontend-module",
+      "backend": "lib/node/glsp-backend-module"
     }
   ],
   "keywords": [

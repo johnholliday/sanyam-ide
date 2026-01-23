@@ -241,6 +241,7 @@ function convertToNode(
     position,
     size,
     children: [],
+    cssClasses: mapping?.cssClasses,
   };
 
   // Add label
@@ -380,31 +381,30 @@ export class ManifestDrivenGModelFactory {
    * @param contribution - The language contribution
    */
   configure(contribution: LanguageContribution): void {
-    // Cast to any to handle manifest structure variations
-    // TODO: Align manifest structure with GrammarManifest type
-    const manifest = contribution.manifest as unknown as Record<string, unknown>;
-    const diagram = manifest['diagram'] as Record<string, unknown> | undefined;
+    const manifest = contribution.manifest;
 
-    // Load node mappings
-    if (diagram?.['nodeTypes']) {
-      for (const [astType, config] of Object.entries(diagram['nodeTypes'] as object)) {
-        this.nodeMappings.set(astType, config as NodeMappingConfig);
+    // Extract node mappings from rootTypes (actual manifest structure)
+    if (manifest?.rootTypes) {
+      for (const rootType of manifest.rootTypes) {
+        if (rootType.diagramNode) {
+          this.nodeMappings.set(rootType.astType, {
+            type: rootType.diagramNode.glspType,
+            labelProperty: 'name',
+            defaultWidth: rootType.diagramNode.defaultSize?.width ?? DEFAULT_NODE_WIDTH,
+            defaultHeight: rootType.diagramNode.defaultSize?.height ?? DEFAULT_NODE_HEIGHT,
+            cssClasses: rootType.diagramNode.cssClass ? [rootType.diagramNode.cssClass] : [],
+          });
+        }
       }
     }
 
-    // Load edge mappings
-    if (diagram?.['edgeTypes']) {
-      for (const [property, config] of Object.entries(diagram['edgeTypes'] as object)) {
-        this.edgeMappings.set(property, config as EdgeMappingConfig);
+    // Extract edge mappings from diagramTypes
+    if (manifest?.diagramTypes?.[0]?.edgeTypes) {
+      for (const edgeType of manifest.diagramTypes[0].edgeTypes) {
+        this.edgeMappings.set(edgeType.glspType, {
+          type: edgeType.glspType,
+        });
       }
-    }
-
-    // Set defaults
-    if (diagram?.['defaultNodeType']) {
-      this.defaultNodeType = diagram['defaultNodeType'] as string;
-    }
-    if (diagram?.['defaultEdgeType']) {
-      this.defaultEdgeType = diagram['defaultEdgeType'] as string;
     }
   }
 

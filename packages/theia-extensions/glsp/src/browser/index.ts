@@ -24,6 +24,7 @@ export * from './composite-editor-context-key-service';
 
 // Language client exports
 export * from './diagram-language-client';
+export * from './sanyam-language-client-provider';
 
 // Diagram preferences exports
 export * from './diagram-preferences';

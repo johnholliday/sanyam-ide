@@ -9,6 +9,7 @@
 
 import * as path from 'node:path';
 import type { ExtensionContext } from 'vscode';
+import * as vscode from 'vscode';
 import {
   LanguageClient,
   LanguageClientOptions,
@@ -73,7 +74,97 @@ export async function activate(context: ExtensionContext): Promise<void> {
   // Start the client (also starts the server)
   await client.start();
 
+  // Register GLSP commands for diagram operations
+  registerGlspCommands(context);
+
   console.log('Sanyam Language Extension activated.');
+}
+
+/**
+ * Register GLSP-related commands that can be called from the Theia frontend.
+ */
+function registerGlspCommands(context: ExtensionContext): void {
+  // Command to load diagram model
+  context.subscriptions.push(
+    vscode.commands.registerCommand('sanyam.glsp.loadModel', async (uri: string) => {
+      if (!client) {
+        return { success: false, error: 'Language client not initialized' };
+      }
+      try {
+        const response = await client.sendRequest('glsp/loadModel', { uri });
+        return response;
+      } catch (error) {
+        console.error('Error loading diagram model:', error);
+        return { success: false, error: String(error) };
+      }
+    })
+  );
+
+  // Command to execute diagram operation
+  context.subscriptions.push(
+    vscode.commands.registerCommand('sanyam.glsp.executeOperation', async (uri: string, operation: any) => {
+      if (!client) {
+        return { success: false, error: 'Language client not initialized' };
+      }
+      try {
+        const response = await client.sendRequest('glsp/executeOperation', { uri, operation });
+        return response;
+      } catch (error) {
+        console.error('Error executing diagram operation:', error);
+        return { success: false, error: String(error) };
+      }
+    })
+  );
+
+  // Command to request layout
+  context.subscriptions.push(
+    vscode.commands.registerCommand('sanyam.glsp.requestLayout', async (uri: string, options?: any) => {
+      if (!client) {
+        return { positions: {}, bounds: { width: 0, height: 0 }, error: 'Language client not initialized' };
+      }
+      try {
+        const response = await client.sendRequest('glsp/layout', { uri, options });
+        return response;
+      } catch (error) {
+        console.error('Error requesting layout:', error);
+        return { positions: {}, bounds: { width: 0, height: 0 }, error: String(error) };
+      }
+    })
+  );
+
+  // Command to get tool palette
+  context.subscriptions.push(
+    vscode.commands.registerCommand('sanyam.glsp.getToolPalette', async (uri: string) => {
+      if (!client) {
+        return { groups: [], error: 'Language client not initialized' };
+      }
+      try {
+        const response = await client.sendRequest('glsp/toolPalette', { uri });
+        return response;
+      } catch (error) {
+        console.error('Error getting tool palette:', error);
+        return { groups: [], error: String(error) };
+      }
+    })
+  );
+
+  // Command to validate model
+  context.subscriptions.push(
+    vscode.commands.registerCommand('sanyam.glsp.validate', async (uri: string) => {
+      if (!client) {
+        return { markers: [], isValid: true, errorCount: 0, warningCount: 0 };
+      }
+      try {
+        const response = await client.sendRequest('glsp/validate', { uri });
+        return response;
+      } catch (error) {
+        console.error('Error validating model:', error);
+        return { markers: [], isValid: false, errorCount: 1, warningCount: 0 };
+      }
+    })
+  );
+
+  console.log('GLSP commands registered.');
 }
 
 /**

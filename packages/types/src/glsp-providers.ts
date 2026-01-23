@@ -31,6 +31,8 @@ export interface GModelElement {
   id: string;
   type: string;
   children?: GModelElement[];
+  /** CSS classes for styling */
+  cssClasses?: string[];
 }
 
 /** Placeholder for GLSP GNode */

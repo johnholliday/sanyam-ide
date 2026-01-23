@@ -63,9 +63,10 @@ entity User {
       ],
       diagramNode: {
         glspType: 'node:application',
-        shape: 'rectangle',
-        cssClass: 'application-node',
+        shape: 'rounded',
+        cssClass: 'SPDevKit.Application',
         defaultSize: { width: 180, height: 80 },
+        tooltip: 'Application: \${name}',
       },
     },
     {
@@ -86,8 +87,9 @@ entity User {
       diagramNode: {
         glspType: 'node:entity',
         shape: 'rectangle',
-        cssClass: 'entity-node',
+        cssClass: 'SPDevKit.Entity',
         defaultSize: { width: 150, height: 60 },
+        tooltip: 'Entity: \${name}',
       },
     },
     {
@@ -107,9 +109,10 @@ entity User {
       ],
       diagramNode: {
         glspType: 'node:service',
-        shape: 'rectangle',
-        cssClass: 'service-node',
-        defaultSize: { width: 150, height: 60 },
+        shape: 'hexagon',
+        cssClass: 'SPDevKit.Service',
+        defaultSize: { width: 150, height: 70 },
+        tooltip: 'Service: \${name}',
       },
     },
     {
@@ -132,9 +135,10 @@ entity User {
       ],
       diagramNode: {
         glspType: 'node:workflow',
-        shape: 'rectangle',
-        cssClass: 'workflow-node',
+        shape: 'rounded',
+        cssClass: 'SPDevKit.Workflow',
         defaultSize: { width: 180, height: 80 },
+        tooltip: 'Workflow: \${name}',
       },
     },
   ],

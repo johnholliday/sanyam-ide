@@ -242,6 +242,86 @@ languageTags = {
 }
 ```
 
+### Step 4.3: Extract Diagram Tags from Comments
+
+Also scan for diagram-specific tags that apply to individual parser rules. These tags customize the visual representation of grammar constructs in diagrams.
+
+**Diagram tags:**
+
+| Tag | Maps to | Description |
+|-----|---------|-------------|
+| `@shape` | `diagramNode.shape` | Shape type: `rectangle`, `rounded`, `hexagon`, `diamond`, `ellipse`, `pill` |
+| `@tooltip` | `diagramNode.tooltip` | Hover tooltip template (supports `${name}` placeholder) |
+
+**Tag placement**: Tags apply to the rule immediately following them.
+
+**Example grammar with diagram tags:**
+
+```langium
+// @name = "Workflow DSL"
+// @tagline = "Visual workflow automation"
+// @extension = ".wf"
+grammar Workflow
+
+// @shape = "rounded"
+// @tooltip = "Workflow model: ${name}"
+entry Model:
+    (workflows+=WorkflowDef)*;
+
+// @shape = "hexagon"
+// @tooltip = "Workflow definition: ${name}"
+WorkflowDef:
+    'workflow' name=ID '{'
+        (steps+=Step)*
+    '}';
+
+// @shape = "rectangle"
+// @tooltip = "Step: ${name}"
+Step:
+    'step' name=ID (':' description=STRING)?
+    ('->' next=[Step:ID])?;
+
+// @shape = "diamond"
+// @tooltip = "Decision point"
+Decision:
+    'if' condition=STRING 'then' thenStep=[Step:ID] ('else' elseStep=[Step:ID])?;
+```
+
+**Extraction approach:**
+
+For each parser rule, look for preceding comment lines with diagram tags:
+
+```
+// Regex to find tagged rules (simplified - actual implementation scans line by line)
+/\/\/\s*@(shape|tooltip)\s*=\s*"([^"]+)"\s*\n(?:\/\/[^\n]*\n)*\s*(?:entry\s+)?([A-Z][a-zA-Z0-9]*)\s*:/g
+```
+
+**Processing:**
+1. Scan grammar for tagged rules
+2. Build `DiagramMetadata` map: `{ [ruleName]: DiagramRuleMetadata }`
+3. Pass to Step 6 for enhanced diagram configuration
+4. Pass to Step 15 for Sprotty code generation
+
+```typescript
+interface DiagramRuleMetadata {
+  shape?: 'rectangle' | 'rounded' | 'hexagon' | 'diamond' | 'ellipse' | 'pill';
+  tooltip?: string;  // Template with ${name} placeholder
+}
+
+type DiagramMetadata = Map<string, DiagramRuleMetadata>;
+```
+
+**Example result:**
+
+```typescript
+diagramMetadata = new Map([
+  ['Model', { shape: 'rounded', tooltip: 'Workflow model: ${name}' }],
+  ['WorkflowDef', { shape: 'hexagon', tooltip: 'Workflow definition: ${name}' }],
+  ['Step', { shape: 'rectangle', tooltip: 'Step: ${name}' }],
+  ['Decision', { shape: 'diamond', tooltip: 'Decision point' }],
+]);
+```
+
 ### Step 5: Generate rootTypes from Parser Rules
 
 For each extracted entry rule and significant parser rule, create a `RootTypeConfig`:
@@ -290,16 +370,47 @@ else → 'symbol-namespace'
 
 ### Step 6: Generate diagramTypes, nodeTypes, edgeTypes, and toolPalette
 
-For each rootType, generate corresponding diagram configuration:
+For each rootType, generate corresponding diagram configuration using metadata from Step 4.3.
 
 **DiagramNodeConfig:** (embedded in RootTypeConfig)
 
 ```typescript
 {
   glspType: `node:${astType.toLowerCase()}`,
-  shape: 'rectangle',  // default
-  cssClass: `${astType.toLowerCase()}-node`,
-  defaultSize: { width: 150, height: 60 }
+  shape: diagramMetadata.get(astType)?.shape ?? deriveShapeFromName(astType),
+  cssClass: `${GrammarName}.${astType}`,  // Grammar-qualified class name
+  defaultSize: deriveSizeFromShape(shape),
+  tooltip: diagramMetadata.get(astType)?.tooltip ?? `${displayName}: \${name}`,
+}
+```
+
+**Shape derivation heuristics** (when no `@shape` tag):
+
+```typescript
+function deriveShapeFromName(astType: string): NodeShape {
+  const name = astType.toLowerCase();
+  if (/workflow|flow|process|pipeline/i.test(name)) return 'rounded';
+  if (/decision|condition|choice|branch/i.test(name)) return 'diamond';
+  if (/state|status|phase/i.test(name)) return 'ellipse';
+  if (/terminal|keyword|token/i.test(name)) return 'pill';
+  if (/action|command|operation/i.test(name)) return 'hexagon';
+  if (/group|container|package|module/i.test(name)) return 'rounded';
+  return 'rectangle';
+}
+```
+
+**Size derivation:**
+
+```typescript
+function deriveSizeFromShape(shape: NodeShape): { width: number; height: number } {
+  switch (shape) {
+    case 'diamond': return { width: 100, height: 100 };
+    case 'ellipse': return { width: 120, height: 80 };
+    case 'hexagon': return { width: 140, height: 80 };
+    case 'pill': return { width: 100, height: 40 };
+    case 'rounded': return { width: 160, height: 70 };
+    default: return { width: 150, height: 60 };
+  }
 }
 ```
 
@@ -519,6 +630,7 @@ Create `packages/grammar-definitions/{name}/src/contribution.ts` with the `Langu
 
 import type { Module } from 'langium';
 import type { LangiumServices, LangiumSharedServices } from 'langium/lsp';
+import type { ContainerModule } from 'inversify';
 import type {
   LanguageContribution,
   LspFeatureProviders,
@@ -530,6 +642,7 @@ import {
   {GrammarName}GeneratedModule,
   {GrammarName}GeneratedSharedModule,
 } from './generated/module.js';
+import { {grammarName}DiagramModule } from './diagram/index.js';
 
 /**
  * Custom LSP providers for {DisplayName}.
@@ -572,6 +685,7 @@ export const contribution: LanguageContribution = {
   manifest,
   lspProviders,
   glspProviders,
+  diagramModule: {grammarName}DiagramModule as ContainerModule,
 };
 
 export default contribution;
@@ -610,10 +724,15 @@ Create `packages/grammar-definitions/{name}/package.json`:
     "./manifest": {
       "types": "./lib/manifest.d.ts",
       "import": "./lib/manifest.js"
+    },
+    "./diagram": {
+      "types": "./lib/diagram/index.d.ts",
+      "import": "./lib/diagram/index.js"
     }
   },
   "scripts": {
-    "build": "npm run langium:generate && tsc -b tsconfig.json",
+    "build": "npm run langium:generate && tsc -b tsconfig.json && npm run copy:css",
+    "copy:css": "mkdir -p lib/diagram && cp src/diagram/styles.css lib/diagram/",
     "clean": "rimraf lib src/generated",
     "langium:generate": "langium generate",
     "watch": "tsc -b tsconfig.json --watch"
@@ -621,10 +740,13 @@ Create `packages/grammar-definitions/{name}/package.json`:
   "sanyam": {
     "grammar": true,
     "languageId": "{languageId}",
-    "contribution": "./lib/contribution.js"
+    "contribution": "./lib/contribution.js",
+    "diagramModule": "./lib/diagram/module.js"
   },
   "dependencies": {
-    "langium": "^4.1.0"
+    "langium": "^4.1.0",
+    "sprotty": "^1.4.0",
+    "inversify": "^6.0.2"
   },
   "devDependencies": {
     "@sanyam/types": "workspace:*",
@@ -681,6 +803,7 @@ Create `packages/grammar-definitions/{name}/tsconfig.json`:
 - `rootDir: "./src"` ensures output goes to `./lib/` (not `./lib/src/`)
 - `composite: true` enables project references
 - `references` links to types package for proper build ordering
+- No JSX configuration needed - uses built-in Sprotty views with CSS styling
 
 ### Step 11: Generate langium-config.json
 
@@ -781,19 +904,30 @@ Master grammar:
   packages/grammar-definitions/.source/{name}.langium    - Master source (DO NOT DELETE)
 
 Package files created:
-  packages/grammar-definitions/{name}/src/{name}.langium   - Grammar copy (synced from .source/)
-  packages/grammar-definitions/{name}/src/manifest.ts      - GrammarManifest configuration
-  packages/grammar-definitions/{name}/src/contribution.ts  - LanguageContribution export
-  packages/grammar-definitions/{name}/src/logo.svg         - Grammar logo (bundled by webpack)
-  packages/grammar-definitions/{name}/package.json         - Package with sanyam discovery metadata
-  packages/grammar-definitions/{name}/tsconfig.json        - TypeScript configuration
-  packages/grammar-definitions/{name}/langium-config.json  - Langium CLI configuration
+  packages/grammar-definitions/{name}/src/{name}.langium       - Grammar copy (synced from .source/)
+  packages/grammar-definitions/{name}/src/manifest.ts          - GrammarManifest configuration
+  packages/grammar-definitions/{name}/src/contribution.ts      - LanguageContribution export
+  packages/grammar-definitions/{name}/src/logo.svg             - Grammar logo (bundled by webpack)
+
+  Diagram module:
+  packages/grammar-definitions/{name}/src/diagram/index.ts     - Barrel exports
+  packages/grammar-definitions/{name}/src/diagram/model.ts     - Sprotty model elements
+  packages/grammar-definitions/{name}/src/diagram/views.ts     - View type constants and re-exports
+  packages/grammar-definitions/{name}/src/diagram/module.ts    - InversifyJS DI configuration
+  packages/grammar-definitions/{name}/src/diagram/styles.css   - CSS styling (grammar-qualified)
+
+  packages/grammar-definitions/{name}/package.json             - Package with sanyam discovery metadata
+  packages/grammar-definitions/{name}/tsconfig.json            - TypeScript configuration
+  packages/grammar-definitions/{name}/langium-config.json      - Langium CLI configuration
 
 Grammar: {DisplayName}
 Language ID: {languageId}
 Root Types: {count} ({list of type names})
-Diagramming: Enabled
+Diagramming: Enabled (built-in views with CSS styling)
 Logo: Auto-generated (bundled to assets/logos/{languageId}.svg by webpack)
+
+Diagram shapes:
+{list of rootType → shape mappings}
 
 Next steps:
 1. Build the grammar package (generates Langium modules):
@@ -804,14 +938,487 @@ Next steps:
 
 3. To modify the grammar:
    - Edit packages/grammar-definitions/.source/{name}.langium (master)
-   - Re-run /grammar.config {name} to sync changes
+   - Re-run /grammar.config {name} to sync changes and regenerate diagram code
 
-4. To customize the logo:
-   - Edit packages/grammar-definitions/{name}/src/logo.svg
-   - Rebuild the application (webpack copies logo to assets/logos/)
+4. To customize diagram appearance:
+   - Add @shape, @tooltip tags to grammar rules
+   - Edit src/diagram/styles.css for color/styling customization
+   - CSS uses grammar-qualified selectors: .{GrammarName}.{RuleName}
+   - Built-in Sprotty views (RectangularNodeView, PolylineEdgeView) are used
+   - Custom SVG shapes require extending ShapeView with snabbdom JSX
 
 Note: The .source/{name}.langium is the master copy. Changes should be made there
 and synced to the package via /grammar.config. NEVER delete the .source/ file.
+```
+
+### Step 15: Generate Sprotty Diagram Module
+
+After generating the core package files, generate the Sprotty customization files in `src/diagram/`.
+
+#### Step 15.1: Generate src/diagram/model.ts
+
+Create custom Sprotty model element classes for each grammar rule:
+
+```typescript
+/**
+ * {DisplayName} Diagram Model Elements
+ *
+ * Custom Sprotty model classes for {DisplayName} grammar constructs.
+ * These extend Sprotty's base implementations with grammar-specific properties.
+ *
+ * @packageDocumentation
+ */
+
+import {
+  SNodeImpl,
+  SEdgeImpl,
+  SCompartmentImpl,
+} from 'sprotty';
+import type { Bounds } from 'sprotty-protocol';
+
+// ═══════════════════════════════════════════════════════════════════
+// Type Constants
+// ═══════════════════════════════════════════════════════════════════
+
+export const {GrammarName}Types = {
+  // Graph root
+  GRAPH: 'graph',
+
+  // Nodes
+{nodeTypeConstants}
+
+  // Edges
+  EDGE_CONTAINMENT: 'edge:containment',
+  EDGE_REFERENCE: 'edge:reference',
+
+  // Labels
+  LABEL_NAME: 'label:name',
+  LABEL_TYPE: 'label:type',
+
+  // Compartments
+  COMPARTMENT_HEADER: 'compartment:header',
+  COMPARTMENT_BODY: 'compartment:body',
+} as const;
+
+// ═══════════════════════════════════════════════════════════════════
+// Node Implementations
+// ═══════════════════════════════════════════════════════════════════
+
+{nodeImplementations}
+
+// ═══════════════════════════════════════════════════════════════════
+// Edge Implementation
+// ═══════════════════════════════════════════════════════════════════
+
+export class {GrammarName}Edge extends SEdgeImpl {
+  edgeKind: 'containment' | 'reference' = 'containment';
+  propertyName?: string;
+  optional: boolean = false;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Compartment Implementation
+// ═══════════════════════════════════════════════════════════════════
+
+export class {GrammarName}Compartment extends SCompartmentImpl {
+  override layout?: string = 'vbox';
+}
+```
+
+**Node type constants generation** (for each rootType):
+
+```typescript
+// Template for nodeTypeConstants
+`  NODE_${astType.toUpperCase()}: 'node:${astType.toLowerCase()}',`
+```
+
+**Node implementation generation** (for each rootType):
+
+```typescript
+// Template for each rootType
+`/**
+ * ${displayName} node element
+ */
+export class ${astType}Node extends SNodeImpl {
+  /** The name/identifier of this ${displayName.toLowerCase()} */
+  name: string = '';
+
+  /** Source location in the grammar file */
+  sourceRange?: { start: number; end: number };
+
+  override get bounds(): Bounds {
+    return {
+      x: this.position.x,
+      y: this.position.y,
+      width: this.size.width,
+      height: this.size.height,
+    };
+  }
+}
+`
+```
+
+#### Step 15.2: Generate src/diagram/views.ts
+
+Create a simple views module that re-exports built-in Sprotty views and defines view type constants:
+
+```typescript
+/**
+ * {DisplayName} Diagram Views
+ *
+ * This module provides view type constants and re-exports for {DisplayName} diagrams.
+ *
+ * The actual rendering uses Sprotty's built-in views (RectangularNodeView,
+ * PolylineEdgeView, SLabelView) with customization via CSS classes defined
+ * in styles.css.
+ *
+ * For custom shapes (hexagon, diamond, etc.), extend ShapeView and implement
+ * custom rendering using snabbdom JSX when needed.
+ *
+ * @packageDocumentation
+ */
+
+// Re-export built-in views for convenience
+export {
+  RectangularNodeView,
+  PolylineEdgeView,
+  SLabelView,
+  ShapeView,
+  SGraphView,
+} from 'sprotty';
+
+/**
+ * View type identifiers for {DisplayName} diagram elements.
+ */
+export const {GrammarName}ViewTypes = {
+{viewTypeConstants}
+} as const;
+```
+
+**View type constants generation** (for each rootType):
+
+```typescript
+// Template for viewTypeConstants
+`  NODE_${astType.toUpperCase()}: '${GrammarName}${astType}View',`
+```
+
+Also include edge and label view types:
+
+```typescript
+  EDGE_CONTAINMENT: '{GrammarName}ContainmentEdgeView',
+  EDGE_REFERENCE: '{GrammarName}ReferenceEdgeView',
+  LABEL_NAME: '{GrammarName}NameLabelView',
+  LABEL_TYPE: '{GrammarName}TypeLabelView',
+```
+
+**Note:** This approach uses built-in Sprotty views (`RectangularNodeView`, `PolylineEdgeView`, `SLabelView`) instead of custom JSX views. All visual customization is done through CSS classes applied via the model's `cssClasses` property. This avoids JSX/snabbdom type conflicts and simplifies the build.
+
+#### Step 15.3: Generate src/diagram/module.ts
+
+Create the InversifyJS module that registers all model elements with built-in Sprotty views:
+
+```typescript
+/**
+ * {DisplayName} Diagram Module
+ *
+ * InversifyJS dependency injection configuration for {DisplayName} Sprotty diagrams.
+ * Registers model elements with built-in Sprotty views and CSS-based styling.
+ *
+ * @packageDocumentation
+ */
+
+import { ContainerModule } from 'inversify';
+import {
+  configureModelElement,
+  configureViewerOptions,
+  SGraphImpl,
+  SGraphView,
+  SLabelImpl,
+  SLabelView,
+  RectangularNodeView,
+  PolylineEdgeView,
+  selectFeature,
+  moveFeature,
+  hoverFeedbackFeature,
+  boundsFeature,
+} from 'sprotty';
+
+// Model imports
+import {
+  {GrammarName}Types,
+{modelClassImports}
+  {GrammarName}Edge,
+} from './model.js';
+
+/**
+ * {DisplayName} Diagram Module
+ *
+ * Configures Sprotty for {DisplayName} grammar visualization.
+ * Uses built-in Sprotty views with CSS-based styling.
+ */
+export const {grammarName}DiagramModule = new ContainerModule((bind, unbind, isBound, rebind) => {
+  const context = { bind, unbind, isBound, rebind };
+
+  // ═══════════════════════════════════════════════════════════════
+  // Viewer Options
+  // ═══════════════════════════════════════════════════════════════
+  configureViewerOptions(context, {
+    needsClientLayout: true,
+    needsServerLayout: true,
+    baseDiv: '{languageId}-diagram',
+    hiddenDiv: '{languageId}-diagram-hidden',
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // Graph Root
+  // ═══════════════════════════════════════════════════════════════
+  configureModelElement(context, {GrammarName}Types.GRAPH, SGraphImpl, SGraphView);
+
+  // ═══════════════════════════════════════════════════════════════
+  // Node Elements
+  // Uses RectangularNodeView with CSS styling for customization.
+  // CSS classes are applied via the model's cssClasses property.
+  // ═══════════════════════════════════════════════════════════════
+{nodeRegistrations}
+
+  // ═══════════════════════════════════════════════════════════════
+  // Edge Elements
+  // Uses PolylineEdgeView with CSS styling for customization.
+  // ═══════════════════════════════════════════════════════════════
+  configureModelElement(context, {GrammarName}Types.EDGE_CONTAINMENT, {GrammarName}Edge, PolylineEdgeView);
+  configureModelElement(context, {GrammarName}Types.EDGE_REFERENCE, {GrammarName}Edge, PolylineEdgeView);
+
+  // ═══════════════════════════════════════════════════════════════
+  // Labels
+  // ═══════════════════════════════════════════════════════════════
+  configureModelElement(context, {GrammarName}Types.LABEL_NAME, SLabelImpl, SLabelView);
+  configureModelElement(context, {GrammarName}Types.LABEL_TYPE, SLabelImpl, SLabelView);
+});
+
+export default {grammarName}DiagramModule;
+```
+
+**Node registration generation** (for each rootType):
+
+```typescript
+// Template for node registrations - uses RectangularNodeView (built-in)
+`  configureModelElement(
+    context,
+    ${GrammarName}Types.NODE_${astType.toUpperCase()},
+    ${astType}Node,
+    RectangularNodeView,
+    { enable: [selectFeature, moveFeature, hoverFeedbackFeature, boundsFeature] }
+  );`
+```
+
+**Note:** All node elements use `RectangularNodeView` and all edges use `PolylineEdgeView`. Visual differentiation (colors, borders, rounded corners) is handled via CSS classes. For truly custom shapes (hexagons, diamonds), users can extend `ShapeView` with snabbdom JSX rendering.
+
+#### Step 15.4: Generate src/diagram/styles.css
+
+Generate CSS with grammar-qualified class names and heuristic-derived colors.
+
+**CSS Loading Integration:**
+
+The generated `styles.css` is copied to `lib/diagram/styles.css` during build (via `copy:css` script).
+The GLSP frontend loads grammar-specific CSS dynamically when a diagram is opened:
+
+1. The `diagramModule` export path is in `package.json` → `sanyam.diagramModule`
+2. GLSP frontend resolves the grammar package at runtime
+3. CSS is imported alongside the diagram module
+
+For manual integration or testing, import the CSS in your application:
+```typescript
+import '@sanyam-grammar/{name}/lib/diagram/styles.css';
+```
+
+**CSS Class Naming Convention:**
+
+Grammar-qualified class names prevent conflicts between multiple grammars:
+- Node classes: `.{GrammarName}.{RuleName}` (e.g., `.Workflow.Step`)
+- State classes: `.selected`, `.mouseover`, `.highlighted`
+- Edge classes: `.{GrammarName}.edge.{kind}` (e.g., `.Workflow.edge.containment`)
+
+This differs from the older `{lowercase}-node` convention. For migration of existing grammars:
+1. Update CSS selectors from `.step-node` to `.{GrammarName}.Step`
+2. The new pattern supports grammar scoping for multi-grammar diagrams
+
+**Color derivation heuristics:**
+
+```typescript
+function deriveColors(astType: string): { fill: string; stroke: string; hover: string } {
+  const name = astType.toLowerCase();
+
+  if (/workflow|flow|process|pipeline/i.test(name)) {
+    return { fill: '#dbeafe', stroke: '#2563eb', hover: '#bfdbfe' }; // Blue
+  }
+  if (/task|step|action|activity/i.test(name)) {
+    return { fill: '#d1fae5', stroke: '#059669', hover: '#a7f3d0' }; // Green
+  }
+  if (/decision|condition|choice|branch|gateway/i.test(name)) {
+    return { fill: '#fef3c7', stroke: '#d97706', hover: '#fde68a' }; // Amber
+  }
+  if (/state|status|phase/i.test(name)) {
+    return { fill: '#ede9fe', stroke: '#7c3aed', hover: '#ddd6fe' }; // Purple
+  }
+  if (/error|exception|fault|invalid/i.test(name)) {
+    return { fill: '#fee2e2', stroke: '#dc2626', hover: '#fecaca' }; // Red
+  }
+  if (/event|trigger|signal|message/i.test(name)) {
+    return { fill: '#cffafe', stroke: '#0891b2', hover: '#a5f3fc' }; // Cyan
+  }
+  if (/data|entity|record|model/i.test(name)) {
+    return { fill: '#e0e7ff', stroke: '#4f46e5', hover: '#c7d2fe' }; // Indigo
+  }
+  if (/config|settings|option|param/i.test(name)) {
+    return { fill: '#f1f5f9', stroke: '#475569', hover: '#e2e8f0' }; // Slate
+  }
+  if (/group|container|package|module|namespace/i.test(name)) {
+    return { fill: '#f3f4f6', stroke: '#6b7280', hover: '#e5e7eb' }; // Gray
+  }
+  if (/start|begin|initial/i.test(name)) {
+    return { fill: '#dcfce7', stroke: '#16a34a', hover: '#bbf7d0' }; // Bright green
+  }
+  if (/end|final|terminal|stop/i.test(name)) {
+    return { fill: '#fecaca', stroke: '#b91c1c', hover: '#fca5a5' }; // Bright red
+  }
+
+  // Default: neutral gray-blue
+  return { fill: '#f0f9ff', stroke: '#0369a1', hover: '#e0f2fe' };
+}
+```
+
+**CSS template:**
+
+```css
+/**
+ * {DisplayName} Diagram Styles
+ *
+ * Grammar-qualified CSS classes for {DisplayName} diagram elements.
+ *
+ * Class naming convention:
+ *   Nodes: .{GrammarName}.{RuleName}  (e.g., .Workflow.Step)
+ *   Edges: .{GrammarName}.edge.{kind} (e.g., .Workflow.edge.containment)
+ *   State: .selected, .mouseover, .highlighted
+ *
+ * Customize by editing this file or overriding in your application CSS.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   Base Styles
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sprotty-graph.{GrammarName} {
+  background-color: #fafafa;
+}
+
+.sprotty-node.{GrammarName} {
+  cursor: pointer;
+  stroke-width: 2px;
+  transition: fill 0.15s ease, stroke-width 0.1s ease;
+}
+
+.sprotty-node.{GrammarName}.selected {
+  stroke-width: 3px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
+}
+
+.sprotty-edge.{GrammarName} {
+  cursor: crosshair;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Node Styles - {GrammarName}
+   ═══════════════════════════════════════════════════════════════════ */
+
+{nodeStyles}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Edge Styles - {GrammarName}
+   ═══════════════════════════════════════════════════════════════════ */
+
+.{GrammarName}.edge.containment {
+  stroke: #1e40af;
+  stroke-width: 2px;
+}
+
+.{GrammarName}.edge.containment.optional {
+  stroke-dasharray: 4, 2;
+}
+
+.{GrammarName}.containment-diamond {
+  fill: #1e40af;
+}
+
+.{GrammarName}.edge.reference {
+  stroke: #6366f1;
+  stroke-width: 1.5px;
+  stroke-dasharray: 6, 3;
+}
+
+.{GrammarName}.edge.reference.optional {
+  opacity: 0.7;
+}
+
+.{GrammarName}.reference-arrow {
+  fill: #6366f1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Label Styles - {GrammarName}
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sprotty-label.{GrammarName} {
+  fill: #111827;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+}
+
+.{GrammarName}.name-label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.{GrammarName}.type-label {
+  fill: #6b7280;
+  font-style: italic;
+  font-size: 11px;
+}
+```
+
+**Node styles generation** (for each rootType):
+
+```css
+/* {DisplayName} ({astType}) */
+.{GrammarName}.{astType} {
+  fill: {derivedFill};
+  stroke: {derivedStroke};
+}
+
+.{GrammarName}.{astType}.mouseover {
+  fill: {derivedHover};
+}
+
+.{GrammarName}.{astType}.selected {
+  stroke: #2563eb;
+}
+```
+
+#### Step 15.5: Generate src/diagram/index.ts
+
+Create the barrel export file:
+
+```typescript
+/**
+ * {DisplayName} Diagram Module
+ *
+ * Barrel exports for {DisplayName} Sprotty diagram customizations.
+ *
+ * @packageDocumentation
+ */
+
+export * from './model.js';
+export * from './views.js';
+export { {grammarName}DiagramModule, default as {grammarName}DiagramModuleDefault } from './module.js';
 ```
 
 ---
@@ -1236,9 +1843,21 @@ interface LanguageContribution {
   manifest: GrammarManifest;
   lspProviders?: LspFeatureProviders;
   glspProviders?: GlspFeatureProviders;
+  diagramModule?: ContainerModule;  // Sprotty diagram module
   disabledLspFeatures?: LspFeatureName[];
   disabledGlspFeatures?: GlspFeatureName[];
 }
+```
+
+### DiagramRuleMetadata
+
+```typescript
+interface DiagramRuleMetadata {
+  shape?: 'rectangle' | 'rounded' | 'hexagon' | 'diamond' | 'ellipse' | 'pill';
+  tooltip?: string;  // Template with ${name} placeholder
+}
+
+type DiagramMetadata = Map<string, DiagramRuleMetadata>;
 ```
 
 See `packages/types/src/grammar-manifest.ts` and `packages/types/src/language-contribution.ts` for complete type definitions.

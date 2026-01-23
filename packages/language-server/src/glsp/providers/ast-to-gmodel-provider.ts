@@ -93,8 +93,9 @@ export const defaultAstToGModelProvider = {
     const position = this.getPosition(context, astNode);
     const size = this.getSize(context, astNode);
     const label = this.getLabel(astNode);
+    const cssClasses = this.getCssClasses(context, astNode);
 
-    const node = createNode(id, type, position, size);
+    const node = createNode(id, type, position, size, cssClasses);
     node.children = [createLabel(`${id}_label`, label)];
 
     return node;
@@ -217,7 +218,14 @@ export const defaultAstToGModelProvider = {
    * Get the default size for a node type.
    */
   getDefaultSize(context: GlspContext, astNode: AstNode): Dimension {
-    // Could be configured per type in manifest
+    // Check manifest for size mapping in rootTypes
+    const manifest = (context as any).manifest;
+    if (manifest?.rootTypes) {
+      const rootType = manifest.rootTypes.find((rt: any) => rt.astType === astNode.$type);
+      if (rootType?.diagramNode?.defaultSize) {
+        return rootType.diagramNode.defaultSize;
+      }
+    }
     return { width: 100, height: 50 };
   },
 
@@ -242,10 +250,13 @@ export const defaultAstToGModelProvider = {
    * Get the GModel node type for an AST node.
    */
   getNodeType(context: GlspContext, astNode: AstNode): string {
-    // Check manifest for type mapping
+    // Check manifest for type mapping in rootTypes
     const manifest = (context as any).manifest;
-    if (manifest?.diagram?.nodeTypes?.[astNode.$type]) {
-      return manifest.diagram.nodeTypes[astNode.$type].type;
+    if (manifest?.rootTypes) {
+      const rootType = manifest.rootTypes.find((rt: any) => rt.astType === astNode.$type);
+      if (rootType?.diagramNode?.glspType) {
+        return rootType.diagramNode.glspType;
+      }
     }
 
     // Default type based on AST type
@@ -267,14 +278,38 @@ export const defaultAstToGModelProvider = {
    * Get the GModel edge type for a reference property.
    */
   getEdgeType(context: GlspContext, property: string): string {
-    // Check manifest for type mapping
+    // Check manifest for edge type mapping in diagramTypes
     const manifest = (context as any).manifest;
-    if (manifest?.diagram?.edgeTypes?.[property]) {
-      return manifest.diagram.edgeTypes[property].type;
+    if (manifest?.diagramTypes?.[0]?.edgeTypes) {
+      // First try to find a specific edge type for this property
+      const edgeType = manifest.diagramTypes[0].edgeTypes.find(
+        (et: any) => et.glspType === `edge:${property}`
+      );
+      if (edgeType) {
+        return edgeType.glspType;
+      }
+      // Otherwise use first available edge type
+      if (manifest.diagramTypes[0].edgeTypes.length > 0) {
+        return manifest.diagramTypes[0].edgeTypes[0].glspType;
+      }
     }
 
     // Default edge type
     return ElementTypes.EDGE_REFERENCE;
+  },
+
+  /**
+   * Get CSS classes for an AST node from the manifest.
+   */
+  getCssClasses(context: GlspContext, astNode: AstNode): string[] | undefined {
+    const manifest = (context as any).manifest;
+    if (manifest?.rootTypes) {
+      const rootType = manifest.rootTypes.find((rt: any) => rt.astType === astNode.$type);
+      if (rootType?.diagramNode?.cssClass) {
+        return [rootType.diagramNode.cssClass];
+      }
+    }
+    return undefined;
   },
 
   /**

@@ -8,7 +8,7 @@
  ********************************************************************************/
 
 import { injectable, inject, postConstruct, optional } from '@theia/core/shared/inversify';
-import { Emitter, Event, DisposableCollection, Disposable, MessageService } from '@theia/core/lib/common';
+import { Emitter, Event, DisposableCollection, Disposable, MessageService, CommandService } from '@theia/core/lib/common';
 import type { GModelRoot, GNode, GEdge, GLabel } from '@sanyam/types';
 
 /**
@@ -120,6 +120,9 @@ export class DiagramLanguageClient implements Disposable {
     @inject(LanguageClientProviderSymbol) @optional()
     protected readonly languageClientProvider?: LanguageClientProvider;
 
+    @inject(CommandService)
+    protected readonly commandService: CommandService;
+
     @inject(MessageService) @optional()
     protected readonly messageService?: MessageService;
 
@@ -218,7 +221,7 @@ export class DiagramLanguageClient implements Disposable {
      */
     protected async doLoadModel(uri: string): Promise<LoadModelResponse> {
         try {
-            // If language client is available, use it
+            // If language client provider is available, use it directly
             if (this.languageClientProvider) {
                 const response = await this.languageClientProvider.sendRequest<LoadModelResponse>(
                     'glsp/loadModel',
@@ -240,7 +243,37 @@ export class DiagramLanguageClient implements Disposable {
                 return response;
             }
 
-            // Fall back to mock implementation if no language client
+            // Use VS Code command to communicate with the language server extension
+            // This works because the extension registers 'sanyam.glsp.loadModel' command
+            try {
+                const response = await this.commandService.executeCommand<LoadModelResponse>(
+                    'sanyam.glsp.loadModel',
+                    uri
+                );
+
+                if (response && response.success && response.gModel) {
+                    this.cachedModels.set(uri, response.gModel);
+                    this.onModelUpdatedEmitter.fire({
+                        uri,
+                        gModel: response.gModel,
+                        metadata: response.metadata ? {
+                            positions: new Map(Object.entries(response.metadata.positions || {})),
+                            sizes: new Map(Object.entries(response.metadata.sizes || {})),
+                        } : undefined,
+                    });
+                    return response;
+                }
+
+                // If command returned but no success, fall through to mock
+                if (response && !response.success) {
+                    console.warn('[DiagramLanguageClient] GLSP command failed:', response.error);
+                }
+            } catch (cmdError) {
+                // Command not found or failed - this is expected if extension not loaded
+                console.warn('[DiagramLanguageClient] GLSP command not available:', cmdError);
+            }
+
+            // Fall back to mock implementation if command failed
             return this.createMockModel(uri);
 
         } catch (error) {
@@ -344,7 +377,21 @@ export class DiagramLanguageClient implements Disposable {
                 );
             }
 
-            // Mock response when no language client
+            // Use VS Code command
+            try {
+                const response = await this.commandService.executeCommand<ExecuteOperationResponse>(
+                    'sanyam.glsp.executeOperation',
+                    uri,
+                    operation
+                );
+                if (response) {
+                    return response;
+                }
+            } catch (cmdError) {
+                console.warn('[DiagramLanguageClient] GLSP executeOperation command not available:', cmdError);
+            }
+
+            // Mock response when no command available
             console.log('[DiagramLanguageClient] Mock executeOperation:', operation);
             return { success: true };
 
@@ -370,7 +417,21 @@ export class DiagramLanguageClient implements Disposable {
                 return response;
             }
 
-            // Mock response when no language client
+            // Use VS Code command
+            try {
+                const response = await this.commandService.executeCommand<LayoutResponse>(
+                    'sanyam.glsp.requestLayout',
+                    uri,
+                    options
+                );
+                if (response) {
+                    return response;
+                }
+            } catch (cmdError) {
+                console.warn('[DiagramLanguageClient] GLSP requestLayout command not available:', cmdError);
+            }
+
+            // Mock response when no command available
             return { positions: {}, bounds: { width: 0, height: 0 } };
 
         } catch (error) {
@@ -395,7 +456,20 @@ export class DiagramLanguageClient implements Disposable {
                 );
             }
 
-            // Mock response when no language client
+            // Use VS Code command
+            try {
+                const response = await this.commandService.executeCommand<ToolPaletteResponse>(
+                    'sanyam.glsp.getToolPalette',
+                    uri
+                );
+                if (response) {
+                    return response;
+                }
+            } catch (cmdError) {
+                console.warn('[DiagramLanguageClient] GLSP getToolPalette command not available:', cmdError);
+            }
+
+            // Mock response when no command available
             return { groups: [] };
 
         } catch (error) {
@@ -448,7 +522,25 @@ export class DiagramLanguageClient implements Disposable {
                 );
             }
 
-            // Mock response when no language client
+            // Use VS Code command
+            try {
+                const response = await this.commandService.executeCommand<{
+                    markers: Array<{ elementId: string; severity: string; message: string }>;
+                    isValid: boolean;
+                    errorCount: number;
+                    warningCount: number;
+                }>(
+                    'sanyam.glsp.validate',
+                    uri
+                );
+                if (response) {
+                    return response;
+                }
+            } catch (cmdError) {
+                console.warn('[DiagramLanguageClient] GLSP validate command not available:', cmdError);
+            }
+
+            // Mock response when no command available
             return { markers: [], isValid: true, errorCount: 0, warningCount: 0 };
 
         } catch (error) {

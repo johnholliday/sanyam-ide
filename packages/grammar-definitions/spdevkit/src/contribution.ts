@@ -8,6 +8,7 @@
 
 import type { Module } from 'langium';
 import type { LangiumServices, LangiumSharedServices } from 'langium/lsp';
+import type { ContainerModule } from 'inversify';
 import type {
   LanguageContribution,
   LspFeatureProviders,
@@ -19,6 +20,7 @@ import {
   SPDevKitGeneratedModule,
   SPDevKitGeneratedSharedModule,
 } from './generated/module.js';
+import { spdevkitDiagramModule } from './diagram/index.js';
 
 /**
  * Custom LSP providers for SPDevKit.
@@ -61,6 +63,7 @@ export const contribution: LanguageContribution = {
   manifest,
   lspProviders,
   glspProviders,
+  diagramModule: spdevkitDiagramModule as ContainerModule,
 };
 
 export default contribution;

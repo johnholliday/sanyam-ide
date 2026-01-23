@@ -13,8 +13,15 @@
 
 /**
  * Available shapes for diagram nodes.
+ *
+ * - `rectangle`: Standard rectangular box
+ * - `rounded`: Rectangle with rounded corners
+ * - `ellipse`: Oval/circular shape
+ * - `diamond`: Rotated square (decision points)
+ * - `hexagon`: Six-sided polygon (actions/operations)
+ * - `pill`: Rectangle with fully rounded ends
  */
-export type NodeShape = 'rectangle' | 'ellipse' | 'diamond' | 'hexagon';
+export type NodeShape = 'rectangle' | 'rounded' | 'ellipse' | 'diamond' | 'hexagon' | 'pill';
 
 /**
  * Input types for template wizard fields.
@@ -85,11 +92,30 @@ export interface DiagramNodeConfig {
   /** Visual shape of the node */
   readonly shape: NodeShape;
 
-  /** CSS class for styling */
+  /**
+   * CSS class for styling.
+   *
+   * Uses grammar-qualified naming: `{GrammarName}.{AstType}`
+   * Example: `Workflow.Step`, `Ecml.Actor`
+   *
+   * This enables targeted CSS styling per grammar:
+   * ```css
+   * .Workflow.Step { fill: #d1fae5; stroke: #059669; }
+   * .Workflow.Step.selected { stroke: #2563eb; }
+   * ```
+   */
   readonly cssClass: string;
 
   /** Default dimensions for new nodes */
   readonly defaultSize: Size;
+
+  /**
+   * Hover tooltip template.
+   *
+   * Supports `${name}` placeholder for dynamic content.
+   * Example: `"Step: ${name}"` → `"Step: ProcessOrder"`
+   */
+  readonly tooltip?: string;
 }
 
 /**

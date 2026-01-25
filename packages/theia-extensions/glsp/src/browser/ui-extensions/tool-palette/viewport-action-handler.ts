@@ -279,9 +279,6 @@ export class ViewportActionHandler implements IActionHandler {
     /**
      * Calculate adjusted scroll position to zoom around the viewport center.
      * When zooming, we want the center of the view to stay at the center.
-     *
-     * Transform relationship: screenPos = modelPos * zoom + scroll
-     * Therefore: modelPos = (screenPos - scroll) / zoom
      */
     protected calculateCenteredScroll(
         oldScroll: { x: number; y: number },
@@ -289,24 +286,14 @@ export class ViewportActionHandler implements IActionHandler {
         newZoom: number
     ): { x: number; y: number } {
         const dimensions = this.getViewportDimensions();
-        const screenCenterX = dimensions.width / 2;
-        const screenCenterY = dimensions.height / 2;
 
-        // Calculate the model position at the screen center (before zoom)
-        // modelPos = (screenPos - scroll) / zoom
-        const modelCenterX = (screenCenterX - oldScroll.x) / oldZoom;
-        const modelCenterY = (screenCenterY - oldScroll.y) / oldZoom;
+        // Calculate the center point in model coordinates (before zoom)
+        const centerModelX = -oldScroll.x + (dimensions.width / 2) / oldZoom;
+        const centerModelY = -oldScroll.y + (dimensions.height / 2) / oldZoom;
 
-        // Calculate new scroll to keep the same model point at screen center after zoom
-        // screenCenter = modelCenter * newZoom + newScroll
-        // newScroll = screenCenter - modelCenter * newZoom
-        const newScrollX = screenCenterX - modelCenterX * newZoom;
-        const newScrollY = screenCenterY - modelCenterY * newZoom;
-
-        console.log('[ViewportActionHandler] calculateCenteredScroll:',
-            'oldScroll:', oldScroll, 'oldZoom:', oldZoom, 'newZoom:', newZoom,
-            'modelCenter:', { x: modelCenterX, y: modelCenterY },
-            'newScroll:', { x: newScrollX, y: newScrollY });
+        // Calculate new scroll to keep the same center point visible after zoom
+        const newScrollX = -centerModelX + (dimensions.width / 2) / newZoom;
+        const newScrollY = -centerModelY + (dimensions.height / 2) / newZoom;
 
         return { x: newScrollX, y: newScrollY };
     }

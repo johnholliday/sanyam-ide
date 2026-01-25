@@ -1345,7 +1345,6 @@ circle.sprotty-port.mouseover {
 .sanyam-minimap-canvas {
     display: block;
     background-color: var(--theia-editor-background, #1e1e1e);
-    cursor: crosshair;
 }
 
 .sanyam-minimap-viewport {

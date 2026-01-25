@@ -138,9 +138,6 @@ export class MinimapUIExtension extends AbstractUIExtension {
     /** Is dragging the viewport */
     protected isDragging: boolean = false;
 
-    /** Was dragging (to prevent click after drag) */
-    protected wasDragging: boolean = false;
-
     /** Drag start position */
     protected dragStart: { x: number; y: number } | undefined;
 
@@ -195,18 +192,15 @@ export class MinimapUIExtension extends AbstractUIExtension {
         this.canvasElement.className = MinimapClasses.CANVAS;
         this.canvasElement.width = this.config.width;
         this.canvasElement.height = this.config.height;
+        this.canvasElement.addEventListener('click', (e) => this.onCanvasClick(e));
+        this.canvasElement.addEventListener('mousedown', (e) => this.onMouseDown(e));
         containerElement.appendChild(this.canvasElement);
 
         // Create viewport indicator
         this.viewportElement = document.createElement('div');
         this.viewportElement.className = MinimapClasses.VIEWPORT;
+        this.viewportElement.addEventListener('mousedown', (e) => this.onMouseDown(e));
         containerElement.appendChild(this.viewportElement);
-
-        // Click handler on container (works for both canvas and viewport clicks)
-        containerElement.addEventListener('click', (e) => this.onContainerClick(e));
-
-        // Mousedown on viewport for dragging
-        this.viewportElement.addEventListener('mousedown', (e) => this.onViewportMouseDown(e));
 
         // Document-level mouse events for dragging
         document.addEventListener('mousemove', this.onMouseMove);
@@ -883,42 +877,33 @@ export class MinimapUIExtension extends AbstractUIExtension {
     }
 
     /**
-     * Handle click anywhere in the minimap container to navigate.
+     * Handle canvas click to navigate.
      */
-    protected onContainerClick(event: MouseEvent): void {
-        console.log('[MinimapUIExtension] onContainerClick called, isDragging:', this.isDragging, 'modelBounds:', !!this.modelBounds, 'container:', !!this.containerElement);
+    protected onCanvasClick(event: MouseEvent): void {
+        console.log('[MinimapUIExtension] onCanvasClick called, isDragging:', this.isDragging, 'modelBounds:', !!this.modelBounds, 'canvas:', !!this.canvasElement);
 
-        // If we just finished dragging, ignore the click
-        if (this.isDragging || this.wasDragging) {
-            console.log('[MinimapUIExtension] Click ignored - was dragging');
-            this.wasDragging = false;
+        if (this.isDragging || !this.modelBounds || !this.canvasElement) {
+            console.log('[MinimapUIExtension] Click ignored - isDragging:', this.isDragging, 'modelBounds:', !!this.modelBounds);
             return;
         }
 
-        if (!this.modelBounds || !this.containerElement) {
-            console.log('[MinimapUIExtension] Click ignored - no modelBounds or container');
-            return;
-        }
-
-        const rect = this.containerElement.getBoundingClientRect();
+        const rect = this.canvasElement.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
 
-        // Convert minimap coordinates to model coordinates
-        const modelX = (x / this.scale) + this.modelBounds.x - 20;
-        const modelY = (y / this.scale) + this.modelBounds.y - 20;
+        // Convert to diagram coordinates
+        const diagramX = (x / this.scale) + this.modelBounds.x - 20;
+        const diagramY = (y / this.scale) + this.modelBounds.y - 20;
 
-        console.log('[MinimapUIExtension] Click at minimap:', { x, y }, '-> model:', { modelX, modelY });
+        console.log('[MinimapUIExtension] Click at canvas:', { x, y }, '-> diagram:', { diagramX, diagramY });
 
-        // Center the diagram view on this model point
+        // Center on this point
         const parent = this.getParentContainer();
         if (parent) {
             const parentRect = parent.getBoundingClientRect();
-            // Calculate new scroll to center on the clicked model point
-            // scroll = -(modelPosition - viewportCenter/zoom)
             const newScroll = {
-                x: -(modelX - parentRect.width / (2 * this.currentViewport.zoom)),
-                y: -(modelY - parentRect.height / (2 * this.currentViewport.zoom)),
+                x: -(diagramX - parentRect.width / (2 * this.currentViewport.zoom)),
+                y: -(diagramY - parentRect.height / (2 * this.currentViewport.zoom)),
             };
 
             console.log('[MinimapUIExtension] Dispatching SetViewportFromMinimapAction with scroll:', newScroll, 'zoom:', this.currentViewport.zoom);
@@ -929,20 +914,18 @@ export class MinimapUIExtension extends AbstractUIExtension {
     }
 
     /**
-     * Handle mouse down on viewport indicator for dragging.
+     * Handle mouse down for viewport dragging.
      */
-    protected onViewportMouseDown = (event: MouseEvent): void => {
-        if (!this.viewportElement) {
+    protected onMouseDown = (event: MouseEvent): void => {
+        if (!this.canvasElement) {
             return;
         }
 
         this.isDragging = true;
-        this.wasDragging = false;
         this.dragStart = { x: event.clientX, y: event.clientY };
         this.dragStartViewport = { ...this.currentViewport.scroll };
         event.preventDefault();
-        event.stopPropagation();
-        console.log('[MinimapUIExtension] Viewport drag started at:', this.dragStart);
+        console.log('[MinimapUIExtension] Drag started at:', this.dragStart);
     };
 
     /**
@@ -979,12 +962,6 @@ export class MinimapUIExtension extends AbstractUIExtension {
     protected onMouseUp = (): void => {
         if (this.isDragging) {
             console.log('[MinimapUIExtension] Drag ended');
-            // Set flag to prevent click handler from firing after drag
-            this.wasDragging = true;
-            // Reset wasDragging after a short delay to allow future clicks
-            setTimeout(() => {
-                this.wasDragging = false;
-            }, 100);
         }
         this.isDragging = false;
         this.dragStart = undefined;

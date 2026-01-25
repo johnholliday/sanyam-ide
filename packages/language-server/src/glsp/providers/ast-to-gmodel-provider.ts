@@ -25,6 +25,7 @@ import type {
   Point,
   Dimension,
   NodeMappingConfig,
+  NodeShape,
 } from '../conversion-types.js';
 import { ElementTypes, createNode, createEdge, createLabel } from '../conversion-types.js';
 
@@ -42,8 +43,18 @@ export const defaultAstToGModelProvider = {
     const nodeMap = new Map<AstNode, string>();
     let nodeIndex = 0;
 
+    // Debug logging
+    console.log('[AstToGModel] Converting AST to GModel');
+    console.log('[AstToGModel] Document URI:', context.document?.uri?.toString());
+    console.log('[AstToGModel] Root type:', root?.$type);
+    console.log('[AstToGModel] Root exists:', !!root);
+    console.log('[AstToGModel] Manifest exists:', !!(context as any).manifest);
+    console.log('[AstToGModel] Manifest languageId:', (context as any).manifest?.languageId);
+    console.log('[AstToGModel] Manifest rootTypes count:', (context as any).manifest?.rootTypes?.length ?? 0);
+
     // Return empty model if no root
     if (!root) {
+      console.log('[AstToGModel] No root AST node, returning empty model');
       return {
         id: `root_${context.document.uri.toString()}`,
         type: ElementTypes.GRAPH,
@@ -52,6 +63,17 @@ export const defaultAstToGModelProvider = {
       };
     }
 
+    // Debug: count total nodes
+    let totalNodes = 0;
+    let namedNodes = 0;
+    for (const astNode of streamAllContents(root)) {
+      totalNodes++;
+      if (isNamed(astNode)) {
+        namedNodes++;
+      }
+    }
+    console.log(`[AstToGModel] Total AST nodes: ${totalNodes}, Named nodes: ${namedNodes}`);
+
     // First pass: create nodes
     for (const astNode of streamAllContents(root)) {
       const node = this.createNode(context, astNode);
@@ -59,17 +81,32 @@ export const defaultAstToGModelProvider = {
         nodes.push(node);
         nodeMap.set(astNode, node.id);
         nodeIndex++;
+        console.log(`[AstToGModel] Created node: ${node.id} (type: ${node.type})`);
       }
     }
 
-    // Second pass: create edges from references
+    // Second pass: create edges from containment (parent-child) relationships
     for (const astNode of streamAllContents(root)) {
-      const sourceId = nodeMap.get(astNode);
-      if (!sourceId) continue;
+      const childId = nodeMap.get(astNode);
+      if (!childId) continue;
 
+      // Create edge from parent to child (containment)
+      const container = astNode.$container;
+      if (container) {
+        const parentId = nodeMap.get(container);
+        if (parentId) {
+          const edge = this.createEdge(context, parentId, childId, 'contains');
+          edges.push(edge);
+          console.log(`[AstToGModel] Created containment edge: ${parentId} -> ${childId}`);
+        }
+      }
+
+      // Also check for cross-references
       const nodeEdges = this.createEdgesFromReferences(context, astNode, nodeMap);
       edges.push(...nodeEdges);
     }
+
+    console.log(`[AstToGModel] Conversion complete: ${nodes.length} nodes, ${edges.length} edges`);
 
     return {
       id: `root_${context.document.uri.toString()}`,
@@ -94,8 +131,9 @@ export const defaultAstToGModelProvider = {
     const size = this.getSize(context, astNode);
     const label = this.getLabel(astNode);
     const cssClasses = this.getCssClasses(context, astNode);
+    const shape = this.getShape(context, astNode);
 
-    const node = createNode(id, type, position, size, cssClasses);
+    const node = createNode(id, type, position, size, cssClasses, shape);
     node.children = [createLabel(`${id}_label`, label)];
 
     return node;
@@ -231,13 +269,27 @@ export const defaultAstToGModelProvider = {
 
   /**
    * Get a unique ID for an AST node.
+   * Builds a path-like ID using parent names to ensure uniqueness.
    */
   getNodeId(astNode: AstNode): string {
-    if (isNamed(astNode)) {
-      return astNode.name;
+    // Build a path from root to this node using named ancestors
+    const pathParts: string[] = [];
+
+    // Walk up the tree to build the path
+    let current: AstNode | undefined = astNode;
+    while (current) {
+      if (isNamed(current)) {
+        pathParts.unshift(current.name);
+      }
+      current = current.$container;
     }
 
-    // Generate ID from type and position in document
+    // If we have a path, use it
+    if (pathParts.length > 0) {
+      return pathParts.join('.');
+    }
+
+    // Fallback: Generate ID from type and position in document
     const cstNode = astNode.$cstNode;
     if (cstNode) {
       return `${astNode.$type}_${cstNode.offset}`;
@@ -310,6 +362,21 @@ export const defaultAstToGModelProvider = {
       }
     }
     return undefined;
+  },
+
+  /**
+   * Get the visual shape for an AST node from the manifest.
+   */
+  getShape(context: GlspContext, astNode: AstNode): NodeShape {
+    const manifest = (context as any).manifest;
+    if (manifest?.rootTypes) {
+      const rootType = manifest.rootTypes.find((rt: any) => rt.astType === astNode.$type);
+      if (rootType?.diagramNode?.shape) {
+        return rootType.diagramNode.shape as NodeShape;
+      }
+    }
+    // Default to rectangle
+    return 'rectangle';
   },
 
   /**

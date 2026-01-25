@@ -20,10 +20,10 @@ import { Container, ContainerModule, injectable, inject } from 'inversify';
 import {
     TYPES,
     configureModelElement,
+    configureActionHandler,
     SGraphImpl,
     SGraphView,
     SNodeImpl,
-    RectangularNodeView,
     CircularNodeView,
     SEdgeImpl,
     PolylineEdgeView,
@@ -39,9 +39,12 @@ import {
     SModelRootImpl,
     SModelElementImpl,
     SPortImpl,
+    IActionHandler,
 } from 'sprotty';
 import { SRoutingHandleImpl } from 'sprotty/lib/features/routing/model';
 import { Action } from 'sprotty-protocol';
+import { SanyamNodeImpl, SanyamNodeView, SanyamLabelImpl } from './sanyam-node-view';
+import { SanyamModelFactory, SanyamEdgeImpl, SanyamCompartmentImpl } from './sanyam-model-factory';
 import {
     SModelRoot,
     SetModelAction,
@@ -63,7 +66,7 @@ import {
     RequestToolPaletteAction,
 } from '../ui-extensions';
 
-import { createElkLayoutModule } from '../layout';
+import { createElkLayoutModule, LayoutCompleteAction } from '../layout';
 
 /**
  * Service identifier for the diagram ID.
@@ -71,56 +74,85 @@ import { createElkLayoutModule } from '../layout';
 export const DIAGRAM_ID = Symbol.for('DiagramId');
 
 /**
+ * Callback type for layout completion.
+ */
+export type LayoutCompleteCallback = (success: boolean, error?: string) => void;
+
+/**
+ * Service identifier for layout complete callback.
+ */
+export const LAYOUT_COMPLETE_CALLBACK = Symbol.for('LayoutCompleteCallback');
+
+/**
+ * Action handler for layout completion.
+ * Invokes registered callbacks when layout completes.
+ */
+@injectable()
+export class LayoutCompleteActionHandler implements IActionHandler {
+    @inject(LAYOUT_COMPLETE_CALLBACK)
+    protected callback: LayoutCompleteCallback;
+
+    handle(action: Action): void {
+        if (action.kind === LayoutCompleteAction.KIND) {
+            const layoutAction = action as LayoutCompleteAction;
+            console.log('[LayoutCompleteActionHandler] Layout complete:', layoutAction.success);
+            this.callback(layoutAction.success, layoutAction.error);
+        }
+    }
+}
+
+/**
  * Sprotty model element types used in Sanyam diagrams.
+ * These must match the ElementTypes from the language-server's conversion-types.ts
  */
 export const SanyamModelTypes = {
+    // Container types
     GRAPH: 'graph',
-    NODE: 'node:default',
+
+    // Node types - must match backend ElementTypes
+    NODE: 'node',
+    NODE_DEFAULT: 'node:default',
     NODE_ENTITY: 'node:entity',
     NODE_COMPONENT: 'node:component',
-    EDGE: 'edge:default',
+    NODE_PROPERTY: 'node:property',
+    NODE_PACKAGE: 'node:package',
+    NODE_GENERIC: 'node:generic',
+
+    // Edge types - must match backend ElementTypes
+    EDGE: 'edge',
+    EDGE_DEFAULT: 'edge:default',
+    EDGE_REFERENCE: 'edge:reference',
     EDGE_INHERITANCE: 'edge:inheritance',
     EDGE_COMPOSITION: 'edge:composition',
+    EDGE_AGGREGATION: 'edge:aggregation',
+
+    // Label types
     LABEL: 'label',
     LABEL_HEADING: 'label:heading',
     LABEL_TEXT: 'label:text',
-    COMPARTMENT: 'comp:main',
-    COMPARTMENT_HEADER: 'comp:header',
-    PORT: 'port:default',
+    LABEL_ICON: 'label:icon',
+
+    // Compartment types
+    COMPARTMENT: 'compartment',
+    COMPARTMENT_MAIN: 'comp:main',
+    COMPARTMENT_HEADER: 'compartment:header',
+    COMPARTMENT_BODY: 'compartment:body',
+
+    // Port types
+    PORT: 'port',
+    PORT_DEFAULT: 'port:default',
+    PORT_INPUT: 'port:input',
+    PORT_OUTPUT: 'port:output',
+
+    // Routing types
     ROUTING_POINT: 'routing-point',
     VOLATILE_ROUTING_POINT: 'volatile-routing-point',
 } as const;
 
-/**
- * Extended SNode with Sanyam-specific properties.
- */
-export class SanyamNode extends SNodeImpl {
-    cssClasses?: string[];
-    nodeType?: string;
-    trace?: string;
-}
-
-/**
- * Extended SEdge with Sanyam-specific properties.
- */
-export class SanyamEdge extends SEdgeImpl {
-    cssClasses?: string[];
-    edgeType?: string;
-}
-
-/**
- * Extended SLabel with Sanyam-specific properties.
- */
-export class SanyamLabel extends SLabelImpl {
-    cssClasses?: string[];
-}
-
-/**
- * Extended SCompartment with Sanyam-specific properties.
- */
-export class SanyamCompartment extends SCompartmentImpl {
-    cssClasses?: string[];
-}
+// Re-export model classes from their modules for backwards compatibility
+export { SanyamNodeImpl as SanyamNode } from './sanyam-node-view';
+export { SanyamEdgeImpl as SanyamEdge, SanyamCompartmentImpl as SanyamCompartment } from './sanyam-model-factory';
+export { SanyamLabelImpl as SanyamLabel } from './sanyam-node-view';
 
 /**
  * Callback type for diagram events.
@@ -146,8 +178,8 @@ export class SanyamMouseListener extends MouseListener {
 
     mouseUp(target: SModelElementImpl, event: MouseEvent): (Action | Promise<Action>)[] {
         // Handle move completion
-        if (target instanceof SNodeImpl) {
-            const node = target as SanyamNode;
+        if (target instanceof SanyamNodeImpl) {
+            const node = target;
             if (this.callbacks.onMoveCompleted && node.position) {
                 this.callbacks.onMoveCompleted(node.id, { x: node.position.x, y: node.position.y });
             }
@@ -165,36 +197,59 @@ export class SanyamMouseListener extends MouseListener {
 
 /**
  * Create the base Sprotty module for Sanyam diagrams.
+ *
+ * This module registers:
+ * - SanyamNodeView for all node types (handles shape-based rendering)
+ * - SanyamModelFactory for type-agnostic model instantiation
+ * - Standard views for edges, labels, compartments, and ports
  */
 function createSanyamDiagramModule(): ContainerModule {
     return new ContainerModule((bind, unbind, isBound, rebind) => {
         // Configure model element views
         const context = { bind, unbind, isBound, rebind };
 
+        // Rebind model factory to our custom one for grammar-agnostic type handling
+        // (Sprotty's default modules already bind IModelFactory)
+        rebind(TYPES.IModelFactory).to(SanyamModelFactory).inSingletonScope();
+
         // Graph root
         configureModelElement(context, SanyamModelTypes.GRAPH, SGraphImpl, SGraphView);
 
-        // Nodes
-        configureModelElement(context, SanyamModelTypes.NODE, SanyamNode, RectangularNodeView);
-        configureModelElement(context, SanyamModelTypes.NODE_ENTITY, SanyamNode, RectangularNodeView);
-        configureModelElement(context, SanyamModelTypes.NODE_COMPONENT, SanyamNode, RectangularNodeView);
+        // Nodes - Use SanyamNodeView for shape-based rendering
+        // The custom SanyamModelFactory will instantiate SanyamNodeImpl for any node-like type
+        configureModelElement(context, SanyamModelTypes.NODE, SanyamNodeImpl, SanyamNodeView);
+        configureModelElement(context, SanyamModelTypes.NODE_DEFAULT, SanyamNodeImpl, SanyamNodeView);
+        configureModelElement(context, SanyamModelTypes.NODE_ENTITY, SanyamNodeImpl, SanyamNodeView);
+        configureModelElement(context, SanyamModelTypes.NODE_COMPONENT, SanyamNodeImpl, SanyamNodeView);
+        configureModelElement(context, SanyamModelTypes.NODE_PROPERTY, SanyamNodeImpl, SanyamNodeView);
+        configureModelElement(context, SanyamModelTypes.NODE_PACKAGE, SanyamNodeImpl, SanyamNodeView);
+        configureModelElement(context, SanyamModelTypes.NODE_GENERIC, SanyamNodeImpl, SanyamNodeView);
 
-        // Edges
-        configureModelElement(context, SanyamModelTypes.EDGE, SanyamEdge, PolylineEdgeView);
-        configureModelElement(context, SanyamModelTypes.EDGE_INHERITANCE, SanyamEdge, PolylineEdgeView);
-        configureModelElement(context, SanyamModelTypes.EDGE_COMPOSITION, SanyamEdge, PolylineEdgeView);
+        // Edges - register all backend edge types
+        configureModelElement(context, SanyamModelTypes.EDGE, SanyamEdgeImpl, PolylineEdgeView);
+        configureModelElement(context, SanyamModelTypes.EDGE_DEFAULT, SanyamEdgeImpl, PolylineEdgeView);
+        configureModelElement(context, SanyamModelTypes.EDGE_REFERENCE, SanyamEdgeImpl, PolylineEdgeView);
+        configureModelElement(context, SanyamModelTypes.EDGE_INHERITANCE, SanyamEdgeImpl, PolylineEdgeView);
+        configureModelElement(context, SanyamModelTypes.EDGE_COMPOSITION, SanyamEdgeImpl, PolylineEdgeView);
+        configureModelElement(context, SanyamModelTypes.EDGE_AGGREGATION, SanyamEdgeImpl, PolylineEdgeView);
 
-        // Labels
-        configureModelElement(context, SanyamModelTypes.LABEL, SanyamLabel, SLabelView);
-        configureModelElement(context, SanyamModelTypes.LABEL_HEADING, SanyamLabel, SLabelView);
-        configureModelElement(context, SanyamModelTypes.LABEL_TEXT, SanyamLabel, SLabelView);
+        // Labels - register all backend label types
+        configureModelElement(context, SanyamModelTypes.LABEL, SanyamLabelImpl, SLabelView);
+        configureModelElement(context, SanyamModelTypes.LABEL_HEADING, SanyamLabelImpl, SLabelView);
+        configureModelElement(context, SanyamModelTypes.LABEL_TEXT, SanyamLabelImpl, SLabelView);
+        configureModelElement(context, SanyamModelTypes.LABEL_ICON, SanyamLabelImpl, SLabelView);
 
-        // Compartments
-        configureModelElement(context, SanyamModelTypes.COMPARTMENT, SanyamCompartment, SCompartmentView);
-        configureModelElement(context, SanyamModelTypes.COMPARTMENT_HEADER, SanyamCompartment, SCompartmentView);
+        // Compartments - register all backend compartment types
+        configureModelElement(context, SanyamModelTypes.COMPARTMENT, SanyamCompartmentImpl, SCompartmentView);
+        configureModelElement(context, SanyamModelTypes.COMPARTMENT_MAIN, SanyamCompartmentImpl, SCompartmentView);
+        configureModelElement(context, SanyamModelTypes.COMPARTMENT_HEADER, SanyamCompartmentImpl, SCompartmentView);
+        configureModelElement(context, SanyamModelTypes.COMPARTMENT_BODY, SanyamCompartmentImpl, SCompartmentView);
 
-        // Ports (using CircularNodeView for small port rendering)
+        // Ports - register all backend port types
         configureModelElement(context, SanyamModelTypes.PORT, SPortImpl, CircularNodeView);
+        configureModelElement(context, SanyamModelTypes.PORT_DEFAULT, SPortImpl, CircularNodeView);
+        configureModelElement(context, SanyamModelTypes.PORT_INPUT, SPortImpl, CircularNodeView);
+        configureModelElement(context, SanyamModelTypes.PORT_OUTPUT, SPortImpl, CircularNodeView);
 
         // Routing points (for edge routing handles)
         configureModelElement(context, SanyamModelTypes.ROUTING_POINT, SRoutingHandleImpl, SRoutingHandleView);
@@ -216,6 +271,8 @@ export interface CreateDiagramContainerOptions {
     needsMoveAction?: boolean;
     /** UI Extensions options */
     uiExtensions?: Partial<UIExtensionsModuleOptions>;
+    /** Callback invoked when layout completes */
+    onLayoutComplete?: LayoutCompleteCallback;
 }
 
 /**
@@ -250,6 +307,14 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
         baseDiv: options.diagramId,
         hiddenDiv: `${options.diagramId}-hidden`,
     });
+
+    // Bind layout complete callback (default no-op if not provided)
+    const layoutCallback: LayoutCompleteCallback = options.onLayoutComplete ?? (() => {});
+    container.bind(LAYOUT_COMPLETE_CALLBACK).toConstantValue(layoutCallback);
+
+    // Bind and configure layout complete action handler
+    container.bind(LayoutCompleteActionHandler).toSelf().inSingletonScope();
+    configureActionHandler({ bind: container.bind.bind(container), isBound: container.isBound.bind(container) }, LayoutCompleteAction.KIND, LayoutCompleteActionHandler);
 
     // Load UI Extensions module if any extensions are enabled
     const uiExtensionsOptions: UIExtensionsModuleOptions = {
@@ -309,6 +374,17 @@ export class SprottyDiagramManager {
     }
 
     /**
+     * Set a callback to be invoked when layout completes.
+     * Note: This must be called before setModel() to take effect.
+     */
+    setLayoutCompleteCallback(callback: LayoutCompleteCallback): void {
+        // Rebind the callback in the container
+        if (this.container.isBound(LAYOUT_COMPLETE_CALLBACK)) {
+            this.container.rebind(LAYOUT_COMPLETE_CALLBACK).toConstantValue(callback);
+        }
+    }
+
+    /**
      * Get the DI container.
      */
     getContainer(): Container {
@@ -333,8 +409,24 @@ export class SprottyDiagramManager {
      * Set the diagram model.
      */
     async setModel(model: GModelRoot): Promise<void> {
+        console.log('[SprottyDiagramManager] setModel called');
+        console.log('[SprottyDiagramManager] Model id:', model.id);
+        console.log('[SprottyDiagramManager] Model type:', model.type);
+        console.log('[SprottyDiagramManager] Model children count:', model.children?.length ?? 0);
+
+        // Log child types for debugging
+        if (model.children && model.children.length > 0) {
+            const typeCount = new Map<string, number>();
+            for (const child of model.children) {
+                const count = typeCount.get(child.type) ?? 0;
+                typeCount.set(child.type, count + 1);
+            }
+            console.log('[SprottyDiagramManager] Child types:', Object.fromEntries(typeCount));
+        }
+
         this.currentRoot = model as unknown as SModelRootImpl;
         await this.modelSource.setModel(model);
+        console.log('[SprottyDiagramManager] setModel completed');
     }
 
     /**
@@ -405,9 +497,13 @@ export class SprottyDiagramManager {
      * Set viewport.
      */
     async setViewport(scroll: { x: number; y: number }, zoom: number, animate: boolean = true): Promise<void> {
+        // Get the root element ID from the model (dynamically)
+        const model = (this.modelSource as any).model;
+        const elementId = model?.id ?? 'graph';
+
         const action: SetViewportAction = {
             kind: 'viewport',
-            elementId: 'graph',
+            elementId,
             newViewport: {
                 scroll,
                 zoom,
@@ -458,6 +554,22 @@ export class SprottyDiagramManager {
     async requestToolPalette(): Promise<void> {
         if (this.uiExtensionsOptions.enableToolPalette) {
             await this.modelSource.actionDispatcher.dispatch(RequestToolPaletteAction.create());
+        }
+    }
+
+    /**
+     * Request automatic layout of the diagram using ELK.
+     * Dispatches a RequestLayoutAction to trigger the layout engine.
+     */
+    async requestLayout(): Promise<void> {
+        console.log('[SprottyDiagramManager] Requesting layout...');
+        try {
+            const { RequestLayoutAction } = await import('../layout');
+            console.log('[SprottyDiagramManager] RequestLayoutAction imported, dispatching...');
+            await this.modelSource.actionDispatcher.dispatch(RequestLayoutAction.create());
+            console.log('[SprottyDiagramManager] Layout action dispatched');
+        } catch (error) {
+            console.error('[SprottyDiagramManager] Layout request failed:', error);
         }
     }
 

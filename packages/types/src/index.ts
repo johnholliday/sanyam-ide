@@ -146,3 +146,45 @@ export {
   COMPOSITE_EDITOR_WIDGET_FACTORY_ID_STRING,
   FORM_WIDGET_FACTORY_ID_STRING,
 } from './widget-ids.js';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GLSP Service Types (RPC Interface)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export {
+  // Service constants
+  SanyamGlspServicePath,
+  SanyamGlspService,
+  // Geometry types
+  type GlspPoint,
+  type GlspDimension,
+  // Response types
+  type LoadModelResponse,
+  type SaveModelResponse,
+  type GlspTextEdit,
+  type ExecuteOperationResponse,
+  type LayoutResponse,
+  type ToolPaletteResponse,
+  type GlspToolPaletteGroup,
+  type GlspToolPaletteItem,
+  type ContextMenuResponse,
+  type GlspContextMenuItem,
+  type ValidationResponse,
+  type GlspValidationMarker,
+  // Operation types
+  type DiagramOperation,
+  type CreateNodeOperation,
+  type DeleteElementOperation,
+  type ChangeBoundsOperation,
+  type CreateEdgeOperation,
+  type ReconnectEdgeOperation,
+  type EditLabelOperation,
+  // Layout types
+  type LayoutOptions,
+  type DiagramLayout,
+  type ViewportState,
+  // Service interface
+  type SanyamGlspServiceInterface,
+  // Language info (for dynamic diagram type registration)
+  type DiagramLanguageInfo,
+} from './glsp-service.js';

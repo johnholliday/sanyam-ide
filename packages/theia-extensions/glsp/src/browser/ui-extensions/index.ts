@@ -62,6 +62,9 @@ export * from './popup';
 // Minimap
 export * from './minimap';
 
+// Export
+export * from './export';
+
 // Import specific classes for DI binding
 import {
     UIExtensionRegistry,
@@ -144,6 +147,11 @@ import {
     ToggleMinimapAction,
     SetViewportFromMinimapAction,
 } from './minimap';
+
+import {
+    ExportSvgActionHandler,
+    RequestExportSvgAction,
+} from './export';
 
 /**
  * Options for creating the UI extensions module.
@@ -288,6 +296,10 @@ export function createUIExtensionsModule(options: UIExtensionsModuleOptions): Co
             configureActionHandler(context, ToggleMinimapAction.KIND, MinimapActionHandler);
             configureActionHandler(context, SetViewportFromMinimapAction.KIND, MinimapActionHandler);
         }
+
+        // Export (always enabled - no UI extension, just action handler)
+        bind(ExportSvgActionHandler).toSelf().inSingletonScope();
+        configureActionHandler(context, RequestExportSvgAction.KIND, ExportSvgActionHandler);
     });
 }
 

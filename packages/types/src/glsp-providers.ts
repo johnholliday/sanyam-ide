@@ -10,7 +10,7 @@
 
 import type { AstNode, LangiumDocument } from 'langium';
 import type { LangiumServices, LangiumSharedServices } from 'langium/lsp';
-import type { GrammarManifest, DiagramTypeConfig, RootTypeConfig } from './grammar-manifest.js';
+import type { GrammarManifest, DiagramTypeConfig, RootTypeConfig, NodeShape } from './grammar-manifest.js';
 import type { MaybePromise } from './lsp-providers.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -40,6 +40,8 @@ export interface GNode extends GModelElement {
   readonly position?: Point;
   readonly size?: Dimension;
   readonly children?: GModelElement[];
+  /** Visual shape for rendering (rectangle, rounded, ellipse, diamond, hexagon, pill) */
+  readonly shape?: NodeShape;
 }
 
 /** Placeholder for GLSP GEdge */
@@ -270,8 +272,10 @@ export interface GlspFeatureProviders {
     /**
      * Convert entire AST to GModel.
      * If provided, replaces the default conversion entirely.
+     *
+     * The context provides access to the document, root AST node, and metadata.
      */
-    convert?(ast: AstNode, context: ConversionContext): MaybePromise<GModelRoot>;
+    convert?(context: GlspContext): MaybePromise<GModelRoot>;
 
     /**
      * Create a GNode for a specific AST node.

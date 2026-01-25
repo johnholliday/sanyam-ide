@@ -7,15 +7,43 @@
  * SPDX-License-Identifier: MIT
  ********************************************************************************/
 
-import { injectable, postConstruct } from '@theia/core/shared/inversify';
+import { injectable, inject, postConstruct } from '@theia/core/shared/inversify';
 import { Emitter, Disposable, DisposableCollection } from '@theia/core/lib/common';
 import { LanguageClientProvider } from './diagram-language-client';
+import {
+    type SanyamGlspServiceInterface,
+    type DiagramOperation,
+    type LayoutOptions,
+    type GlspPoint,
+} from '@sanyam/types';
 
 /**
- * Service path for the GLSP language client.
- * This must match the path used in the backend module.
+ * Symbol for GLSP service proxy injection.
+ * Must match GLSP_FRONTEND_TYPES.GlspServiceProxy in glsp-frontend-module.ts
  */
-export const SANYAM_GLSP_SERVICE_PATH = '/services/glsp/sanyam';
+export const GlspServiceProxySymbol = Symbol.for('SanyamGlspServiceProxy');
+
+/**
+ * Static holder for the GLSP service proxy (for external access).
+ */
+let _glspServiceProxy: SanyamGlspServiceInterface | undefined;
+
+/**
+ * Set the GLSP service proxy.
+ * Called from glsp-frontend-module.ts when the proxy is created.
+ */
+export function setGlspServiceProxy(proxy: SanyamGlspServiceInterface): void {
+    _glspServiceProxy = proxy;
+    console.log('[SanyamLanguageClientProvider] GLSP service proxy set');
+}
+
+/**
+ * Get the GLSP service proxy.
+ * Returns undefined if not yet set.
+ */
+export function getGlspServiceProxy(): SanyamGlspServiceInterface | undefined {
+    return _glspServiceProxy;
+}
 
 /**
  * Event emitted when connection status changes.
@@ -26,67 +54,17 @@ export interface ConnectionStatusEvent {
 }
 
 /**
- * Sanyam GLSP Service interface.
- *
- * Defines the RPC interface between frontend and backend for GLSP operations.
- * This interface is implemented by the backend service and proxied to the frontend.
- */
-export interface SanyamGlspService {
-    /**
-     * Load the diagram model for a document.
-     */
-    loadModel(uri: string): Promise<any>;
-
-    /**
-     * Execute a diagram operation.
-     */
-    executeOperation(uri: string, operation: any): Promise<any>;
-
-    /**
-     * Request diagram layout.
-     */
-    requestLayout(uri: string, options?: any): Promise<any>;
-
-    /**
-     * Get tool palette.
-     */
-    getToolPalette(uri: string): Promise<any>;
-
-    /**
-     * Validate diagram model.
-     */
-    validate(uri: string): Promise<any>;
-
-    /**
-     * Save diagram model.
-     */
-    saveModel(uri: string): Promise<any>;
-
-    /**
-     * Get context menu.
-     */
-    getContextMenu(uri: string, selectedIds: string[], position?: { x: number; y: number }): Promise<any>;
-
-    /**
-     * Get supported operations.
-     */
-    getSupportedOperations(): Promise<{ operations: string[] }>;
-}
-
-/**
- * Symbol for the GLSP service.
- */
-export const SanyamGlspService = Symbol('SanyamGlspService');
-
-/**
  * Sanyam Language Client Provider.
  *
  * Provides a bridge between the Theia frontend and the unified language server
- * for GLSP operations. This implementation uses a fallback pattern:
+ * for GLSP operations. This implementation uses the static GlspServiceProxyHolder
+ * to lazily create the service proxy, avoiding Inversify async dependency issues.
  *
- * 1. Try to use the injected GLSP service proxy (if backend is connected)
- * 2. Fall back to VS Code command execution
- * 3. Fall back to mock data (for testing without backend)
+ * Request flow:
+ * 1. DiagramLanguageClient calls sendRequest()
+ * 2. This provider routes to the appropriate service method
+ * 3. Service proxy sends JSON-RPC to backend
+ * 4. Backend service processes via unified language server
  *
  * The DiagramLanguageClient will inject this provider and use it for
  * sending GLSP requests to the backend.
@@ -94,38 +72,109 @@ export const SanyamGlspService = Symbol('SanyamGlspService');
 @injectable()
 export class SanyamLanguageClientProvider implements LanguageClientProvider {
     protected readonly toDispose = new DisposableCollection();
-    protected notificationHandlers = new Map<string, Set<(params: any) => void>>();
-    protected connected = false;
+    protected notificationHandlers = new Map<string, Set<(params: unknown) => void>>();
 
     protected readonly onConnectionStatusChangedEmitter = new Emitter<ConnectionStatusEvent>();
     readonly onConnectionStatusChanged = this.onConnectionStatusChangedEmitter.event;
 
+    /**
+     * Injected GLSP service proxy.
+     * Created via ServiceConnectionProvider.createProxy() in the frontend module.
+     */
+    @inject(GlspServiceProxySymbol)
+    protected readonly glspService: SanyamGlspServiceInterface;
+
     @postConstruct()
     protected init(): void {
         this.toDispose.push(this.onConnectionStatusChangedEmitter);
-        // Mark as connected - the actual connection is handled at a higher level
-        // when the backend contribution receives client connections
-        this.connected = true;
-        console.log('[SanyamLanguageClientProvider] Initialized');
+        // Also set the static proxy for external access
+        setGlspServiceProxy(this.glspService);
+        console.log('[SanyamLanguageClientProvider] Initialized with GLSP service proxy');
     }
 
     /**
      * Send a request to the backend GLSP service.
      *
-     * This method translates our custom glsp/* request methods to the
-     * appropriate backend calls. In the future, this will use proper
-     * RPC communication with the backend.
+     * This method translates glsp/* request methods to the appropriate
+     * backend service methods via the RPC proxy.
      */
-    async sendRequest<R>(method: string, params: any): Promise<R> {
+    async sendRequest<R>(method: string, params: unknown): Promise<R> {
         console.log(`[SanyamLanguageClientProvider] sendRequest: ${method}`, params);
 
-        // Currently, we can't directly call the backend service because
-        // the GLSP server contribution uses channel-based communication.
-        // The DiagramLanguageClient will fall back to VS Code commands.
-        //
-        // TODO: Implement proper backend RPC service that handles GLSP requests
-        // and forwards them to the unified language server.
-        throw new Error(`Backend GLSP service not yet implemented for method: ${method}`);
+        const glspService = this.glspService;
+
+        // Route to the appropriate service method based on the request method
+        switch (method) {
+            case 'glsp/loadModel': {
+                const { uri } = params as { uri: string };
+                const result = await glspService.loadModel(uri);
+                return result as R;
+            }
+
+            case 'glsp/saveModel': {
+                const { uri } = params as { uri: string };
+                const result = await glspService.saveModel(uri);
+                return result as R;
+            }
+
+            case 'glsp/executeOperation': {
+                const { uri, operation } = params as { uri: string; operation: DiagramOperation };
+                const result = await glspService.executeOperation(uri, operation);
+                return result as R;
+            }
+
+            case 'glsp/layout':
+            case 'glsp/requestLayout': {
+                const { uri, options } = params as { uri: string; options?: LayoutOptions };
+                const result = await glspService.requestLayout(uri, options);
+                return result as R;
+            }
+
+            case 'glsp/toolPalette':
+            case 'glsp/getToolPalette': {
+                const { uri } = params as { uri: string };
+                const result = await glspService.getToolPalette(uri);
+                return result as R;
+            }
+
+            case 'glsp/contextMenu':
+            case 'glsp/getContextMenu': {
+                const { uri, selectedIds, position } = params as {
+                    uri: string;
+                    selectedIds: string[];
+                    position?: GlspPoint;
+                };
+                const result = await glspService.getContextMenu(uri, selectedIds, position);
+                return result as R;
+            }
+
+            case 'glsp/validate': {
+                const { uri } = params as { uri: string };
+                const result = await glspService.validate(uri);
+                return result as R;
+            }
+
+            case 'glsp/syncDocument': {
+                const { uri, content, version } = params as { uri: string; content: string; version: number };
+                await glspService.syncDocument(uri, content, version);
+                return undefined as R;
+            }
+
+            case 'glsp/supportedOperations':
+            case 'glsp/getSupportedOperations': {
+                const result = await glspService.getSupportedOperations();
+                return result as R;
+            }
+
+            case 'glsp/diagramLanguages':
+            case 'glsp/getDiagramLanguages': {
+                const result = await glspService.getDiagramLanguages();
+                return result as R;
+            }
+
+            default:
+                throw new Error(`Unknown GLSP method: ${method}`);
+        }
     }
 
     /**
@@ -134,7 +183,7 @@ export class SanyamLanguageClientProvider implements LanguageClientProvider {
      * Notifications are used for asynchronous updates from the server,
      * such as model changes triggered by text editor edits.
      */
-    onNotification(method: string, handler: (params: any) => void): Disposable {
+    onNotification(method: string, handler: (params: unknown) => void): Disposable {
         let handlers = this.notificationHandlers.get(method);
         if (!handlers) {
             handlers = new Set();
@@ -157,7 +206,7 @@ export class SanyamLanguageClientProvider implements LanguageClientProvider {
      *
      * This is called when the backend sends a notification.
      */
-    protected fireNotification(method: string, params: any): void {
+    fireNotification(method: string, params: unknown): void {
         const handlers = this.notificationHandlers.get(method);
         if (handlers) {
             console.log(`[SanyamLanguageClientProvider] Firing notification: ${method}`);
@@ -173,9 +222,10 @@ export class SanyamLanguageClientProvider implements LanguageClientProvider {
 
     /**
      * Check if connected to the backend.
+     * Always returns true since the proxy is created lazily on first use.
      */
     isConnected(): boolean {
-        return this.connected;
+        return true;
     }
 
     /**

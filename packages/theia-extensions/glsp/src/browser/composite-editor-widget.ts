@@ -55,6 +55,24 @@ export interface DiagramWidgetCapabilities extends Widget {
     showLoading?(): void;
     /** Show error state */
     showError?(message: string): void;
+    /** Dispatch a Sprotty action */
+    dispatchAction?(action: unknown): Promise<void>;
+    /** Check if Sprotty is initialized */
+    isSprottyInitialized?(): boolean;
+    /** Zoom to fit all elements */
+    zoomToFit?(): Promise<void>;
+    /** Zoom in by a factor */
+    zoomIn?(factor?: number): Promise<void>;
+    /** Zoom out by a factor */
+    zoomOut?(factor?: number): Promise<void>;
+    /** Center the view */
+    center?(elementIds?: string[]): Promise<void>;
+    /** Refresh the diagram */
+    refresh?(): void;
+    /** Get the current selection */
+    getSelection?(): string[];
+    /** Execute an operation */
+    executeOperation?(operation: unknown): void;
 }
 
 export namespace CompositeEditorWidget {
@@ -152,6 +170,14 @@ export class CompositeEditorWidget extends BaseWidget
 
     get activeView(): 'text' | 'diagram' {
         return this._activeView;
+    }
+
+    /**
+     * Get the embedded diagram widget (if created).
+     * Used by commands to dispatch actions to the diagram.
+     */
+    getDiagramWidget(): DiagramWidgetCapabilities | undefined {
+        return this.diagramWidget;
     }
 
     get saveable(): Saveable {
@@ -364,7 +390,9 @@ export class CompositeEditorWidget extends BaseWidget
      * Load the diagram model from the language server.
      */
     protected async loadDiagramModel(): Promise<void> {
+        console.log('[CompositeEditor] loadDiagramModel called for:', this.uri.toString());
         if (!this.diagramWidget) {
+            console.warn('[CompositeEditor] No diagram widget available');
             return;
         }
 
@@ -372,7 +400,14 @@ export class CompositeEditorWidget extends BaseWidget
         this.diagramWidget.showLoading?.();
 
         try {
+            console.log('[CompositeEditor] Calling diagramLanguageClient.loadModel...');
             const response = await this.diagramLanguageClient.loadModel(this.uri.toString());
+            console.log('[CompositeEditor] loadModel response:', {
+                success: response.success,
+                hasGModel: !!response.gModel,
+                childCount: response.gModel?.children?.length ?? 0,
+                error: response.error,
+            });
 
             if (response.success && response.gModel) {
                 this.diagramModelLoaded = true;

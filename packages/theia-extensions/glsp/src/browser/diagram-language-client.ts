@@ -220,13 +220,23 @@ export class DiagramLanguageClient implements Disposable {
      * Internal method to load the model via language server.
      */
     protected async doLoadModel(uri: string): Promise<LoadModelResponse> {
+        console.log('[DiagramLanguageClient] doLoadModel called for:', uri);
+        console.log('[DiagramLanguageClient] languageClientProvider available:', !!this.languageClientProvider);
+
         try {
             // If language client provider is available, use it directly
             if (this.languageClientProvider) {
+                console.log('[DiagramLanguageClient] Sending glsp/loadModel request...');
                 const response = await this.languageClientProvider.sendRequest<LoadModelResponse>(
                     'glsp/loadModel',
                     { uri }
                 );
+                console.log('[DiagramLanguageClient] Response received:', {
+                    success: response.success,
+                    hasGModel: !!response.gModel,
+                    childCount: response.gModel?.children?.length ?? 0,
+                    error: response.error,
+                });
 
                 if (response.success && response.gModel) {
                     this.cachedModels.set(uri, response.gModel);

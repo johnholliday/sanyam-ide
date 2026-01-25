@@ -13,6 +13,7 @@ import './style/sprotty.css';
 
 import { ContainerModule, interfaces } from 'inversify';
 import { WidgetFactory, FrontendApplicationContribution, KeybindingContribution, OpenHandler } from '@theia/core/lib/browser';
+import { TabBarToolbarContribution } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { CommandContribution, MenuContribution, PreferenceContribution } from '@theia/core/lib/common';
 
 // Diagram widget imports
@@ -33,10 +34,18 @@ import { CompositeEditorContextKeyService } from './composite-editor-context-key
 
 // Language client for diagram operations
 import { DiagramLanguageClient, LanguageClientProviderSymbol } from './diagram-language-client';
-import { SanyamLanguageClientProvider } from './sanyam-language-client-provider';
+import { SanyamLanguageClientProvider, setGlspServiceProxy } from './sanyam-language-client-provider';
+import { ServiceConnectionProvider } from '@theia/core/lib/browser/messaging/service-connection-provider';
+import { SanyamGlspServicePath, type SanyamGlspServiceInterface } from '@sanyam/types';
 
 // Diagram preferences
 import { diagramPreferenceSchema } from './diagram-preferences';
+
+// Layout storage
+import { DiagramLayoutStorageService } from './layout-storage-service';
+
+// Toolbar contribution
+import { GlspDiagramToolbarContribution } from './glsp-toolbar-contribution';
 
 // Note: Sprotty types are re-exported from di/sprotty-di-config via index.ts
 
@@ -51,6 +60,8 @@ export const GLSP_FRONTEND_TYPES = {
     DiagramLanguageClient: Symbol.for('DiagramLanguageClient'),
     LanguageClientProvider: LanguageClientProviderSymbol,
     SprottyDiagramManager: Symbol.for('SprottyDiagramManager'),
+    GlspServiceProxy: Symbol.for('SanyamGlspServiceProxy'),
+    DiagramLayoutStorageService: Symbol.for('DiagramLayoutStorageService'),
 };
 
 /**
@@ -96,13 +107,27 @@ export default new ContainerModule((bind: interfaces.Bind) => {
   bind(MenuContribution).toService(GlspDiagramMenus);
 
   // ═══════════════════════════════════════════════════════════════════════════════
+  // SanyamGlspService Proxy (RPC to backend)
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Create the service proxy using ServiceConnectionProvider.createProxy() pattern
+  // This is the same approach used by @eclipse-glsp/theia-integration
+  bind(GLSP_FRONTEND_TYPES.GlspServiceProxy).toDynamicValue(({ container }) => {
+    const proxy = ServiceConnectionProvider.createProxy<SanyamGlspServiceInterface>(container, SanyamGlspServicePath);
+    // Also set the proxy in the static holder for legacy access
+    setGlspServiceProxy(proxy);
+    return proxy;
+  }).inSingletonScope();
+
+  // ═══════════════════════════════════════════════════════════════════════════════
   // Diagram Language Client (for server communication)
   // ═══════════════════════════════════════════════════════════════════════════════
 
   // Bind the language client provider for GLSP communication
+  // Note: GLSP_FRONTEND_TYPES.LanguageClientProvider === LanguageClientProviderSymbol
+  // so we only bind once to avoid Inversify ambiguous binding errors
   bind(SanyamLanguageClientProvider).toSelf().inSingletonScope();
   bind(LanguageClientProviderSymbol).toService(SanyamLanguageClientProvider);
-  bind(GLSP_FRONTEND_TYPES.LanguageClientProvider).toService(SanyamLanguageClientProvider);
 
   // Bind the diagram language client service
   bind(DiagramLanguageClient).toSelf().inSingletonScope();
@@ -145,6 +170,22 @@ export default new ContainerModule((bind: interfaces.Bind) => {
 
   // Register diagram preferences schema
   bind(PreferenceContribution).toConstantValue({ schema: diagramPreferenceSchema });
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Layout Storage Service
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Bind layout storage service for persisting diagram positions
+  bind(DiagramLayoutStorageService).toSelf().inSingletonScope();
+  bind(GLSP_FRONTEND_TYPES.DiagramLayoutStorageService).toService(DiagramLayoutStorageService);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Toolbar Contribution
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Bind toolbar contribution for diagram editor buttons
+  bind(GlspDiagramToolbarContribution).toSelf().inSingletonScope();
+  bind(TabBarToolbarContribution).toService(GlspDiagramToolbarContribution);
 });
 
 /**

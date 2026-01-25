@@ -234,9 +234,9 @@ export async function createLanguageServer(
 
         // Register all loaded languages with GLSP server
         for (const langId of registry.getAllLanguageIds()) {
-          const contribution = registry.getByLanguageId(langId);
-          if (contribution) {
-            registerLanguageWithGlsp(contribution as unknown as LanguageContribution);
+          const registered = registry.getByLanguageId(langId);
+          if (registered?.contribution) {
+            registerLanguageWithGlsp(registered.contribution);
           }
         }
       } catch (glspError) {
@@ -686,3 +686,7 @@ export async function createLanguageServer(
  */
 export type { LanguageContributionInterface } from '@sanyam/types';
 export { LanguageRegistry } from './language-registry.js';
+
+// Re-export GLSP server for backend integration
+export { GlspServer, createGlspServer } from './glsp/glsp-server.js';
+export type { GlspServerConfig } from './glsp/glsp-server.js';

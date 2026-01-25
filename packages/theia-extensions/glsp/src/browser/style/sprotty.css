@@ -31,6 +31,51 @@
 .sanyam-diagram-svg-container {
     width: 100%;
     height: 100%;
+    position: relative; /* Required for absolute positioning of UI extensions (tool palette, minimap) */
+}
+
+/* ============================================
+   Layout Pending State (suppress initial jarring)
+   ============================================ */
+
+/* Hide SVG completely during layout to prevent visible element jumping */
+.sanyam-diagram-svg-container.layout-pending > svg {
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* Also disable all animations/transitions within the diagram during layout */
+.sanyam-diagram-svg-container.layout-pending * {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* Smooth fade-in when layout completes */
+.sanyam-diagram-svg-container > svg {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.15s ease-out;
+}
+
+/* Starting state for fade-in after layout completes */
+.sanyam-diagram-svg-container.layout-complete > svg {
+    opacity: 0;
+    visibility: visible;
+}
+
+/* Animate to full opacity */
+.sanyam-diagram-svg-container.layout-complete.layout-reveal > svg {
+    opacity: 1;
+}
+
+/* Disable animation for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .sanyam-diagram-svg-container > svg {
+        transition: none;
+    }
+    .sanyam-diagram-svg-container.layout-complete > svg {
+        opacity: 1;
+    }
 }
 
 /* SVG element created by Sprotty - fill container */
@@ -142,7 +187,59 @@
     --diagram-grid-color: var(--theia-contrastBorder, rgba(15, 74, 133, 0.3));
 }
 
-/* Default node styling - Sprotty's RectangularNodeView
+/* ============================================
+   Shape-based Node Styling (SanyamNodeView)
+   ============================================ */
+
+/* Base node shape styling - applies to all shapes */
+.sprotty-node {
+    fill: var(--theia-textCodeBlock-background, #2d2d30);
+    stroke: var(--theia-foreground, #cccccc);
+    stroke-width: 1px;
+}
+
+/* Rectangle shape */
+.sanyam-shape-rectangle {
+    fill: var(--theia-textCodeBlock-background, #2d2d30);
+}
+
+/* Rounded rectangle shape */
+.sanyam-shape-rounded {
+    fill: var(--theia-textCodeBlock-background, #2d2d30);
+}
+
+/* Ellipse shape */
+.sanyam-shape-ellipse {
+    fill: var(--theia-editor-background, #1e1e1e);
+}
+
+/* Diamond shape */
+.sanyam-shape-diamond {
+    fill: var(--theia-dropdown-background, #3c3c3c);
+}
+
+/* Hexagon shape */
+.sanyam-shape-hexagon {
+    fill: var(--theia-activityBar-background, #333333);
+}
+
+/* Pill shape */
+.sanyam-shape-pill {
+    fill: var(--theia-button-background, #0e639c);
+}
+
+/* Selection and hover states for all shapes */
+.sprotty-node.selected {
+    stroke: var(--theia-focusBorder, #007fd4) !important;
+    stroke-width: 2px !important;
+}
+
+.sprotty-node.mouseover {
+    stroke: var(--theia-list-hoverForeground, #ffffff);
+    filter: brightness(1.1);
+}
+
+/* Default node styling - Sprotty's RectangularNodeView (fallback)
  * Note: The rect element ITSELF has the sprotty-node class, not a parent g
  */
 rect.sprotty-node {
@@ -564,9 +661,11 @@ circle.sprotty-port.mouseover {
    Sanyam UI Extensions - Tool Palette
    ============================================ */
 
-.sanyam-tool-palette-container {
+/* Tool palette container - floats above diagram on the right side */
+.sanyam-tool-palette-container,
+.sanyam-tool-palette {
     position: absolute;
-    left: 10px;
+    right: 10px;
     top: 10px;
     min-width: 180px;
     max-width: 250px;
@@ -579,6 +678,33 @@ circle.sprotty-port.mouseover {
     flex-direction: column;
     z-index: 100;
     overflow: hidden;
+    pointer-events: auto;
+}
+
+/* Hidden state for tool palette */
+.sanyam-tool-palette.hidden {
+    display: none;
+}
+
+/* Tool palette close button */
+.sanyam-tool-palette-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-left: auto;
+    background: none;
+    border: none;
+    border-radius: 3px;
+    color: var(--theia-foreground, #cccccc);
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.sanyam-tool-palette-close:hover {
+    background-color: var(--theia-list-hoverBackground, #2a2d2e);
+    opacity: 1;
 }
 
 .sanyam-tool-palette-header {
@@ -1213,26 +1339,13 @@ circle.sprotty-port.mouseover {
     border-radius: 4px;
     box-shadow: 0 2px 8px var(--theia-widget-shadow, rgba(0, 0, 0, 0.36));
     overflow: hidden;
-}
-
-.sanyam-minimap-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 24px;
-    padding: 0 8px;
-    background-color: var(--theia-activityBar-background, #333333);
-    cursor: pointer;
-    user-select: none;
-}
-
-.sanyam-minimap-toggle:hover {
-    background-color: var(--theia-list-hoverBackground, #2a2d2e);
+    pointer-events: auto;
 }
 
 .sanyam-minimap-canvas {
     display: block;
     background-color: var(--theia-editor-background, #1e1e1e);
+    cursor: crosshair;
 }
 
 .sanyam-minimap-viewport {
@@ -1272,7 +1385,8 @@ circle.sprotty-port.mouseover {
    Light Theme Adjustments for UI Extensions
    ============================================ */
 
-.theia-light .sanyam-tool-palette-container {
+.theia-light .sanyam-tool-palette-container,
+.theia-light .sanyam-tool-palette {
     background-color: var(--theia-sideBar-background, #f3f3f3);
     border-color: var(--theia-sideBar-border, #e7e7e7);
 }

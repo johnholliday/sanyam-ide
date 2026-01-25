@@ -11,33 +11,60 @@
  * GLSP Backend Module
  *
  * Theia backend ContainerModule for GLSP integration.
- * Binds the GLSP server contribution that connects the frontend to the
- * unified language server's GLSP endpoints.
+ * Binds the GLSP server contribution and backend service that connect the
+ * frontend to the unified language server's GLSP endpoints.
  *
  * @packageDocumentation
  */
 
 import { ContainerModule } from '@theia/core/shared/inversify';
+import { ConnectionHandler, JsonRpcConnectionHandler } from '@theia/core/lib/common/messaging';
 import { GLSPServerContribution } from '@eclipse-glsp/theia-integration/lib/node';
 import {
-    SanyamGlspServerContribution,
+    SanyamGlspService,
     SanyamGlspServicePath,
+} from '@sanyam/types';
+import {
+    SanyamGlspServerContribution,
+    SanyamGlspServicePath as LegacyServicePath,
     SANYAM_GLSP_SERVICE_PATH,
 } from './sanyam-glsp-server-contribution';
+import { SanyamGlspBackendServiceImpl } from './sanyam-glsp-backend-service';
 
 /**
  * GLSP backend module.
  *
- * Sets up the GLSP server contribution that bridges the Theia frontend
- * to the unified language server.
+ * Sets up:
+ * - GLSP server contribution for Eclipse GLSP integration
+ * - SanyamGlspService backend implementation with JSON-RPC handler
  */
 export default new ContainerModule((bind) => {
-    // Bind the service path constant
-    bind(SanyamGlspServicePath).toConstantValue(SANYAM_GLSP_SERVICE_PATH);
+    // =========================================================================
+    // Legacy GLSP Server Contribution (for Eclipse GLSP compatibility)
+    // =========================================================================
+
+    // Bind the legacy service path constant
+    bind(LegacyServicePath).toConstantValue(SANYAM_GLSP_SERVICE_PATH);
 
     // Bind the GLSP server contribution
     bind(SanyamGlspServerContribution).toSelf().inSingletonScope();
     bind(GLSPServerContribution).toService(SanyamGlspServerContribution);
 
+    // =========================================================================
+    // SanyamGlspService (New RPC-based service)
+    // =========================================================================
+
+    // Bind the backend service implementation
+    bind(SanyamGlspBackendServiceImpl).toSelf().inSingletonScope();
+    bind(SanyamGlspService).toService(SanyamGlspBackendServiceImpl);
+
+    // Register JSON-RPC connection handler for frontend-backend communication
+    bind(ConnectionHandler).toDynamicValue(ctx =>
+        new JsonRpcConnectionHandler(SanyamGlspServicePath, () =>
+            ctx.container.get<SanyamGlspBackendServiceImpl>(SanyamGlspService)
+        )
+    ).inSingletonScope();
+
     console.log('[glsp-backend-module] GLSP backend module loaded');
+    console.log(`[glsp-backend-module] Registered RPC handler at: ${SanyamGlspServicePath}`);
 });

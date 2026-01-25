@@ -11,16 +11,21 @@
     "@lumino/messaging": "^2.0.0",
     "sanyam-language-server": "workspace:*",
     "@sanyam/types": "workspace:*",
+    "@sanyam-grammar/spdevkit": "workspace:*",
     "@sanyam-ide/product": "workspace:*",
     "@theia/core": "1.67.0",
     "@theia/editor": "1.67.0",
     "@theia/filesystem": "1.67.0",
     "@theia/monaco": "1.67.0",
+    "@theia/navigator": "1.67.0",
     "elkjs": "^0.11.0",
     "inversify": "^6.0.1",
+    "langium": "^4.1.0",
     "sprotty": "^1.4.0",
     "sprotty-elk": "^1.4.0",
-    "sprotty-protocol": "^1.4.0"
+    "sprotty-protocol": "^1.4.0",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-uri": "^3.0.8"
   },
   "devDependencies": {
     "rimraf": "^5.0.5",

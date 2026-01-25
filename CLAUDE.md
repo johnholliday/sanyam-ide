@@ -221,6 +221,8 @@ Generate grammar packages with `GrammarManifest` exports for the SANYAM platform
 - Generated files appear in `src-gen/` and `lib/` directories within applications
 
 ## Active Technologies
+- TypeScript 5.x (per constitution) + Langium 4.x, Eclipse GLSP 2.x, Eclipse Theia 1.x, Inversify 6.x (003-glsp-backend-integration)
+- Theia StorageService (user profile), file-based metadata (.layout.json sidecar files) (003-glsp-backend-integration)
 
 - TypeScript 5.6.3 (ES2017 target, strict mode) + Langium 4.x (grammar parsing), @eclipse-glsp/server 2.x (diagrams), Theia 1.67.0 (IDE platform), Inversify 6.x (DI) (002-unified-lsp-glsp)
 - File system (grammar packages in workspace), LangiumDocuments (in-memory document store) (002-unified-lsp-glsp)

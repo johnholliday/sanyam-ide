@@ -346,16 +346,11 @@ export function createDefaultAstToGModelConverter(
       // Use the registered language's AST to GModel provider if available
       const provider = registered.mergedGlspProviders?.astToGModel;
       if (provider?.convert) {
+        // Add diagram type to context
         const diagramTypes = registered.contribution.manifest.diagramTypes;
-        const firstDiagramType = diagramTypes?.[0];
-        const conversionContext = {
-          manifest: registered.contribution.manifest,
-          diagramType: firstDiagramType,
-          idCounter: { value: 0 },
-          nodeMap: new Map(),
-          idMap: new Map(),
-        };
-        return provider.convert(document.parseResult?.value as any, conversionContext as any);
+        (context as any).diagramType = diagramTypes?.[0];
+        // Provider.convert now takes GlspContext as single argument
+        return provider.convert(context);
       }
 
       // Return empty GModel root

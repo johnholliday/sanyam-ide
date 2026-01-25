@@ -8,6 +8,7 @@
 
 import { injectable } from 'inversify';
 import { MenuContribution, MenuModelRegistry, MenuPath, MAIN_MENU_BAR } from '@theia/core/lib/common';
+import { NavigatorContextMenu } from '@theia/navigator/lib/browser/navigator-contribution';
 
 import { DiagramCommands } from './glsp-commands';
 
@@ -191,7 +192,14 @@ export class GlspDiagramMenus implements MenuContribution {
    * Register context menu.
    */
   protected registerContextMenu(registry: MenuModelRegistry): void {
-    // Edit group
+    // File explorer context menu - "Open Diagram View" for supported files
+    registry.registerMenuAction(NavigatorContextMenu.OPEN_WITH, {
+      commandId: DiagramCommands.OPEN_DIAGRAM.id,
+      label: 'Open Diagram View',
+      order: '0',
+    });
+
+    // Edit group (for diagram element context menu)
     registry.registerMenuAction(DiagramContextMenus.DIAGRAM_ELEMENT_EDIT, {
       commandId: DiagramCommands.DELETE_SELECTED.id,
       label: 'Delete',

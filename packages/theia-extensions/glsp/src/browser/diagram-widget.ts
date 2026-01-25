@@ -9,11 +9,14 @@
 
 import { injectable, postConstruct, inject } from 'inversify';
 import { Widget, BaseWidget, Message } from '@theia/core/lib/browser';
-import { Emitter, Event, DisposableCollection } from '@theia/core/lib/common';
+import { Emitter, Event, DisposableCollection, Disposable } from '@theia/core/lib/common';
 import { PreferenceService, PreferenceChange } from '@theia/core/lib/common/preferences/preference-service';
 import URI from '@theia/core/lib/common/uri';
 import { DIAGRAM_WIDGET_FACTORY_ID_STRING } from '@sanyam/types';
 import type { GModelRoot as GModelRootType, GModelElement as GModelElementType } from '@sanyam/types';
+
+// Import diagram language client for server communication
+import { DiagramLanguageClient, DiagramModelUpdate } from './diagram-language-client';
 
 // Sprotty imports
 import {
@@ -25,6 +28,9 @@ import {
 
 // Preferences
 import { DiagramPreferences, DiagramBackgroundStyle } from './diagram-preferences';
+
+// Layout storage
+import { DiagramLayoutStorageService, type ElementLayout, type DiagramLayout } from './layout-storage-service';
 
 /**
  * Factory ID for diagram widgets.
@@ -155,11 +161,26 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     /** Flag indicating if Sprotty has been initialized */
     protected sprottyInitialized = false;
 
+    /** Flag indicating layout is in progress (used to hide diagram during initial layout) */
+    protected layoutPending = false;
+
     /** Preference service for reading diagram preferences */
     protected preferenceService: PreferenceService | undefined;
 
+    /** Diagram language client for server communication */
+    protected diagramLanguageClient: DiagramLanguageClient | undefined;
+
+    /** Subscription to model updates */
+    protected modelUpdateSubscription: Disposable | undefined;
+
     /** Current background style */
     protected currentBackgroundStyle: DiagramBackgroundStyle = 'dots';
+
+    /** Layout storage service for persisting positions */
+    protected layoutStorageService: DiagramLayoutStorageService | undefined;
+
+    /** Saved layout loaded from storage (if any) */
+    protected savedLayout: DiagramLayout | undefined;
 
     constructor(
         protected readonly options: DiagramWidget.Options
@@ -203,6 +224,52 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 }
             })
         );
+    }
+
+    /**
+     * Set the diagram language client and subscribe to model updates.
+     */
+    setDiagramLanguageClient(client: DiagramLanguageClient): void {
+        this.diagramLanguageClient = client;
+
+        // Clean up any existing subscription
+        if (this.modelUpdateSubscription) {
+            this.modelUpdateSubscription.dispose();
+        }
+
+        // Subscribe to model updates for this URI
+        this.modelUpdateSubscription = client.subscribeToChanges(this.uri, (update: DiagramModelUpdate) => {
+            console.log(`[DiagramWidget] Model update received for: ${this.uri}`);
+            this.handleModelUpdate(update);
+        });
+
+        this.toDispose.push(this.modelUpdateSubscription);
+        console.log(`[DiagramWidget] DiagramLanguageClient set for: ${this.uri}`);
+    }
+
+    /**
+     * Set layout storage service.
+     */
+    setLayoutStorageService(service: DiagramLayoutStorageService): void {
+        this.layoutStorageService = service;
+    }
+
+    /**
+     * Handle model update from language client.
+     */
+    protected async handleModelUpdate(update: DiagramModelUpdate): Promise<void> {
+        if (update.gModel) {
+            // Update positions if available
+            if (update.metadata?.positions) {
+                this.state.positions = update.metadata.positions;
+            }
+            // Update sizes if available
+            if (update.metadata?.sizes) {
+                this.state.sizes = update.metadata.sizes;
+            }
+            // Set the model
+            await this.setModel(update.gModel);
+        }
     }
 
     /**
@@ -395,6 +462,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     enablePopup: true,
                     enableMinimap: true,
                 },
+                onLayoutComplete: (success, error) => this.onLayoutComplete(success, error),
             });
 
             // Set up event callbacks
@@ -404,6 +472,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     this.onSelectionChangedEmitter.fire(this.state.selection);
                 },
                 onMoveCompleted: (elementId, newPosition) => {
+                    // Update local position state
+                    this.state.positions.set(elementId, newPosition);
+
                     // Fire operation request to update position in the model
                     this.onOperationRequestedEmitter.fire({
                         operation: {
@@ -412,6 +483,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                             newPosition,
                         },
                     });
+
+                    // Save layout to storage (debounced)
+                    this.saveLayoutDebounced();
                 },
                 onDoubleClick: (elementId) => {
                     // Request to navigate to element in text view
@@ -521,9 +595,62 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      * Load the diagram model from the server.
      */
     async loadModel(): Promise<void> {
-        // This will be called via the language client
-        // For now, set up placeholder
         console.log(`[DiagramWidget] Loading diagram model for: ${this.uri}`);
+
+        if (!this.diagramLanguageClient) {
+            console.warn('[DiagramWidget] No DiagramLanguageClient set, cannot load model');
+            this.showError('Diagram language client not available');
+            return;
+        }
+
+        try {
+            this.showLoading();
+
+            // Try to load saved layout first
+            if (this.layoutStorageService) {
+                this.savedLayout = await this.layoutStorageService.loadLayout(this.uri);
+                if (this.savedLayout) {
+                    console.log(`[DiagramWidget] Found saved layout with ${Object.keys(this.savedLayout.elements).length} elements`);
+                }
+            }
+
+            const response = await this.diagramLanguageClient.loadModel(this.uri);
+
+            if (response.success && response.gModel) {
+                console.log(`[DiagramWidget] Response has gModel with ${response.gModel.children?.length ?? 0} children`);
+                // Update positions if available from server
+                if (response.metadata?.positions) {
+                    this.state.positions = new Map(Object.entries(response.metadata.positions));
+                }
+                // Update sizes if available from server
+                if (response.metadata?.sizes) {
+                    this.state.sizes = new Map(Object.entries(response.metadata.sizes));
+                }
+
+                // Override with saved layout positions if available
+                if (this.savedLayout) {
+                    for (const [id, layout] of Object.entries(this.savedLayout.elements)) {
+                        this.state.positions.set(id, layout.position);
+                        if (layout.size) {
+                            this.state.sizes.set(id, layout.size);
+                        }
+                    }
+                    console.log(`[DiagramWidget] Applied ${Object.keys(this.savedLayout.elements).length} saved positions`);
+                }
+
+                // Set the model
+                await this.setModel(response.gModel);
+                console.log(`[DiagramWidget] Model loaded successfully for: ${this.uri}`);
+            } else {
+                const errorMsg = response.error || 'Unknown error loading diagram model';
+                console.error(`[DiagramWidget] Failed to load model: ${errorMsg}`);
+                this.showError(errorMsg);
+            }
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.error(`[DiagramWidget] Error loading model: ${errorMsg}`);
+            this.showError(errorMsg);
+        }
     }
 
     /**
@@ -537,22 +664,167 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             this.svgContainer.innerHTML = '';
         }
 
+        // Check if we have saved positions (from layout storage)
+        const hasSavedLayout = this.savedLayout && Object.keys(this.savedLayout.elements).length > 0;
+
         // Set model in Sprotty
         if (this.sprottyManager && this.sprottyInitialized) {
             try {
+                // Add layout-pending class to hide diagram during layout (unless we have saved positions)
+                if (this.svgContainer && !hasSavedLayout) {
+                    this.layoutPending = true;
+                    this.svgContainer.classList.add('layout-pending');
+                    console.log('[DiagramWidget] Layout pending - diagram hidden');
+                }
+
                 // Convert to Sprotty format with positions
                 const sprottyModel = this.convertToSprottyModel(gModel);
                 await this.sprottyManager.setModel(sprottyModel);
                 console.log('[DiagramWidget] Model set in Sprotty');
 
-                // Fit to screen after initial load
-                await this.sprottyManager.fitToScreen();
+                if (hasSavedLayout) {
+                    // Skip auto-layout - we have saved positions
+                    console.log('[DiagramWidget] Skipping auto-layout - using saved positions');
+                    // Fit to screen with the saved positions
+                    await this.sprottyManager.fitToScreen();
+                    // Update minimap
+                    this.updateMinimapAfterLayout();
+                } else {
+                    // Request automatic layout for fresh diagrams
+                    await this.sprottyManager.requestLayout();
+                    console.log('[DiagramWidget] Layout requested');
+                    // Note: fitToScreen is called in onLayoutComplete
+                }
             } catch (error) {
                 console.error('[DiagramWidget] Failed to set model in Sprotty:', error);
+                // Reveal diagram on error (so user sees error state, not blank)
+                this.revealDiagramAfterLayout();
             }
         }
 
         this.onModelChangedEmitter.fire(gModel);
+    }
+
+    /**
+     * Handle layout completion.
+     * Called when the ELK layout engine finishes positioning elements.
+     */
+    protected onLayoutComplete(success: boolean, error?: string): void {
+        console.log(`[DiagramWidget] Layout complete: success=${success}${error ? ', error=' + error : ''}`);
+
+        if (success) {
+            // Fit to screen BEFORE revealing (while still hidden)
+            this.sprottyManager?.fitToScreen().then(() => {
+                // Now reveal the diagram with smooth transition
+                this.revealDiagramAfterLayout();
+                // Update minimap after reveal
+                this.updateMinimapAfterLayout();
+            }).catch(err => {
+                console.warn('[DiagramWidget] Failed to fit to screen:', err);
+                // Still reveal even if fit fails
+                this.revealDiagramAfterLayout();
+            });
+        } else {
+            // On error, just reveal without fitToScreen
+            this.revealDiagramAfterLayout();
+        }
+    }
+
+    /**
+     * Reveal the diagram after layout completes with smooth transition.
+     */
+    protected revealDiagramAfterLayout(): void {
+        if (!this.svgContainer || !this.layoutPending) {
+            return;
+        }
+
+        this.layoutPending = false;
+
+        // Remove layout-pending (which had visibility: hidden)
+        this.svgContainer.classList.remove('layout-pending');
+
+        // Add layout-complete (sets opacity: 0, visibility: visible)
+        this.svgContainer.classList.add('layout-complete');
+
+        // Use double requestAnimationFrame to ensure the browser has painted the opacity: 0 state
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (this.svgContainer) {
+                    // Add layout-reveal to trigger the opacity transition to 1
+                    this.svgContainer.classList.add('layout-reveal');
+
+                    // Clean up classes after transition completes
+                    setTimeout(() => {
+                        if (this.svgContainer) {
+                            this.svgContainer.classList.remove('layout-complete', 'layout-reveal');
+                        }
+                    }, 200); // Match transition duration
+                }
+            });
+        });
+
+        console.log('[DiagramWidget] Layout complete - revealing diagram');
+    }
+
+    /**
+     * Update minimap after layout completes (with small delay for DOM to settle).
+     */
+    protected updateMinimapAfterLayout(): void {
+        setTimeout(() => {
+            const registry = this.sprottyManager?.getUIExtensionRegistry();
+            if (registry) {
+                const minimap = registry.get('sanyam-minimap');
+                if (minimap && 'forceUpdate' in minimap) {
+                    (minimap as any).forceUpdate();
+                } else if (minimap && 'updateMinimap' in minimap) {
+                    (minimap as any).updateMinimap();
+                }
+            }
+        }, 200);
+    }
+
+    /**
+     * Save layout to storage (debounced).
+     * Collects all element positions and sizes and saves them.
+     */
+    protected saveLayoutDebounced(): void {
+        if (!this.layoutStorageService) {
+            return;
+        }
+
+        // Build element layouts from current state
+        const elements: Record<string, ElementLayout> = {};
+        for (const [id, position] of this.state.positions) {
+            const size = this.state.sizes.get(id);
+            elements[id] = {
+                position,
+                size,
+            };
+        }
+
+        // Use debounced save
+        this.layoutStorageService.saveLayoutDebounced(this.uri, elements);
+    }
+
+    /**
+     * Save layout immediately (without debouncing).
+     */
+    protected async saveLayoutImmediate(): Promise<void> {
+        if (!this.layoutStorageService) {
+            return;
+        }
+
+        // Build element layouts from current state
+        const elements: Record<string, ElementLayout> = {};
+        for (const [id, position] of this.state.positions) {
+            const size = this.state.sizes.get(id);
+            elements[id] = {
+                position,
+                size,
+            };
+        }
+
+        await this.layoutStorageService.saveLayout(this.uri, elements);
     }
 
     /**
@@ -710,6 +982,30 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
+     * Zoom in by a factor.
+     */
+    async zoomIn(factor: number = 1.2): Promise<void> {
+        if (this.sprottyManager) {
+            const currentZoom = this.state.viewport.zoom;
+            const newZoom = Math.min(currentZoom * factor, 5); // Max zoom 5x
+            this.state.viewport.zoom = newZoom;
+            await this.sprottyManager.setViewport(this.state.viewport.scroll, newZoom, true);
+        }
+    }
+
+    /**
+     * Zoom out by a factor.
+     */
+    async zoomOut(factor: number = 1.2): Promise<void> {
+        if (this.sprottyManager) {
+            const currentZoom = this.state.viewport.zoom;
+            const newZoom = Math.max(currentZoom / factor, 0.1); // Min zoom 0.1x
+            this.state.viewport.zoom = newZoom;
+            await this.sprottyManager.setViewport(this.state.viewport.scroll, newZoom, true);
+        }
+    }
+
+    /**
      * Center on specific elements or all.
      */
     async center(elementIds?: string[]): Promise<void> {
@@ -722,9 +1018,22 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      * Dispatch a Sprotty action.
      */
     async dispatchAction(action: Action): Promise<void> {
-        if (this.sprottyManager) {
+        console.log('[DiagramWidget] dispatchAction called with:', action.kind);
+        if (!this.sprottyManager) {
+            console.warn('[DiagramWidget] Cannot dispatch action - sprottyManager not initialized');
+            return;
+        }
+        if (!this.sprottyInitialized) {
+            console.warn('[DiagramWidget] Cannot dispatch action - sprotty not fully initialized');
+            return;
+        }
+        try {
             const modelSource = this.sprottyManager.getModelSource();
+            console.log('[DiagramWidget] Dispatching to action dispatcher...');
             await modelSource.actionDispatcher.dispatch(action);
+            console.log('[DiagramWidget] Action dispatched successfully:', action.kind);
+        } catch (error) {
+            console.error('[DiagramWidget] Error dispatching action:', error);
         }
     }
 
@@ -764,12 +1073,20 @@ export class DiagramWidgetFactory {
     @inject(PreferenceService)
     protected readonly preferenceService: PreferenceService;
 
+    @inject(DiagramLanguageClient)
+    protected readonly diagramLanguageClient: DiagramLanguageClient;
+
+    @inject(DiagramLayoutStorageService)
+    protected readonly layoutStorageService: DiagramLayoutStorageService;
+
     /**
      * Create a diagram widget.
      */
     createWidget(options: DiagramWidget.Options): DiagramWidget {
         const widget = new DiagramWidget(options);
         widget.setPreferenceService(this.preferenceService);
+        widget.setDiagramLanguageClient(this.diagramLanguageClient);
+        widget.setLayoutStorageService(this.layoutStorageService);
         return widget;
     }
 }

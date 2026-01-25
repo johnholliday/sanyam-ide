@@ -9,9 +9,20 @@
 import { injectable, inject } from 'inversify';
 import { Command, CommandContribution, CommandRegistry } from '@theia/core/lib/common';
 import { ApplicationShell } from '@theia/core/lib/browser';
+import URI from '@theia/core/lib/common/uri';
+import { SelectAllAction } from 'sprotty-protocol';
 
 import { GlspContribution } from '../common/glsp-contribution';
 import { DiagramWidget } from './diagram-widget';
+import { CompositeEditorWidget } from './composite-editor-widget';
+import { diagramTypeRegistry } from './glsp-frontend-module';
+import { RequestLayoutAction } from './layout';
+import {
+  ZoomInAction,
+  ZoomOutAction,
+  FitDiagramAction,
+  CenterDiagramAction,
+} from './ui-extensions/tool-palette';
 
 /**
  * Command IDs for diagram operations.
@@ -130,6 +141,18 @@ export namespace DiagramCommands {
     label: 'Align Bottom',
     category: 'Diagram',
   };
+
+  export const TOGGLE_MINIMAP: Command = {
+    id: 'sanyam.diagram.toggleMinimap',
+    label: 'Toggle Minimap',
+    category: 'Diagram',
+  };
+
+  export const MARQUEE_SELECT: Command = {
+    id: 'sanyam.diagram.marqueeSelect',
+    label: 'Enable Marquee Selection',
+    category: 'Diagram',
+  };
 }
 
 /**
@@ -144,14 +167,27 @@ export class GlspDiagramCommands implements CommandContribution {
   protected readonly glspContribution: GlspContribution;
 
   /**
+   * Cache of the last known diagram widget.
+   * Used as fallback when shell.activeWidget is undefined (e.g., during toolbar clicks).
+   */
+  protected lastKnownDiagramWidget: DiagramWidget | undefined;
+
+  /**
+   * Cache of the last known composite editor showing diagram.
+   * Used as fallback when shell.activeWidget is undefined.
+   */
+  protected lastKnownCompositeWidget: CompositeEditorWidget | undefined;
+
+  /**
    * Register commands.
    */
   registerCommands(registry: CommandRegistry): void {
     // Open diagram view
+    // Accepts either a URI object, a string URI, or nothing (uses active editor)
     registry.registerCommand(DiagramCommands.OPEN_DIAGRAM, {
-      execute: () => this.openDiagram(),
-      isEnabled: () => this.canOpenDiagram(),
-      isVisible: () => this.canOpenDiagram(),
+      execute: (...args: unknown[]) => this.openDiagram(args),
+      isEnabled: (...args: unknown[]) => this.canOpenDiagram(args),
+      isVisible: (...args: unknown[]) => this.canOpenDiagram(args),
     });
 
     // Close diagram view
@@ -161,26 +197,26 @@ export class GlspDiagramCommands implements CommandContribution {
       isVisible: () => this.hasDiagramFocus(),
     });
 
-    // Refresh diagram
+    // Refresh diagram - accept widget argument from toolbar
     registry.registerCommand(DiagramCommands.REFRESH_DIAGRAM, {
-      execute: () => this.refreshDiagram(),
+      execute: (...args: unknown[]) => this.refreshDiagram(this.extractWidgetFromArgs(args)),
       isEnabled: () => this.hasDiagramFocus(),
       isVisible: () => this.hasDiagramFocus(),
     });
 
-    // Zoom commands
+    // Zoom commands - accept widget argument from toolbar
     registry.registerCommand(DiagramCommands.ZOOM_TO_FIT, {
-      execute: () => this.zoomToFit(),
+      execute: (...args: unknown[]) => this.zoomToFit(this.extractWidgetFromArgs(args)),
       isEnabled: () => this.hasDiagramFocus(),
     });
 
     registry.registerCommand(DiagramCommands.ZOOM_IN, {
-      execute: () => this.zoomIn(),
+      execute: (...args: unknown[]) => this.zoomIn(this.extractWidgetFromArgs(args)),
       isEnabled: () => this.hasDiagramFocus(),
     });
 
     registry.registerCommand(DiagramCommands.ZOOM_OUT, {
-      execute: () => this.zoomOut(),
+      execute: (...args: unknown[]) => this.zoomOut(this.extractWidgetFromArgs(args)),
       isEnabled: () => this.hasDiagramFocus(),
     });
 
@@ -196,26 +232,26 @@ export class GlspDiagramCommands implements CommandContribution {
       isEnabled: () => this.hasDiagramFocus(),
     });
 
-    // Auto-layout
+    // Auto-layout - accept widget argument from toolbar
     registry.registerCommand(DiagramCommands.LAYOUT_DIAGRAM, {
-      execute: () => this.layoutDiagram(),
+      execute: (...args: unknown[]) => this.layoutDiagram(this.extractWidgetFromArgs(args)),
       isEnabled: () => this.hasDiagramFocus(),
     });
 
-    // Export commands
+    // Export commands - accept widget argument from toolbar
     registry.registerCommand(DiagramCommands.EXPORT_SVG, {
-      execute: () => this.exportSvg(),
+      execute: (...args: unknown[]) => this.exportSvg(this.extractWidgetFromArgs(args)),
       isEnabled: () => this.hasDiagramFocus(),
     });
 
     registry.registerCommand(DiagramCommands.EXPORT_PNG, {
-      execute: () => this.exportPng(),
+      execute: (...args: unknown[]) => this.exportPng(this.extractWidgetFromArgs(args)),
       isEnabled: () => this.hasDiagramFocus(),
     });
 
-    // View commands
+    // View commands - accept widget argument from toolbar
     registry.registerCommand(DiagramCommands.CENTER_VIEW, {
-      execute: () => this.centerView(),
+      execute: (...args: unknown[]) => this.centerView(this.extractWidgetFromArgs(args)),
       isEnabled: () => this.hasDiagramFocus(),
     });
 
@@ -226,6 +262,18 @@ export class GlspDiagramCommands implements CommandContribution {
 
     // Alignment commands
     this.registerAlignmentCommands(registry);
+
+    // Toggle minimap - accept widget argument from toolbar
+    registry.registerCommand(DiagramCommands.TOGGLE_MINIMAP, {
+      execute: (...args: unknown[]) => this.toggleMinimap(this.extractWidgetFromArgs(args)),
+      isEnabled: () => this.hasDiagramFocus(),
+    });
+
+    // Marquee selection
+    registry.registerCommand(DiagramCommands.MARQUEE_SELECT, {
+      execute: () => this.enableMarqueeSelect(),
+      isEnabled: () => this.hasDiagramFocus(),
+    });
   }
 
   /**
@@ -251,23 +299,174 @@ export class GlspDiagramCommands implements CommandContribution {
 
   /**
    * Get active diagram widget.
+   * Handles both standalone DiagramWidget and DiagramWidget embedded in CompositeEditorWidget.
+   * Uses cached widget as fallback when shell.activeWidget is undefined (toolbar click timing issue).
+   * @param widgetHint - Optional widget passed from toolbar context
    */
-  protected getActiveDiagram(): DiagramWidget | undefined {
-    const widget = this.shell.activeWidget;
-    return widget instanceof DiagramWidget ? widget : undefined;
+  protected getActiveDiagram(widgetHint?: unknown): DiagramWidget | undefined {
+    // If a widget was passed (from toolbar), try to use it first
+    let widget: unknown = widgetHint;
+    if (!widget) {
+      widget = this.shell.activeWidget;
+    }
+
+    // If widget is still undefined, use cached fallback
+    if (!widget) {
+      console.log('[GlspDiagramCommands] getActiveDiagram - activeWidget undefined, using cached fallback');
+      // Try cached diagram widget first
+      if (this.lastKnownDiagramWidget && !this.lastKnownDiagramWidget.isDisposed) {
+        console.log('[GlspDiagramCommands] Using cached DiagramWidget');
+        return this.lastKnownDiagramWidget;
+      }
+      // Try cached composite widget
+      if (this.lastKnownCompositeWidget && !this.lastKnownCompositeWidget.isDisposed) {
+        if (this.lastKnownCompositeWidget.activeView === 'diagram') {
+          const diagramWidget = this.lastKnownCompositeWidget.getDiagramWidget() as DiagramWidget | undefined;
+          console.log('[GlspDiagramCommands] Using cached CompositeEditorWidget, embedded diagram:', diagramWidget?.constructor.name);
+          return diagramWidget;
+        }
+      }
+      console.log('[GlspDiagramCommands] No cached widget available');
+      return undefined;
+    }
+
+    console.log('[GlspDiagramCommands] getActiveDiagram - widget:', (widget as any)?.constructor?.name, '- from hint:', !!widgetHint);
+
+    if (widget instanceof DiagramWidget) {
+      console.log('[GlspDiagramCommands] Found standalone DiagramWidget');
+      // Cache for future use
+      this.lastKnownDiagramWidget = widget;
+      return widget;
+    }
+    if (widget instanceof CompositeEditorWidget) {
+      console.log('[GlspDiagramCommands] Found CompositeEditorWidget, activeView:', widget.activeView);
+      // Cache for future use
+      this.lastKnownCompositeWidget = widget;
+      if (widget.activeView === 'diagram') {
+        // Get the embedded diagram widget via public getter
+        const diagramWidget = widget.getDiagramWidget() as DiagramWidget | undefined;
+        console.log('[GlspDiagramCommands] Embedded diagramWidget:', diagramWidget?.constructor.name, 'sprottyInitialized:', diagramWidget?.isSprottyInitialized?.());
+        return diagramWidget;
+      }
+    }
+    console.log('[GlspDiagramCommands] No diagram widget found');
+    return undefined;
   }
 
   /**
    * Check if a diagram has focus.
+   * Returns true for both standalone diagram widgets and composite editors showing diagram view.
+   * Uses cached widget as fallback when shell.activeWidget is undefined.
    */
   protected hasDiagramFocus(): boolean {
-    return this.getActiveDiagram() !== undefined;
+    let widget = this.shell.activeWidget;
+
+    // If activeWidget is undefined, use cached fallback
+    if (!widget) {
+      // Check cached diagram widget
+      if (this.lastKnownDiagramWidget && !this.lastKnownDiagramWidget.isDisposed) {
+        console.log('[GlspDiagramCommands] hasDiagramFocus: true (using cached DiagramWidget)');
+        return true;
+      }
+      // Check cached composite widget
+      if (this.lastKnownCompositeWidget && !this.lastKnownCompositeWidget.isDisposed) {
+        if (this.lastKnownCompositeWidget.activeView === 'diagram') {
+          console.log('[GlspDiagramCommands] hasDiagramFocus: true (using cached CompositeEditorWidget)');
+          return true;
+        }
+      }
+      console.log('[GlspDiagramCommands] hasDiagramFocus: false - activeWidget undefined and no valid cache');
+      return false;
+    }
+
+    const isDiagramWidget = widget instanceof DiagramWidget;
+    const isComposite = widget instanceof CompositeEditorWidget;
+    const compositeShowingDiagram = isComposite && (widget as CompositeEditorWidget).activeView === 'diagram';
+    const result = isDiagramWidget || compositeShowingDiagram;
+
+    // Cache valid widgets for future use
+    if (isDiagramWidget) {
+      this.lastKnownDiagramWidget = widget as DiagramWidget;
+    }
+    if (isComposite) {
+      this.lastKnownCompositeWidget = widget as CompositeEditorWidget;
+    }
+
+    console.log('[GlspDiagramCommands] hasDiagramFocus:', result, '- activeWidget:', widget?.constructor.name);
+    return result;
   }
 
   /**
-   * Check if current editor can be opened as diagram.
+   * Extract a widget from command arguments (used when toolbar passes the widget context).
    */
-  protected canOpenDiagram(): boolean {
+  protected extractWidgetFromArgs(args: unknown[]): unknown | undefined {
+    if (args.length === 0) {
+      return undefined;
+    }
+    const firstArg = args[0];
+    // Theia toolbar passes the widget as the first argument
+    if (firstArg instanceof DiagramWidget || firstArg instanceof CompositeEditorWidget) {
+      console.log('[GlspDiagramCommands] extractWidgetFromArgs - found widget:', firstArg.constructor.name);
+      return firstArg;
+    }
+    return undefined;
+  }
+
+  /**
+   * Extract URI from command arguments.
+   */
+  protected extractUri(args: unknown[]): URI | undefined {
+    if (args.length === 0) {
+      return undefined;
+    }
+
+    const firstArg = args[0];
+
+    // Handle URI object directly
+    if (firstArg instanceof URI) {
+      return firstArg;
+    }
+
+    // Handle Theia's UriSelection (from navigator context menu)
+    if (firstArg && typeof firstArg === 'object' && 'uri' in firstArg) {
+      const uriSelection = firstArg as { uri: URI };
+      if (uriSelection.uri instanceof URI) {
+        return uriSelection.uri;
+      }
+    }
+
+    // Handle string URI
+    if (typeof firstArg === 'string') {
+      return new URI(firstArg);
+    }
+
+    // Handle array of selections (navigator can pass array)
+    if (Array.isArray(firstArg) && firstArg.length > 0) {
+      const first = firstArg[0];
+      if (first && typeof first === 'object' && 'uri' in first) {
+        const selection = first as { uri: URI };
+        if (selection.uri instanceof URI) {
+          return selection.uri;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Check if current editor or selected file can be opened as diagram.
+   */
+  protected canOpenDiagram(args: unknown[]): boolean {
+    // Check if a URI was passed as argument (from navigator context menu)
+    const uri = this.extractUri(args);
+    if (uri) {
+      const extension = uri.path.ext;
+      const config = diagramTypeRegistry.getByFileExtension(extension);
+      return config !== undefined;
+    }
+
+    // Fall back to active widget
     const activeWidget = this.shell.activeWidget;
     if (activeWidget && 'uri' in activeWidget) {
       return this.glspContribution.canOpenDiagram((activeWidget as any).uri);
@@ -293,7 +492,22 @@ export class GlspDiagramCommands implements CommandContribution {
 
   // Command implementations
 
-  protected async openDiagram(): Promise<void> {
+  protected async openDiagram(args: unknown[]): Promise<void> {
+    // Check if a URI was passed as argument (from navigator context menu)
+    const uri = this.extractUri(args);
+    if (uri) {
+      const extension = uri.path.ext;
+      const config = diagramTypeRegistry.getByFileExtension(extension);
+      if (config) {
+        await this.glspContribution.openDiagramView(uri, {
+          activate: true,
+          diagramType: config.diagramType,
+        });
+        return;
+      }
+    }
+
+    // Fall back to active widget
     await this.glspContribution.openView({ activate: true });
   }
 
@@ -302,24 +516,53 @@ export class GlspDiagramCommands implements CommandContribution {
     diagram?.close();
   }
 
-  protected refreshDiagram(): void {
-    const diagram = this.getActiveDiagram();
-    diagram?.refresh();
+  protected refreshDiagram(widgetHint?: unknown): void {
+    console.log('[GlspDiagramCommands] refreshDiagram called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (diagram) {
+      diagram.refresh();
+    } else {
+      console.log('[GlspDiagramCommands] No diagram for refreshDiagram');
+    }
   }
 
-  protected zoomToFit(): void {
-    const diagram = this.getActiveDiagram();
-    diagram?.zoomToFit();
+  protected zoomToFit(widgetHint?: unknown): void {
+    console.log('[GlspDiagramCommands] zoomToFit called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (diagram) {
+      console.log('[GlspDiagramCommands] Dispatching FitDiagramAction');
+      diagram.dispatchAction(FitDiagramAction.create()).catch(err => {
+        console.error('[GlspDiagramCommands] zoomToFit failed:', err);
+      });
+    } else {
+      console.log('[GlspDiagramCommands] No diagram for zoomToFit');
+    }
   }
 
-  protected zoomIn(): void {
-    // Placeholder - would adjust zoom level
-    console.log('Zoom in');
+  protected zoomIn(widgetHint?: unknown): void {
+    console.log('[GlspDiagramCommands] zoomIn called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (diagram) {
+      console.log('[GlspDiagramCommands] Dispatching ZoomInAction');
+      diagram.dispatchAction(ZoomInAction.create(1.2)).catch(err => {
+        console.error('[GlspDiagramCommands] zoomIn failed:', err);
+      });
+    } else {
+      console.log('[GlspDiagramCommands] No diagram for zoomIn');
+    }
   }
 
-  protected zoomOut(): void {
-    // Placeholder - would adjust zoom level
-    console.log('Zoom out');
+  protected zoomOut(widgetHint?: unknown): void {
+    console.log('[GlspDiagramCommands] zoomOut called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (diagram) {
+      console.log('[GlspDiagramCommands] Dispatching ZoomOutAction');
+      diagram.dispatchAction(ZoomOutAction.create(1.2)).catch(err => {
+        console.error('[GlspDiagramCommands] zoomOut failed:', err);
+      });
+    } else {
+      console.log('[GlspDiagramCommands] No diagram for zoomOut');
+    }
   }
 
   protected deleteSelected(): void {
@@ -334,38 +577,67 @@ export class GlspDiagramCommands implements CommandContribution {
   }
 
   protected selectAll(): void {
-    // Placeholder - would select all elements
-    console.log('Select all');
-  }
-
-  protected layoutDiagram(): void {
+    console.log('[GlspDiagramCommands] selectAll called');
     const diagram = this.getActiveDiagram();
     if (diagram) {
-      diagram.executeOperation({
-        kind: 'layout',
-        algorithm: 'tree',
+      console.log('[GlspDiagramCommands] Dispatching SelectAllAction');
+      const action: SelectAllAction = SelectAllAction.create({ select: true });
+      diagram.dispatchAction(action).catch(err => {
+        console.error('[GlspDiagramCommands] selectAll failed:', err);
       });
+    } else {
+      console.log('[GlspDiagramCommands] No diagram for selectAll');
     }
   }
 
-  protected exportSvg(): void {
-    // Placeholder - would export diagram as SVG
-    console.log('Export SVG');
+  protected layoutDiagram(widgetHint?: unknown): void {
+    console.log('[GlspDiagramCommands] layoutDiagram called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (diagram) {
+      console.log('[GlspDiagramCommands] Dispatching RequestLayoutAction');
+      const action = RequestLayoutAction.create();
+      diagram.dispatchAction(action).catch(err => {
+        console.error('[GlspDiagramCommands] layoutDiagram failed:', err);
+      });
+    } else {
+      console.log('[GlspDiagramCommands] No diagram for layoutDiagram');
+    }
   }
 
-  protected exportPng(): void {
-    // Placeholder - would export diagram as PNG
-    console.log('Export PNG');
+  protected exportSvg(widgetHint?: unknown): void {
+    console.log('[GlspDiagramCommands] exportSvg called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (diagram) {
+      console.log('[GlspDiagramCommands] Dispatching requestExportSvg action');
+      diagram.dispatchAction({ kind: 'requestExportSvg' }).catch(err => {
+        console.error('[GlspDiagramCommands] exportSvg failed:', err);
+      });
+    } else {
+      console.log('[GlspDiagramCommands] No diagram for exportSvg');
+    }
   }
 
-  protected centerView(): void {
-    const diagram = this.getActiveDiagram();
-    diagram?.zoomToFit();
+  protected exportPng(_widgetHint?: unknown): void {
+    // PNG export requires canvas rendering - not implemented yet
+    console.log('[GlspDiagramCommands] Export PNG - not yet implemented');
+  }
+
+  protected centerView(widgetHint?: unknown): void {
+    console.log('[GlspDiagramCommands] centerView called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (diagram) {
+      console.log('[GlspDiagramCommands] Dispatching CenterDiagramAction');
+      diagram.dispatchAction(CenterDiagramAction.create()).catch(err => {
+        console.error('[GlspDiagramCommands] centerView failed:', err);
+      });
+    } else {
+      console.log('[GlspDiagramCommands] No diagram for centerView');
+    }
   }
 
   protected toggleGrid(): void {
-    // Placeholder - would toggle grid visibility
-    console.log('Toggle grid');
+    // Grid is controlled via preferences, not an action
+    console.log('Toggle grid - use preferences');
   }
 
   protected alignSelection(alignment: string): void {
@@ -376,6 +648,32 @@ export class GlspDiagramCommands implements CommandContribution {
         alignment,
         elementIds: diagram.getSelection(),
       });
+    }
+  }
+
+  protected toggleMinimap(widgetHint?: unknown): void {
+    console.log('[GlspDiagramCommands] toggleMinimap called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (diagram) {
+      console.log('[GlspDiagramCommands] Dispatching toggleMinimap action');
+      diagram.dispatchAction({ kind: 'toggleMinimap' }).catch(err => {
+        console.error('[GlspDiagramCommands] toggleMinimap failed:', err);
+      });
+    } else {
+      console.log('[GlspDiagramCommands] No diagram for toggleMinimap');
+    }
+  }
+
+  protected enableMarqueeSelect(): void {
+    console.log('[GlspDiagramCommands] enableMarqueeSelect called');
+    const diagram = this.getActiveDiagram();
+    if (diagram) {
+      console.log('[GlspDiagramCommands] Dispatching enableMarqueeSelect action');
+      diagram.dispatchAction({ kind: 'enableMarqueeSelect' }).catch(err => {
+        console.error('[GlspDiagramCommands] enableMarqueeSelect failed:', err);
+      });
+    } else {
+      console.log('[GlspDiagramCommands] No diagram for enableMarqueeSelect');
     }
   }
 }

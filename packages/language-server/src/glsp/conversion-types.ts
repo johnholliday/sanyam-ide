@@ -80,6 +80,12 @@ export interface GModelElement {
 }
 
 /**
+ * Available shapes for diagram nodes.
+ * Must match NodeShape from @sanyam/types.
+ */
+export type NodeShape = 'rectangle' | 'rounded' | 'ellipse' | 'diamond' | 'hexagon' | 'pill';
+
+/**
  * GModel node with position and size.
  */
 export interface GModelNode extends GModelElement {
@@ -87,6 +93,8 @@ export interface GModelNode extends GModelElement {
   size?: Dimension;
   layout?: string;
   layoutOptions?: Record<string, any>;
+  /** Visual shape for rendering */
+  shape?: NodeShape;
 }
 
 /**
@@ -295,7 +303,8 @@ export function createNode(
   type: string,
   position?: Point,
   size?: Dimension,
-  cssClasses?: string[]
+  cssClasses?: string[],
+  shape?: NodeShape
 ): GModelNode {
   const node: GModelNode = {
     id,
@@ -303,6 +312,7 @@ export function createNode(
     position: position ?? { x: 0, y: 0 },
     size: size ?? { width: 100, height: 50 },
     children: [],
+    shape: shape ?? 'rectangle',
   };
   if (cssClasses && cssClasses.length > 0) {
     node.cssClasses = cssClasses;

@@ -88,7 +88,21 @@ export class LayoutActionHandler implements IActionHandler {
             // Update the model - this triggers the layout engine
             try {
                 console.info('[LayoutActionHandler] Calling updateModel...');
+
+                // Check if layout engine is properly configured
+                const modelSourceAny = this.modelSource as any;
+                console.info('[LayoutActionHandler] needsClientLayout:', modelSourceAny.viewerOptions?.needsClientLayout);
+                console.info('[LayoutActionHandler] layoutEngine exists:', !!modelSourceAny.layoutEngine);
+
                 await this.modelSource.updateModel(currentModel);
+
+                // Check if positions were updated
+                const updatedModel = this.modelSource.model;
+                if (updatedModel?.children) {
+                    const firstChild = updatedModel.children[0] as any;
+                    console.info('[LayoutActionHandler] First child position after layout:', firstChild?.position);
+                }
+
                 console.info('[LayoutActionHandler] Layout complete');
                 this.dispatchComplete(true);
             } catch (updateError) {

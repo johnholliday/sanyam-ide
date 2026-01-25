@@ -935,6 +935,9 @@ importers:
       '@lumino/messaging':
         specifier: ^2.0.0
         version: 2.0.4
+      '@sanyam-grammar/spdevkit':
+        specifier: workspace:*
+        version: link:../../grammar-definitions/spdevkit
       '@sanyam-ide/product':
         specifier: workspace:*
         version: link:../product
@@ -953,12 +956,18 @@ importers:
       '@theia/monaco':
         specifier: 1.67.0
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3)
+      '@theia/navigator':
+        specifier: 1.67.0
+        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3)
       elkjs:
         specifier: ^0.11.0
         version: 0.11.0
       inversify:
         specifier: ^6.0.1
         version: 6.2.2(reflect-metadata@0.2.2)
+      langium:
+        specifier: ^4.1.0
+        version: 4.1.3
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -974,6 +983,12 @@ importers:
       sprotty-protocol:
         specifier: ^1.4.0
         version: 1.4.0
+      vscode-languageserver:
+        specifier: ^9.0.1
+        version: 9.0.1
+      vscode-uri:
+        specifier: ^3.0.8
+        version: 3.1.0
     devDependencies:
       rimraf:
         specifier: ^5.0.5

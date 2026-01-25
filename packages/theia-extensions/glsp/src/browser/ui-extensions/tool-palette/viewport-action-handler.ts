@@ -140,30 +140,46 @@ export class ViewportActionHandler implements IActionHandler {
      * Handle viewport actions.
      */
     handle(action: Action): void | ICommand | Action {
+        console.log('[ViewportActionHandler] Received action:', action.kind);
         switch (action.kind) {
             case ZoomInAction.KIND:
+                console.log('[ViewportActionHandler] Handling ZoomInAction');
                 this.handleZoomIn(action as ZoomInAction);
                 break;
             case ZoomOutAction.KIND:
+                console.log('[ViewportActionHandler] Handling ZoomOutAction');
                 this.handleZoomOut(action as ZoomOutAction);
                 break;
             case ResetZoomAction.KIND:
+                console.log('[ViewportActionHandler] Handling ResetZoomAction');
                 this.handleResetZoom();
                 break;
             case CenterDiagramAction.KIND:
+                console.log('[ViewportActionHandler] Handling CenterDiagramAction');
                 this.handleCenter(action as CenterDiagramAction);
                 break;
             case FitDiagramAction.KIND:
+                console.log('[ViewportActionHandler] Handling FitDiagramAction');
                 this.handleFit(action as FitDiagramAction);
                 break;
+            default:
+                console.log('[ViewportActionHandler] Unknown action kind:', action.kind);
         }
     }
 
     /**
-     * Get the current viewport from the model or tracked state.
+     * Get the current viewport from DOM, model, or tracked state.
      */
     protected getCurrentViewport(): Viewport {
-        // First try to get from the model
+        // First try to get from the SVG transform (most accurate)
+        const viewportFromDom = this.getViewportFromDom();
+        if (viewportFromDom) {
+            this.currentZoom = viewportFromDom.zoom;
+            this.currentScroll = { ...viewportFromDom.scroll };
+            return viewportFromDom;
+        }
+
+        // Then try to get from the model
         const model = (this.modelSource as any).model;
         if (model && model.type === 'graph') {
             const graph = model as any;
@@ -183,6 +199,51 @@ export class ViewportActionHandler implements IActionHandler {
             scroll: this.currentScroll,
             zoom: this.currentZoom,
         };
+    }
+
+    /**
+     * Get viewport state from the DOM transform attribute.
+     */
+    protected getViewportFromDom(): Viewport | undefined {
+        // Find the main graph group with the viewport transform
+        const graphGroup = document.querySelector('g.sprotty-graph') as SVGGElement
+            ?? document.querySelector('g[id$="_root"]') as SVGGElement
+            ?? document.querySelector('svg.sprotty-graph > g[transform]') as SVGGElement;
+
+        if (!graphGroup) {
+            return undefined;
+        }
+
+        const transform = graphGroup.getAttribute('transform');
+        if (!transform) {
+            return undefined;
+        }
+
+        // Parse transform string
+        let scroll = { x: 0, y: 0 };
+        let zoom = 1;
+
+        const translateMatch = transform.match(/translate\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/);
+        if (translateMatch) {
+            scroll.x = parseFloat(translateMatch[1]) || 0;
+            scroll.y = parseFloat(translateMatch[2]) || 0;
+        }
+
+        const scaleMatch = transform.match(/scale\s*\(\s*(-?[\d.]+)/);
+        if (scaleMatch) {
+            zoom = parseFloat(scaleMatch[1]) || 1;
+        }
+
+        // Handle matrix transform
+        const matrixMatch = transform.match(/matrix\s*\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)/);
+        if (matrixMatch) {
+            zoom = parseFloat(matrixMatch[1]) || 1;
+            scroll.x = parseFloat(matrixMatch[5]) || 0;
+            scroll.y = parseFloat(matrixMatch[6]) || 0;
+        }
+
+        console.log('[ViewportActionHandler] getViewportFromDom:', { scroll, zoom }, 'from transform:', transform);
+        return { scroll, zoom };
     }
 
     /**
@@ -218,6 +279,9 @@ export class ViewportActionHandler implements IActionHandler {
     /**
      * Calculate adjusted scroll position to zoom around the viewport center.
      * When zooming, we want the center of the view to stay at the center.
+     *
+     * Transform relationship: screenPos = modelPos * zoom + scroll
+     * Therefore: modelPos = (screenPos - scroll) / zoom
      */
     protected calculateCenteredScroll(
         oldScroll: { x: number; y: number },
@@ -225,14 +289,24 @@ export class ViewportActionHandler implements IActionHandler {
         newZoom: number
     ): { x: number; y: number } {
         const dimensions = this.getViewportDimensions();
+        const screenCenterX = dimensions.width / 2;
+        const screenCenterY = dimensions.height / 2;
 
-        // Calculate the center point in model coordinates (before zoom)
-        const centerModelX = -oldScroll.x + (dimensions.width / 2) / oldZoom;
-        const centerModelY = -oldScroll.y + (dimensions.height / 2) / oldZoom;
+        // Calculate the model position at the screen center (before zoom)
+        // modelPos = (screenPos - scroll) / zoom
+        const modelCenterX = (screenCenterX - oldScroll.x) / oldZoom;
+        const modelCenterY = (screenCenterY - oldScroll.y) / oldZoom;
 
-        // Calculate new scroll to keep the same center point visible after zoom
-        const newScrollX = -centerModelX + (dimensions.width / 2) / newZoom;
-        const newScrollY = -centerModelY + (dimensions.height / 2) / newZoom;
+        // Calculate new scroll to keep the same model point at screen center after zoom
+        // screenCenter = modelCenter * newZoom + newScroll
+        // newScroll = screenCenter - modelCenter * newZoom
+        const newScrollX = screenCenterX - modelCenterX * newZoom;
+        const newScrollY = screenCenterY - modelCenterY * newZoom;
+
+        console.log('[ViewportActionHandler] calculateCenteredScroll:',
+            'oldScroll:', oldScroll, 'oldZoom:', oldZoom, 'newZoom:', newZoom,
+            'modelCenter:', { x: modelCenterX, y: modelCenterY },
+            'newScroll:', { x: newScrollX, y: newScrollY });
 
         return { x: newScrollX, y: newScrollY };
     }

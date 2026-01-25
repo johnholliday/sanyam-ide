@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import { injectable, inject, postConstruct } from 'inversify';
+import { injectable, inject, postConstruct, optional } from 'inversify';
 import {
   FrontendApplicationContribution,
   FrontendApplication,
@@ -18,22 +18,21 @@ import {
 } from '@theia/core/lib/browser';
 import { DisposableCollection } from '@theia/core/lib/common';
 import URI from '@theia/core/lib/common/uri';
+import type { DiagramLanguageInfo } from '@sanyam/types';
 
 import { DiagramWidget, DIAGRAM_WIDGET_FACTORY_ID } from '../browser/diagram-widget';
 import { diagramTypeRegistry, DiagramTypeConfiguration } from '../browser/glsp-frontend-module';
+import { SanyamLanguageClientProvider } from '../browser/sanyam-language-client-provider';
 
 /**
- * Diagram types that are supported by default.
+ * Default diagram types - empty by default.
+ * Diagram types are registered dynamically based on language contributions
+ * that have diagrammingEnabled=true in their manifest.
+ *
+ * The DiagramLanguageClient will fetch supported languages from the backend
+ * and register them with the diagramTypeRegistry.
  */
-export const DEFAULT_DIAGRAM_TYPES: DiagramTypeConfiguration[] = [
-  {
-    diagramType: 'sanyam:default',
-    languageId: 'ecml',
-    label: 'Entity Model',
-    iconClass: 'fa fa-project-diagram',
-    fileExtensions: ['.ecml', '.entity'],
-  },
-];
+export const DEFAULT_DIAGRAM_TYPES: DiagramTypeConfiguration[] = [];
 
 /**
  * GLSP contribution for Theia.
@@ -57,12 +56,16 @@ export class GlspContribution
   @inject(ApplicationShell)
   protected readonly shell: ApplicationShell;
 
+  @inject(SanyamLanguageClientProvider) @optional()
+  protected readonly languageClientProvider: SanyamLanguageClientProvider | undefined;
+
   protected readonly toDispose = new DisposableCollection();
   protected app: FrontendApplication | undefined;
+  protected diagramLanguagesLoaded = false;
 
   @postConstruct()
   protected init(): void {
-    // Register default diagram types
+    // Register default diagram types (empty by default)
     this.registerDefaultDiagramTypes();
   }
 
@@ -73,8 +76,46 @@ export class GlspContribution
     this.app = app;
     console.log('GLSP Contribution started');
 
+    // Fetch and register diagram-enabled languages from backend
+    await this.fetchDiagramLanguages();
+
     // Register widget open handler for diagram files
     this.registerOpenHandlers();
+  }
+
+  /**
+   * Fetch diagram-enabled languages from the backend and register them.
+   */
+  protected async fetchDiagramLanguages(): Promise<void> {
+    if (!this.languageClientProvider) {
+      console.log('[GlspContribution] No language client provider available');
+      return;
+    }
+
+    try {
+      console.log('[GlspContribution] Fetching diagram-enabled languages...');
+      const languages = await this.languageClientProvider.sendRequest<DiagramLanguageInfo[]>(
+        'glsp/getDiagramLanguages',
+        {}
+      );
+
+      for (const lang of languages) {
+        const config: DiagramTypeConfiguration = {
+          diagramType: `sanyam:${lang.languageId}`,
+          languageId: lang.languageId,
+          label: `${lang.displayName} Diagram`,
+          iconClass: lang.iconClass ?? 'fa fa-project-diagram',
+          fileExtensions: lang.fileExtensions,
+        };
+        diagramTypeRegistry.register(config);
+        console.log(`[GlspContribution] Registered diagram type: ${config.diagramType} for ${lang.fileExtensions.join(', ')}`);
+      }
+
+      this.diagramLanguagesLoaded = true;
+      console.log(`[GlspContribution] Registered ${languages.length} diagram type(s) from backend`);
+    } catch (error) {
+      console.error('[GlspContribution] Failed to fetch diagram languages:', error);
+    }
   }
 
   /**
@@ -84,7 +125,9 @@ export class GlspContribution
     for (const config of DEFAULT_DIAGRAM_TYPES) {
       diagramTypeRegistry.register(config);
     }
-    console.log(`Registered ${DEFAULT_DIAGRAM_TYPES.length} default diagram types`);
+    if (DEFAULT_DIAGRAM_TYPES.length > 0) {
+      console.log(`Registered ${DEFAULT_DIAGRAM_TYPES.length} default diagram types`);
+    }
   }
 
   /**
@@ -199,10 +242,11 @@ export class GlspContribution
    * Register keybindings for diagram operations.
    */
   registerKeybindings(registry: KeybindingRegistry): void {
-    // Open diagram view
+    // Open diagram view (Alt+Shift+D for "Diagram" view)
+    // Note: Ctrl+Shift+D conflicts with Debug, Ctrl+Shift+G conflicts with Source Control
     registry.registerKeybinding({
       command: 'sanyam.diagram.open',
-      keybinding: 'ctrlcmd+shift+d',
+      keybinding: 'alt+shift+d',
       when: 'editorFocus',
     });
 
@@ -224,6 +268,20 @@ export class GlspContribution
     registry.registerKeybinding({
       command: 'sanyam.diagram.selectAll',
       keybinding: 'ctrlcmd+a',
+      when: 'sanyam.diagram.active',
+    });
+
+    // Toggle minimap
+    registry.registerKeybinding({
+      command: 'sanyam.diagram.toggleMinimap',
+      keybinding: 'ctrlcmd+shift+m',
+      when: 'sanyam.diagram.active',
+    });
+
+    // Marquee selection mode
+    registry.registerKeybinding({
+      command: 'sanyam.diagram.marqueeSelect',
+      keybinding: 'shift+m',
       when: 'sanyam.diagram.active',
     });
   }

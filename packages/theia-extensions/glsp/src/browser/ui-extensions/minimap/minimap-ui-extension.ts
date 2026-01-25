@@ -32,7 +32,6 @@ export const MinimapClasses = {
     CONTAINER: 'sanyam-minimap-container',
     CANVAS: 'sanyam-minimap-canvas',
     VIEWPORT: 'sanyam-minimap-viewport',
-    TOGGLE: 'sanyam-minimap-toggle',
     POSITION_TOP_LEFT: 'position-top-left',
     POSITION_TOP_RIGHT: 'position-top-right',
     POSITION_BOTTOM_LEFT: 'position-bottom-left',
@@ -124,9 +123,6 @@ export class MinimapUIExtension extends AbstractUIExtension {
     /** Viewport indicator element */
     protected viewportElement: HTMLElement | undefined;
 
-    /** Toggle button element */
-    protected toggleElement: HTMLElement | undefined;
-
     /** Current model bounds */
     protected modelBounds: { x: number; y: number; width: number; height: number } | undefined;
 
@@ -142,11 +138,23 @@ export class MinimapUIExtension extends AbstractUIExtension {
     /** Is dragging the viewport */
     protected isDragging: boolean = false;
 
+    /** Was dragging (to prevent click after drag) */
+    protected wasDragging: boolean = false;
+
+    /** Drag start position */
+    protected dragStart: { x: number; y: number } | undefined;
+
+    /** Viewport position at drag start */
+    protected dragStartViewport: { x: number; y: number } | undefined;
+
     /** Parent container element reference */
     protected parentContainerElement: HTMLElement | undefined;
 
     /** Throttle timer for updates */
     protected updateTimer: ReturnType<typeof setTimeout> | undefined;
+
+    /** MutationObserver for viewport changes */
+    protected viewportObserver: MutationObserver | undefined;
 
     id(): string {
         return MINIMAP_ID;
@@ -182,21 +190,11 @@ export class MinimapUIExtension extends AbstractUIExtension {
         // Apply position class
         this.applyPositionStyle(containerElement);
 
-        // Create toggle button
-        this.toggleElement = document.createElement('div');
-        this.toggleElement.className = MinimapClasses.TOGGLE;
-        this.toggleElement.innerHTML = '<span class="codicon codicon-map"></span>';
-        this.toggleElement.title = 'Toggle Mini-map';
-        this.toggleElement.addEventListener('click', () => this.toggleMinimap());
-        containerElement.appendChild(this.toggleElement);
-
         // Create canvas for diagram rendering
         this.canvasElement = document.createElement('canvas');
         this.canvasElement.className = MinimapClasses.CANVAS;
         this.canvasElement.width = this.config.width;
         this.canvasElement.height = this.config.height;
-        this.canvasElement.addEventListener('click', (e) => this.onCanvasClick(e));
-        this.canvasElement.addEventListener('mousedown', (e) => this.onMouseDown(e));
         containerElement.appendChild(this.canvasElement);
 
         // Create viewport indicator
@@ -204,14 +202,97 @@ export class MinimapUIExtension extends AbstractUIExtension {
         this.viewportElement.className = MinimapClasses.VIEWPORT;
         containerElement.appendChild(this.viewportElement);
 
+        // Click handler on container (works for both canvas and viewport clicks)
+        containerElement.addEventListener('click', (e) => this.onContainerClick(e));
+
+        // Mousedown on viewport for dragging
+        this.viewportElement.addEventListener('mousedown', (e) => this.onViewportMouseDown(e));
+
         // Document-level mouse events for dragging
         document.addEventListener('mousemove', this.onMouseMove);
         document.addEventListener('mouseup', this.onMouseUp);
 
-        // Show or hide based on config
-        if (!this.config.showByDefault) {
-            containerElement.style.display = 'none';
+        // Set up viewport observer to watch for diagram viewport changes
+        this.setupViewportObserver();
+
+        // Hide by default - shown via toolbar toggle
+        containerElement.style.display = 'none';
+    }
+
+    /**
+     * Set up a MutationObserver to watch for viewport transform changes.
+     */
+    protected setupViewportObserver(): void {
+        // Clean up existing observer
+        if (this.viewportObserver) {
+            this.viewportObserver.disconnect();
         }
+
+        this.viewportObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'transform') {
+                    // Viewport changed, update the minimap
+                    this.onViewportChanged();
+                }
+            }
+        });
+
+        // Start observing after a delay to let the diagram load
+        setTimeout(() => this.startObservingViewport(), 500);
+    }
+
+    /**
+     * Start observing the viewport graph group for transform changes.
+     */
+    protected startObservingViewport(): void {
+        const svgContainer = this.findSvgContainer();
+        if (!svgContainer || !this.viewportObserver) {
+            console.log('[MinimapUIExtension] Cannot start observing - svgContainer:', !!svgContainer, 'observer:', !!this.viewportObserver);
+            return;
+        }
+
+        // Log all group elements in the SVG for debugging
+        const allGroups = svgContainer.querySelectorAll('g');
+        console.log('[MinimapUIExtension] All <g> elements in SVG:', allGroups.length);
+        allGroups.forEach((g, i) => {
+            if (i < 5) {
+                console.log(`[MinimapUIExtension]   g[${i}]: id="${g.id}", class="${g.className?.baseVal}", transform="${g.getAttribute('transform')}"`);
+            }
+        });
+
+        // Find the main graph group - try multiple selectors
+        let graphGroup = svgContainer.querySelector('g.sprotty-graph') as SVGGElement;
+        if (!graphGroup) {
+            graphGroup = svgContainer.querySelector('g[id$="_root"]') as SVGGElement;
+        }
+        if (!graphGroup) {
+            // Try the first group with a transform
+            graphGroup = svgContainer.querySelector('g[transform]') as SVGGElement;
+        }
+        if (!graphGroup) {
+            // Last resort: first child group
+            graphGroup = svgContainer.querySelector('g') as SVGGElement;
+        }
+
+        if (graphGroup) {
+            console.log('[MinimapUIExtension] Starting viewport observation on:', graphGroup.id || graphGroup.className?.baseVal, 'transform:', graphGroup.getAttribute('transform'));
+            this.viewportObserver.observe(graphGroup, {
+                attributes: true,
+                attributeFilter: ['transform'],
+            });
+        } else {
+            console.warn('[MinimapUIExtension] No graph group found to observe');
+        }
+    }
+
+    /**
+     * Called when the diagram viewport changes.
+     */
+    protected onViewportChanged(): void {
+        console.log('[MinimapUIExtension] onViewportChanged triggered');
+        // Sync viewport and update indicator (but don't re-render shapes)
+        this.syncViewportFromDiagram();
+        this.updateViewportIndicator();
     }
 
     /**
@@ -220,7 +301,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
     protected applyPositionStyle(containerElement: HTMLElement): void {
         containerElement.style.position = 'absolute';
         containerElement.style.width = `${this.config.width}px`;
-        containerElement.style.height = `${this.config.height + 30}px`; // Extra for toggle
+        containerElement.style.height = `${this.config.height}px`;
         containerElement.style.zIndex = '500';
 
         switch (this.config.position) {
@@ -254,24 +335,27 @@ export class MinimapUIExtension extends AbstractUIExtension {
      * dispatch ToggleMinimapAction to avoid infinite recursion.
      */
     toggleMinimap(): void {
+        console.log('[MinimapUIExtension] toggleMinimap called, containerElement:', !!this.containerElement);
+
         // Ensure the extension is initialized first
         if (!this.containerElement) {
-            console.info('[MinimapUIExtension] Initializing minimap before toggle');
+            console.log('[MinimapUIExtension] Initializing minimap before toggle');
             this.show();
         }
 
-        if (this.canvasElement && this.viewportElement) {
-            const isHidden = this.canvasElement.style.display === 'none';
-            this.canvasElement.style.display = isHidden ? '' : 'none';
-            this.viewportElement.style.display = isHidden ? '' : 'none';
-            console.info('[MinimapUIExtension] Minimap toggled:', isHidden ? 'shown' : 'hidden');
+        if (this.containerElement) {
+            const isHidden = this.containerElement.style.display === 'none';
+            console.log('[MinimapUIExtension] isHidden:', isHidden);
+            this.containerElement.style.display = isHidden ? '' : 'none';
+            console.log('[MinimapUIExtension] Minimap toggled:', isHidden ? 'shown' : 'hidden');
 
             // Update the minimap content when showing
             if (isHidden) {
+                console.log('[MinimapUIExtension] Calling updateMinimap...');
                 this.updateMinimap();
             }
         } else {
-            console.warn('[MinimapUIExtension] Canvas or viewport element not found');
+            console.warn('[MinimapUIExtension] Container element not found');
         }
     }
 
@@ -279,12 +363,14 @@ export class MinimapUIExtension extends AbstractUIExtension {
      * Update the mini-map.
      */
     updateMinimap(): void {
+        console.log('[MinimapUIExtension] updateMinimap called');
         // Throttle updates
         if (this.updateTimer) {
             clearTimeout(this.updateTimer);
         }
 
         this.updateTimer = setTimeout(() => {
+            console.log('[MinimapUIExtension] updateMinimap timer fired, calling doUpdateMinimap');
             this.doUpdateMinimap();
         }, 100);
     }
@@ -293,50 +379,258 @@ export class MinimapUIExtension extends AbstractUIExtension {
      * Actually update the mini-map.
      */
     protected doUpdateMinimap(): void {
+        console.log('[MinimapUIExtension] doUpdateMinimap called');
+        this.syncViewportFromDiagram();
         this.updateModelBounds();
         this.renderDiagram();
         this.updateViewportIndicator();
+        console.log('[MinimapUIExtension] doUpdateMinimap completed');
+    }
+
+    /**
+     * Sync the viewport state from the actual diagram SVG.
+     * Reads the transform from the main graph group to get scroll and zoom.
+     */
+    protected syncViewportFromDiagram(): void {
+        const svgContainer = this.findSvgContainer();
+        if (!svgContainer) {
+            console.log('[MinimapUIExtension] syncViewportFromDiagram: no SVG container');
+            return;
+        }
+
+        // Find the main graph group which typically has the viewport transform
+        let graphGroup = svgContainer.querySelector('g.sprotty-graph') as SVGGElement;
+        if (!graphGroup) {
+            graphGroup = svgContainer.querySelector('g[id$="_root"]') as SVGGElement;
+        }
+        if (!graphGroup) {
+            graphGroup = svgContainer.querySelector('g[transform]') as SVGGElement;
+        }
+        if (!graphGroup) {
+            graphGroup = svgContainer.querySelector('g') as SVGGElement;
+        }
+
+        if (!graphGroup) {
+            console.log('[MinimapUIExtension] syncViewportFromDiagram: no graph group found');
+            return;
+        }
+
+        // Parse the transform attribute to get scroll and zoom
+        const transform = graphGroup.getAttribute('transform');
+        console.log('[MinimapUIExtension] syncViewportFromDiagram: transform =', transform);
+        if (transform) {
+            const viewport = this.parseTransform(transform);
+            if (viewport) {
+                this.currentViewport = viewport;
+                console.log('[MinimapUIExtension] Synced viewport from diagram:', this.currentViewport);
+            }
+        } else {
+            console.log('[MinimapUIExtension] syncViewportFromDiagram: no transform attribute on graph group');
+        }
+    }
+
+    /**
+     * Parse an SVG transform string to extract scroll and zoom.
+     * Handles transforms like "translate(x, y) scale(z)", "scale(z) translate(x, y)", or "matrix(a,b,c,d,e,f)"
+     */
+    protected parseTransform(transform: string): { scroll: { x: number; y: number }; zoom: number } | undefined {
+        let scroll = { x: 0, y: 0 };
+        let zoom = 1;
+
+        // Try to parse translate - handle both "translate(x,y)" and "translate(x, y)"
+        const translateMatch = transform.match(/translate\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/);
+        if (translateMatch) {
+            scroll.x = parseFloat(translateMatch[1]) || 0;
+            scroll.y = parseFloat(translateMatch[2]) || 0;
+            console.log('[MinimapUIExtension] parseTransform: translate =', scroll);
+        }
+
+        // Try to parse scale - handle "scale(z)" or "scale(x, y)"
+        const scaleMatch = transform.match(/scale\s*\(\s*(-?[\d.]+)/);
+        if (scaleMatch) {
+            zoom = parseFloat(scaleMatch[1]) || 1;
+            console.log('[MinimapUIExtension] parseTransform: scale =', zoom);
+        }
+
+        // Try to parse matrix(a, b, c, d, e, f) where e=translateX, f=translateY, a=scaleX
+        const matrixMatch = transform.match(/matrix\s*\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)/);
+        if (matrixMatch) {
+            zoom = parseFloat(matrixMatch[1]) || 1;
+            scroll.x = parseFloat(matrixMatch[5]) || 0;
+            scroll.y = parseFloat(matrixMatch[6]) || 0;
+            console.log('[MinimapUIExtension] parseTransform: matrix -> zoom =', zoom, 'scroll =', scroll);
+        }
+
+        console.log('[MinimapUIExtension] parseTransform result: scroll =', scroll, 'zoom =', zoom);
+        return { scroll, zoom };
     }
 
     /**
      * Update model bounds from SVG.
+     * Calculates bounds directly from shape elements to ensure coordinate consistency.
      */
     protected updateModelBounds(): void {
         const svgContainer = this.findSvgContainer();
         if (!svgContainer) {
-            console.debug('[MinimapUIExtension] SVG container not found');
+            console.warn('[MinimapUIExtension] updateModelBounds: SVG container not found');
             return;
         }
 
+        console.log('[MinimapUIExtension] updateModelBounds: SVG found, id:', svgContainer.id, 'class:', svgContainer.className?.baseVal);
+
         try {
-            // Try multiple selectors - Sprotty uses different class names
-            let graphGroup = svgContainer.querySelector('g.sprotty-graph') as SVGGraphicsElement;
-            if (!graphGroup) {
-                // Try the first g element if no specific class
-                graphGroup = svgContainer.querySelector('g') as SVGGraphicsElement;
-            }
+            // Calculate bounds from shape elements directly to ensure coordinate consistency
+            // This avoids the mismatch between SVG's transformed getBBox() and shapes' local getBBox()
+            const bounds = this.calculateBoundsFromShapes(svgContainer);
 
-            if (graphGroup) {
-                const bbox = graphGroup.getBBox();
-                // Only update if we have actual content
-                if (bbox.width > 0 && bbox.height > 0) {
-                    this.modelBounds = {
-                        x: bbox.x,
-                        y: bbox.y,
-                        width: bbox.width,
-                        height: bbox.height,
-                    };
+            if (bounds) {
+                this.modelBounds = bounds;
 
-                    // Calculate scale to fit model in minimap
-                    const scaleX = this.config.width / (bbox.width + 40);
-                    const scaleY = this.config.height / (bbox.height + 40);
-                    this.scale = Math.min(scaleX, scaleY, 1);
-                    console.debug('[MinimapUIExtension] Model bounds updated:', this.modelBounds, 'scale:', this.scale);
-                }
+                // Calculate scale to fit model in minimap with padding
+                const paddedWidth = bounds.width + 40;
+                const paddedHeight = bounds.height + 40;
+                const scaleX = this.config.width / paddedWidth;
+                const scaleY = this.config.height / paddedHeight;
+                this.scale = Math.min(scaleX, scaleY, 1);
+
+                console.log('[MinimapUIExtension] Model bounds from shapes:', this.modelBounds, 'scale:', this.scale);
+            } else {
+                console.warn('[MinimapUIExtension] No valid bounds found from shapes');
             }
         } catch (e) {
             // Ignore errors when model is empty
-            console.debug('[MinimapUIExtension] Error getting model bounds:', e);
+            console.warn('[MinimapUIExtension] Error getting model bounds:', e);
+        }
+    }
+
+    /**
+     * Calculate bounds from shape elements in MODEL space (untransformed).
+     * Uses getCTM() to get transformed positions, then reverses the viewport transform
+     * to get original model coordinates.
+     */
+    protected calculateBoundsFromShapes(svgContainer: SVGSVGElement): { x: number; y: number; width: number; height: number } | undefined {
+        const shapes = svgContainer.querySelectorAll('rect, ellipse, polygon, circle');
+        console.log('[MinimapUIExtension] calculateBoundsFromShapes: found', shapes.length, 'shapes');
+
+        if (shapes.length === 0) {
+            return undefined;
+        }
+
+        // Get the SVG's CTM to calculate relative positions
+        const svgCTM = svgContainer.getScreenCTM();
+        if (!svgCTM) {
+            console.warn('[MinimapUIExtension] Could not get SVG screen CTM');
+            return undefined;
+        }
+        const svgCTMInverse = svgCTM.inverse();
+
+        // Get the viewport transform to convert from transformed to model space
+        const viewportScroll = this.currentViewport.scroll;
+        const viewportZoom = this.currentViewport.zoom;
+
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        let validShapeCount = 0;
+
+        shapes.forEach((shape) => {
+            try {
+                const graphicsElement = shape as SVGGraphicsElement;
+                const bbox = graphicsElement.getBBox();
+                // Skip very small elements (same filter as renderDiagram)
+                if (bbox.width < 10 || bbox.height < 10) {
+                    return;
+                }
+
+                // Get the shape's transformation matrix relative to the SVG
+                const shapeCTM = graphicsElement.getScreenCTM();
+                if (!shapeCTM) {
+                    return;
+                }
+
+                // Calculate the shape's position in SVG coordinates (transformed space)
+                // by combining the shape's screen CTM with the SVG's inverse CTM
+                const relativeMatrix = svgCTMInverse.multiply(shapeCTM);
+
+                // Transform the bbox corners to get the transformed position
+                const transformedX = relativeMatrix.e + bbox.x * relativeMatrix.a;
+                const transformedY = relativeMatrix.f + bbox.y * relativeMatrix.d;
+                const width = bbox.width * Math.abs(relativeMatrix.a);
+                const height = bbox.height * Math.abs(relativeMatrix.d);
+
+                // Convert from transformed space back to MODEL space
+                // Transformed position = (modelPosition * zoom) + scroll
+                // Therefore: modelPosition = (transformedPosition - scroll) / zoom
+                const modelX = (transformedX - viewportScroll.x) / viewportZoom;
+                const modelY = (transformedY - viewportScroll.y) / viewportZoom;
+                const modelWidth = width / viewportZoom;
+                const modelHeight = height / viewportZoom;
+
+                minX = Math.min(minX, modelX);
+                minY = Math.min(minY, modelY);
+                maxX = Math.max(maxX, modelX + modelWidth);
+                maxY = Math.max(maxY, modelY + modelHeight);
+                validShapeCount++;
+            } catch (e) {
+                // Ignore shapes that fail
+            }
+        });
+
+        console.log('[MinimapUIExtension] calculateBoundsFromShapes: valid shapes:', validShapeCount,
+            'bounds:', { minX, minY, maxX, maxY }, 'viewport:', { scroll: viewportScroll, zoom: viewportZoom });
+
+        if (validShapeCount === 0 || minX === Infinity) {
+            return undefined;
+        }
+
+        return {
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY,
+        };
+    }
+
+    /**
+     * Get transformed bounds for a shape element in MODEL space.
+     * Returns the shape's bounding box in model coordinates (before viewport transform).
+     */
+    protected getTransformedBounds(shape: SVGGraphicsElement, svgContainer: SVGSVGElement): { x: number; y: number; width: number; height: number } | undefined {
+        try {
+            const bbox = shape.getBBox();
+            if (bbox.width < 10 || bbox.height < 10) {
+                return undefined;
+            }
+
+            const svgCTM = svgContainer.getScreenCTM();
+            const shapeCTM = shape.getScreenCTM();
+            if (!svgCTM || !shapeCTM) {
+                return undefined;
+            }
+
+            const relativeMatrix = svgCTM.inverse().multiply(shapeCTM);
+
+            // Calculate transformed position (in screen/SVG space)
+            const transformedX = relativeMatrix.e + bbox.x * relativeMatrix.a;
+            const transformedY = relativeMatrix.f + bbox.y * relativeMatrix.d;
+            const transformedWidth = bbox.width * Math.abs(relativeMatrix.a);
+            const transformedHeight = bbox.height * Math.abs(relativeMatrix.d);
+
+            // Convert from transformed space to MODEL space
+            // Transformed position = (modelPosition * zoom) + scroll
+            // Therefore: modelPosition = (transformedPosition - scroll) / zoom
+            const viewportScroll = this.currentViewport.scroll;
+            const viewportZoom = this.currentViewport.zoom;
+
+            return {
+                x: (transformedX - viewportScroll.x) / viewportZoom,
+                y: (transformedY - viewportScroll.y) / viewportZoom,
+                width: transformedWidth / viewportZoom,
+                height: transformedHeight / viewportZoom,
+            };
+        } catch (e) {
+            return undefined;
         }
     }
 
@@ -357,10 +651,15 @@ export class MinimapUIExtension extends AbstractUIExtension {
      * Render the diagram to the canvas.
      */
     protected renderDiagram(): void {
-        if (!this.canvasElement || !this.modelBounds) {
-            console.debug('[MinimapUIExtension] Cannot render - no canvas or model bounds');
+        if (!this.canvasElement) {
+            console.warn('[MinimapUIExtension] Cannot render - no canvas');
             return;
         }
+        if (!this.modelBounds) {
+            console.warn('[MinimapUIExtension] Cannot render - no model bounds');
+            return;
+        }
+        console.log('[MinimapUIExtension] renderDiagram: canvas size', this.canvasElement.width, 'x', this.canvasElement.height, 'modelBounds:', this.modelBounds);
 
         const ctx = this.canvasElement.getContext('2d');
         if (!ctx) {
@@ -381,26 +680,46 @@ export class MinimapUIExtension extends AbstractUIExtension {
         // Find all elements and render simplified versions
         const svgContainer = this.findSvgContainer();
         if (!svgContainer) {
+            console.warn('[MinimapUIExtension] renderDiagram: No SVG container');
             return;
         }
 
+        // Log the SVG structure for debugging
+        console.log('[MinimapUIExtension] SVG children count:', svgContainer.children.length);
+        console.log('[MinimapUIExtension] SVG innerHTML length:', svgContainer.innerHTML.length);
+
         // Render all rect, ellipse, and polygon elements (nodes are typically rendered as these)
         const shapes = svgContainer.querySelectorAll('rect, ellipse, polygon, circle');
+        console.log('[MinimapUIExtension] Found shapes (rect, ellipse, polygon, circle):', shapes.length);
         ctx.fillStyle = fgColor;
 
         let nodeCount = 0;
-        shapes.forEach(shape => {
+        let skippedSmall = 0;
+        let outOfBounds = 0;
+        console.log('[MinimapUIExtension] scale:', this.scale, 'modelBounds:', this.modelBounds);
+        shapes.forEach((shape, i) => {
             try {
-                const bbox = (shape as SVGGraphicsElement).getBBox();
-                // Skip very small elements (likely not main node shapes)
-                if (bbox.width < 10 || bbox.height < 10) {
+                // Use transformed bounds to get actual position in SVG space
+                const transformedBounds = this.getTransformedBounds(shape as SVGGraphicsElement, svgContainer);
+                if (!transformedBounds) {
+                    skippedSmall++;
                     return;
                 }
 
-                const x = (bbox.x - this.modelBounds!.x + 20) * this.scale;
-                const y = (bbox.y - this.modelBounds!.y + 20) * this.scale;
-                const w = bbox.width * this.scale;
-                const h = bbox.height * this.scale;
+                const x = (transformedBounds.x - this.modelBounds!.x + 20) * this.scale;
+                const y = (transformedBounds.y - this.modelBounds!.y + 20) * this.scale;
+                const w = transformedBounds.width * this.scale;
+                const h = transformedBounds.height * this.scale;
+
+                // Log first few shapes to debug coordinates
+                if (nodeCount < 3) {
+                    console.log(`[MinimapUIExtension] Shape ${i}: transformed(${transformedBounds.x.toFixed(1)}, ${transformedBounds.y.toFixed(1)}, ${transformedBounds.width.toFixed(1)}, ${transformedBounds.height.toFixed(1)}) -> canvas(${x.toFixed(1)}, ${y.toFixed(1)}, ${w.toFixed(1)}, ${h.toFixed(1)})`);
+                }
+
+                // Check if within canvas bounds
+                if (x < 0 || y < 0 || x > this.config.width || y > this.config.height) {
+                    outOfBounds++;
+                }
 
                 ctx.fillRect(x, y, Math.max(w, 4), Math.max(h, 4));
                 nodeCount++;
@@ -408,28 +727,44 @@ export class MinimapUIExtension extends AbstractUIExtension {
                 // Ignore
             }
         });
+        console.log('[MinimapUIExtension] Rendered shapes:', nodeCount, 'skipped small:', skippedSmall, 'out of bounds:', outOfBounds);
 
-        // Also render Sprotty nodes if present
+        // Also render Sprotty nodes if present (using transformed bounds)
         const nodes = svgContainer.querySelectorAll('.sprotty-node, [id^="node"]');
+        console.log('[MinimapUIExtension] Found Sprotty nodes (.sprotty-node, [id^="node"]):', nodes.length);
+        let sprottyNodeCount = 0;
         nodes.forEach(node => {
             try {
-                const bbox = (node as SVGGraphicsElement).getBBox();
-                const x = (bbox.x - this.modelBounds!.x + 20) * this.scale;
-                const y = (bbox.y - this.modelBounds!.y + 20) * this.scale;
-                const w = bbox.width * this.scale;
-                const h = bbox.height * this.scale;
+                const transformedBounds = this.getTransformedBounds(node as SVGGraphicsElement, svgContainer);
+                if (!transformedBounds) {
+                    return;
+                }
+
+                const x = (transformedBounds.x - this.modelBounds!.x + 20) * this.scale;
+                const y = (transformedBounds.y - this.modelBounds!.y + 20) * this.scale;
+                const w = transformedBounds.width * this.scale;
+                const h = transformedBounds.height * this.scale;
 
                 ctx.fillRect(x, y, Math.max(w, 4), Math.max(h, 4));
-                nodeCount++;
+                sprottyNodeCount++;
             } catch (e) {
                 // Ignore
             }
         });
+        console.log('[MinimapUIExtension] Rendered Sprotty nodes:', sprottyNodeCount);
 
-        // Render edges as lines
+        // Render edges as lines (converting to model space)
         const edges = svgContainer.querySelectorAll('path, line, polyline');
         ctx.strokeStyle = fgColor;
         ctx.lineWidth = 1;
+
+        // Get SVG CTM for edge transformations
+        const svgCTM = svgContainer.getScreenCTM();
+        const svgCTMInverse = svgCTM?.inverse();
+
+        // Get viewport transform to convert to model space
+        const viewportScroll = this.currentViewport.scroll;
+        const viewportZoom = this.currentViewport.zoom;
 
         let edgeCount = 0;
         edges.forEach(edge => {
@@ -440,32 +775,71 @@ export class MinimapUIExtension extends AbstractUIExtension {
                         const start = edge.getPointAtLength(0);
                         const end = edge.getPointAtLength(pathLength);
 
+                        // Transform the points to SVG coordinate space
+                        let startX = start.x, startY = start.y;
+                        let endX = end.x, endY = end.y;
+
+                        if (svgCTMInverse) {
+                            const edgeCTM = edge.getScreenCTM();
+                            if (edgeCTM) {
+                                const relativeMatrix = svgCTMInverse.multiply(edgeCTM);
+                                startX = relativeMatrix.e + start.x * relativeMatrix.a;
+                                startY = relativeMatrix.f + start.y * relativeMatrix.d;
+                                endX = relativeMatrix.e + end.x * relativeMatrix.a;
+                                endY = relativeMatrix.f + end.y * relativeMatrix.d;
+                            }
+                        }
+
+                        // Convert from transformed space to MODEL space
+                        const modelStartX = (startX - viewportScroll.x) / viewportZoom;
+                        const modelStartY = (startY - viewportScroll.y) / viewportZoom;
+                        const modelEndX = (endX - viewportScroll.x) / viewportZoom;
+                        const modelEndY = (endY - viewportScroll.y) / viewportZoom;
+
                         ctx.beginPath();
                         ctx.moveTo(
-                            (start.x - this.modelBounds!.x + 20) * this.scale,
-                            (start.y - this.modelBounds!.y + 20) * this.scale
+                            (modelStartX - this.modelBounds!.x + 20) * this.scale,
+                            (modelStartY - this.modelBounds!.y + 20) * this.scale
                         );
                         ctx.lineTo(
-                            (end.x - this.modelBounds!.x + 20) * this.scale,
-                            (end.y - this.modelBounds!.y + 20) * this.scale
+                            (modelEndX - this.modelBounds!.x + 20) * this.scale,
+                            (modelEndY - this.modelBounds!.y + 20) * this.scale
                         );
                         ctx.stroke();
                         edgeCount++;
                     }
                 } else if (edge instanceof SVGLineElement) {
-                    const x1 = parseFloat(edge.getAttribute('x1') || '0');
-                    const y1 = parseFloat(edge.getAttribute('y1') || '0');
-                    const x2 = parseFloat(edge.getAttribute('x2') || '0');
-                    const y2 = parseFloat(edge.getAttribute('y2') || '0');
+                    let x1 = parseFloat(edge.getAttribute('x1') || '0');
+                    let y1 = parseFloat(edge.getAttribute('y1') || '0');
+                    let x2 = parseFloat(edge.getAttribute('x2') || '0');
+                    let y2 = parseFloat(edge.getAttribute('y2') || '0');
+
+                    // Transform the points to SVG coordinate space
+                    if (svgCTMInverse) {
+                        const edgeCTM = edge.getScreenCTM();
+                        if (edgeCTM) {
+                            const relativeMatrix = svgCTMInverse.multiply(edgeCTM);
+                            x1 = relativeMatrix.e + x1 * relativeMatrix.a;
+                            y1 = relativeMatrix.f + y1 * relativeMatrix.d;
+                            x2 = relativeMatrix.e + x2 * relativeMatrix.a;
+                            y2 = relativeMatrix.f + y2 * relativeMatrix.d;
+                        }
+                    }
+
+                    // Convert from transformed space to MODEL space
+                    const modelX1 = (x1 - viewportScroll.x) / viewportZoom;
+                    const modelY1 = (y1 - viewportScroll.y) / viewportZoom;
+                    const modelX2 = (x2 - viewportScroll.x) / viewportZoom;
+                    const modelY2 = (y2 - viewportScroll.y) / viewportZoom;
 
                     ctx.beginPath();
                     ctx.moveTo(
-                        (x1 - this.modelBounds!.x + 20) * this.scale,
-                        (y1 - this.modelBounds!.y + 20) * this.scale
+                        (modelX1 - this.modelBounds!.x + 20) * this.scale,
+                        (modelY1 - this.modelBounds!.y + 20) * this.scale
                     );
                     ctx.lineTo(
-                        (x2 - this.modelBounds!.x + 20) * this.scale,
-                        (y2 - this.modelBounds!.y + 20) * this.scale
+                        (modelX2 - this.modelBounds!.x + 20) * this.scale,
+                        (modelY2 - this.modelBounds!.y + 20) * this.scale
                     );
                     ctx.stroke();
                     edgeCount++;
@@ -503,67 +877,118 @@ export class MinimapUIExtension extends AbstractUIExtension {
         const h = viewHeight * this.scale;
 
         this.viewportElement.style.left = `${x}px`;
-        this.viewportElement.style.top = `${y + 30}px`; // Offset for toggle
+        this.viewportElement.style.top = `${y}px`;
         this.viewportElement.style.width = `${w}px`;
         this.viewportElement.style.height = `${h}px`;
     }
 
     /**
-     * Handle canvas click to navigate.
+     * Handle click anywhere in the minimap container to navigate.
      */
-    protected onCanvasClick(event: MouseEvent): void {
-        if (this.isDragging || !this.modelBounds || !this.canvasElement) {
+    protected onContainerClick(event: MouseEvent): void {
+        console.log('[MinimapUIExtension] onContainerClick called, isDragging:', this.isDragging, 'modelBounds:', !!this.modelBounds, 'container:', !!this.containerElement);
+
+        // If we just finished dragging, ignore the click
+        if (this.isDragging || this.wasDragging) {
+            console.log('[MinimapUIExtension] Click ignored - was dragging');
+            this.wasDragging = false;
             return;
         }
 
-        const rect = this.canvasElement.getBoundingClientRect();
+        if (!this.modelBounds || !this.containerElement) {
+            console.log('[MinimapUIExtension] Click ignored - no modelBounds or container');
+            return;
+        }
+
+        const rect = this.containerElement.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
 
-        // Convert to diagram coordinates
-        const diagramX = (x / this.scale) + this.modelBounds.x - 20;
-        const diagramY = (y / this.scale) + this.modelBounds.y - 20;
+        // Convert minimap coordinates to model coordinates
+        const modelX = (x / this.scale) + this.modelBounds.x - 20;
+        const modelY = (y / this.scale) + this.modelBounds.y - 20;
 
-        // Center on this point
+        console.log('[MinimapUIExtension] Click at minimap:', { x, y }, '-> model:', { modelX, modelY });
+
+        // Center the diagram view on this model point
         const parent = this.getParentContainer();
         if (parent) {
             const parentRect = parent.getBoundingClientRect();
+            // Calculate new scroll to center on the clicked model point
+            // scroll = -(modelPosition - viewportCenter/zoom)
             const newScroll = {
-                x: -(diagramX - parentRect.width / (2 * this.currentViewport.zoom)),
-                y: -(diagramY - parentRect.height / (2 * this.currentViewport.zoom)),
+                x: -(modelX - parentRect.width / (2 * this.currentViewport.zoom)),
+                y: -(modelY - parentRect.height / (2 * this.currentViewport.zoom)),
             };
 
+            console.log('[MinimapUIExtension] Dispatching SetViewportFromMinimapAction with scroll:', newScroll, 'zoom:', this.currentViewport.zoom);
             this.dispatch(SetViewportFromMinimapAction.create(newScroll, this.currentViewport.zoom));
+        } else {
+            console.warn('[MinimapUIExtension] No parent container found for click handling');
         }
     }
 
     /**
-     * Handle mouse down for viewport dragging.
+     * Handle mouse down on viewport indicator for dragging.
      */
-    protected onMouseDown = (event: MouseEvent): void => {
-        if (this.viewportElement && event.target === this.viewportElement) {
-            this.isDragging = true;
-            event.preventDefault();
+    protected onViewportMouseDown = (event: MouseEvent): void => {
+        if (!this.viewportElement) {
+            return;
         }
+
+        this.isDragging = true;
+        this.wasDragging = false;
+        this.dragStart = { x: event.clientX, y: event.clientY };
+        this.dragStartViewport = { ...this.currentViewport.scroll };
+        event.preventDefault();
+        event.stopPropagation();
+        console.log('[MinimapUIExtension] Viewport drag started at:', this.dragStart);
     };
 
     /**
      * Handle mouse move during dragging.
      */
     protected onMouseMove = (event: MouseEvent): void => {
-        if (!this.isDragging || !this.modelBounds) {
+        if (!this.isDragging || !this.modelBounds || !this.dragStart || !this.dragStartViewport) {
             return;
         }
 
-        // TODO: Implement viewport dragging
-        // For now, just use click navigation
+        // Calculate delta in screen pixels
+        const deltaX = event.clientX - this.dragStart.x;
+        const deltaY = event.clientY - this.dragStart.y;
+
+        // Convert delta to diagram coordinates (inverse of minimap scale)
+        const diagramDeltaX = deltaX / this.scale;
+        const diagramDeltaY = deltaY / this.scale;
+
+        // Calculate new scroll position (dragging viewport moves in opposite direction of scroll)
+        const newScroll = {
+            x: this.dragStartViewport.x - diagramDeltaX,
+            y: this.dragStartViewport.y - diagramDeltaY,
+        };
+
+        console.log('[MinimapUIExtension] Dragging viewport, new scroll:', newScroll);
+
+        // Dispatch viewport change
+        this.dispatch(SetViewportFromMinimapAction.create(newScroll, this.currentViewport.zoom));
     };
 
     /**
      * Handle mouse up to stop dragging.
      */
     protected onMouseUp = (): void => {
+        if (this.isDragging) {
+            console.log('[MinimapUIExtension] Drag ended');
+            // Set flag to prevent click handler from firing after drag
+            this.wasDragging = true;
+            // Reset wasDragging after a short delay to allow future clicks
+            setTimeout(() => {
+                this.wasDragging = false;
+            }, 100);
+        }
         this.isDragging = false;
+        this.dragStart = undefined;
+        this.dragStartViewport = undefined;
     };
 
     /**
@@ -594,34 +1019,120 @@ export class MinimapUIExtension extends AbstractUIExtension {
 
     /**
      * Find the SVG container.
+     * Tries multiple selectors to handle different Sprotty configurations.
      */
     protected findSvgContainer(): SVGSVGElement | undefined {
+        console.log('[MinimapUIExtension] findSvgContainer - diagramContainerId:', this.diagramContainerId);
+
+        // Try 1: Direct container ID lookup
         if (this.diagramContainerId) {
             const container = document.getElementById(this.diagramContainerId);
+            console.log('[MinimapUIExtension] Container by ID:', container?.tagName, container?.className);
             if (container) {
-                // Sprotty renders an SVG element with a group that has class 'sprotty-graph'
-                // The SVG itself may have id like 'sprotty' or be the direct child of the container
-                const svg = container.querySelector('svg') as SVGSVGElement;
+                // The container itself might be the SVG (Sprotty creates SVG with the container ID)
+                if (container.tagName.toLowerCase() === 'svg') {
+                    console.log('[MinimapUIExtension] Container IS the SVG');
+                    return container as unknown as SVGSVGElement;
+                }
+
+                // Try SVG with sprotty-graph class first (most specific)
+                let svg = container.querySelector('svg.sprotty-graph') as SVGSVGElement;
                 if (svg) {
+                    console.log('[MinimapUIExtension] Found svg.sprotty-graph in container');
+                    return svg;
+                }
+
+                // Try any SVG element in the container
+                svg = container.querySelector('svg') as SVGSVGElement;
+                if (svg) {
+                    console.log('[MinimapUIExtension] Found svg in container');
                     return svg;
                 }
             }
         }
 
-        // Fallback: try to find any Sprotty SVG in the document
+        // Try 2: Look in parent container
         const parent = this.getParentContainer();
+        console.log('[MinimapUIExtension] Parent container:', parent?.tagName, parent?.className);
         if (parent) {
-            const svg = parent.querySelector('svg') as SVGSVGElement;
+            // Try SVG with sprotty-graph class
+            let svg = parent.querySelector('svg.sprotty-graph') as SVGSVGElement;
             if (svg) {
+                console.log('[MinimapUIExtension] Found svg.sprotty-graph in parent');
+                return svg;
+            }
+
+            // Try SVG inside sanyam-diagram-svg-container
+            const svgContainer = parent.querySelector('.sanyam-diagram-svg-container');
+            if (svgContainer) {
+                // Check if the container has an SVG child
+                svg = svgContainer.querySelector('svg') as SVGSVGElement;
+                if (svg) {
+                    console.log('[MinimapUIExtension] Found svg in .sanyam-diagram-svg-container');
+                    return svg;
+                }
+                // Also check if any child element is actually a Sprotty SVG
+                const sprottyContainer = svgContainer.querySelector('[id^="sprotty"]');
+                if (sprottyContainer?.tagName.toLowerCase() === 'svg') {
+                    console.log('[MinimapUIExtension] Found Sprotty SVG by ID prefix');
+                    return sprottyContainer as SVGSVGElement;
+                }
+            }
+
+            // Fallback: any SVG in parent
+            svg = parent.querySelector('svg') as SVGSVGElement;
+            if (svg) {
+                console.log('[MinimapUIExtension] Found svg in parent (fallback)');
                 return svg;
             }
         }
 
+        // Try 3: Global search for sprotty graph (last resort)
+        const globalSvg = document.querySelector('svg.sprotty-graph') as SVGSVGElement;
+        if (globalSvg) {
+            console.log('[MinimapUIExtension] Found svg.sprotty-graph globally');
+            return globalSvg;
+        }
+
+        // Try 4: Look for any SVG with sprotty ID pattern
+        const sprottyIdSvg = document.querySelector('svg[id^="sprotty"]') as SVGSVGElement;
+        if (sprottyIdSvg) {
+            console.log('[MinimapUIExtension] Found SVG with sprotty ID prefix globally');
+            return sprottyIdSvg;
+        }
+
+        console.warn('[MinimapUIExtension] Could not find SVG container');
         return undefined;
     }
 
     override modelChanged(_model: SModelRootImpl): void {
-        this.updateMinimap();
+        // Add delay to let DOM settle after model changes
+        setTimeout(() => {
+            this.updateMinimap();
+        }, 100);
+    }
+
+    /**
+     * Force an immediate update of the minimap.
+     * Useful after layout completes or when diagram is first loaded.
+     */
+    forceUpdate(): void {
+        // Cancel any pending throttled update
+        if (this.updateTimer) {
+            clearTimeout(this.updateTimer);
+            this.updateTimer = undefined;
+        }
+
+        // Ensure minimap is initialized
+        if (!this.containerElement) {
+            this.show();
+        }
+
+        // Wait a bit for DOM to be ready, then update
+        setTimeout(() => {
+            this.doUpdateMinimap();
+            console.debug('[MinimapUIExtension] Force update completed');
+        }, 150);
     }
 
     override dispose(): void {
@@ -630,6 +1141,11 @@ export class MinimapUIExtension extends AbstractUIExtension {
 
         if (this.updateTimer) {
             clearTimeout(this.updateTimer);
+        }
+
+        if (this.viewportObserver) {
+            this.viewportObserver.disconnect();
+            this.viewportObserver = undefined;
         }
 
         super.dispose();

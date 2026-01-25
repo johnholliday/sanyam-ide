@@ -227,16 +227,9 @@ export class GlspServer {
 
     // Convert AST to GModel using resolver if contribution exists
     const astToGModel = this.getResolvedProvider('astToGModel', contribution);
-    if (astToGModel?.convert && contribution?.manifest) {
-      // Create conversion context
-      const conversionContext = {
-        manifest: contribution.manifest,
-        diagramType: contribution.manifest.diagramTypes?.[0] ?? { astType: 'Model', displayName: 'Model', diagramId: 'model' },
-        idCounter: { value: 0 },
-        nodeMap: new Map(),
-        idMap: new Map(),
-      };
-      const gModelResult = astToGModel.convert(document.parseResult.value, conversionContext as any);
+    if (astToGModel?.convert) {
+      // Pass the full context to the converter - it expects GlspContext with document, root, etc.
+      const gModelResult = astToGModel.convert(context);
       // Handle both sync and async results
       const gModel = gModelResult instanceof Promise ? await gModelResult : gModelResult;
       context.gModel = gModel;

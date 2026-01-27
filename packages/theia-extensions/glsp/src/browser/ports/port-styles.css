@@ -1,0 +1,176 @@
+/**
+ * Port Styles (T068)
+ *
+ * CSS styles for connection ports on diagram nodes.
+ * Includes visual feedback for valid/invalid targets during connection.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Port Base Styles
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.sanyam-port {
+  cursor: pointer;
+}
+
+.sanyam-port-shape {
+  fill: var(--theia-editor-background, #ffffff);
+  stroke: var(--theia-editorWidget-border, #c8c8c8);
+  stroke-width: 1.5px;
+  transition: all 0.15s ease;
+}
+
+/* Circle port style */
+.sanyam-port-circle {
+  /* Default circle styling */
+}
+
+/* Square port style */
+.sanyam-port-square {
+  rx: 1;
+  ry: 1;
+}
+
+/* Diamond port style */
+.sanyam-port-diamond {
+  /* Diamond uses polygon, no additional styling needed */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Port Hover State
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.sanyam-port-hover {
+  fill: var(--theia-focusBorder, #0078d4);
+  stroke: var(--theia-focusBorder, #0078d4);
+  stroke-width: 2px;
+  transform: scale(1.2);
+  transform-origin: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Connection Target Feedback (T067)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Valid connection target - green highlight */
+.sanyam-port-valid-target {
+  fill: var(--theia-gitDecoration-addedResourceForeground, #2ea043);
+  stroke: var(--theia-gitDecoration-addedResourceForeground, #2ea043);
+  stroke-width: 2px;
+  animation: pulse-valid 1s ease-in-out infinite;
+}
+
+@keyframes pulse-valid {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.15);
+  }
+}
+
+/* Invalid connection target - red highlight */
+.sanyam-port-invalid-target {
+  fill: var(--theia-editorError-foreground, #f14c4c);
+  stroke: var(--theia-editorError-foreground, #f14c4c);
+  stroke-width: 2px;
+  opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Port Labels
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.sanyam-port-label {
+  font-size: 10px;
+  fill: var(--theia-editor-foreground, #333333);
+  pointer-events: none;
+  user-select: none;
+  text-anchor: start;
+  dominant-baseline: middle;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Port Type Specific Styles
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Input ports - left side, triangle pointing right */
+.sanyam-port-input .sanyam-port-shape {
+  fill: var(--theia-inputValidation-infoBackground, #e7f3ff);
+  stroke: var(--theia-inputValidation-infoBorder, #007acc);
+}
+
+/* Output ports - right side, triangle pointing left */
+.sanyam-port-output .sanyam-port-shape {
+  fill: var(--theia-inputValidation-warningBackground, #fff8e6);
+  stroke: var(--theia-inputValidation-warningBorder, #f9a825);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Port Position Indicators
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Top ports */
+.sanyam-port-position-top .sanyam-port-shape {
+  /* Ports at top edge */
+}
+
+/* Bottom ports */
+.sanyam-port-position-bottom .sanyam-port-shape {
+  /* Ports at bottom edge */
+}
+
+/* Left ports */
+.sanyam-port-position-left .sanyam-port-shape {
+  /* Ports at left edge */
+}
+
+/* Right ports */
+.sanyam-port-position-right .sanyam-port-shape {
+  /* Ports at right edge */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Connection Preview (During Drag)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Port being dragged from */
+.sanyam-port-source {
+  fill: var(--theia-focusBorder, #0078d4);
+  stroke: var(--theia-focusBorder, #0078d4);
+  stroke-width: 2px;
+}
+
+/* Connection preview line */
+.sanyam-connection-preview {
+  stroke: var(--theia-focusBorder, #0078d4);
+  stroke-width: 2px;
+  stroke-dasharray: 5, 5;
+  fill: none;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Dark Theme Overrides
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.theia-dark .sanyam-port-shape {
+  fill: var(--theia-editor-background, #1e1e1e);
+  stroke: var(--theia-editorWidget-border, #454545);
+}
+
+.theia-dark .sanyam-port-label {
+  fill: var(--theia-editor-foreground, #cccccc);
+}
+
+.theia-dark .sanyam-port-input .sanyam-port-shape {
+  fill: var(--theia-inputValidation-infoBackground, #063b49);
+  stroke: var(--theia-inputValidation-infoBorder, #007acc);
+}
+
+.theia-dark .sanyam-port-output .sanyam-port-shape {
+  fill: var(--theia-inputValidation-warningBackground, #352a05);
+  stroke: var(--theia-inputValidation-warningBorder, #f9a825);
+}

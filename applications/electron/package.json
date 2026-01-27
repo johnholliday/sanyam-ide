@@ -202,6 +202,7 @@
     "build:prod": "pnpm generate:grammars && npx theia rebuild:electron --cacheRoot ../.. && npx theia build --app-target=\"electron\"",
     "rebuild": "npx theia rebuild:electron --cacheRoot ../..",
     "watch": "concurrently -n compile,build \"theiaext watch --preserveWatchOutput\" \"theia build --watch --mode development\"",
+    "prestart": "bash ../../scripts/check-bundle-freshness.sh",
     "start": "electron scripts/theia-electron-main.js --plugins=local-dir:../../plugins",
     "start:debug": "pnpm start --log-level=debug",
     "package": "pnpm clean:dist && npx theia rebuild:electron --cacheRoot ../.. && electron-builder -c.mac.identity=null --publish never",

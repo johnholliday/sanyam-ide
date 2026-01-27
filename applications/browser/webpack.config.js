@@ -8,6 +8,11 @@ const nodeConfig = require('./gen-webpack.node.config.js');
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
+// Override devtoolModuleFilenameTemplate to remove ?[loaders] suffix
+// This makes source map paths match actual file paths for debugging
+configs[0].output = configs[0].output || {};
+configs[0].output.devtoolModuleFilenameTemplate = 'webpack:///[resource-path]';
+
 // Configure webpack alias for grammar manifests
 // This allows the product extension to import @app/grammar-manifests
 // which resolves to this application's generated grammar-manifests module

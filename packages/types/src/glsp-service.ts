@@ -216,6 +216,93 @@ export interface GlspValidationMarker {
 }
 
 // ============================================================================
+// Properties Panel Types (FR-009 to FR-013)
+// ============================================================================
+
+/**
+ * Type of a property value for form control selection.
+ */
+export type GlspPropertyType = 'string' | 'number' | 'boolean' | 'enum' | 'reference';
+
+/**
+ * Descriptor for a property displayed in the properties panel.
+ */
+export interface GlspPropertyDescriptor {
+    /** Property name (AST field name) */
+    name: string;
+    /** Display label for the property */
+    label: string;
+    /** Value type determines form control */
+    type: GlspPropertyType;
+    /** Current value */
+    value: unknown;
+    /** For enum type: available options */
+    options?: string[];
+    /** For reference type: valid target types */
+    referenceTypes?: string[];
+    /** Whether property is read-only */
+    readOnly?: boolean;
+    /** Help text / description */
+    description?: string;
+}
+
+/**
+ * Request to get properties for selected elements.
+ */
+export interface GetPropertiesRequest {
+    /** Document URI */
+    uri: string;
+    /** Element IDs to inspect */
+    elementIds: string[];
+}
+
+/**
+ * Response from getProperties() operation.
+ */
+export interface GetPropertiesResponse {
+    /** Whether the operation succeeded */
+    success: boolean;
+    /** Element ID(s) being inspected */
+    elementIds: string[];
+    /** Available properties (common to all selected if multi-select) */
+    properties: GlspPropertyDescriptor[];
+    /** Type label for display (e.g., "Entity" or "3 Entities") */
+    typeLabel: string;
+    /** Whether multiple elements are selected */
+    isMultiSelect: boolean;
+    /** Error message if operation failed */
+    error?: string;
+}
+
+/**
+ * Request to update a property value.
+ */
+export interface UpdatePropertyRequest {
+    /** Document URI */
+    uri: string;
+    /** Element ID(s) to update */
+    elementIds: string[];
+    /** Property name to update */
+    property: string;
+    /** New value */
+    value: unknown;
+}
+
+/**
+ * Response from updateProperty() operation.
+ */
+export interface UpdatePropertyResponse {
+    /** Whether update succeeded */
+    success: boolean;
+    /** Error message if failed */
+    error?: string;
+    /** Text edits applied (for sync) */
+    edits?: GlspTextEdit[];
+    /** Updated property descriptors (for refresh) */
+    properties?: GlspPropertyDescriptor[];
+}
+
+// ============================================================================
 // Operation Types (T003)
 // ============================================================================
 
@@ -474,6 +561,38 @@ export interface SanyamGlspService {
      * @returns Array of diagram-enabled language configurations
      */
     getDiagramLanguages(): Promise<DiagramLanguageInfo[]>;
+
+    /**
+     * Get properties for selected diagram elements (FR-009, FR-010).
+     *
+     * Extracts editable properties from AST nodes corresponding to
+     * the selected diagram elements. For multi-select, returns only
+     * properties common to all selected elements.
+     *
+     * @param uri - File URI
+     * @param elementIds - IDs of selected diagram elements
+     * @returns Properties result with descriptors
+     */
+    getProperties(uri: string, elementIds: string[]): Promise<GetPropertiesResponse>;
+
+    /**
+     * Update a property value for selected elements (FR-012).
+     *
+     * Modifies the AST text to reflect the new property value.
+     * For multi-select, applies the change to all selected elements.
+     *
+     * @param uri - File URI
+     * @param elementIds - IDs of elements to update
+     * @param property - Property name to update
+     * @param value - New value
+     * @returns Update result with any text edits
+     */
+    updateProperty(
+        uri: string,
+        elementIds: string[],
+        property: string,
+        value: unknown
+    ): Promise<UpdatePropertyResponse>;
 }
 
 /**

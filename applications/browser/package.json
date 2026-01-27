@@ -165,6 +165,7 @@
     "clean": "theia clean && rimraf node_modules",
     "generate:grammars": "node ../../packages/grammar-scanner/lib/generate-app-grammars.js",
     "rebuild": "npx theia rebuild:browser --cacheRoot ../..",
+    "prestart": "bash ../../scripts/check-bundle-freshness.sh",
     "start": "theia start --port=3002 --plugins=local-dir:../../plugins",
     "update:theia": "ts-node ../../scripts/update-theia-version.ts",
     "watch": "theia build --watch --mode development"

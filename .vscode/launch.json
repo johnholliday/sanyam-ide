@@ -145,10 +145,36 @@
     },
     {
       "name": "Launch Browser Frontend",
-      "type": "chrome",
+      "type": "msedge",
       "request": "launch",
-      "url": "http://localhost:3002/",
-      "webRoot": "${workspaceFolder}/applications/browser"
+      "url": "http://localhost:3002",
+      "webRoot": "${workspaceFolder}",
+      "browserLaunchLocation": "ui",
+      "timeout": 60000,
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "webpack:///../../packages/*": "${workspaceFolder}/packages/*",
+        "webpack:///../../node_modules/*": "${workspaceFolder}/node_modules/*",
+        "webpack:///../../../node_modules/*": "${workspaceFolder}/node_modules/*",
+        "webpack:///./*": "${workspaceFolder}/applications/browser/*"
+      },
+      "preLaunchTask": "Debug: Browser Frontend"
+    },
+    {
+      "name": "Attach to Browser (manual)",
+      "type": "msedge",
+      "request": "attach",
+      "address": "localhost",
+      "port": 9223,
+      "webRoot": "${workspaceFolder}",
+      "timeout": 60000,
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "webpack:///../../packages/*": "${workspaceFolder}/packages/*",
+        "webpack:///../../node_modules/*": "${workspaceFolder}/node_modules/*",
+        "webpack:///../../../node_modules/*": "${workspaceFolder}/node_modules/*",
+        "webpack:///./*": "${workspaceFolder}/applications/browser/*"
+      }
     },
     {
       "type": "chrome",
@@ -195,7 +221,6 @@
       "name": "Launch Browser Backend & Frontend",
       "configurations": [
         "Launch Browser Backend",
-        "Attach to Plugin Host",
         "Launch Browser Frontend"
       ],
       "stopAll": true

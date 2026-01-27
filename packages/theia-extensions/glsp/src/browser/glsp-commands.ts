@@ -106,6 +106,12 @@ export namespace DiagramCommands {
     category: 'Diagram',
   };
 
+  export const TOGGLE_SNAP_TO_GRID: Command = {
+    id: 'sanyam.diagram.toggleSnapToGrid',
+    label: 'Toggle Snap to Grid',
+    category: 'Diagram',
+  };
+
   export const ALIGN_LEFT: Command = {
     id: 'sanyam.diagram.alignLeft',
     label: 'Align Left',
@@ -274,6 +280,21 @@ export class GlspDiagramCommands implements CommandContribution {
       execute: () => this.enableMarqueeSelect(),
       isEnabled: () => this.hasDiagramFocus(),
     });
+
+    // Toggle snap-to-grid
+    registry.registerCommand(DiagramCommands.TOGGLE_SNAP_TO_GRID, {
+      execute: (...args: unknown[]) => this.toggleSnapToGrid(this.extractWidgetFromArgs(args)),
+      isEnabled: () => this.hasDiagramFocus(),
+      isToggled: () => this.isSnapToGridEnabled(),
+    });
+  }
+
+  /**
+   * Check if snap-to-grid is enabled in the active diagram.
+   */
+  protected isSnapToGridEnabled(): boolean {
+    const diagram = this.getActiveDiagram();
+    return diagram?.isSnapToGridEnabled() ?? false;
   }
 
   /**
@@ -674,6 +695,19 @@ export class GlspDiagramCommands implements CommandContribution {
       });
     } else {
       console.log('[GlspDiagramCommands] No diagram for enableMarqueeSelect');
+    }
+  }
+
+  protected toggleSnapToGrid(widgetHint?: unknown): void {
+    console.log('[GlspDiagramCommands] toggleSnapToGrid called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (diagram) {
+      console.log('[GlspDiagramCommands] Dispatching toggleSnapToGrid action');
+      diagram.dispatchAction({ kind: 'toggleSnapToGrid' }).catch(err => {
+        console.error('[GlspDiagramCommands] toggleSnapToGrid failed:', err);
+      });
+    } else {
+      console.log('[GlspDiagramCommands] No diagram for toggleSnapToGrid');
     }
   }
 }

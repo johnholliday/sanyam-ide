@@ -17,7 +17,7 @@
 
 import { injectable, inject, optional } from 'inversify';
 import { SModelRootImpl, TYPES, IActionDispatcher } from 'sprotty';
-import { Action } from 'sprotty-protocol';
+import { Action, SelectAction } from 'sprotty-protocol';
 import { AbstractUIExtension, DIAGRAM_CONTAINER_ID } from '../base-ui-extension';
 
 /**
@@ -353,6 +353,7 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
      * Complete the selection.
      */
     completeSelection(): string[] {
+        debugger; // VS Code will pause here when DevTools is open
         if (!this.isSelecting) {
             return [];
         }
@@ -383,12 +384,12 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
                 break;
         }
 
-        // Dispatch Sprotty select action to perform the actual selection
-        this.dispatch({
-            kind: 'elementSelected',
+        // Dispatch Sprotty SelectAction to perform the actual selection
+        const selectAction = SelectAction.create({
             selectedElementsIDs: finalSelection,
             deselectedElementsIDs: this.selectionMode === 'replace' ? this.previousSelection : [],
-        } as import('sprotty-protocol').Action);
+        });
+        this.dispatch(selectAction);
 
         console.info('[MarqueeSelectionTool] Selection completed:', finalSelection.length, 'elements selected');
 
@@ -446,13 +447,17 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
     protected findElementsInBounds(bounds: MarqueeBounds): string[] {
         const svgContainer = this.findSvgContainer();
         if (!svgContainer) {
+            console.warn('[MarqueeSelectionTool] No SVG container found');
             return [];
         }
 
         const result: string[] = [];
 
-        // Find all selectable elements (nodes)
-        const elements = svgContainer.querySelectorAll('.sprotty-node, [id^="node"]');
+        // Find all selectable elements - look for groups with sanyam-node class or Sprotty node groups
+        // Sprotty nodes are typically <g> elements with an id
+        const elements = svgContainer.querySelectorAll('g.sanyam-node, g.sprotty-node, g[id*="node"]');
+        console.log('[MarqueeSelectionTool] Found elements:', elements.length, 'selection bounds:', bounds);
+
         elements.forEach(element => {
             const id = element.id;
             if (!id) {
@@ -460,11 +465,15 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
             }
 
             const elementBounds = this.getElementBounds(element as SVGGraphicsElement);
+            console.log('[MarqueeSelectionTool] Element', id, 'bounds:', elementBounds);
+
             if (elementBounds && this.boundsIntersect(bounds, elementBounds)) {
                 result.push(id);
+                console.log('[MarqueeSelectionTool] Element', id, 'is within selection');
             }
         });
 
+        console.log('[MarqueeSelectionTool] Elements in bounds:', result);
         return result;
     }
 

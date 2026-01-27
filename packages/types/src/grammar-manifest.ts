@@ -42,6 +42,178 @@ export interface Size {
 }
 
 // =============================================================================
+// Port Types (FR-023, FR-024, FR-025)
+// =============================================================================
+
+/**
+ * Position of a port on a node boundary.
+ */
+export type PortPosition = 'top' | 'bottom' | 'left' | 'right';
+
+/**
+ * Visual style for port rendering.
+ */
+export type PortStyle = 'circle' | 'square' | 'diamond';
+
+/**
+ * Configuration for a connection port on a diagram node.
+ *
+ * Ports provide named connection points on nodes with
+ * grammar-defined connection rules.
+ *
+ * @example
+ * ```typescript
+ * const inputPort: PortConfig = {
+ *   id: 'input',
+ *   label: 'Data Input',
+ *   position: 'left',
+ *   offset: 0.5,
+ *   style: 'circle',
+ *   allowedConnections: ['edge:data-flow'],
+ * };
+ * ```
+ */
+export interface PortConfig {
+  /**
+   * Unique identifier for this port within the node.
+   * Used to reference the port in connection rules.
+   */
+  readonly id: string;
+
+  /**
+   * Display label shown on hover.
+   * Defaults to the id if not provided.
+   */
+  readonly label?: string;
+
+  /**
+   * Which edge of the node the port appears on.
+   */
+  readonly position: PortPosition;
+
+  /**
+   * Position along the edge as a fraction (0-1).
+   * - 0 = start of edge
+   * - 0.5 = center (default)
+   * - 1 = end of edge
+   */
+  readonly offset?: number;
+
+  /**
+   * Visual shape of the port.
+   * Defaults to 'circle'.
+   */
+  readonly style?: PortStyle;
+
+  /**
+   * Edge types that can connect to this port.
+   * If not specified, any edge type is allowed.
+   * Use GLSP type identifiers (e.g., 'edge:reference').
+   */
+  readonly allowedConnections?: readonly string[];
+}
+
+/**
+ * Rule defining valid connections between node types and ports.
+ *
+ * Connection rules are evaluated during edge creation to determine
+ * if a connection is allowed. The rule matches if all specified
+ * criteria match (AND logic). Use '*' for wildcards.
+ *
+ * @example
+ * ```typescript
+ * // Data can flow from Process output to Storage input
+ * const dataFlowRule: ConnectionRule = {
+ *   sourceType: 'node:process',
+ *   sourcePort: 'output',
+ *   targetType: 'node:storage',
+ *   targetPort: 'input',
+ *   edgeType: 'edge:data-flow',
+ * };
+ *
+ * // Any node can reference any other node
+ * const anyReferenceRule: ConnectionRule = {
+ *   sourceType: '*',
+ *   targetType: '*',
+ *   edgeType: 'edge:reference',
+ * };
+ * ```
+ */
+export interface ConnectionRule {
+  /**
+   * GLSP type of the source node.
+   * Use '*' to match any node type.
+   */
+  readonly sourceType: string;
+
+  /**
+   * Port ID on the source node.
+   * - Omit or use '*' to match any port
+   * - Use undefined for edge-of-node connections (no specific port)
+   */
+  readonly sourcePort?: string;
+
+  /**
+   * GLSP type of the target node.
+   * Use '*' to match any node type.
+   */
+  readonly targetType: string;
+
+  /**
+   * Port ID on the target node.
+   * - Omit or use '*' to match any port
+   * - Use undefined for edge-of-node connections (no specific port)
+   */
+  readonly targetPort?: string;
+
+  /**
+   * GLSP type of edge to create for this connection.
+   */
+  readonly edgeType: string;
+
+  /**
+   * Whether this rule allows self-connections (source = target node).
+   * Defaults to false.
+   */
+  readonly allowSelfConnection?: boolean;
+}
+
+// =============================================================================
+// Property Classification Types (FR-011)
+// =============================================================================
+
+/**
+ * Classification of an AST field for properties panel display.
+ *
+ * - 'property': Displayed in the properties panel (editable)
+ * - 'child': Displayed hierarchically in outline/diagram (structural)
+ */
+export type FieldClassification = 'property' | 'child';
+
+/**
+ * Override for automatic property/child classification.
+ *
+ * By default, scalar types (string, number, boolean, enum) are classified
+ * as properties, and object/array types as children. This override allows
+ * grammar manifests to explicitly control classification per field.
+ *
+ * @example
+ * ```typescript
+ * // Force 'description' to be a property even if it's an object
+ * const override: PropertyOverride = {
+ *   property: 'description',
+ *   classification: 'property',
+ * };
+ * ```
+ */
+export interface PropertyOverride {
+  /** AST property name to override */
+  readonly property: string;
+  /** Override classification */
+  readonly classification: FieldClassification;
+}
+
+// =============================================================================
 // Template Configuration
 // =============================================================================
 
@@ -116,6 +288,22 @@ export interface DiagramNodeConfig {
    * Example: `"Step: ${name}"` → `"Step: ProcessOrder"`
    */
   readonly tooltip?: string;
+
+  /**
+   * Port configurations for this node type (FR-023).
+   *
+   * If specified, the node will display connection ports at the
+   * configured positions. Connections will snap to these ports.
+   *
+   * @example
+   * ```typescript
+   * ports: [
+   *   { id: 'input', position: 'left', style: 'circle' },
+   *   { id: 'output', position: 'right', style: 'circle' },
+   * ]
+   * ```
+   */
+  readonly ports?: readonly PortConfig[];
 }
 
 /**
@@ -207,7 +395,9 @@ export interface ToolPaletteConfig {
  *   fileType: 'Model',
  *   nodeTypes: [...],
  *   edgeTypes: [...],
- *   toolPalette: { groups: [...] }
+ *   toolPalette: { groups: [...] },
+ *   connectionRules: [...],
+ *   propertyOverrides: [...]
  * };
  * ```
  */
@@ -229,6 +419,41 @@ export interface DiagramTypeConfig {
 
   /** Tool palette configuration */
   readonly toolPalette: ToolPaletteConfig;
+
+  /**
+   * Connection rules for port-based connections (FR-024).
+   *
+   * Defines which connections are valid between node types and ports.
+   * If not specified, all connections are allowed.
+   *
+   * @example
+   * ```typescript
+   * connectionRules: [
+   *   { sourceType: 'node:process', sourcePort: 'output',
+   *     targetType: 'node:storage', targetPort: 'input',
+   *     edgeType: 'edge:data-flow' },
+   *   { sourceType: '*', targetType: '*', edgeType: 'edge:reference' }
+   * ]
+   * ```
+   */
+  readonly connectionRules?: readonly ConnectionRule[];
+
+  /**
+   * Property classification overrides (FR-011).
+   *
+   * By default, scalar types (string, number, boolean, enum) are shown
+   * in the properties panel, and object/array types are shown hierarchically.
+   * Use these overrides to change classification for specific fields.
+   *
+   * @example
+   * ```typescript
+   * propertyOverrides: [
+   *   { property: 'metadata', classification: 'property' },
+   *   { property: 'tags', classification: 'child' }
+   * ]
+   * ```
+   */
+  readonly propertyOverrides?: readonly PropertyOverride[];
 }
 
 // =============================================================================

@@ -1157,11 +1157,16 @@ circle.sprotty-port.mouseover {
     z-index: 70;
 }
 
-.sanyam-marquee-rect {
+.sanyam-marquee-rect,
+.sanyam-marquee-rectangle {
     fill: var(--theia-editor-selectionBackground, rgba(38, 79, 120, 0.3));
     stroke: var(--theia-focusBorder, #007fd4);
     stroke-width: 1px;
     stroke-dasharray: 5, 5;
+    /* T025: Ensure proper styling for HTML-based marquee rectangle */
+    background-color: var(--theia-editor-selectionBackground, rgba(38, 79, 120, 0.3));
+    border: 1px dashed var(--theia-focusBorder, #007fd4);
+    box-sizing: border-box;
 }
 
 /* ============================================

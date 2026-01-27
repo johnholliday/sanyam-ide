@@ -46,7 +46,6 @@ export class SanyamNodeImpl extends SNodeImpl {
 @injectable()
 export class SanyamNodeView implements IView {
     render(node: SanyamNodeImpl, context: RenderingContext): VNode {
-        console.log('[SanyamNodeView] render called for:', node.id, 'type:', node.type, 'position:', node.position, 'size:', node.size);
         const shape = node.shape || 'rectangle';
         const width = node.size?.width ?? 100;
         const height = node.size?.height ?? 50;

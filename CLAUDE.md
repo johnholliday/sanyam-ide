@@ -223,6 +223,8 @@ Generate grammar packages with `GrammarManifest` exports for the SANYAM platform
 ## Active Technologies
 - TypeScript 5.x (per constitution) + Langium 4.x, Eclipse GLSP 2.x, Eclipse Theia 1.x, Inversify 6.x (003-glsp-backend-integration)
 - Theia StorageService (user profile), file-based metadata (.layout.json sidecar files) (003-glsp-backend-integration)
+- TypeScript 5.x (ES2017 target, strict mode) + Eclipse GLSP 2.x, Eclipse Theia 1.67.0, Sprotty 1.4.0, Langium 4.x, Inversify 6.x, React 18.x (004-diagram-ux-polish)
+- Theia StorageService (existing layout-storage-service.ts), file-based sidecar (.layout.json considered for export) (004-diagram-ux-polish)
 
 - TypeScript 5.6.3 (ES2017 target, strict mode) + Langium 4.x (grammar parsing), @eclipse-glsp/server 2.x (diagrams), Theia 1.67.0 (IDE platform), Inversify 6.x (DI) (002-unified-lsp-glsp)
 - File system (grammar packages in workspace), LangiumDocuments (in-memory document store) (002-unified-lsp-glsp)
@@ -232,5 +234,6 @@ Generate grammar packages with `GrammarManifest` exports for the SANYAM platform
 
 ## Recent Changes
 
+- 004-diagram-ux-polish: Added diagram UX improvements including multi-element selection, properties panel, minimap, snap-to-grid, grammar-driven tool palette, port-based connections, and accessibility enhancements
 - 002-unified-lsp-glsp: Added unified LSP/GLSP language server with bidirectional text-diagram sync
 - 001-grammar-config-command: Added TypeScript 5.x (per constitution) + Langium 4.x (grammar parsing), Claude Code (AI generation)

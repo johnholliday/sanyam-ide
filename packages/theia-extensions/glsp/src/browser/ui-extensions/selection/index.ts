@@ -17,3 +17,4 @@
 
 export * from './marquee-selection-tool';
 export * from './marquee-action-handler';
+export * from './marquee-mouse-listener';

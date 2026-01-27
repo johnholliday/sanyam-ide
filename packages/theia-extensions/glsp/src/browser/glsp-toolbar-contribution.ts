@@ -118,6 +118,16 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
             priority: 140,
             isVisible,
         });
+
+        // Toggle Snap to Grid
+        registry.registerItem({
+            id: 'sanyam.diagram.toolbar.snapToGrid',
+            command: DiagramCommands.TOGGLE_SNAP_TO_GRID.id,
+            tooltip: 'Toggle Snap to Grid',
+            icon: 'codicon codicon-layout-sidebar-right',
+            priority: 115,
+            isVisible,
+        });
     }
 
     /**

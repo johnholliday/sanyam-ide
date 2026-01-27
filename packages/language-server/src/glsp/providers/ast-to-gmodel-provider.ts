@@ -16,18 +16,19 @@ const { streamAllContents } = AstUtils;
 function isNamed(node: AstNode): node is AstNode & { name: string } {
   return 'name' in node && typeof (node as any).name === 'string';
 }
-import type { GlspContext, GModelRoot } from '@sanyam/types';
+import type { GlspContext, GModelRoot, GrammarManifest, PortConfig, PortPosition } from '@sanyam/types';
 import type { AstToGModelProvider } from '../provider-types.js';
 import type {
   GModelNode,
   GModelEdge,
   GModelLabel,
+  GModelPort,
   Point,
   Dimension,
   NodeMappingConfig,
   NodeShape,
 } from '../conversion-types.js';
-import { ElementTypes, createNode, createEdge, createLabel } from '../conversion-types.js';
+import { ElementTypes, createNode, createEdge, createLabel, createPort } from '../conversion-types.js';
 
 /**
  * Default AST to GModel provider implementation.
@@ -135,6 +136,12 @@ export const defaultAstToGModelProvider = {
 
     const node = createNode(id, type, position, size, cssClasses, shape);
     node.children = [createLabel(`${id}_label`, label)];
+
+    // T063: Generate ports from manifest if defined
+    const ports = this.createPorts(context, astNode, id, size);
+    if (ports.length > 0) {
+      node.children.push(...ports);
+    }
 
     return node;
   },
@@ -388,6 +395,118 @@ export const defaultAstToGModelProvider = {
       typeof value === 'object' &&
       '$refText' in value
     );
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // T063, T064: Port Generation
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  /**
+   * T063: Create ports for a node from manifest configuration.
+   *
+   * Reads rootTypes[].diagramNode.ports to generate SPort elements.
+   *
+   * @param context - GLSP context with manifest
+   * @param astNode - AST node being converted
+   * @param nodeId - Parent node ID
+   * @param nodeSize - Parent node size
+   * @returns Array of port elements
+   */
+  createPorts(
+    context: GlspContext,
+    astNode: AstNode,
+    nodeId: string,
+    nodeSize: Dimension
+  ): GModelPort[] {
+    const manifest = (context as any).manifest as GrammarManifest | undefined;
+    if (!manifest?.rootTypes) {
+      return [];
+    }
+
+    // Find the root type config for this AST type
+    const rootType = manifest.rootTypes.find(rt => rt.astType === astNode.$type);
+    if (!rootType?.diagramNode?.ports) {
+      return [];
+    }
+
+    const ports: GModelPort[] = [];
+    const portConfigs = rootType.diagramNode.ports;
+
+    for (const portConfig of portConfigs) {
+      const portId = `${nodeId}_port_${portConfig.id}`;
+      const portType = this.getPortType(portConfig);
+      const position = this.calculatePortPosition(portConfig, nodeSize);
+
+      const port = createPort(portId, portType, position);
+
+      // Add CSS classes for styling
+      port.cssClasses = [
+        `sanyam-port-${portConfig.style ?? 'circle'}`,
+        `sanyam-port-position-${portConfig.position}`,
+      ];
+
+      // Store port config in trace for connection validation
+      (port as any).portConfig = portConfig;
+
+      ports.push(port);
+    }
+
+    return ports;
+  },
+
+  /**
+   * Get the GLSP type for a port based on its configuration.
+   */
+  getPortType(portConfig: PortConfig): string {
+    // Determine type based on position (input = left/top, output = right/bottom)
+    const isInput = portConfig.position === 'left' || portConfig.position === 'top';
+    return isInput ? ElementTypes.PORT_INPUT : ElementTypes.PORT_OUTPUT;
+  },
+
+  /**
+   * T064: Calculate port position on node boundary.
+   *
+   * @param portConfig - Port configuration from manifest
+   * @param nodeSize - Parent node dimensions
+   * @returns Port position relative to node origin
+   */
+  calculatePortPosition(portConfig: PortConfig, nodeSize: Dimension): Point {
+    const offset = portConfig.offset ?? 0.5; // Default to center
+    const portSize = 10; // Standard port size
+    const halfPort = portSize / 2;
+
+    switch (portConfig.position) {
+      case 'top':
+        return {
+          x: nodeSize.width * offset - halfPort,
+          y: -halfPort,
+        };
+
+      case 'bottom':
+        return {
+          x: nodeSize.width * offset - halfPort,
+          y: nodeSize.height - halfPort,
+        };
+
+      case 'left':
+        return {
+          x: -halfPort,
+          y: nodeSize.height * offset - halfPort,
+        };
+
+      case 'right':
+        return {
+          x: nodeSize.width - halfPort,
+          y: nodeSize.height * offset - halfPort,
+        };
+
+      default:
+        // Default to right side center
+        return {
+          x: nodeSize.width - halfPort,
+          y: nodeSize.height / 2 - halfPort,
+        };
+    }
   },
 };
 

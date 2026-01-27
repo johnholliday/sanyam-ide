@@ -144,6 +144,12 @@ export class MinimapUIExtension extends AbstractUIExtension {
     /** Viewport position at drag start */
     protected dragStartViewport: { x: number; y: number } | undefined;
 
+    /** Flag to prevent click after drag */
+    protected justDragged: boolean = false;
+
+    /** Track if mouse moved during drag (to distinguish drag from click) */
+    protected dragHadMovement: boolean = false;
+
     /** Parent container element reference */
     protected parentContainerElement: HTMLElement | undefined;
 
@@ -880,10 +886,13 @@ export class MinimapUIExtension extends AbstractUIExtension {
      * Handle canvas click to navigate.
      */
     protected onCanvasClick(event: MouseEvent): void {
-        console.log('[MinimapUIExtension] onCanvasClick called, isDragging:', this.isDragging, 'modelBounds:', !!this.modelBounds, 'canvas:', !!this.canvasElement);
+        // Skip click if we just finished dragging (click fires after mouseup)
+        if (this.justDragged) {
+            this.justDragged = false;
+            return;
+        }
 
         if (this.isDragging || !this.modelBounds || !this.canvasElement) {
-            console.log('[MinimapUIExtension] Click ignored - isDragging:', this.isDragging, 'modelBounds:', !!this.modelBounds);
             return;
         }
 
@@ -895,8 +904,6 @@ export class MinimapUIExtension extends AbstractUIExtension {
         const diagramX = (x / this.scale) + this.modelBounds.x - 20;
         const diagramY = (y / this.scale) + this.modelBounds.y - 20;
 
-        console.log('[MinimapUIExtension] Click at canvas:', { x, y }, '-> diagram:', { diagramX, diagramY });
-
         // Center on this point
         const parent = this.getParentContainer();
         if (parent) {
@@ -906,10 +913,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
                 y: -(diagramY - parentRect.height / (2 * this.currentViewport.zoom)),
             };
 
-            console.log('[MinimapUIExtension] Dispatching SetViewportFromMinimapAction with scroll:', newScroll, 'zoom:', this.currentViewport.zoom);
             this.dispatch(SetViewportFromMinimapAction.create(newScroll, this.currentViewport.zoom));
-        } else {
-            console.warn('[MinimapUIExtension] No parent container found for click handling');
         }
     }
 
@@ -922,10 +926,10 @@ export class MinimapUIExtension extends AbstractUIExtension {
         }
 
         this.isDragging = true;
+        this.dragHadMovement = false;
         this.dragStart = { x: event.clientX, y: event.clientY };
         this.dragStartViewport = { ...this.currentViewport.scroll };
         event.preventDefault();
-        console.log('[MinimapUIExtension] Drag started at:', this.dragStart);
     };
 
     /**
@@ -940,6 +944,11 @@ export class MinimapUIExtension extends AbstractUIExtension {
         const deltaX = event.clientX - this.dragStart.x;
         const deltaY = event.clientY - this.dragStart.y;
 
+        // Track if meaningful movement occurred (more than 3 pixels)
+        if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+            this.dragHadMovement = true;
+        }
+
         // Convert delta to diagram coordinates (inverse of minimap scale)
         const diagramDeltaX = deltaX / this.scale;
         const diagramDeltaY = deltaY / this.scale;
@@ -950,8 +959,6 @@ export class MinimapUIExtension extends AbstractUIExtension {
             y: this.dragStartViewport.y - diagramDeltaY,
         };
 
-        console.log('[MinimapUIExtension] Dragging viewport, new scroll:', newScroll);
-
         // Dispatch viewport change
         this.dispatch(SetViewportFromMinimapAction.create(newScroll, this.currentViewport.zoom));
     };
@@ -960,10 +967,11 @@ export class MinimapUIExtension extends AbstractUIExtension {
      * Handle mouse up to stop dragging.
      */
     protected onMouseUp = (): void => {
-        if (this.isDragging) {
-            console.log('[MinimapUIExtension] Drag ended');
+        if (this.isDragging && this.dragHadMovement) {
+            this.justDragged = true;
         }
         this.isDragging = false;
+        this.dragHadMovement = false;
         this.dragStart = undefined;
         this.dragStartViewport = undefined;
     };

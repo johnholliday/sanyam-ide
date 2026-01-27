@@ -1,12 +1,14 @@
 /**
- * Tool Palette Provider (T071)
+ * Tool Palette Provider (T071, T055-T060)
  *
  * Generates tool palette configuration from manifest.
+ * Reads from rootTypes[].diagramNode, diagramTypes[].nodeTypes,
+ * and diagramTypes[].edgeTypes for grammar-driven tool generation.
  *
  * @packageDocumentation
  */
 
-import type { GlspContext } from '@sanyam/types';
+import type { GlspContext, GrammarManifest, RootTypeConfig, DiagramTypeConfig, NodeTypeConfig, EdgeTypeConfig } from '@sanyam/types';
 import type { ToolPaletteProvider } from '../provider-types.js';
 
 /**
@@ -68,18 +70,31 @@ export interface ToolPalette {
  */
 export const defaultToolPaletteProvider = {
   /**
-   * Generate tool palette configuration.
+   * T075b: Generate tool palette configuration with performance logging.
    */
   getToolPalette(context: GlspContext): ToolPalette {
+    const startTime = performance.now();
+
     const manifest = (context as any).manifest;
+    let palette: ToolPalette;
 
     // If manifest has explicit palette configuration, use it
     if (manifest?.diagram?.toolPalette) {
-      return this.buildFromManifest(context, manifest.diagram.toolPalette);
+      palette = this.buildFromManifest(context, manifest.diagram.toolPalette);
+    } else {
+      // Otherwise generate from node/edge types
+      palette = this.generateFromTypes(context);
     }
 
-    // Otherwise generate from node/edge types
-    return this.generateFromTypes(context);
+    // T075b: Log performance
+    const duration = performance.now() - startTime;
+    if (duration > 50) {
+      console.warn(`[ToolPaletteProvider] Generation took ${duration.toFixed(2)}ms (target: <50ms)`);
+    } else {
+      console.log(`[ToolPaletteProvider] Generated palette in ${duration.toFixed(2)}ms`);
+    }
+
+    return palette;
   },
 
   /**
@@ -124,111 +139,40 @@ export const defaultToolPaletteProvider = {
   },
 
   /**
-   * Generate palette from node and edge types.
+   * Generate palette from node and edge types (T055-T060).
+   *
+   * Reads from:
+   * - rootTypes[].diagramNode for node tools (T055)
+   * - diagramTypes[].nodeTypes for creatable filtering (T056)
+   * - diagramTypes[].edgeTypes for edge tools (T057)
+   *
+   * @param context - GLSP context with manifest
+   * @returns Tool palette configuration
    */
   generateFromTypes(context: GlspContext): ToolPalette {
-    const manifest = (context as any).manifest;
+    const manifest = (context as any).manifest as GrammarManifest | undefined;
     const groups: ToolGroup[] = [];
 
-    // Create nodes group
-    const nodesGroup: ToolGroup = {
-      id: 'nodes',
-      label: 'Nodes',
-      icon: 'symbol-structure',
-      children: [],
-    };
+    // T055, T056: Build node tools from rootTypes[].diagramNode
+    const nodeTools = this.buildNodeTools(manifest);
 
-    // Add node tools from manifest
-    if (manifest?.diagram?.nodeTypes) {
-      for (const [astType, config] of Object.entries(manifest.diagram.nodeTypes)) {
-        nodesGroup.children.push({
-          id: `create-${astType.toLowerCase()}`,
-          label: this.formatLabel(astType),
-          icon: this.getIconForType(astType),
-          action: {
-            kind: 'create-node',
-            elementTypeId: (config as any).type,
-            args: { astType },
-          },
-        });
-      }
+    // T057: Build edge tools from diagramTypes[].edgeTypes
+    const edgeTools = this.buildEdgeTools(manifest);
+
+    // T058: Group nodes by type hierarchy
+    const nodeGroups = this.buildNodeGroups(nodeTools, manifest);
+    groups.push(...nodeGroups);
+
+    // Add edges group if we have edge tools
+    if (edgeTools.length > 0) {
+      const edgesGroup: ToolGroup = {
+        id: 'edges',
+        label: 'Connections',
+        icon: 'arrow-right',
+        children: edgeTools,
+      };
+      groups.push(edgesGroup);
     }
-
-    // Add default node tools if no manifest
-    if (nodesGroup.children.length === 0) {
-      nodesGroup.children.push(
-        {
-          id: 'create-entity',
-          label: 'Entity',
-          icon: 'symbol-class',
-          action: {
-            kind: 'create-node',
-            elementTypeId: 'node:entity',
-          },
-        },
-        {
-          id: 'create-property',
-          label: 'Property',
-          icon: 'symbol-field',
-          action: {
-            kind: 'create-node',
-            elementTypeId: 'node:property',
-          },
-        }
-      );
-    }
-
-    groups.push(nodesGroup);
-
-    // Create edges group
-    const edgesGroup: ToolGroup = {
-      id: 'edges',
-      label: 'Connections',
-      icon: 'arrow-right',
-      children: [],
-    };
-
-    // Add edge tools from manifest
-    if (manifest?.diagram?.edgeTypes) {
-      for (const [property, config] of Object.entries(manifest.diagram.edgeTypes)) {
-        edgesGroup.children.push({
-          id: `create-${property.toLowerCase()}`,
-          label: this.formatLabel(property),
-          icon: this.getIconForEdge(property),
-          action: {
-            kind: 'create-edge',
-            elementTypeId: (config as any).type,
-            args: { property },
-          },
-        });
-      }
-    }
-
-    // Add default edge tools if no manifest
-    if (edgesGroup.children.length === 0) {
-      edgesGroup.children.push(
-        {
-          id: 'create-reference',
-          label: 'Reference',
-          icon: 'arrow-right',
-          action: {
-            kind: 'create-edge',
-            elementTypeId: 'edge:reference',
-          },
-        },
-        {
-          id: 'create-inheritance',
-          label: 'Inheritance',
-          icon: 'arrow-up',
-          action: {
-            kind: 'create-edge',
-            elementTypeId: 'edge:inheritance',
-          },
-        }
-      );
-    }
-
-    groups.push(edgesGroup);
 
     // Add actions group
     const actionsGroup: ToolGroup = {
@@ -246,12 +190,203 @@ export const defaultToolPaletteProvider = {
         },
       ],
     };
-
     groups.push(actionsGroup);
+
+    // T060: Add fallback message when no node types defined
+    if (nodeTools.length === 0 && edgeTools.length === 0) {
+      return this.buildEmptyPalette();
+    }
+
+    // Determine default tool
+    const defaultTool = nodeTools.length > 0 ? nodeTools[0]?.id : undefined;
 
     return {
       groups,
-      defaultTool: 'create-entity',
+      defaultTool,
+    };
+  },
+
+  /**
+   * T055, T056: Build node tools from manifest.
+   *
+   * Reads from rootTypes[].diagramNode and filters by
+   * diagramTypes[].nodeTypes.creatable.
+   */
+  buildNodeTools(manifest: GrammarManifest | undefined): ToolItem[] {
+    if (!manifest) {
+      return [];
+    }
+
+    const tools: ToolItem[] = [];
+
+    // Build a set of creatable node types from diagramTypes (T056)
+    const creatableNodeTypes = this.getCreatableNodeTypes(manifest);
+
+    // T055: Read from rootTypes[].diagramNode
+    for (const rootType of manifest.rootTypes) {
+      const diagramNode = rootType.diagramNode;
+      if (!diagramNode) {
+        continue;
+      }
+
+      // T056: Filter by creatable flag from diagramTypes
+      const glspType = diagramNode.glspType;
+      if (creatableNodeTypes.size > 0 && !creatableNodeTypes.has(glspType)) {
+        continue;
+      }
+
+      tools.push({
+        id: `create-${rootType.astType.toLowerCase()}`,
+        label: rootType.displayName || this.formatLabel(rootType.astType),
+        icon: rootType.icon || this.getIconForType(rootType.astType),
+        sortString: rootType.astType.toLowerCase(),
+        action: {
+          kind: 'create-node',
+          elementTypeId: glspType,
+          args: {
+            astType: rootType.astType,
+            template: rootType.template,
+            folder: rootType.folder,
+          },
+        },
+      });
+    }
+
+    return tools;
+  },
+
+  /**
+   * T056: Get set of creatable node types from diagramTypes.
+   */
+  getCreatableNodeTypes(manifest: GrammarManifest): Set<string> {
+    const creatableTypes = new Set<string>();
+
+    if (!manifest.diagramTypes) {
+      return creatableTypes;
+    }
+
+    for (const diagramType of manifest.diagramTypes) {
+      for (const nodeType of diagramType.nodeTypes) {
+        if (nodeType.creatable) {
+          creatableTypes.add(nodeType.glspType);
+        }
+      }
+    }
+
+    return creatableTypes;
+  },
+
+  /**
+   * T057: Build edge tools from diagramTypes[].edgeTypes.
+   */
+  buildEdgeTools(manifest: GrammarManifest | undefined): ToolItem[] {
+    if (!manifest?.diagramTypes) {
+      return [];
+    }
+
+    const tools: ToolItem[] = [];
+    const seenEdgeTypes = new Set<string>();
+
+    for (const diagramType of manifest.diagramTypes) {
+      for (const edgeType of diagramType.edgeTypes) {
+        // Only include creatable edges
+        if (!edgeType.creatable) {
+          continue;
+        }
+
+        // Avoid duplicates across diagram types
+        if (seenEdgeTypes.has(edgeType.glspType)) {
+          continue;
+        }
+        seenEdgeTypes.add(edgeType.glspType);
+
+        // Extract edge name from glspType (e.g., 'edge:reference' -> 'reference')
+        const edgeName = edgeType.glspType.replace(/^edge:/, '');
+
+        tools.push({
+          id: `create-${edgeName.toLowerCase()}`,
+          label: this.formatLabel(edgeName),
+          icon: this.getIconForEdge(edgeName),
+          sortString: edgeName.toLowerCase(),
+          action: {
+            kind: 'create-edge',
+            elementTypeId: edgeType.glspType,
+          },
+        });
+      }
+    }
+
+    return tools;
+  },
+
+  /**
+   * T058: Group node tools by type hierarchy from manifest.
+   *
+   * Creates separate groups based on folder structure or
+   * falls back to a single "Nodes" group.
+   */
+  buildNodeGroups(nodeTools: ToolItem[], manifest: GrammarManifest | undefined): ToolGroup[] {
+    if (nodeTools.length === 0) {
+      return [];
+    }
+
+    // Group tools by folder if available in manifest
+    const folderGroups = new Map<string, ToolItem[]>();
+
+    if (manifest) {
+      for (const tool of nodeTools) {
+        const folder = (tool.action.args as any)?.folder || 'default';
+        if (!folderGroups.has(folder)) {
+          folderGroups.set(folder, []);
+        }
+        folderGroups.get(folder)!.push(tool);
+      }
+    }
+
+    // If we have multiple folders, create separate groups
+    if (folderGroups.size > 1) {
+      const groups: ToolGroup[] = [];
+
+      for (const [folder, tools] of folderGroups) {
+        groups.push({
+          id: `nodes-${folder}`,
+          label: this.formatLabel(folder),
+          icon: 'symbol-structure',
+          children: tools.sort((a, b) => (a.sortString || '').localeCompare(b.sortString || '')),
+        });
+      }
+
+      return groups;
+    }
+
+    // Single "Nodes" group for all tools
+    return [{
+      id: 'nodes',
+      label: 'Nodes',
+      icon: 'symbol-structure',
+      children: nodeTools.sort((a, b) => (a.sortString || '').localeCompare(b.sortString || '')),
+    }];
+  },
+
+  /**
+   * T060: Build empty palette with fallback message.
+   */
+  buildEmptyPalette(): ToolPalette {
+    return {
+      groups: [{
+        id: 'info',
+        label: 'No Tools Available',
+        icon: 'info',
+        children: [{
+          id: 'no-types-message',
+          label: 'No diagram types defined in manifest',
+          icon: 'warning',
+          action: {
+            kind: 'custom',
+            args: { message: 'Configure rootTypes with diagramNode in your grammar manifest to enable diagram tools.' },
+          },
+        }],
+      }],
     };
   },
 

@@ -279,6 +279,11 @@ export class ViewportActionHandler implements IActionHandler {
     /**
      * Calculate adjusted scroll position to zoom around the viewport center.
      * When zooming, we want the center of the view to stay at the center.
+     *
+     * In Sprotty's coordinate system:
+     * - Transform is: translate(scroll.x, scroll.y) scale(zoom)
+     * - A model point (mx, my) appears at screen position: (mx * zoom + scroll.x, my * zoom + scroll.y)
+     * - The center of viewport in model coords: ((viewportWidth/2 - scroll.x) / zoom, (viewportHeight/2 - scroll.y) / zoom)
      */
     protected calculateCenteredScroll(
         oldScroll: { x: number; y: number },
@@ -288,12 +293,13 @@ export class ViewportActionHandler implements IActionHandler {
         const dimensions = this.getViewportDimensions();
 
         // Calculate the center point in model coordinates (before zoom)
-        const centerModelX = -oldScroll.x + (dimensions.width / 2) / oldZoom;
-        const centerModelY = -oldScroll.y + (dimensions.height / 2) / oldZoom;
+        const centerModelX = (dimensions.width / 2 - oldScroll.x) / oldZoom;
+        const centerModelY = (dimensions.height / 2 - oldScroll.y) / oldZoom;
 
-        // Calculate new scroll to keep the same center point visible after zoom
-        const newScrollX = -centerModelX + (dimensions.width / 2) / newZoom;
-        const newScrollY = -centerModelY + (dimensions.height / 2) / newZoom;
+        // Calculate new scroll to keep the same model point at viewport center after zoom
+        // newScroll.x + centerModelX * newZoom = viewportWidth/2
+        const newScrollX = dimensions.width / 2 - centerModelX * newZoom;
+        const newScrollY = dimensions.height / 2 - centerModelY * newZoom;
 
         return { x: newScrollX, y: newScrollY };
     }

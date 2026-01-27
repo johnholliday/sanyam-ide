@@ -65,6 +65,9 @@ export * from './minimap';
 // Export
 export * from './export';
 
+// Snap to Grid
+export * from './snap-to-grid';
+
 // Import specific classes for DI binding
 import {
     UIExtensionRegistry,
@@ -131,6 +134,7 @@ import {
     MarqueeSelectionTool,
     MarqueeSelectionActionHandler,
     EnableMarqueeSelectAction,
+    MarqueeMouseListener,
 } from './selection';
 
 import {
@@ -152,6 +156,14 @@ import {
     ExportSvgActionHandler,
     RequestExportSvgAction,
 } from './export';
+
+import {
+    SnapGridTool,
+    SnapGridActionHandler,
+    ToggleSnapToGridActionKind,
+    UpdateSnapGridConfigActionKind,
+    ToggleGridVisibilityActionKind,
+} from './snap-to-grid';
 
 /**
  * Options for creating the UI extensions module.
@@ -277,6 +289,10 @@ export function createUIExtensionsModule(options: UIExtensionsModuleOptions): Co
             bind(MarqueeSelectionTool).toSelf().inSingletonScope();
             bind(MarqueeSelectionActionHandler).toSelf().inSingletonScope();
             configureActionHandler(context, EnableMarqueeSelectAction.KIND, MarqueeSelectionActionHandler);
+
+            // Mouse listener for Ctrl+drag marquee selection
+            bind(MarqueeMouseListener).toSelf().inSingletonScope();
+            bind(TYPES.MouseListener).toService(MarqueeMouseListener);
         }
 
         // Resize Handles
@@ -300,6 +316,13 @@ export function createUIExtensionsModule(options: UIExtensionsModuleOptions): Co
         // Export (always enabled - no UI extension, just action handler)
         bind(ExportSvgActionHandler).toSelf().inSingletonScope();
         configureActionHandler(context, RequestExportSvgAction.KIND, ExportSvgActionHandler);
+
+        // Snap to Grid (always enabled)
+        bind(SnapGridTool).toSelf().inSingletonScope();
+        bind(SnapGridActionHandler).toSelf().inSingletonScope();
+        configureActionHandler(context, ToggleSnapToGridActionKind, SnapGridActionHandler);
+        configureActionHandler(context, UpdateSnapGridConfigActionKind, SnapGridActionHandler);
+        configureActionHandler(context, ToggleGridVisibilityActionKind, SnapGridActionHandler);
     });
 }
 
@@ -359,6 +382,11 @@ export function initializeUIExtensions(
         // Show minimap by default (it has showByDefault: true in config)
         minimap.show();
     }
+
+    // Snap to Grid (always initialized)
+    if (container.isBound(SnapGridTool)) {
+        registry.register(container.get(SnapGridTool));
+    }
 }
 
 /**
@@ -411,5 +439,10 @@ export function setUIExtensionsParentContainer(
 
     if (options.enableMinimap !== false && container.isBound(MinimapUIExtension)) {
         container.get(MinimapUIExtension).setParentContainer(parentElement);
+    }
+
+    // Snap to Grid (always set parent)
+    if (container.isBound(SnapGridTool)) {
+        container.get(SnapGridTool).setParentContainer(parentElement);
     }
 }

@@ -45,6 +45,8 @@ import type {
     GlspPoint,
     LanguageContribution,
     DiagramLanguageInfo,
+    GetPropertiesResponse,
+    UpdatePropertyResponse,
 } from '@sanyam/types';
 
 /**
@@ -947,6 +949,141 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
 
             this.log(`[SanyamGlspBackendService] Found ${languages.length} diagram-enabled language(s)`);
             return languages;
+        });
+    }
+
+    // =========================================================================
+    // Properties Panel Methods (FR-009 to FR-013)
+    // =========================================================================
+
+    /**
+     * Get properties for selected diagram elements.
+     *
+     * FR-009, FR-010: Extracts editable properties from AST nodes.
+     * For multi-select, returns only common properties.
+     */
+    async getProperties(uri: string, elementIds: string[]): Promise<GetPropertiesResponse> {
+        return this.ensureInitialized(async () => {
+            this.debug(`[SanyamGlspBackendService] getProperties: ${uri}, elements: ${elementIds.join(', ')}`);
+
+            if (!this.glspServer) {
+                return {
+                    success: false,
+                    elementIds,
+                    properties: [],
+                    typeLabel: '',
+                    isMultiSelect: elementIds.length > 1,
+                    error: 'GLSP server not initialized',
+                };
+            }
+
+            try {
+                const result = await this.getDocument(uri);
+                if (!result) {
+                    return {
+                        success: false,
+                        elementIds,
+                        properties: [],
+                        typeLabel: '',
+                        isMultiSelect: elementIds.length > 1,
+                        error: `Document not found: ${uri}`,
+                    };
+                }
+
+                const vscodeLanguageserver = await this.dynamicImport('vscode-languageserver');
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const CancellationToken = (vscodeLanguageserver as any).CancellationToken;
+
+                const context = this.glspServer.createContext(result.document, CancellationToken.None);
+
+                // TODO: Phase 6 (US4) - Implement actual property extraction
+                // For now, return stub response
+                if (this.glspServer.getProperties) {
+                    const propsResult = this.glspServer.getProperties(context, elementIds);
+                    return {
+                        success: true,
+                        ...propsResult,
+                    };
+                }
+
+                return {
+                    success: true,
+                    elementIds,
+                    properties: [],
+                    typeLabel: elementIds.length === 1 ? 'Element' : `${elementIds.length} Elements`,
+                    isMultiSelect: elementIds.length > 1,
+                };
+            } catch (error) {
+                this.logError(`[SanyamGlspBackendService] getProperties error:`, error);
+                return {
+                    success: false,
+                    elementIds,
+                    properties: [],
+                    typeLabel: '',
+                    isMultiSelect: elementIds.length > 1,
+                    error: error instanceof Error ? error.message : String(error),
+                };
+            }
+        });
+    }
+
+    /**
+     * Update a property value for selected elements.
+     *
+     * FR-012: Modifies AST text to reflect the new property value.
+     * For multi-select, applies the change to all selected elements.
+     */
+    async updateProperty(
+        uri: string,
+        elementIds: string[],
+        property: string,
+        value: unknown
+    ): Promise<UpdatePropertyResponse> {
+        return this.ensureInitialized(async () => {
+            this.debug(`[SanyamGlspBackendService] updateProperty: ${uri}, elements: ${elementIds.join(', ')}, property: ${property}`);
+
+            if (!this.glspServer) {
+                return {
+                    success: false,
+                    error: 'GLSP server not initialized',
+                };
+            }
+
+            try {
+                const result = await this.getDocument(uri);
+                if (!result) {
+                    return {
+                        success: false,
+                        error: `Document not found: ${uri}`,
+                    };
+                }
+
+                const vscodeLanguageserver = await this.dynamicImport('vscode-languageserver');
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const CancellationToken = (vscodeLanguageserver as any).CancellationToken;
+
+                const context = this.glspServer.createContext(result.document, CancellationToken.None);
+
+                // TODO: Phase 6 (US4) - Implement actual property update
+                // For now, return stub response
+                if (this.glspServer.updateProperty) {
+                    const updateResult = this.glspServer.updateProperty(context, elementIds, property, value);
+                    return {
+                        success: true,
+                        ...updateResult,
+                    };
+                }
+
+                return {
+                    success: true,
+                };
+            } catch (error) {
+                this.logError(`[SanyamGlspBackendService] updateProperty error:`, error);
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : String(error),
+                };
+            }
         });
     }
 

@@ -47,6 +47,16 @@ import { DiagramLayoutStorageService } from './layout-storage-service';
 // Toolbar contribution
 import { GlspDiagramToolbarContribution } from './glsp-toolbar-contribution';
 
+// T037: Properties panel imports
+import { PROPERTIES_PANEL_ID, SanyamGlspService as SanyamGlspServiceSymbol } from '@sanyam/types';
+import { PropertiesPanelWidget, PropertiesPanelContribution, PropertiesPanelFactory } from './properties';
+
+// T045: Outline sync imports
+import { OutlineSyncServiceSymbol, OutlineSyncServiceImpl, ElementSymbolMapper } from './outline';
+
+// T051: Snap-to-grid imports
+import { GridSnapper, SnapGridTool, bindSnapGridPreferences, SnapGridServiceSymbol } from './ui-extensions/snap-to-grid';
+
 // Note: Sprotty types are re-exported from di/sprotty-di-config via index.ts
 
 /**
@@ -186,6 +196,56 @@ export default new ContainerModule((bind: interfaces.Bind) => {
   // Bind toolbar contribution for diagram editor buttons
   bind(GlspDiagramToolbarContribution).toSelf().inSingletonScope();
   bind(TabBarToolbarContribution).toService(GlspDiagramToolbarContribution);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // T037: Properties Panel
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Bind GLSP service for properties panel (uses the proxy)
+  bind(SanyamGlspServiceSymbol).toDynamicValue(({ container }) =>
+    container.get(GLSP_FRONTEND_TYPES.GlspServiceProxy)
+  ).inSingletonScope();
+
+  // Bind properties panel widget
+  bind(PropertiesPanelWidget).toSelf().inSingletonScope();
+
+  // Bind properties panel factory
+  bind(PropertiesPanelFactory).toSelf().inSingletonScope();
+  bind(WidgetFactory).toDynamicValue((ctx) => ({
+    id: PROPERTIES_PANEL_ID,
+    createWidget: () => ctx.container.get(PropertiesPanelWidget),
+  })).inSingletonScope();
+
+  // Bind properties panel contribution
+  bind(PropertiesPanelContribution).toSelf().inSingletonScope();
+  bind(FrontendApplicationContribution).toService(PropertiesPanelContribution);
+  bind(CommandContribution).toService(PropertiesPanelContribution);
+  bind(MenuContribution).toService(PropertiesPanelContribution);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // T045: Outline Sync Service
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Bind element symbol mapper
+  bind(ElementSymbolMapper).toSelf().inSingletonScope();
+
+  // Bind outline sync service
+  bind(OutlineSyncServiceImpl).toSelf().inSingletonScope();
+  bind(OutlineSyncServiceSymbol).toService(OutlineSyncServiceImpl);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // T051: Snap-to-Grid
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Bind snap-grid preferences
+  bindSnapGridPreferences(bind);
+
+  // Bind SnapGridTool as the service and UI extension
+  bind(SnapGridTool).toSelf().inSingletonScope();
+  bind(SnapGridServiceSymbol).toService(SnapGridTool);
+
+  // Bind GridSnapper for Sprotty's ISnapper interface
+  bind(GridSnapper).toSelf().inSingletonScope();
 });
 
 /**

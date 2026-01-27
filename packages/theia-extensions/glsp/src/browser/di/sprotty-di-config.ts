@@ -24,7 +24,6 @@ import {
     SGraphImpl,
     SGraphView,
     SNodeImpl,
-    CircularNodeView,
     SEdgeImpl,
     PolylineEdgeView,
     SLabelImpl,
@@ -38,13 +37,13 @@ import {
     MouseListener,
     SModelRootImpl,
     SModelElementImpl,
-    SPortImpl,
     IActionHandler,
 } from 'sprotty';
 import { SRoutingHandleImpl } from 'sprotty/lib/features/routing/model';
 import { Action } from 'sprotty-protocol';
 import { SanyamNodeImpl, SanyamNodeView, SanyamLabelImpl } from './sanyam-node-view';
 import { SanyamModelFactory, SanyamEdgeImpl, SanyamCompartmentImpl } from './sanyam-model-factory';
+import { SanyamPortImpl, SanyamPortView } from '../ports';
 import {
     SModelRoot,
     SetModelAction,
@@ -176,6 +175,20 @@ export class SanyamMouseListener extends MouseListener {
         this.callbacks = callbacks;
     }
 
+    mouseDown(target: SModelElementImpl, event: MouseEvent): (Action | Promise<Action>)[] {
+        // Click on canvas (root) should deselect all elements
+        // But not if Ctrl/Cmd is pressed (that's for marquee selection)
+        if (target instanceof SModelRootImpl && !event.ctrlKey && !event.metaKey) {
+            // Dispatch SelectAllAction with select=false to deselect all
+            const deselectAction: SelectAllAction = {
+                kind: 'allSelected',
+                select: false,
+            };
+            return [deselectAction];
+        }
+        return super.mouseDown(target, event);
+    }
+
     mouseUp(target: SModelElementImpl, event: MouseEvent): (Action | Promise<Action>)[] {
         // Handle move completion
         if (target instanceof SanyamNodeImpl) {
@@ -245,11 +258,11 @@ function createSanyamDiagramModule(): ContainerModule {
         configureModelElement(context, SanyamModelTypes.COMPARTMENT_HEADER, SanyamCompartmentImpl, SCompartmentView);
         configureModelElement(context, SanyamModelTypes.COMPARTMENT_BODY, SanyamCompartmentImpl, SCompartmentView);
 
-        // Ports - register all backend port types
-        configureModelElement(context, SanyamModelTypes.PORT, SPortImpl, CircularNodeView);
-        configureModelElement(context, SanyamModelTypes.PORT_DEFAULT, SPortImpl, CircularNodeView);
-        configureModelElement(context, SanyamModelTypes.PORT_INPUT, SPortImpl, CircularNodeView);
-        configureModelElement(context, SanyamModelTypes.PORT_OUTPUT, SPortImpl, CircularNodeView);
+        // T065: Ports - register with custom SanyamPortView for visual feedback
+        configureModelElement(context, SanyamModelTypes.PORT, SanyamPortImpl, SanyamPortView);
+        configureModelElement(context, SanyamModelTypes.PORT_DEFAULT, SanyamPortImpl, SanyamPortView);
+        configureModelElement(context, SanyamModelTypes.PORT_INPUT, SanyamPortImpl, SanyamPortView);
+        configureModelElement(context, SanyamModelTypes.PORT_OUTPUT, SanyamPortImpl, SanyamPortView);
 
         // Routing points (for edge routing handles)
         configureModelElement(context, SanyamModelTypes.ROUTING_POINT, SRoutingHandleImpl, SRoutingHandleView);

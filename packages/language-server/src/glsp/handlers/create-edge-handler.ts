@@ -1,12 +1,13 @@
 /**
- * Create Edge Handler (T079)
+ * Create Edge Handler (T079, T066)
  *
  * Handles edge creation operations in the diagram.
+ * Includes port-based connection rule validation (T066).
  *
  * @packageDocumentation
  */
 
-import type { GlspContext } from '@sanyam/types';
+import type { GlspContext, GrammarManifest, ConnectionRule, DiagramTypeConfig } from '@sanyam/types';
 import type { GModelEdge, GModelNode, Point } from '../conversion-types.js';
 import { ElementTypes, createEdge, createLabel, isNode } from '../conversion-types.js';
 import type { ApplyResult } from '../providers/gmodel-to-ast-provider.js';
@@ -24,6 +25,10 @@ export interface CreateEdgeOperation {
   sourceElementId: string;
   /** Target element ID */
   targetElementId: string;
+  /** Source port ID (T066) */
+  sourcePortId?: string;
+  /** Target port ID (T066) */
+  targetPortId?: string;
   /** Routing points */
   routingPoints?: Point[];
   /** Additional arguments */
@@ -235,6 +240,7 @@ export const createEdgeHandler = {
 
   /**
    * Check if connection is valid between nodes.
+   * T066: Uses grammar-defined connection rules for validation.
    */
   isValidConnection(
     context: GlspContext,
@@ -242,26 +248,57 @@ export const createEdgeHandler = {
     source: GModelNode,
     target: GModelNode
   ): boolean {
-    // Check manifest rules
-    const manifest = (context as any).manifest;
-    if (manifest?.diagram?.edgeRules) {
-      const rule = manifest.diagram.edgeRules[operation.elementTypeId];
-      if (rule) {
-        // Check source type
-        if (rule.validSourceTypes && !rule.validSourceTypes.includes(source.type)) {
-          return false;
-        }
-        // Check target type
-        if (rule.validTargetTypes && !rule.validTargetTypes.includes(target.type)) {
-          return false;
-        }
-        // Check for forbidden connections
-        if (rule.forbiddenConnections) {
-          for (const forbidden of rule.forbiddenConnections) {
-            if (forbidden.source === source.type && forbidden.target === target.type) {
-              return false;
+    const manifest = (context as any).manifest as GrammarManifest | undefined;
+
+    // T066: Check connection rules from diagramTypes
+    const connectionRules = this.getConnectionRules(manifest);
+    if (connectionRules.length > 0) {
+      const isValid = this.validateWithConnectionRules(
+        connectionRules,
+        operation,
+        source,
+        target
+      );
+      if (!isValid) {
+        return false;
+      }
+    } else {
+      // Fallback to legacy edgeRules check
+      if (manifest && (manifest as any).diagram?.edgeRules) {
+        const rule = (manifest as any).diagram.edgeRules[operation.elementTypeId];
+        if (rule) {
+          // Check source type
+          if (rule.validSourceTypes && !rule.validSourceTypes.includes(source.type)) {
+            return false;
+          }
+          // Check target type
+          if (rule.validTargetTypes && !rule.validTargetTypes.includes(target.type)) {
+            return false;
+          }
+          // Check for forbidden connections
+          if (rule.forbiddenConnections) {
+            for (const forbidden of rule.forbiddenConnections) {
+              if (forbidden.source === source.type && forbidden.target === target.type) {
+                return false;
+              }
             }
           }
+        }
+      }
+    }
+
+    // Check for self-connection
+    if (operation.sourceElementId === operation.targetElementId) {
+      // Only allow if explicitly permitted by a connection rule
+      if (connectionRules.length > 0) {
+        const allowsSelfConnection = connectionRules.some(
+          rule => rule.allowSelfConnection &&
+                  this.matchesType(source.type, rule.sourceType) &&
+                  this.matchesType(target.type, rule.targetType) &&
+                  (rule.edgeType === operation.elementTypeId || rule.edgeType === '*')
+        );
+        if (!allowsSelfConnection) {
+          return false;
         }
       }
     }
@@ -280,6 +317,92 @@ export const createEdgeHandler = {
     }
 
     return true;
+  },
+
+  /**
+   * T066: Get connection rules from manifest.
+   */
+  getConnectionRules(manifest: GrammarManifest | undefined): readonly ConnectionRule[] {
+    if (!manifest?.diagramTypes) {
+      return [];
+    }
+
+    // Collect all connection rules from all diagram types
+    const allRules: ConnectionRule[] = [];
+    for (const diagramType of manifest.diagramTypes) {
+      if (diagramType.connectionRules) {
+        allRules.push(...diagramType.connectionRules);
+      }
+    }
+
+    return allRules;
+  },
+
+  /**
+   * T066: Validate connection against rules.
+   */
+  validateWithConnectionRules(
+    rules: readonly ConnectionRule[],
+    operation: CreateEdgeOperation,
+    source: GModelNode,
+    target: GModelNode
+  ): boolean {
+    // Find a matching rule
+    for (const rule of rules) {
+      // Check edge type
+      if (rule.edgeType !== operation.elementTypeId && rule.edgeType !== '*') {
+        continue;
+      }
+
+      // Check source type
+      if (!this.matchesType(source.type, rule.sourceType)) {
+        continue;
+      }
+
+      // Check target type
+      if (!this.matchesType(target.type, rule.targetType)) {
+        continue;
+      }
+
+      // Check source port
+      if (!this.matchesPort(operation.sourcePortId, rule.sourcePort)) {
+        continue;
+      }
+
+      // Check target port
+      if (!this.matchesPort(operation.targetPortId, rule.targetPort)) {
+        continue;
+      }
+
+      // Rule matches
+      return true;
+    }
+
+    // If no rules defined for this edge type, allow by default
+    const hasRulesForType = rules.some(r => r.edgeType === operation.elementTypeId);
+    return !hasRulesForType;
+  },
+
+  /**
+   * T066: Check if node type matches rule pattern.
+   */
+  matchesType(nodeType: string, ruleType: string): boolean {
+    if (ruleType === '*') {
+      return true;
+    }
+    return nodeType === ruleType;
+  },
+
+  /**
+   * T066: Check if port matches rule pattern.
+   */
+  matchesPort(portId: string | undefined, rulePort: string | undefined): boolean {
+    // If rule doesn't specify port, any port (or no port) matches
+    if (rulePort === undefined || rulePort === '*') {
+      return true;
+    }
+    // If rule specifies port, port must match
+    return portId === rulePort;
   },
 
   /**

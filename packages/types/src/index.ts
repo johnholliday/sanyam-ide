@@ -12,6 +12,14 @@ export {
   type InputType,
   type ActionType,
   type Size,
+  // Port types (FR-023, FR-024, FR-025)
+  type PortPosition,
+  type PortStyle,
+  type PortConfig,
+  type ConnectionRule,
+  // Property classification types (FR-011)
+  type FieldClassification,
+  type PropertyOverride,
   // Template configuration
   type TemplateInput,
   // Diagram configuration
@@ -171,6 +179,13 @@ export {
   type GlspContextMenuItem,
   type ValidationResponse,
   type GlspValidationMarker,
+  // Properties panel types (FR-009 to FR-013)
+  type GlspPropertyType,
+  type GlspPropertyDescriptor,
+  type GetPropertiesRequest,
+  type GetPropertiesResponse,
+  type UpdatePropertyRequest,
+  type UpdatePropertyResponse,
   // Operation types
   type DiagramOperation,
   type CreateNodeOperation,
@@ -188,3 +203,37 @@ export {
   // Language info (for dynamic diagram type registration)
   type DiagramLanguageInfo,
 } from './glsp-service.js';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Properties Service Types (FR-009 to FR-013)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export {
+  // Property types (internal service types - use Glsp* types for RPC)
+  type PropertyType,
+  type PropertyValidation,
+  type PropertyDescriptor,
+  // Result types (internal)
+  type PropertiesResult,
+  type PropertyUpdateResult,
+  // Service interface (internal)
+  type PropertiesService,
+  // Classification utilities
+  classifyFieldValue,
+  classifyField,
+  // UI constants
+  PROPERTIES_PANEL_ID,
+  PROPERTIES_PANEL_VIEW_CONTAINER_ID,
+  PropertiesPanelCommands,
+  // Port utilities
+  DEFAULT_PORT_STYLE,
+  DEFAULT_PORT_OFFSET,
+  PORT_SIZE,
+  PortCssClasses,
+  portAllowsEdgeType,
+  ruleMatches,
+  findMatchingRules,
+  isConnectionValid,
+  getEdgeTypeForConnection,
+  calculatePortPosition,
+} from './properties-service.js';

@@ -79,11 +79,25 @@ export interface Dimension {
 }
 
 /**
- * Selection state.
+ * Selection state (FR-006, FR-007, FR-008).
  */
 export interface SelectionState {
     selectedIds: string[];
     hoveredId?: string;
+}
+
+/**
+ * Event emitted when selection changes (FR-010, FR-013).
+ */
+export interface SelectionChangeEvent {
+    /** Current selected element IDs */
+    readonly selectedIds: readonly string[];
+    /** Previously selected element IDs */
+    readonly previousSelectedIds: readonly string[];
+    /** Source of the selection change */
+    readonly source: 'diagram' | 'outline' | 'textEditor' | 'explorer' | 'propertiesPanel';
+    /** Hovered element ID (if any) */
+    readonly hoveredId?: string;
 }
 
 /**
@@ -433,8 +447,76 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
         this.node.appendChild(container);
 
+        // T022: Add mousedown listener for marquee selection on Ctrl+click empty space
+        this.svgContainer.addEventListener('mousedown', this.handleCanvasMouseDown);
+
         // Show placeholder initially
         this.showPlaceholder();
+    }
+
+    /**
+     * T022/T023: Handle mousedown on canvas for marquee selection.
+     * Triggers marquee selection when Ctrl+click on empty space (not on a node).
+     */
+    protected handleCanvasMouseDown = (event: MouseEvent): void => {
+        // Only trigger on Ctrl+click (or Cmd+click on Mac)
+        if (!event.ctrlKey && !event.metaKey) {
+            return;
+        }
+
+        // T024: Check if click is on empty space (not on a node element)
+        if (this.isNodeElement(event.target as Element)) {
+            return;
+        }
+
+        // Get marquee selection tool and enable it
+        const registry = this.sprottyManager?.getUIExtensionRegistry();
+        if (registry) {
+            const marqueeTool = registry.get('sanyam-marquee-selection');
+            if (marqueeTool && 'enableMarqueeMode' in marqueeTool) {
+                (marqueeTool as any).enableMarqueeMode();
+                console.log('[DiagramWidget] Marquee selection mode enabled via Ctrl+click');
+            }
+        }
+    };
+
+    /**
+     * T024: Check if an element is a node element (or part of a node).
+     *
+     * @param element - DOM element to check
+     * @returns True if the element is or belongs to a diagram node
+     */
+    protected isNodeElement(element: Element | null): boolean {
+        if (!element) {
+            return false;
+        }
+
+        // Check if the element itself is a node
+        if (element.classList.contains('sprotty-node') ||
+            element.classList.contains('sanyam-node') ||
+            element.closest('.sprotty-node') ||
+            element.closest('.sanyam-node')) {
+            return true;
+        }
+
+        // Check if the element has a node-like ID pattern
+        if (element.id && element.id.startsWith('node')) {
+            return true;
+        }
+
+        // Check parent elements up to 5 levels for node classes
+        let current: Element | null = element;
+        let depth = 0;
+        while (current && depth < 5) {
+            if (current.classList.contains('sprotty-node') ||
+                current.classList.contains('sanyam-node')) {
+                return true;
+            }
+            current = current.parentElement;
+            depth++;
+        }
+
+        return false;
     }
 
     /**
@@ -627,15 +709,22 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     this.state.sizes = new Map(Object.entries(response.metadata.sizes));
                 }
 
-                // Override with saved layout positions if available
+                // T075a: Override with saved layout positions if available (with performance logging)
                 if (this.savedLayout) {
+                    const applyStartTime = performance.now();
                     for (const [id, layout] of Object.entries(this.savedLayout.elements)) {
                         this.state.positions.set(id, layout.position);
                         if (layout.size) {
                             this.state.sizes.set(id, layout.size);
                         }
                     }
-                    console.log(`[DiagramWidget] Applied ${Object.keys(this.savedLayout.elements).length} saved positions`);
+                    const applyDuration = performance.now() - applyStartTime;
+                    const elementCount = Object.keys(this.savedLayout.elements).length;
+                    if (applyDuration > 100) {
+                        console.warn(`[DiagramWidget] Layout apply took ${applyDuration.toFixed(2)}ms for ${elementCount} elements (target: <100ms)`);
+                    } else {
+                        console.log(`[DiagramWidget] Applied ${elementCount} saved positions in ${applyDuration.toFixed(2)}ms`);
+                    }
                 }
 
                 // Set the model
@@ -655,6 +744,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
     /**
      * Set the diagram model.
+     *
+     * T011: Always adds layout-pending class immediately at entry to hide
+     * the diagram during initial rendering (prevents visual repositioning).
      */
     async setModel(gModel: GModelRootType): Promise<void> {
         this.state.gModel = gModel;
@@ -670,8 +762,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         // Set model in Sprotty
         if (this.sprottyManager && this.sprottyInitialized) {
             try {
-                // Add layout-pending class to hide diagram during layout (unless we have saved positions)
-                if (this.svgContainer && !hasSavedLayout) {
+                // T011: Add layout-pending class IMMEDIATELY to hide diagram during rendering
+                // This prevents any visual jarring regardless of saved layout state
+                if (this.svgContainer) {
                     this.layoutPending = true;
                     this.svgContainer.classList.add('layout-pending');
                     console.log('[DiagramWidget] Layout pending - diagram hidden');
@@ -687,13 +780,15 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     console.log('[DiagramWidget] Skipping auto-layout - using saved positions');
                     // Fit to screen with the saved positions
                     await this.sprottyManager.fitToScreen();
+                    // T015: Reveal diagram after fitToScreen completes
+                    this.revealDiagramAfterLayout();
                     // Update minimap
                     this.updateMinimapAfterLayout();
                 } else {
                     // Request automatic layout for fresh diagrams
                     await this.sprottyManager.requestLayout();
                     console.log('[DiagramWidget] Layout requested');
-                    // Note: fitToScreen is called in onLayoutComplete
+                    // Note: fitToScreen and revealDiagramAfterLayout are called in onLayoutComplete
                 }
             } catch (error) {
                 console.error('[DiagramWidget] Failed to set model in Sprotty:', error);
@@ -1052,9 +1147,34 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
+     * Check if snap-to-grid is enabled.
+     */
+    isSnapToGridEnabled(): boolean {
+        const registry = this.sprottyManager?.getUIExtensionRegistry();
+        if (registry) {
+            const snapGridTool = registry.get('sanyam-snap-grid-tool');
+            if (snapGridTool && 'getConfig' in snapGridTool) {
+                return (snapGridTool as any).getConfig().enabled ?? false;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Dispose the widget.
+     * T018: Saves layout immediately before disposing to ensure positions persist.
      */
     dispose(): void {
+        // T018: Save layout immediately on close (don't wait for debounce)
+        this.saveLayoutImmediate().catch(error => {
+            console.warn('[DiagramWidget] Failed to save layout on dispose:', error);
+        });
+
+        // Remove marquee mousedown listener
+        if (this.svgContainer) {
+            this.svgContainer.removeEventListener('mousedown', this.handleCanvasMouseDown);
+        }
+
         if (this.sprottyManager) {
             this.sprottyManager.dispose();
             this.sprottyManager = undefined;

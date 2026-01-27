@@ -41,18 +41,15 @@ export class MinimapActionHandler implements IActionHandler {
      * Handle minimap actions.
      */
     handle(action: Action): void | ICommand | Action {
-        console.log('[MinimapActionHandler] Received action:', action.kind);
         switch (action.kind) {
             case ToggleMinimapAction.KIND:
-                console.log('[MinimapActionHandler] Handling toggleMinimap');
                 this.handleToggleMinimap(action as ToggleMinimapAction);
                 break;
             case SetViewportFromMinimapAction.KIND:
-                console.log('[MinimapActionHandler] Handling setViewportFromMinimap');
                 this.handleSetViewportFromMinimap(action as SetViewportFromMinimapAction);
                 break;
             default:
-                console.log('[MinimapActionHandler] Unknown action kind:', action.kind);
+                console.warn('[MinimapActionHandler] Unknown action kind:', action.kind);
         }
     }
 
@@ -70,12 +67,8 @@ export class MinimapActionHandler implements IActionHandler {
      * Handle toggle minimap action.
      */
     protected handleToggleMinimap(action: ToggleMinimapAction): void {
-        console.log('[MinimapActionHandler] handleToggleMinimap called, registry:', !!this.uiExtensionRegistry);
         const minimap = this.getMinimapExtension();
-        console.log('[MinimapActionHandler] minimap extension:', !!minimap);
         if (minimap) {
-            console.log('[MinimapActionHandler] Toggling minimap');
-
             // Ensure the minimap has a parent container before toggling
             if (!minimap['parentContainerElement']) {
                 // Try multiple selectors to find the diagram container
@@ -94,7 +87,6 @@ export class MinimapActionHandler implements IActionHandler {
                             container = container.parentElement;
                         }
                         if (container instanceof HTMLElement) {
-                            console.info('[MinimapActionHandler] Setting parent container from DOM:', selector);
                             minimap.setParentContainer(container);
                             break;
                         }
@@ -122,16 +114,12 @@ export class MinimapActionHandler implements IActionHandler {
      * Handle set viewport from minimap action.
      */
     protected handleSetViewportFromMinimap(action: SetViewportFromMinimapAction): void {
-        console.info('[MinimapActionHandler] Setting viewport from minimap:', action.scroll, action.zoom);
-
         // Find the Sprotty model root element ID
         const elementId = this.findSprottyRootId();
         if (!elementId) {
             console.warn('[MinimapActionHandler] Could not find Sprotty root element ID');
             return;
         }
-
-        console.info('[MinimapActionHandler] Dispatching SetViewportAction with elementId:', elementId);
 
         // Dispatch a Sprotty SetViewportAction to actually change the viewport
         const viewportAction = SetViewportAction.create(elementId, {
@@ -156,11 +144,9 @@ export class MinimapActionHandler implements IActionHandler {
                 // Extract the part after the last underscore-separated segment that contains 'root'
                 const rootMatch = svgId.match(/^(.+_root)/);
                 if (rootMatch) {
-                    console.log('[MinimapActionHandler] Found root ID from SVG:', rootMatch[1]);
                     return rootMatch[1];
                 }
                 // If no 'root' in ID, use the SVG ID directly
-                console.log('[MinimapActionHandler] Using SVG ID as root:', svgId);
                 return svgId;
             }
         }
@@ -168,14 +154,12 @@ export class MinimapActionHandler implements IActionHandler {
         // Try to find by looking for the main graph group
         const graphGroup = document.querySelector('g[id$="_root"]') as SVGGElement;
         if (graphGroup?.id) {
-            console.log('[MinimapActionHandler] Found root ID from graph group:', graphGroup.id);
             return graphGroup.id;
         }
 
         // Fallback: look for any element with sprotty in the ID ending with _root
         const rootElement = document.querySelector('[id*="sprotty"][id$="_root"]');
         if (rootElement?.id) {
-            console.log('[MinimapActionHandler] Found root ID from fallback:', rootElement.id);
             return rootElement.id;
         }
 

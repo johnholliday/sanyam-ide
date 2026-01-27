@@ -36,6 +36,12 @@ import type { LayoutResult, LayoutOptions } from './providers/layout-provider.js
 import type { ValidationResult } from './providers/diagram-validation-provider.js';
 import type { ToolPalette } from './providers/tool-palette-provider.js';
 import type { ContextMenu } from './providers/context-menu-provider.js';
+import {
+  PropertyProvider,
+  createPropertyProvider,
+  type PropertyExtractionResult,
+  type PropertyUpdateResult,
+} from './providers/property-provider.js';
 
 /**
  * Operation type union.
@@ -90,6 +96,7 @@ export class GlspServer {
   private handlerRegistry: OperationHandlerRegistry;
   private providerRegistry: ProviderRegistry;
   private providerResolver: GlspProviderResolver;
+  private propertyProvider: PropertyProvider;
   private languageContributions: Map<string, LanguageContribution> = new Map();
   private config: GlspServerConfig;
 
@@ -106,6 +113,9 @@ export class GlspServer {
     // Initialize registries
     this.handlerRegistry = new OperationHandlerRegistry();
     this.providerRegistry = new ProviderRegistry();
+
+    // T027: Initialize property provider
+    this.propertyProvider = createPropertyProvider();
 
     // Initialize provider resolver
     this.providerResolver = createGlspProviderResolver({
@@ -433,6 +443,55 @@ export class GlspServer {
    */
   registerProvider(name: string, provider: any): void {
     this.providerRegistry.register(name, provider);
+  }
+
+  /**
+   * T030: Get properties for selected elements (FR-009, FR-010).
+   *
+   * Extracts editable properties from AST nodes for the properties panel.
+   * For multi-select, returns only properties common to all selected elements.
+   *
+   * @param context - GLSP context
+   * @param elementIds - IDs of selected elements
+   * @param contribution - Optional language contribution for manifest overrides
+   * @returns Property extraction result
+   */
+  getProperties(
+    context: GlspContext,
+    elementIds: string[],
+    contribution?: LanguageContribution
+  ): PropertyExtractionResult {
+    return this.propertyProvider.extractProperties(
+      context,
+      elementIds,
+      contribution?.manifest
+    );
+  }
+
+  /**
+   * T031: Update a property value (FR-012).
+   *
+   * Modifies property values on AST nodes.
+   * For multi-select, applies the change to all selected elements.
+   *
+   * @param context - GLSP context
+   * @param elementIds - IDs of elements to update
+   * @param propertyName - Property name to update
+   * @param value - New value
+   * @returns Update result
+   */
+  updateProperty(
+    context: GlspContext,
+    elementIds: string[],
+    propertyName: string,
+    value: unknown
+  ): PropertyUpdateResult {
+    return this.propertyProvider.updateProperty(
+      context,
+      elementIds,
+      propertyName,
+      value
+    );
   }
 }
 

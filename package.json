@@ -52,6 +52,7 @@
     "build:prod": "turbo run build:prod --filter=\"sanyam*\" --filter=\"@sanyam/*\" --filter=\"@sanyam-ide/*\" --filter=\"@sanyam-grammar/*\"",
     "clean": "pnpm -r run clean && rimraf node_modules .turbo",
     "deploy:language-server": "pnpm build:language-server && pnpm --filter sanyam-language-server run package:vsix && rm -rf plugins/sanyam.sanyam-language-server && mkdir -p plugins/sanyam.sanyam-language-server && unzip -o packages/language-server/sanyam-language-server-*.vsix -d plugins/sanyam.sanyam-language-server/",
+    "debug:browser": "bash scripts/launch-browser-debug.sh",
     "docs:build": "bash scripts/docs.sh build",
     "docs:clean": "bash scripts/docs.sh clean",
     "docs:start": "bash scripts/docs.sh start",

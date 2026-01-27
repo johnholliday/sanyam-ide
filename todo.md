@@ -15,3 +15,15 @@
 7. Tool palette Nodes section contains only "Node", "Entity" and "Component".  It should contain the hierarchy of available node types from the grammar manifest.  Same for connections.
 
 8. The grammar-specific diagram styling must support 'ports' for certain entity types, with grammar-specific rules for the kinds of connections that are allowed between diagram nodes.
+
+----
+
+- When the diagram is larger than the view, the minimap responds to mouse hover by displaying the correct icon for moving and highlighting the viewport, but fails to process mouse drags.
+
+- The 'Snap to Grid' toggle does not affect the diagram and fails to visually convey the state of the toggle button.
+
+- Marquee selection with Ctrl+Drag on the canvas draws the selection rectangle, but does not select the items upon releasing the mouse.
+
+- Clicking Zoom In/Out moves the viewport down/up instead of changing its size.
+
+- Clicking on the canvas background should de-select any selected elements.  Currently does nothing.

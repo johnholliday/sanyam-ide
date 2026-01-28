@@ -4,236 +4,106 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is **Sanyam IDE** (formerly Theia Blueprint) - a production desktop IDE built on the Eclipse Theia platform. It produces both an Electron desktop application and a browser-based version, packaging 45+ Theia extensions including AI features (Claude, GPT, Ollama, etc.).
+Sanyam IDE is a grammar-agnostic IDE platform built on Eclipse Theia, supporting multiple domain-specific languages via Langium 4.x with both text (LSP) and diagram (GLSP) editing. It targets desktop (Electron) and web (Browser/Docker) deployment.
 
-## Build Commands
-
-```bash
-# Install dependencies
-pnpm install
-
-# Development build (faster, unminified frontend)
-pnpm build:dev
-
-# Production build
-pnpm build
-
-# Download VS Code extensions from Open VSX
-pnpm download:plugins
-
-# Full dev setup
-pnpm install && pnpm build:dev && pnpm download:plugins
-```
-
-## Running the Application
+## Build & Development Commands
 
 ```bash
-# Browser app at http://localhost:3002
-pnpm browser start
+pnpm build                    # Dev build (all packages, via Turborepo)
+pnpm build:prod               # Production build
+pnpm build:grammars           # Grammar packages only
+pnpm build:extensions         # Theia extensions only
+pnpm build:language-server    # Language server only
+pnpm build:electron           # Electron app + language server
+pnpm build:browser            # Browser app + language server
 
-# Electron desktop app
-pnpm electron start
+pnpm test                     # Run all tests
+pnpm lint                     # ESLint across workspace
+pnpm lint:fix                 # Auto-fix lint issues
 
-# Electron with debug logging
-pnpm electron start:debug
+pnpm watch                    # Watch all packages
+pnpm watch:ide                # Watch @sanyam-ide/* extensions only
+
+pnpm start:browser            # Run browser app (port 3002)
+pnpm start:electron           # Run Electron dev version
+pnpm download:plugins         # Download Theia plugins (required before first run)
+
+pnpm package:applications     # Build desktop installers
 ```
 
-## Testing and Quality
+Grammar packages build with: `langium generate && tsc -b`
 
-```bash
-# Run all tests
-pnpm test
+## Monorepo Structure
 
-# E2E tests (requires preview package first)
-pnpm electron package:preview
-pnpm electron test
-
-# Linting
-pnpm lint
-pnpm lint:fix
-
-# License compliance check
-pnpm license:check
-```
-
-## Packaging
-
-```bash
-# Package Electron app (output in applications/electron/dist)
-pnpm package:applications
-
-# Preview package (unpackaged, for testing)
-pnpm electron package:preview
-
-# Production package with publishing
-pnpm electron package:prod
-```
+**Workspace layout** (pnpm + Turborepo):
+- `packages/` — Core platform packages
+- `packages/theia-extensions/` — Theia extension packages (`glsp`, `product`, `updater`, `launcher`)
+- `packages/grammar-definitions/` — Langium grammar packages (`@sanyam-grammar/*`)
+- `applications/` — `sanyam-electron` and `sanyam-browser` apps
+- `configs/` — Shared tsconfig and eslint configs
+- `docs/` — Eleventy documentation site
 
 ## Architecture
 
-**Monorepo Structure** (Lerna + pnpm workspaces):
+### Dependency Flow
 
 ```
-applications/
-├── electron/          # Electron desktop app (main target)
-│   ├── scripts/       # Build, signing, main process entry
-│   ├── resources/     # Icons, splash screen
-│   └── test/          # E2E tests (WebdriverIO)
-└── browser/           # Browser/Docker version
+@sanyam/types (interfaces only, no implementations)
+  ↓
+sanyam-language-server (unified LSP/GLSP server)
+  ↓
+@sanyam-ide/* extensions (Theia frontend integrations)
+  ↓
+applications (electron, browser)
 
-packages/
-├── types/             # Shared type definitions (@sanyam/types)
-├── language-server/   # Unified LSP/GLSP language server
-├── ide/               # IDE-specific Theia extensions (@sanyam-ide/*)
-│   ├── product/       # Branding: about dialog, welcome page, splash
-│   ├── updater/       # Auto-update mechanism (electron-updater)
-│   ├── launcher/      # AppImage CLI launcher ('theia' command)
-│   └── glsp/          # GLSP diagram frontend integration
-└── grammar/           # DSL grammar packages (@sanyam-grammar/*)
-    ├── ecml/          # ECML grammar package
-    └── example-minimal/ # Reference minimal grammar
+@sanyam-grammar/* packages → peerDepend on platform, discovered by grammar-scanner
 ```
 
-**Build Flow**:
+### Grammar System
 
-1. `build:extensions` - TypeScript compilation of custom extensions
-2. `build:applications` - Theia generates webpack configs, bundles frontend/backend
-3. `download:plugins` - Fetches VS Code extensions from Open VSX
-4. `package` - electron-builder creates installers
+Each grammar package (`packages/grammar-definitions/*/`) contains:
+- `src/{language}.langium` — Grammar definition (Langium-generated code in `src-gen/`, never edit)
+- `src/manifest.ts` — `GrammarManifest` export
+- `src/contribution.ts` — `LanguageContribution` implementation
+- Optional `src/diagram/` — Custom diagram views
 
-**Key Configuration**:
-
-- `applications/electron/package.json` - App dependencies, Theia target config
-- `applications/electron/electron-builder.yml` - Packaging, signing, installers
-- `configs/base.tsconfig.json` - Shared TypeScript settings
-
-## Debugging (VS Code)
-
-Pre-configured launch configurations in `.vscode/launch.json`:
-
-- **Launch Electron Backend** - Debug the Node.js backend
-- **Attach to Electron Frontend** - Chrome DevTools (port 9222)
-- **Launch Browser Backend** - Debug browser version backend
-- **Launch Browser Frontend** - Chrome at localhost:3002
-- **Attach to Plugin Host** - Debug VS Code extensions (port 9339)
-
-Compound configurations available for full-stack debugging.
-
-## Updating Theia Version
-
-```bash
-# Update to specific Theia version
-pnpm update:theia <version>
-
-# Update to next/development branch
-pnpm update:next
-```
-
-## Docker
-
-```bash
-# Build browser app Docker image
-docker build -t sanyam-ide -f browser.Dockerfile .
-
-# Run container
-docker run -p=3002:3002 --rm sanyam-ide
-```
-
-## Unified Language Server
-
-The `@sanyam/language-server` package provides unified LSP and GLSP support for all grammar packages.
-
-### Language Server Build Commands
-
-```bash
-# Build the language server
-cd packages/language-server
-pnpm build
-
-# Generate grammar registry from workspace
-pnpm generate:registry
-
-# Build with VSIX packaging (generates TextMate grammars)
-pnpm build:vsix
-
-# Package as VS Code extension
-pnpm package:vsix
-```
-
-### Adding a Grammar
-
-Grammar packages follow this structure:
-
-```
-packages/grammar-definitions/your-language/
-├── your-language.langium    # Langium grammar
-├── manifest.ts              # GrammarManifest export
-├── package.json             # With sanyam.contribution field
-└── src/
-    └── contribution.ts      # LanguageContribution implementation
-```
-
-Key package.json fields:
-
+Grammar packages declare metadata in `package.json` under `"sanyam"` key:
 ```json
-{
-  "sanyam": {
-    "contribution": "./lib/src/contribution.js"
-  }
-}
+{ "sanyam": { "grammar": true, "languageId": "example-minimal", "fileExtensions": [".exm"] } }
 ```
 
-## Custom Commands
+The `grammar-scanner` package discovers grammars at build time and registers them in the unified language server.
 
-### `/grammar-config <argument>`
+### DI Pattern
 
-Generate grammar packages with `GrammarManifest` exports for the SANYAM platform.
+All services use Inversify 6.x dependency injection bound in singleton scope. Services expose interfaces, not implementations. Grammar packages extend platform behavior through registry registrations and DI bindings.
 
-**Usage:**
+## Key Constraints (from Project Constitution)
 
-```bash
-# From existing grammar
-/grammar-config mygrammar
+- **Grammar agnosticism**: Platform code must NEVER contain grammar-specific values. Grammar knowledge flows only through `GrammarManifest` and registry lookups.
+- **Never overwrite Langium-generated code** (`src-gen/` directories).
+- **Mermaid diagrams are generated** — fix generation scripts, not the diagram output.
+- **No version downgrades** — always update code to work with current versions rather than reverting.
+- **No Python** — TypeScript for all tooling.
+- **No `any` without justification** — use `unknown` instead.
+- **No circular dependencies** between packages.
+- **Explicit return types** on all public methods; JSDoc on all public APIs.
+- **Commit format**: `type(scope): description` (feat, fix, refactor, docs, test, chore)
 
-# Create new grammar (starter template)
-/grammar-config newlanguage
+## Tech Stack Versions
 
-# From natural language description
-/grammar-config "A language for modeling REST APIs with resources and methods"
-```
+| Technology | Version |
+|------------|---------|
+| TypeScript | ~5.6.3 |
+| Langium | 4.1.0 |
+| Eclipse GLSP | 2.5.0 |
+| Eclipse Theia | 1.67.0 |
+| Inversify | 6.x |
+| Sprotty | 1.4.0 |
+| React | 18.x |
+| Node | >=20 |
+| pnpm | >=9 |
 
-**Generated files:**
+## Specification System
 
-- `packages/grammar-definitions/{name}/{name}.langium` - Langium grammar (if creating new)
-- `packages/grammar-definitions/{name}/manifest.ts` - GrammarManifest export
-- `packages/grammar-definitions/{name}/package.json` - Package configuration
-
-**Related packages:**
-
-- `@sanyam/types` - Type definitions including `GrammarManifest`
-
-## Important Notes
-
-- After updating dependencies or switching commits, run `git clean -xfd` to avoid runtime conflicts
-- Extensions in `packages/theia-extensions/` are custom to this product; Theia platform extensions come from `@theia/*` packages
-- Grammar packages in `packages/grammar-definitions/` provide language support via the unified server
-- The `plugins/` directory contains downloaded VS Code extensions (created by `download:plugins`)
-- Generated files appear in `src-gen/` and `lib/` directories within applications
-
-## Active Technologies
-- TypeScript 5.x (per constitution) + Langium 4.x, Eclipse GLSP 2.x, Eclipse Theia 1.x, Inversify 6.x (003-glsp-backend-integration)
-- Theia StorageService (user profile), file-based metadata (.layout.json sidecar files) (003-glsp-backend-integration)
-- TypeScript 5.x (ES2017 target, strict mode) + Eclipse GLSP 2.x, Eclipse Theia 1.67.0, Sprotty 1.4.0, Langium 4.x, Inversify 6.x, React 18.x (004-diagram-ux-polish)
-- Theia StorageService (existing layout-storage-service.ts), file-based sidecar (.layout.json considered for export) (004-diagram-ux-polish)
-
-- TypeScript 5.6.3 (ES2017 target, strict mode) + Langium 4.x (grammar parsing), @eclipse-glsp/server 2.x (diagrams), Theia 1.67.0 (IDE platform), Inversify 6.x (DI) (002-unified-lsp-glsp)
-- File system (grammar packages in workspace), LangiumDocuments (in-memory document store) (002-unified-lsp-glsp)
-
-- TypeScript 5.x (per constitution) + Langium 4.x (grammar parsing), Claude Code (AI generation) (001-grammar-config-command)
-- File system (packages/grammar-definitions/{name}/ directory structure) (001-grammar-config-command)
-
-## Recent Changes
-
-- 004-diagram-ux-polish: Added diagram UX improvements including multi-element selection, properties panel, minimap, snap-to-grid, grammar-driven tool palette, port-based connections, and accessibility enhancements
-- 002-unified-lsp-glsp: Added unified LSP/GLSP language server with bidirectional text-diagram sync
-- 001-grammar-config-command: Added TypeScript 5.x (per constitution) + Langium 4.x (grammar parsing), Claude Code (AI generation)
+Feature specs live in `.specify/specs/{feature-id}/` with plan, tasks, and contract files. The project constitution at `.specify/memory/constitution.md` governs all development standards.

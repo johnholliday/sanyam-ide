@@ -11,6 +11,8 @@
 **/tsconfig.tsbuildinfo
 *.log
 *.vsix
+*~lock~*
+*.afdesign~lock~*
 license-check-summary.txt
 
 # Native module cache for Windows/Linux swapping

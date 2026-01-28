@@ -54,6 +54,17 @@
       ],
       "cache": true
     },
+    "sanyam-language-server#build:prod": {
+      "dependsOn": [
+        "^build",
+        "sanyam-language-server#build:vsix"
+      ],
+      "outputs": [
+        "lib/**",
+        "*.tsbuildinfo"
+      ],
+      "cache": true
+    },
     "sanyam-language-server#build:bundle": {
       "dependsOn": [
         "sanyam-language-server#build"
@@ -68,6 +79,9 @@
       "cache": true
     },
     "sanyam-language-server#build:vsix": {
+      "dependsOn": [
+        "^build"
+      ],
       "outputs": [
         "syntaxes/**",
         "language-configurations/**",

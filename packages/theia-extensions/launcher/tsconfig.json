@@ -6,5 +6,8 @@
     "baseUrl": ".",
     "esModuleInterop": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    { "path": "../../logger" }
+  ]
 }

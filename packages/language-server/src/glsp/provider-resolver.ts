@@ -20,6 +20,9 @@ import {
   getGlspProvider,
   type GlspFeatureMergerOptions,
 } from './feature-merger.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'GlspProviderResolver' });
 
 /**
  * GLSP provider resolver options.
@@ -27,8 +30,6 @@ import {
 export interface GlspProviderResolverOptions extends GlspFeatureMergerOptions {
   /** Whether to cache resolved providers */
   cacheProviders?: boolean;
-  /** Whether to log resolution decisions */
-  logResolution?: boolean;
 }
 
 /**
@@ -64,15 +65,12 @@ export class GlspProviderResolver {
 
   constructor(options?: GlspProviderResolverOptions) {
     this.options = {
-      verbose: options?.verbose ?? false,
       conflictResolution: options?.conflictResolution ?? 'custom-wins',
       deepMerge: options?.deepMerge ?? true, // Enable deep merge by default for GLSP
       cacheProviders: options?.cacheProviders ?? true,
-      logResolution: options?.logResolution ?? false,
     };
 
     this.merger = createGlspFeatureMerger({
-      verbose: this.options.verbose,
       conflictResolution: this.options.conflictResolution,
       deepMerge: this.options.deepMerge,
     });
@@ -108,9 +106,7 @@ export class GlspProviderResolver {
     // Check if feature is disabled (with glsp. prefix support)
     const isDisabled = this.isFeatureDisabled(featureName, disabledFeatures);
     if (isDisabled) {
-      if (this.options.logResolution) {
-        console.log(`[${languageId}] GLSP feature '${featureName}' is disabled`);
-      }
+      logger.debug({ languageId, feature: featureName }, 'GLSP feature disabled');
 
       return {
         provider: undefined,
@@ -129,14 +125,7 @@ export class GlspProviderResolver {
     const isCustom = this.isCustomProvider(featureName, contribution);
     const isPartiallyMerged = mergeResult.partiallyMergedFeatures.includes(featureName);
 
-    if (this.options.logResolution) {
-      const source = isCustom
-        ? isPartiallyMerged
-          ? 'custom+merged'
-          : 'custom'
-        : 'default';
-      console.log(`[${languageId}] Resolved GLSP '${featureName}': ${source}`);
-    }
+    logger.debug({ languageId, feature: featureName, source: isCustom ? (isPartiallyMerged ? 'custom+merged' : 'custom') : 'default' }, 'GLSP provider resolved');
 
     return {
       provider,

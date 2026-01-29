@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { SModelRootImpl, TYPES, IActionDispatcher } from 'sprotty';
 import { AbstractUIExtension, DIAGRAM_CONTAINER_ID } from '../base-ui-extension';
@@ -65,6 +66,8 @@ interface EditLabelState {
  */
 @injectable()
 export class SanyamEditLabelUI extends AbstractUIExtension {
+    protected override readonly logger = createLogger({ name: 'EditLabelUi' });
+
     @inject(DIAGRAM_CONTAINER_ID) @optional()
     protected diagramContainerId: string | undefined;
 
@@ -155,7 +158,7 @@ export class SanyamEditLabelUI extends AbstractUIExtension {
         // Find the label element
         const labelElement = this.findLabelElement(labelId);
         if (!labelElement) {
-            console.warn(`[EditLabel] Label element not found: ${labelId}`);
+            this.logger.warn({ labelId }, 'Label element not found');
             return;
         }
 
@@ -201,7 +204,7 @@ export class SanyamEditLabelUI extends AbstractUIExtension {
     protected findLabelElement(labelId: string): SVGTextElement | undefined {
         const svgContainer = this.findSvgContainer();
         if (!svgContainer) {
-            console.debug('[SanyamEditLabelUI] SVG container not found');
+            this.logger.debug('SVG container not found');
             return undefined;
         }
 
@@ -230,7 +233,7 @@ export class SanyamEditLabelUI extends AbstractUIExtension {
             return element;
         }
 
-        console.debug(`[SanyamEditLabelUI] Could not find text element for label: ${labelId}`);
+        this.logger.debug({ labelId }, 'Could not find text element for label');
         return undefined;
     }
 
@@ -299,7 +302,7 @@ export class SanyamEditLabelUI extends AbstractUIExtension {
 
             return { x: transformed.x, y: transformed.y };
         } catch (e) {
-            console.warn('[EditLabel] Could not get label position:', e);
+            this.logger.warn({ err: e }, 'Could not get label position');
             return { x: 0, y: 0 };
         }
     }

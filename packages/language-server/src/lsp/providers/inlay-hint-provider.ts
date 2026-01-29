@@ -15,6 +15,9 @@ import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
 import { streamAllContents, asRecord } from '../helpers/langium-compat.js';
 import { isReference } from 'langium';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default inlay hint provider.
@@ -38,7 +41,7 @@ export const defaultInlayHintProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium InlayHintProvider:', error);
+        logger.error({ err: error }, 'Error in Langium InlayHintProvider');
       }
     }
 

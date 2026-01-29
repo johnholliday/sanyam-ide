@@ -18,6 +18,7 @@
     "src"
   ],
   "dependencies": {
+    "@sanyam/logger": "workspace:*",
     "@theia/core": "1.67.0",
     "@vscode/sudo-prompt": "9.3.1",
     "body-parser": "^1.17.2",

@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: MIT
  ********************************************************************************/
 
+import { createLogger } from '@sanyam/logger';
 import * as React from 'react';
 
 import { codicon, Message } from '@theia/core/lib/browser';
@@ -38,6 +39,7 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
     @inject(GrammarRegistry)
     protected readonly grammarRegistry: GrammarRegistry;
 
+    protected readonly logger = createLogger({ name: 'GettingStarted' });
     protected vscodeApiVersion: string;
 
     protected async doInit(): Promise<void> {
@@ -55,13 +57,13 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
      */
     protected getPrimaryGrammarManifest(): GrammarManifest | undefined {
         const grammarId = getApplicationGrammar();
-        console.log('[GettingStarted] applicationGrammar:', grammarId);
-        console.log('[GettingStarted] registry manifests:', this.grammarRegistry.manifests.length);
+        this.logger.debug({ grammarId }, 'applicationGrammar lookup');
+        this.logger.debug({ count: this.grammarRegistry.manifests.length }, 'registry manifests');
         if (!grammarId) {
             return undefined;
         }
         const manifest = this.grammarRegistry.getManifest(grammarId);
-        console.log('[GettingStarted] found manifest:', manifest?.languageId, manifest?.displayName);
+        this.logger.debug({ languageId: manifest?.languageId, displayName: manifest?.displayName }, 'found manifest');
         return manifest;
     }
 

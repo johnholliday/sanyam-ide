@@ -34,6 +34,9 @@ import {
   type ChangeCallback,
   type SubscriptionServiceConfig,
 } from './subscription-service.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'AstServer' });
 
 /**
  * AST Server configuration.
@@ -41,8 +44,6 @@ import {
 export interface AstServerConfig {
   /** Subscription service configuration */
   subscriptionConfig?: SubscriptionServiceConfig;
-  /** Whether to log API calls */
-  logApiCalls?: boolean;
 }
 
 /**
@@ -350,9 +351,7 @@ export class AstServer {
    * Log a message if logging is enabled.
    */
   private log(message: string): void {
-    if (this.config.logApiCalls) {
-      console.log(`[AstServer] ${message}`);
-    }
+    logger.debug(message);
   }
 }
 

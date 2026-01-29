@@ -17,6 +17,7 @@
  */
 
 import { Container, ContainerModule, injectable, inject } from 'inversify';
+import { createLogger } from '@sanyam/logger';
 import {
     TYPES,
     configureModelElement,
@@ -88,13 +89,15 @@ export const LAYOUT_COMPLETE_CALLBACK = Symbol.for('LayoutCompleteCallback');
  */
 @injectable()
 export class LayoutCompleteActionHandler implements IActionHandler {
+    protected readonly logger = createLogger({ name: 'SprottyDiConfig' });
+
     @inject(LAYOUT_COMPLETE_CALLBACK)
     protected callback: LayoutCompleteCallback;
 
     handle(action: Action): void {
         if (action.kind === LayoutCompleteAction.KIND) {
             const layoutAction = action as LayoutCompleteAction;
-            console.log('[LayoutCompleteActionHandler] Layout complete:', layoutAction.success);
+            this.logger.debug({ success: layoutAction.success }, 'Layout complete');
             this.callback(layoutAction.success, layoutAction.error);
         }
     }
@@ -358,6 +361,7 @@ export type GModelRoot = SModelRoot;
  * Helper class for managing a Sprotty diagram instance.
  */
 export class SprottyDiagramManager {
+    private readonly logger = createLogger({ name: 'SprottyDiConfig' });
     private container: Container;
     private modelSource: LocalModelSource;
     private mouseListener: SanyamMouseListener;
@@ -422,10 +426,7 @@ export class SprottyDiagramManager {
      * Set the diagram model.
      */
     async setModel(model: GModelRoot): Promise<void> {
-        console.log('[SprottyDiagramManager] setModel called');
-        console.log('[SprottyDiagramManager] Model id:', model.id);
-        console.log('[SprottyDiagramManager] Model type:', model.type);
-        console.log('[SprottyDiagramManager] Model children count:', model.children?.length ?? 0);
+        this.logger.debug({ id: model.id, type: model.type, childCount: model.children?.length ?? 0 }, 'setModel called');
 
         // Log child types for debugging
         if (model.children && model.children.length > 0) {
@@ -434,12 +435,12 @@ export class SprottyDiagramManager {
                 const count = typeCount.get(child.type) ?? 0;
                 typeCount.set(child.type, count + 1);
             }
-            console.log('[SprottyDiagramManager] Child types:', Object.fromEntries(typeCount));
+            this.logger.debug({ childTypes: Object.fromEntries(typeCount) }, 'Child types');
         }
 
         this.currentRoot = model as unknown as SModelRootImpl;
         await this.modelSource.setModel(model);
-        console.log('[SprottyDiagramManager] setModel completed');
+        this.logger.debug('setModel completed');
     }
 
     /**
@@ -575,14 +576,14 @@ export class SprottyDiagramManager {
      * Dispatches a RequestLayoutAction to trigger the layout engine.
      */
     async requestLayout(): Promise<void> {
-        console.log('[SprottyDiagramManager] Requesting layout...');
+        this.logger.debug('Requesting layout...');
         try {
             const { RequestLayoutAction } = await import('../layout');
-            console.log('[SprottyDiagramManager] RequestLayoutAction imported, dispatching...');
+            this.logger.debug('RequestLayoutAction imported, dispatching...');
             await this.modelSource.actionDispatcher.dispatch(RequestLayoutAction.create());
-            console.log('[SprottyDiagramManager] Layout action dispatched');
+            this.logger.debug('Layout action dispatched');
         } catch (error) {
-            console.error('[SprottyDiagramManager] Layout request failed:', error);
+            this.logger.error({ err: error }, 'Layout request failed');
         }
     }
 

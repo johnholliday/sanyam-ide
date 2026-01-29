@@ -17,6 +17,9 @@ import type { LspContext, SemanticTokensLegend } from '@sanyam/types';
 import type { AstNode, CstNode } from 'langium';
 import { streamAllContents, isNamed } from '../helpers/langium-compat.js';
 import { isReference } from 'langium';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default token types for semantic highlighting.
@@ -99,7 +102,7 @@ export const defaultSemanticTokensProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium SemanticTokenProvider:', error);
+        logger.error({ err: error }, 'Error in Langium SemanticTokenProvider');
       }
     }
 

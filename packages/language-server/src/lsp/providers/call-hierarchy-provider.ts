@@ -18,6 +18,9 @@ import type { AstNode } from 'langium';
 import { URI } from 'langium';
 import { findLeafNodeAtOffsetSafe, getDocument, isNamed, streamAllContents, asRecord } from '../helpers/langium-compat.js';
 import { isReference } from 'langium';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default call hierarchy provider.
@@ -41,7 +44,7 @@ export const defaultCallHierarchyProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium CallHierarchyProvider.prepare:', error);
+        logger.error({ err: error }, 'Error in Langium CallHierarchyProvider.prepare');
       }
     }
 

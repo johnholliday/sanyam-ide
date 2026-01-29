@@ -10,6 +10,7 @@
     "src"
   ],
   "references": [
+    { "path": "../../logger" },
     { "path": "../../types" },
     { "path": "../../language-server" }
   ]

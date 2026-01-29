@@ -29,6 +29,7 @@ import type {
 } from '@sanyam/types';
 import { LanguageRegistry } from './language-registry.js';
 import { loadContributions } from './discovery/contribution-loader.js';
+import { createLogger } from '@sanyam/logger';
 
 // Import GLSP server components
 import { GlspServer, createGlspServer } from './glsp/glsp-server.js';
@@ -37,6 +38,8 @@ import type { Operation } from './glsp/glsp-server.js';
 // Import Model API components
 import { AstServer, createAstServer } from './model/ast-server.js';
 import type { ModelQuery, GetModelOptions, SubscriptionOptions } from '@sanyam/types';
+
+const logger = createLogger({ name: 'ServerFactory' });
 
 /**
  * Options for creating a language server.
@@ -151,7 +154,7 @@ export async function createLanguageServer(
       autoLayout: true,
       validation: true,
     });
-    console.log('GLSP server initialized with auto-layout and validation.');
+    logger.info('GLSP server initialized with auto-layout and validation');
   }
 
   /**
@@ -159,11 +162,11 @@ export async function createLanguageServer(
    */
   function registerLanguageWithGlsp(contribution: LanguageContribution): void {
     if (!glspServer) {
-      console.warn('GLSP server not initialized. Skipping language registration.');
+      logger.warn('GLSP server not initialized, skipping language registration');
       return;
     }
     glspServer.registerLanguage(contribution);
-    console.log(`Registered language '${contribution.languageId}' with GLSP server.`);
+    logger.info({ languageId: contribution.languageId }, 'Language registered with GLSP server');
   }
 
   /**
@@ -175,18 +178,18 @@ export async function createLanguageServer(
         defaultDebounceMs: 100,
         maxDebounceMs: 500,
       },
-      logApiCalls: false,
     });
-    console.log('AST Server (Model API) initialized.');
+    logger.info('AST Server (Model API) initialized');
   }
 
   /**
    * Initialize handler.
    */
   connection.onInitialize(async (params: InitializeParams): Promise<InitializeResult> => {
-    console.log('Initializing Sanyam Language Server...');
-    console.log(`Workspace: ${params.workspaceFolders?.[0]?.uri ?? 'none'}`);
-    console.log(`Loading ${options.contributions.length} grammar contribution(s)...`);
+    logger.info({
+      workspace: params.workspaceFolders?.[0]?.uri ?? 'none',
+      contributionCount: options.contributions.length,
+    }, 'Initializing Sanyam Language Server');
 
     try {
       // Load all language contributions
@@ -201,16 +204,10 @@ export async function createLanguageServer(
       );
 
       if (loadResult.errors.length > 0) {
-        console.error('Errors loading languages:');
-        for (const error of loadResult.errors) {
-          console.error(`  - ${error}`);
-        }
+        logger.error({ errors: loadResult.errors }, 'Errors loading languages');
       }
 
-      console.log(`Loaded ${loadResult.loadedCount} language(s):`);
-      for (const langId of registry.getAllLanguageIds()) {
-        console.log(`  - ${langId}`);
-      }
+      logger.info({ languages: Array.from(registry.getAllLanguageIds()), count: loadResult.loadedCount }, 'Languages loaded');
 
       // Initialize GLSP server with Langium services
       try {
@@ -240,7 +237,7 @@ export async function createLanguageServer(
           }
         }
       } catch (glspError) {
-        console.error('Failed to initialize GLSP server:', glspError);
+        logger.error({ err: glspError }, 'Failed to initialize GLSP server');
       }
 
       // Initialize AST Server (Model API)
@@ -260,7 +257,7 @@ export async function createLanguageServer(
 
         initializeAstServer(langiumSharedServices);
       } catch (astError) {
-        console.error('Failed to initialize AST Server:', astError);
+        logger.error({ err: astError }, 'Failed to initialize AST Server');
       }
 
       initialized = true;
@@ -302,17 +299,17 @@ export async function createLanguageServer(
         },
       };
     } catch (error) {
-      console.error('Failed to initialize server:', error);
+      logger.error({ err: error }, 'Failed to initialize server');
       throw error;
     }
   });
 
   connection.onInitialized(() => {
-    console.log('Sanyam Language Server initialized.');
+    logger.info('Sanyam Language Server initialized');
   });
 
   connection.onShutdown(() => {
-    console.log('Shutting down Sanyam Language Server...');
+    logger.info('Shutting down Sanyam Language Server');
     if (astServer) {
       astServer.dispose();
       astServer = null;
@@ -320,7 +317,7 @@ export async function createLanguageServer(
   });
 
   connection.onExit(() => {
-    console.log('Sanyam Language Server exited.');
+    logger.info('Sanyam Language Server exited');
     process.exit(0);
   });
 
@@ -391,7 +388,7 @@ export async function createLanguageServer(
         },
       };
     } catch (error) {
-      console.error('Error loading diagram model:', error);
+      logger.error({ err: error }, 'Error loading diagram model');
       return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   });
@@ -412,7 +409,7 @@ export async function createLanguageServer(
       const context = glspServer.createContext(langiumDoc, CancellationToken.None);
       return glspServer.executeOperation(context, params.operation);
     } catch (error) {
-      console.error('Error executing diagram operation:', error);
+      logger.error({ err: error }, 'Error executing diagram operation');
       return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   });
@@ -433,7 +430,7 @@ export async function createLanguageServer(
       const context = glspServer.createContext(langiumDoc, CancellationToken.None);
       return glspServer.validate(context);
     } catch (error) {
-      console.error('Error validating diagram:', error);
+      logger.error({ err: error }, 'Error validating diagram');
       return { markers: [], isValid: false, errorCount: 1, warningCount: 0, error: error instanceof Error ? error.message : String(error) };
     }
   });
@@ -459,7 +456,7 @@ export async function createLanguageServer(
         bounds: result.bounds,
       };
     } catch (error) {
-      console.error('Error applying layout:', error);
+      logger.error({ err: error }, 'Error applying layout');
       return { positions: {}, bounds: { width: 0, height: 0 }, error: error instanceof Error ? error.message : String(error) };
     }
   });
@@ -480,7 +477,7 @@ export async function createLanguageServer(
       const context = glspServer.createContext(langiumDoc, CancellationToken.None);
       return glspServer.getToolPalette(context);
     } catch (error) {
-      console.error('Error getting tool palette:', error);
+      logger.error({ err: error }, 'Error getting tool palette');
       return { groups: [], error: error instanceof Error ? error.message : String(error) };
     }
   });
@@ -501,7 +498,7 @@ export async function createLanguageServer(
       const context = glspServer.createContext(langiumDoc, CancellationToken.None);
       return glspServer.getContextMenu(context, params.selectedIds, params.position);
     } catch (error) {
-      console.error('Error getting context menu:', error);
+      logger.error({ err: error }, 'Error getting context menu');
       return { items: [], error: error instanceof Error ? error.message : String(error) };
     }
   });
@@ -523,7 +520,7 @@ export async function createLanguageServer(
       const success = await glspServer.saveModel(context);
       return { success };
     } catch (error) {
-      console.error('Error saving diagram model:', error);
+      logger.error({ err: error }, 'Error saving diagram model');
       return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   });
@@ -633,7 +630,7 @@ export async function createLanguageServer(
               });
             }
           } catch (error) {
-            console.error('Error sending diagram model update:', error);
+            logger.error({ err: error }, 'Error sending diagram model update');
           }
         }, DIAGRAM_UPDATE_DEBOUNCE_MS);
 
@@ -676,7 +673,7 @@ export async function createLanguageServer(
     get astServer() { return astServer; },
     start: () => {
       connection.listen();
-      console.log('Sanyam Language Server started.');
+      logger.info('Sanyam Language Server started');
     },
   };
 }

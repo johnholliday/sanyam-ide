@@ -4,6 +4,7 @@
   "version": "1.67.100",
   "description": "Sanyam IDE Product Branding",
   "dependencies": {
+    "@sanyam/logger": "workspace:*",
     "@sanyam/types": "workspace:*",
     "@theia/core": "1.67.0",
     "@theia/getting-started": "1.67.0",

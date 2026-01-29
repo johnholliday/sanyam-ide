@@ -11,6 +11,7 @@ import { Command, CommandContribution, CommandRegistry } from '@theia/core/lib/c
 import { ApplicationShell } from '@theia/core/lib/browser';
 import URI from '@theia/core/lib/common/uri';
 import { SelectAllAction } from 'sprotty-protocol';
+import { createLogger } from '@sanyam/logger';
 
 import { GlspContribution } from '../common/glsp-contribution';
 import { DiagramWidget } from './diagram-widget';
@@ -166,6 +167,8 @@ export namespace DiagramCommands {
  */
 @injectable()
 export class GlspDiagramCommands implements CommandContribution {
+  protected readonly logger = createLogger({ name: 'GlspCommands' });
+
   @inject(ApplicationShell)
   protected readonly shell: ApplicationShell;
 
@@ -333,44 +336,44 @@ export class GlspDiagramCommands implements CommandContribution {
 
     // If widget is still undefined, use cached fallback
     if (!widget) {
-      console.log('[GlspDiagramCommands] getActiveDiagram - activeWidget undefined, using cached fallback');
+      this.logger.debug('[GlspDiagramCommands] getActiveDiagram - activeWidget undefined, using cached fallback');
       // Try cached diagram widget first
       if (this.lastKnownDiagramWidget && !this.lastKnownDiagramWidget.isDisposed) {
-        console.log('[GlspDiagramCommands] Using cached DiagramWidget');
+        this.logger.debug('[GlspDiagramCommands] Using cached DiagramWidget');
         return this.lastKnownDiagramWidget;
       }
       // Try cached composite widget
       if (this.lastKnownCompositeWidget && !this.lastKnownCompositeWidget.isDisposed) {
         if (this.lastKnownCompositeWidget.activeView === 'diagram') {
           const diagramWidget = this.lastKnownCompositeWidget.getDiagramWidget() as DiagramWidget | undefined;
-          console.log('[GlspDiagramCommands] Using cached CompositeEditorWidget, embedded diagram:', diagramWidget?.constructor.name);
+          this.logger.debug({ embeddedDiagram: diagramWidget?.constructor.name }, 'Using cached CompositeEditorWidget');
           return diagramWidget;
         }
       }
-      console.log('[GlspDiagramCommands] No cached widget available');
+      this.logger.debug('[GlspDiagramCommands] No cached widget available');
       return undefined;
     }
 
-    console.log('[GlspDiagramCommands] getActiveDiagram - widget:', (widget as any)?.constructor?.name, '- from hint:', !!widgetHint);
+    this.logger.debug({ widget: (widget as any)?.constructor?.name, fromHint: !!widgetHint }, 'getActiveDiagram');
 
     if (widget instanceof DiagramWidget) {
-      console.log('[GlspDiagramCommands] Found standalone DiagramWidget');
+      this.logger.debug('[GlspDiagramCommands] Found standalone DiagramWidget');
       // Cache for future use
       this.lastKnownDiagramWidget = widget;
       return widget;
     }
     if (widget instanceof CompositeEditorWidget) {
-      console.log('[GlspDiagramCommands] Found CompositeEditorWidget, activeView:', widget.activeView);
+      this.logger.debug({ activeView: widget.activeView }, 'Found CompositeEditorWidget');
       // Cache for future use
       this.lastKnownCompositeWidget = widget;
       if (widget.activeView === 'diagram') {
         // Get the embedded diagram widget via public getter
         const diagramWidget = widget.getDiagramWidget() as DiagramWidget | undefined;
-        console.log('[GlspDiagramCommands] Embedded diagramWidget:', diagramWidget?.constructor.name, 'sprottyInitialized:', diagramWidget?.isSprottyInitialized?.());
+        this.logger.debug({ diagramWidget: diagramWidget?.constructor.name, sprottyInitialized: diagramWidget?.isSprottyInitialized?.() }, 'Embedded diagramWidget');
         return diagramWidget;
       }
     }
-    console.log('[GlspDiagramCommands] No diagram widget found');
+    this.logger.debug('[GlspDiagramCommands] No diagram widget found');
     return undefined;
   }
 
@@ -386,17 +389,17 @@ export class GlspDiagramCommands implements CommandContribution {
     if (!widget) {
       // Check cached diagram widget
       if (this.lastKnownDiagramWidget && !this.lastKnownDiagramWidget.isDisposed) {
-        console.log('[GlspDiagramCommands] hasDiagramFocus: true (using cached DiagramWidget)');
+        this.logger.debug('[GlspDiagramCommands] hasDiagramFocus: true (using cached DiagramWidget)');
         return true;
       }
       // Check cached composite widget
       if (this.lastKnownCompositeWidget && !this.lastKnownCompositeWidget.isDisposed) {
         if (this.lastKnownCompositeWidget.activeView === 'diagram') {
-          console.log('[GlspDiagramCommands] hasDiagramFocus: true (using cached CompositeEditorWidget)');
+          this.logger.debug('[GlspDiagramCommands] hasDiagramFocus: true (using cached CompositeEditorWidget)');
           return true;
         }
       }
-      console.log('[GlspDiagramCommands] hasDiagramFocus: false - activeWidget undefined and no valid cache');
+      this.logger.debug('[GlspDiagramCommands] hasDiagramFocus: false - activeWidget undefined and no valid cache');
       return false;
     }
 
@@ -413,7 +416,7 @@ export class GlspDiagramCommands implements CommandContribution {
       this.lastKnownCompositeWidget = widget as CompositeEditorWidget;
     }
 
-    console.log('[GlspDiagramCommands] hasDiagramFocus:', result, '- activeWidget:', widget?.constructor.name);
+    this.logger.debug({ result, activeWidget: widget?.constructor.name }, 'hasDiagramFocus');
     return result;
   }
 
@@ -427,7 +430,7 @@ export class GlspDiagramCommands implements CommandContribution {
     const firstArg = args[0];
     // Theia toolbar passes the widget as the first argument
     if (firstArg instanceof DiagramWidget || firstArg instanceof CompositeEditorWidget) {
-      console.log('[GlspDiagramCommands] extractWidgetFromArgs - found widget:', firstArg.constructor.name);
+      this.logger.debug({ widget: firstArg.constructor.name }, 'extractWidgetFromArgs - found widget');
       return firstArg;
     }
     return undefined;
@@ -538,51 +541,51 @@ export class GlspDiagramCommands implements CommandContribution {
   }
 
   protected refreshDiagram(widgetHint?: unknown): void {
-    console.log('[GlspDiagramCommands] refreshDiagram called');
+    this.logger.debug('[GlspDiagramCommands] refreshDiagram called');
     const diagram = this.getActiveDiagram(widgetHint);
     if (diagram) {
       diagram.refresh();
     } else {
-      console.log('[GlspDiagramCommands] No diagram for refreshDiagram');
+      this.logger.debug('[GlspDiagramCommands] No diagram for refreshDiagram');
     }
   }
 
   protected zoomToFit(widgetHint?: unknown): void {
-    console.log('[GlspDiagramCommands] zoomToFit called');
+    this.logger.debug('[GlspDiagramCommands] zoomToFit called');
     const diagram = this.getActiveDiagram(widgetHint);
     if (diagram) {
-      console.log('[GlspDiagramCommands] Dispatching FitDiagramAction');
+      this.logger.debug('[GlspDiagramCommands] Dispatching FitDiagramAction');
       diagram.dispatchAction(FitDiagramAction.create()).catch(err => {
-        console.error('[GlspDiagramCommands] zoomToFit failed:', err);
+        this.logger.error({ err }, 'zoomToFit failed');
       });
     } else {
-      console.log('[GlspDiagramCommands] No diagram for zoomToFit');
+      this.logger.debug('[GlspDiagramCommands] No diagram for zoomToFit');
     }
   }
 
   protected zoomIn(widgetHint?: unknown): void {
-    console.log('[GlspDiagramCommands] zoomIn called');
+    this.logger.debug('[GlspDiagramCommands] zoomIn called');
     const diagram = this.getActiveDiagram(widgetHint);
     if (diagram) {
-      console.log('[GlspDiagramCommands] Dispatching ZoomInAction');
+      this.logger.debug('[GlspDiagramCommands] Dispatching ZoomInAction');
       diagram.dispatchAction(ZoomInAction.create(1.2)).catch(err => {
-        console.error('[GlspDiagramCommands] zoomIn failed:', err);
+        this.logger.error({ err }, 'zoomIn failed');
       });
     } else {
-      console.log('[GlspDiagramCommands] No diagram for zoomIn');
+      this.logger.debug('[GlspDiagramCommands] No diagram for zoomIn');
     }
   }
 
   protected zoomOut(widgetHint?: unknown): void {
-    console.log('[GlspDiagramCommands] zoomOut called');
+    this.logger.debug('[GlspDiagramCommands] zoomOut called');
     const diagram = this.getActiveDiagram(widgetHint);
     if (diagram) {
-      console.log('[GlspDiagramCommands] Dispatching ZoomOutAction');
+      this.logger.debug('[GlspDiagramCommands] Dispatching ZoomOutAction');
       diagram.dispatchAction(ZoomOutAction.create(1.2)).catch(err => {
-        console.error('[GlspDiagramCommands] zoomOut failed:', err);
+        this.logger.error({ err }, 'zoomOut failed');
       });
     } else {
-      console.log('[GlspDiagramCommands] No diagram for zoomOut');
+      this.logger.debug('[GlspDiagramCommands] No diagram for zoomOut');
     }
   }
 
@@ -598,67 +601,67 @@ export class GlspDiagramCommands implements CommandContribution {
   }
 
   protected selectAll(): void {
-    console.log('[GlspDiagramCommands] selectAll called');
+    this.logger.debug('[GlspDiagramCommands] selectAll called');
     const diagram = this.getActiveDiagram();
     if (diagram) {
-      console.log('[GlspDiagramCommands] Dispatching SelectAllAction');
+      this.logger.debug('[GlspDiagramCommands] Dispatching SelectAllAction');
       const action: SelectAllAction = SelectAllAction.create({ select: true });
       diagram.dispatchAction(action).catch(err => {
-        console.error('[GlspDiagramCommands] selectAll failed:', err);
+        this.logger.error({ err }, 'selectAll failed');
       });
     } else {
-      console.log('[GlspDiagramCommands] No diagram for selectAll');
+      this.logger.debug('[GlspDiagramCommands] No diagram for selectAll');
     }
   }
 
   protected layoutDiagram(widgetHint?: unknown): void {
-    console.log('[GlspDiagramCommands] layoutDiagram called');
+    this.logger.debug('[GlspDiagramCommands] layoutDiagram called');
     const diagram = this.getActiveDiagram(widgetHint);
     if (diagram) {
-      console.log('[GlspDiagramCommands] Dispatching RequestLayoutAction');
+      this.logger.debug('[GlspDiagramCommands] Dispatching RequestLayoutAction');
       const action = RequestLayoutAction.create();
       diagram.dispatchAction(action).catch(err => {
-        console.error('[GlspDiagramCommands] layoutDiagram failed:', err);
+        this.logger.error({ err }, 'layoutDiagram failed');
       });
     } else {
-      console.log('[GlspDiagramCommands] No diagram for layoutDiagram');
+      this.logger.debug('[GlspDiagramCommands] No diagram for layoutDiagram');
     }
   }
 
   protected exportSvg(widgetHint?: unknown): void {
-    console.log('[GlspDiagramCommands] exportSvg called');
+    this.logger.debug('[GlspDiagramCommands] exportSvg called');
     const diagram = this.getActiveDiagram(widgetHint);
     if (diagram) {
-      console.log('[GlspDiagramCommands] Dispatching requestExportSvg action');
+      this.logger.debug('[GlspDiagramCommands] Dispatching requestExportSvg action');
       diagram.dispatchAction({ kind: 'requestExportSvg' }).catch(err => {
-        console.error('[GlspDiagramCommands] exportSvg failed:', err);
+        this.logger.error({ err }, 'exportSvg failed');
       });
     } else {
-      console.log('[GlspDiagramCommands] No diagram for exportSvg');
+      this.logger.debug('[GlspDiagramCommands] No diagram for exportSvg');
     }
   }
 
   protected exportPng(_widgetHint?: unknown): void {
     // PNG export requires canvas rendering - not implemented yet
-    console.log('[GlspDiagramCommands] Export PNG - not yet implemented');
+    this.logger.debug('[GlspDiagramCommands] Export PNG - not yet implemented');
   }
 
   protected centerView(widgetHint?: unknown): void {
-    console.log('[GlspDiagramCommands] centerView called');
+    this.logger.debug('[GlspDiagramCommands] centerView called');
     const diagram = this.getActiveDiagram(widgetHint);
     if (diagram) {
-      console.log('[GlspDiagramCommands] Dispatching CenterDiagramAction');
+      this.logger.debug('[GlspDiagramCommands] Dispatching CenterDiagramAction');
       diagram.dispatchAction(CenterDiagramAction.create()).catch(err => {
-        console.error('[GlspDiagramCommands] centerView failed:', err);
+        this.logger.error({ err }, 'centerView failed');
       });
     } else {
-      console.log('[GlspDiagramCommands] No diagram for centerView');
+      this.logger.debug('[GlspDiagramCommands] No diagram for centerView');
     }
   }
 
   protected toggleGrid(): void {
     // Grid is controlled via preferences, not an action
-    console.log('Toggle grid - use preferences');
+    this.logger.debug('Toggle grid - use preferences');
   }
 
   protected alignSelection(alignment: string): void {
@@ -673,41 +676,41 @@ export class GlspDiagramCommands implements CommandContribution {
   }
 
   protected toggleMinimap(widgetHint?: unknown): void {
-    console.log('[GlspDiagramCommands] toggleMinimap called');
+    this.logger.debug('[GlspDiagramCommands] toggleMinimap called');
     const diagram = this.getActiveDiagram(widgetHint);
     if (diagram) {
-      console.log('[GlspDiagramCommands] Dispatching toggleMinimap action');
+      this.logger.debug('[GlspDiagramCommands] Dispatching toggleMinimap action');
       diagram.dispatchAction({ kind: 'toggleMinimap' }).catch(err => {
-        console.error('[GlspDiagramCommands] toggleMinimap failed:', err);
+        this.logger.error({ err }, 'toggleMinimap failed');
       });
     } else {
-      console.log('[GlspDiagramCommands] No diagram for toggleMinimap');
+      this.logger.debug('[GlspDiagramCommands] No diagram for toggleMinimap');
     }
   }
 
   protected enableMarqueeSelect(): void {
-    console.log('[GlspDiagramCommands] enableMarqueeSelect called');
+    this.logger.debug('[GlspDiagramCommands] enableMarqueeSelect called');
     const diagram = this.getActiveDiagram();
     if (diagram) {
-      console.log('[GlspDiagramCommands] Dispatching enableMarqueeSelect action');
+      this.logger.debug('[GlspDiagramCommands] Dispatching enableMarqueeSelect action');
       diagram.dispatchAction({ kind: 'enableMarqueeSelect' }).catch(err => {
-        console.error('[GlspDiagramCommands] enableMarqueeSelect failed:', err);
+        this.logger.error({ err }, 'enableMarqueeSelect failed');
       });
     } else {
-      console.log('[GlspDiagramCommands] No diagram for enableMarqueeSelect');
+      this.logger.debug('[GlspDiagramCommands] No diagram for enableMarqueeSelect');
     }
   }
 
   protected toggleSnapToGrid(widgetHint?: unknown): void {
-    console.log('[GlspDiagramCommands] toggleSnapToGrid called');
+    this.logger.debug('[GlspDiagramCommands] toggleSnapToGrid called');
     const diagram = this.getActiveDiagram(widgetHint);
     if (diagram) {
-      console.log('[GlspDiagramCommands] Dispatching toggleSnapToGrid action');
+      this.logger.debug('[GlspDiagramCommands] Dispatching toggleSnapToGrid action');
       diagram.dispatchAction({ kind: 'toggleSnapToGrid' }).catch(err => {
-        console.error('[GlspDiagramCommands] toggleSnapToGrid failed:', err);
+        this.logger.error({ err }, 'toggleSnapToGrid failed');
       });
     } else {
-      console.log('[GlspDiagramCommands] No diagram for toggleSnapToGrid');
+      this.logger.debug('[GlspDiagramCommands] No diagram for toggleSnapToGrid');
     }
   }
 }

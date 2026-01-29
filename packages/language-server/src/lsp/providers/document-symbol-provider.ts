@@ -15,6 +15,9 @@ import type {
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
 import { isNamed, streamAllContents } from '../helpers/langium-compat.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default document symbol provider that maps AST to symbols.
@@ -38,7 +41,7 @@ export const defaultDocumentSymbolProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium DocumentSymbolProvider:', error);
+        logger.error({ err: error }, 'Error in Langium DocumentSymbolProvider');
       }
     }
 

@@ -12,6 +12,9 @@ import type {
   DocumentRangeFormattingParams,
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default formatting provider.
@@ -35,7 +38,7 @@ export const defaultFormattingProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium Formatter:', error);
+        logger.error({ err: error }, 'Error in Langium Formatter');
       }
     }
 
@@ -66,7 +69,7 @@ export const defaultRangeFormattingProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium Range Formatter:', error);
+        logger.error({ err: error }, 'Error in Langium Range Formatter');
       }
     }
 

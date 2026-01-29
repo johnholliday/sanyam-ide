@@ -10,6 +10,7 @@
     "@eclipse-glsp/theia-integration": "2.5.0-theia1.65.0",
     "@lumino/messaging": "^2.0.0",
     "sanyam-language-server": "workspace:*",
+    "@sanyam/logger": "workspace:*",
     "@sanyam/types": "workspace:*",
     "@sanyam-grammar/spdevkit": "workspace:*",
     "@sanyam-ide/product": "workspace:*",

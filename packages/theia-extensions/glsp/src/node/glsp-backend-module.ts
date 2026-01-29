@@ -17,6 +17,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { ContainerModule } from '@theia/core/shared/inversify';
 import { ConnectionHandler, JsonRpcConnectionHandler } from '@theia/core/lib/common/messaging';
 import { GLSPServerContribution } from '@eclipse-glsp/theia-integration/lib/node';
@@ -65,6 +66,7 @@ export default new ContainerModule((bind) => {
         )
     ).inSingletonScope();
 
-    console.log('[glsp-backend-module] GLSP backend module loaded');
-    console.log(`[glsp-backend-module] Registered RPC handler at: ${SanyamGlspServicePath}`);
+    const logger = createLogger({ name: 'GlspBackend' });
+    logger.info('GLSP backend module loaded');
+    logger.info({ path: SanyamGlspServicePath }, 'Registered RPC handler');
 });

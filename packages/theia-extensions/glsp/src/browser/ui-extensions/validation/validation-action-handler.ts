@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { IActionHandler, ICommand, TYPES, IActionDispatcher } from 'sprotty';
 import { Action } from 'sprotty-protocol';
@@ -50,6 +51,8 @@ export interface IValidationProvider {
  */
 @injectable()
 export class ValidationActionHandler implements IActionHandler {
+    protected readonly logger = createLogger({ name: 'ValidationActions' });
+
     @inject(UI_EXTENSION_REGISTRY) @optional()
     protected readonly uiExtensionRegistry?: UIExtensionRegistry;
 
@@ -142,7 +145,7 @@ export class ValidationActionHandler implements IActionHandler {
             try {
                 return await this.validationProvider.validateModel(uri);
             } catch (error) {
-                console.error('[ValidationActionHandler] Validation error:', error);
+                this.logger.error({ err: error }, 'Validation error');
                 return {
                     isValid: false,
                     markers: [],
@@ -196,7 +199,7 @@ export class ValidationActionHandler implements IActionHandler {
     protected handleNavigateToMarker(action: NavigateToMarkerAction): void {
         // This should be handled by the diagram widget/composite editor
         // to navigate to the source location
-        console.log(`[ValidationActionHandler] Navigate to marker for element: ${action.elementId}`);
+        this.logger.info({ elementId: action.elementId }, 'Navigate to marker for element');
     }
 
     /**
@@ -204,7 +207,7 @@ export class ValidationActionHandler implements IActionHandler {
      */
     protected handleShowMarkerDetails(action: ShowMarkerDetailsAction): void {
         // Could show a detailed popup or panel
-        console.log(`[ValidationActionHandler] Show marker details:`, action.marker);
+        this.logger.info({ marker: action.marker }, 'Show marker details');
     }
 
     /**

@@ -16,6 +16,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject } from 'inversify';
 import { TYPES, IActionDispatcher, SModelRootImpl } from 'sprotty';
 import { Action } from 'sprotty-protocol';
@@ -81,6 +82,8 @@ export namespace SetUIExtensionVisibilityAction {
  */
 @injectable()
 export abstract class AbstractUIExtension {
+    protected readonly logger = createLogger({ name: 'BaseUiExtension' });
+
     @inject(TYPES.IActionDispatcher)
     protected actionDispatcher: IActionDispatcher;
 
@@ -121,7 +124,7 @@ export abstract class AbstractUIExtension {
 
         const parent = this.getParentContainer();
         if (!parent) {
-            console.warn(`[${this.id()}] Parent container not found`);
+            this.logger.warn({ extensionId: this.id() }, 'Parent container not found');
             return;
         }
 
@@ -138,7 +141,7 @@ export abstract class AbstractUIExtension {
         parent.appendChild(this.containerElement);
 
         this.state = UIExtensionState.INITIALIZED;
-        console.log(`[${this.id()}] Initialized`);
+        this.logger.info({ extensionId: this.id() }, 'Initialized');
     }
 
     /**
@@ -228,11 +231,11 @@ export abstract class AbstractUIExtension {
      */
     protected dispatch(action: Action): Promise<void> {
         if (!this.actionDispatcher) {
-            console.warn(`[${this.id()}] Action dispatcher not available, cannot dispatch:`, action.kind);
+            this.logger.warn({ extensionId: this.id(), actionKind: action.kind }, 'Action dispatcher not available, cannot dispatch');
             return Promise.resolve();
         }
         return this.actionDispatcher.dispatch(action).catch(error => {
-            console.warn(`[${this.id()}] Error dispatching action '${action.kind}':`, error);
+            this.logger.warn({ extensionId: this.id(), actionKind: action.kind, err: error }, 'Error dispatching action');
         });
     }
 

@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { SModelRootImpl, TYPES, IActionDispatcher } from 'sprotty';
 import { Action, SelectAction } from 'sprotty-protocol';
@@ -141,6 +142,8 @@ export namespace EnableMarqueeSelectAction {
  */
 @injectable()
 export class MarqueeSelectionTool extends AbstractUIExtension {
+    protected readonly logger = createLogger({ name: 'MarqueeTool' });
+
     @inject(DIAGRAM_CONTAINER_ID) @optional()
     protected diagramContainerId: string | undefined;
 
@@ -224,18 +227,18 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
 
         // Wait for the container to be created
         if (!this.containerElement) {
-            console.warn('[MarqueeSelectionTool] Container element not created, checking parent');
+            this.logger.warn('Container element not created, checking parent');
             // Try to initialize with fallback parent
             const parent = this.getParentContainer();
             if (parent) {
                 this.initialize();
             } else {
-                console.error('[MarqueeSelectionTool] No parent container available');
+                this.logger.error('No parent container available');
                 return;
             }
         }
 
-        console.info('[MarqueeSelectionTool] Marquee selection mode enabled - click and drag to select');
+        this.logger.info('Marquee selection mode enabled - click and drag to select');
 
         // Add visual indicator that marquee mode is active
         if (this.containerElement) {
@@ -247,9 +250,9 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
             document.addEventListener('mousemove', this.onMarqueeMouseMove);
             document.addEventListener('mouseup', this.onMarqueeMouseUp);
 
-            console.info('[MarqueeSelectionTool] Mouse listeners attached to container:', this.containerElement.id);
+            this.logger.info({ containerId: this.containerElement.id }, 'Mouse listeners attached to container');
         } else {
-            console.error('[MarqueeSelectionTool] Failed to create container element');
+            this.logger.error('Failed to create container element');
         }
     }
 
@@ -271,7 +274,7 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
         }
 
         this.hide();
-        console.info('[MarqueeSelectionTool] Marquee selection mode disabled');
+        this.logger.info('Marquee selection mode disabled');
     }
 
     /**
@@ -391,7 +394,7 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
         });
         this.dispatch(selectAction);
 
-        console.info('[MarqueeSelectionTool] Selection completed:', finalSelection.length, 'elements selected');
+        this.logger.info({ count: finalSelection.length }, 'Selection completed');
 
         this.cancelSelection();
         return finalSelection;
@@ -447,7 +450,7 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
     protected findElementsInBounds(bounds: MarqueeBounds): string[] {
         const svgContainer = this.findSvgContainer();
         if (!svgContainer) {
-            console.warn('[MarqueeSelectionTool] No SVG container found');
+            this.logger.warn('No SVG container found');
             return [];
         }
 
@@ -456,7 +459,7 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
         // Find all selectable elements - look for groups with sanyam-node class or Sprotty node groups
         // Sprotty nodes are typically <g> elements with an id
         const elements = svgContainer.querySelectorAll('g.sanyam-node, g.sprotty-node, g[id*="node"]');
-        console.log('[MarqueeSelectionTool] Found elements:', elements.length, 'selection bounds:', bounds);
+        this.logger.debug({ elementCount: elements.length, bounds }, 'Found elements for selection');
 
         elements.forEach(element => {
             const id = element.id;
@@ -465,15 +468,15 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
             }
 
             const elementBounds = this.getElementBounds(element as SVGGraphicsElement);
-            console.log('[MarqueeSelectionTool] Element', id, 'bounds:', elementBounds);
+            this.logger.debug({ id, elementBounds }, 'Element bounds');
 
             if (elementBounds && this.boundsIntersect(bounds, elementBounds)) {
                 result.push(id);
-                console.log('[MarqueeSelectionTool] Element', id, 'is within selection');
+                this.logger.debug({ id }, 'Element is within selection');
             }
         });
 
-        console.log('[MarqueeSelectionTool] Elements in bounds:', result);
+        this.logger.debug({ result }, 'Elements in bounds');
         return result;
     }
 

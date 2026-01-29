@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { IActionHandler, ICommand, TYPES, IActionDispatcher } from 'sprotty';
 import { Action } from 'sprotty-protocol';
@@ -50,6 +51,8 @@ export interface ILabelEditProvider {
  */
 @injectable()
 export class ApplyLabelEditHandler implements IActionHandler {
+    protected readonly logger = createLogger({ name: 'LabelEdit' });
+
     @inject(UI_EXTENSION_REGISTRY) @optional()
     protected readonly uiExtensionRegistry?: UIExtensionRegistry;
 
@@ -117,10 +120,10 @@ export class ApplyLabelEditHandler implements IActionHandler {
                     // Notify listeners
                     this.notifyLabelEditListeners(labelId, newText);
                 } else {
-                    console.warn(`[ApplyLabelEditHandler] Failed to apply label edit for: ${labelId}`);
+                    this.logger.warn({ labelId }, 'Failed to apply label edit');
                 }
             } catch (error) {
-                console.error('[ApplyLabelEditHandler] Error applying label edit:', error);
+                this.logger.error({ err: error }, 'Error applying label edit');
             }
         } else {
             // No provider - just notify listeners
@@ -133,7 +136,7 @@ export class ApplyLabelEditHandler implements IActionHandler {
      */
     protected handleCancelLabelEdit(action: CancelLabelEditAction): void {
         // Cancel is handled by the UI extension
-        console.log(`[ApplyLabelEditHandler] Label edit cancelled for: ${action.labelId}`);
+        this.logger.info({ labelId: action.labelId }, 'Label edit cancelled');
     }
 
     /**
@@ -148,7 +151,7 @@ export class ApplyLabelEditHandler implements IActionHandler {
             try {
                 result = await this.labelEditProvider.validateLabel(labelId, text);
             } catch (error) {
-                console.error('[ApplyLabelEditHandler] Validation error:', error);
+                this.logger.error({ err: error }, 'Validation error');
                 result = {
                     valid: false,
                     message: 'Validation failed',
@@ -176,10 +179,7 @@ export class ApplyLabelEditHandler implements IActionHandler {
      * Handle edit label complete action.
      */
     protected handleEditLabelComplete(action: EditLabelCompleteAction): void {
-        console.log(
-            `[ApplyLabelEditHandler] Edit complete for ${action.labelId}: ` +
-            `${action.applied ? 'applied' : 'cancelled'}`
-        );
+        this.logger.info({ labelId: action.labelId, applied: action.applied }, 'Edit complete');
     }
 
     /**

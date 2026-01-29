@@ -14,6 +14,9 @@ import type {
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
 import { isNamed, streamAllContents } from '../helpers/langium-compat.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default code lens provider.
@@ -37,7 +40,7 @@ export const defaultCodeLensProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium CodeLensProvider:', error);
+        logger.error({ err: error }, 'Error in Langium CodeLensProvider');
       }
     }
 

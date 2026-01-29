@@ -16,6 +16,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { IActionHandler } from 'sprotty';
 import { Action } from 'sprotty-protocol';
@@ -42,6 +43,8 @@ export namespace RequestExportSvgAction {
  */
 @injectable()
 export class ExportSvgActionHandler implements IActionHandler {
+    protected readonly logger = createLogger({ name: 'ExportSvg' });
+
     @inject(DIAGRAM_CONTAINER_ID) @optional()
     protected diagramContainerId?: string;
 
@@ -58,15 +61,15 @@ export class ExportSvgActionHandler implements IActionHandler {
      * Process the export SVG request.
      */
     protected handleExportSvg(action: RequestExportSvgAction): void {
-        console.log('[ExportSvgActionHandler] Handling export SVG action');
+        this.logger.info('Handling export SVG action');
 
         const svg = this.getSvgContent();
         if (svg) {
             const filename = action.filename || this.generateFilename();
             this.downloadSvg(svg, filename);
-            console.log('[ExportSvgActionHandler] SVG exported:', filename);
+            this.logger.info({ filename }, 'SVG exported');
         } else {
-            console.warn('[ExportSvgActionHandler] No SVG content found to export');
+            this.logger.warn('No SVG content found to export');
         }
     }
 
@@ -92,13 +95,13 @@ export class ExportSvgActionHandler implements IActionHandler {
         }
 
         if (!container) {
-            console.warn('[ExportSvgActionHandler] No diagram container found');
+            this.logger.warn('No diagram container found');
             return undefined;
         }
 
         const svg = container.querySelector('svg');
         if (!svg) {
-            console.warn('[ExportSvgActionHandler] No SVG element found in container');
+            this.logger.warn('No SVG element found in container');
             return undefined;
         }
 

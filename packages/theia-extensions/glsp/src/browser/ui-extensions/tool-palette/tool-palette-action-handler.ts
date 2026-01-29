@@ -16,6 +16,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { IActionHandler, ICommand, CommandExecutionContext, SModelRootImpl } from 'sprotty';
 import { Action } from 'sprotty-protocol';
@@ -62,6 +63,8 @@ export interface CreationToolState {
  */
 @injectable()
 export class ToolPaletteActionHandler implements IActionHandler {
+    protected readonly logger = createLogger({ name: 'PaletteActions' });
+
     @inject(UI_EXTENSION_REGISTRY) @optional()
     protected readonly uiExtensionRegistry?: UIExtensionRegistry;
 
@@ -119,7 +122,7 @@ export class ToolPaletteActionHandler implements IActionHandler {
                 const response = await this.languageClientProvider.getToolPalette(this.currentUri);
                 groups = response.groups;
             } catch (error) {
-                console.error('[ToolPaletteActionHandler] Error fetching tool palette:', error);
+                this.logger.error({ err: error }, 'Error fetching tool palette');
                 // Use default palette on error
                 groups = this.getDefaultPalette();
             }

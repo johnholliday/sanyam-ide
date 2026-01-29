@@ -14,6 +14,9 @@ import type {
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
 import { defaultDefinitionProvider } from './definition-provider.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default declaration provider that delegates to definition provider.
@@ -41,7 +44,7 @@ export const defaultDeclarationProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium DeclarationProvider:', error);
+        logger.error({ err: error }, 'Error in Langium DeclarationProvider');
       }
     }
 

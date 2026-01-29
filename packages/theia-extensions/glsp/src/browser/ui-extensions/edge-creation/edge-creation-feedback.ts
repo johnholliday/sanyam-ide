@@ -16,6 +16,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { SModelRootImpl, TYPES, IActionDispatcher } from 'sprotty';
 import { Action } from 'sprotty-protocol';
@@ -143,6 +144,8 @@ export namespace SetValidEdgeTargetsAction {
  */
 @injectable()
 export class EdgeCreationFeedbackExtension extends AbstractUIExtension {
+    protected override readonly logger = createLogger({ name: 'EdgeCreation' });
+
     @inject(DIAGRAM_CONTAINER_ID) @optional()
     protected diagramContainerId: string | undefined;
 
@@ -249,7 +252,7 @@ export class EdgeCreationFeedbackExtension extends AbstractUIExtension {
     startEdgeCreation(sourceId: string, elementTypeId: string): void {
         const sourcePosition = this.getElementCenter(sourceId);
         if (!sourcePosition) {
-            console.warn(`[EdgeCreation] Source element not found: ${sourceId}`);
+            this.logger.warn({ sourceId }, 'Source element not found');
             return;
         }
 

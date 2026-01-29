@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { SModelRootImpl, TYPES, IActionDispatcher } from 'sprotty';
 import type { Action } from 'sprotty-protocol';
@@ -59,6 +60,8 @@ export const CommandPaletteClasses = {
  */
 @injectable()
 export class SanyamCommandPalette extends AbstractUIExtension {
+    protected override readonly logger = createLogger({ name: 'CommandPalette' });
+
     @inject(DIAGRAM_CONTAINER_ID) @optional()
     protected diagramContainerId: string | undefined;
 
@@ -378,7 +381,7 @@ export class SanyamCommandPalette extends AbstractUIExtension {
         try {
             this.dispatchSafeAction(item.action);
         } catch (error) {
-            console.warn(`[CommandPalette] Failed to execute action '${item.action.kind}':`, error);
+            this.logger.warn({ actionKind: item.action.kind, err: error }, 'Failed to execute action');
         }
 
         // Also dispatch execute command action for logging/hooks
@@ -392,7 +395,7 @@ export class SanyamCommandPalette extends AbstractUIExtension {
         switch (action.kind) {
             case 'layout':
                 // Dispatch RequestLayoutAction which triggers the ELK layout engine
-                console.info('[CommandPalette] Dispatching layout action');
+                this.logger.info('Dispatching layout action');
                 this.dispatch(RequestLayoutAction.create());
                 break;
             default:

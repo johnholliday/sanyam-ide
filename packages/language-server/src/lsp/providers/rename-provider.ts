@@ -16,6 +16,9 @@ import type {
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
 import { findLeafNodeAtOffsetSafe, getDocument, isNamed } from '../helpers/langium-compat.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default rename provider that uses Langium's rename service.
@@ -39,7 +42,7 @@ export const defaultRenameProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium RenameProvider.prepareRename:', error);
+        logger.error({ err: error }, 'Error in Langium RenameProvider.prepareRename');
       }
     }
 
@@ -94,7 +97,7 @@ export const defaultRenameProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium RenameProvider:', error);
+        logger.error({ err: error }, 'Error in Langium RenameProvider');
       }
     }
 
@@ -262,7 +265,7 @@ async function buildRenameEdits(
         }
       }
     } catch (error) {
-      console.error('Error finding references for rename:', error);
+      logger.error({ err: error }, 'Error finding references for rename');
     }
   }
 

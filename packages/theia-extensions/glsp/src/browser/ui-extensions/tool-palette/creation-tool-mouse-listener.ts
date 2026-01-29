@@ -16,6 +16,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional, postConstruct } from 'inversify';
 import {
     MouseListener,
@@ -42,6 +43,8 @@ import {
  */
 @injectable()
 export class CreationToolMouseListener extends MouseListener {
+    protected readonly logger = createLogger({ name: 'CreationTool' });
+
     @inject(TYPES.IActionDispatcher)
     protected actionDispatcher!: IActionDispatcher;
 
@@ -59,7 +62,7 @@ export class CreationToolMouseListener extends MouseListener {
         // Subscribe to tool state changes
         if (this.toolPaletteActionHandler) {
             this.toolPaletteActionHandler.addToolStateListener((state) => {
-                console.info('[CreationToolMouseListener] Tool state changed:', state);
+                this.logger.info({ state }, 'Tool state changed');
                 this.creationToolState = state;
                 // Reset edge source when tool changes
                 if (!state.isActive || state.toolKind !== 'edge') {
@@ -78,12 +81,7 @@ export class CreationToolMouseListener extends MouseListener {
         }
 
         const { toolKind, elementTypeId, args } = this.creationToolState;
-        console.info('[CreationToolMouseListener] Mouse down with active tool:', {
-            toolKind,
-            elementTypeId,
-            targetType: target.type,
-            targetId: target.id,
-        });
+        this.logger.info({ toolKind, elementTypeId, targetType: target.type, targetId: target.id }, 'Mouse down with active tool');
 
         if (toolKind === 'node') {
             // Create node at click position
@@ -108,11 +106,11 @@ export class CreationToolMouseListener extends MouseListener {
         // Get the position in model coordinates
         const position = this.getModelPosition(target, event);
         if (!position) {
-            console.warn('[CreationToolMouseListener] Could not determine click position');
+            this.logger.warn('Could not determine click position');
             return [];
         }
 
-        console.info('[CreationToolMouseListener] Creating node at position:', position);
+        this.logger.info({ position }, 'Creating node at position');
 
         // Dispatch create element action
         const createAction = CreateElementAction.createNode(elementTypeId, position, args);
@@ -136,7 +134,7 @@ export class CreationToolMouseListener extends MouseListener {
         const node = this.findNode(target);
 
         if (!node) {
-            console.info('[CreationToolMouseListener] Click was not on a node, ignoring for edge creation');
+            this.logger.info('Click was not on a node, ignoring for edge creation');
             // If clicking on empty canvas, reset edge source
             if (this.isOnCanvas(target)) {
                 this.edgeSourceId = undefined;
@@ -147,7 +145,7 @@ export class CreationToolMouseListener extends MouseListener {
         if (!this.edgeSourceId) {
             // First click: select source
             this.edgeSourceId = node.id;
-            console.info('[CreationToolMouseListener] Edge source selected:', node.id);
+            this.logger.info({ nodeId: node.id }, 'Edge source selected');
             // Visual feedback could be added here
             return [];
         } else {
@@ -157,11 +155,11 @@ export class CreationToolMouseListener extends MouseListener {
 
             // Don't allow self-loops by default
             if (sourceId === targetId) {
-                console.info('[CreationToolMouseListener] Self-loop not allowed');
+                this.logger.info('Self-loop not allowed');
                 return [];
             }
 
-            console.info('[CreationToolMouseListener] Creating edge from', sourceId, 'to', targetId);
+            this.logger.info({ sourceId, targetId }, 'Creating edge');
 
             // Reset edge source
             this.edgeSourceId = undefined;

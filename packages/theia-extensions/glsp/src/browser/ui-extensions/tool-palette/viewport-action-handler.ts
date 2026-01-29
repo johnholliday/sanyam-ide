@@ -16,6 +16,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject } from 'inversify';
 import {
     IActionHandler,
@@ -118,6 +119,8 @@ export namespace FitDiagramAction {
  */
 @injectable()
 export class ViewportActionHandler implements IActionHandler {
+    protected readonly logger = createLogger({ name: 'ViewportActions' });
+
     @inject(TYPES.ModelSource)
     protected modelSource!: LocalModelSource;
 
@@ -140,30 +143,30 @@ export class ViewportActionHandler implements IActionHandler {
      * Handle viewport actions.
      */
     handle(action: Action): void | ICommand | Action {
-        console.log('[ViewportActionHandler] Received action:', action.kind);
+        this.logger.debug({ actionKind: action.kind }, 'Received action');
         switch (action.kind) {
             case ZoomInAction.KIND:
-                console.log('[ViewportActionHandler] Handling ZoomInAction');
+                this.logger.debug('Handling ZoomInAction');
                 this.handleZoomIn(action as ZoomInAction);
                 break;
             case ZoomOutAction.KIND:
-                console.log('[ViewportActionHandler] Handling ZoomOutAction');
+                this.logger.debug('Handling ZoomOutAction');
                 this.handleZoomOut(action as ZoomOutAction);
                 break;
             case ResetZoomAction.KIND:
-                console.log('[ViewportActionHandler] Handling ResetZoomAction');
+                this.logger.debug('Handling ResetZoomAction');
                 this.handleResetZoom();
                 break;
             case CenterDiagramAction.KIND:
-                console.log('[ViewportActionHandler] Handling CenterDiagramAction');
+                this.logger.debug('Handling CenterDiagramAction');
                 this.handleCenter(action as CenterDiagramAction);
                 break;
             case FitDiagramAction.KIND:
-                console.log('[ViewportActionHandler] Handling FitDiagramAction');
+                this.logger.debug('Handling FitDiagramAction');
                 this.handleFit(action as FitDiagramAction);
                 break;
             default:
-                console.log('[ViewportActionHandler] Unknown action kind:', action.kind);
+                this.logger.debug({ actionKind: action.kind }, 'Unknown action kind');
         }
     }
 
@@ -242,7 +245,7 @@ export class ViewportActionHandler implements IActionHandler {
             scroll.y = parseFloat(matrixMatch[6]) || 0;
         }
 
-        console.log('[ViewportActionHandler] getViewportFromDom:', { scroll, zoom }, 'from transform:', transform);
+        this.logger.debug({ scroll, zoom, transform }, 'getViewportFromDom');
         return { scroll, zoom };
     }
 
@@ -314,7 +317,7 @@ export class ViewportActionHandler implements IActionHandler {
         const newZoom = Math.min(viewport.zoom * factor, this.MAX_ZOOM);
         const newScroll = this.calculateCenteredScroll(viewport.scroll, viewport.zoom, newZoom);
 
-        console.info('[ViewportActionHandler] Zooming in:', viewport.zoom, '->', newZoom);
+        this.logger.info(`Zooming in: ${viewport.zoom} -> ${newZoom}`);
 
         await this.setViewport(newScroll, newZoom);
     }
@@ -329,7 +332,7 @@ export class ViewportActionHandler implements IActionHandler {
         const newZoom = Math.max(viewport.zoom / factor, this.MIN_ZOOM);
         const newScroll = this.calculateCenteredScroll(viewport.scroll, viewport.zoom, newZoom);
 
-        console.info('[ViewportActionHandler] Zooming out:', viewport.zoom, '->', newZoom);
+        this.logger.info(`Zooming out: ${viewport.zoom} -> ${newZoom}`);
 
         await this.setViewport(newScroll, newZoom);
     }
@@ -342,7 +345,7 @@ export class ViewportActionHandler implements IActionHandler {
 
         const newScroll = this.calculateCenteredScroll(viewport.scroll, viewport.zoom, this.DEFAULT_ZOOM);
 
-        console.info('[ViewportActionHandler] Resetting zoom to:', this.DEFAULT_ZOOM);
+        this.logger.info(`Resetting zoom to: ${this.DEFAULT_ZOOM}`);
         await this.setViewport(newScroll, this.DEFAULT_ZOOM);
     }
 
@@ -351,7 +354,7 @@ export class ViewportActionHandler implements IActionHandler {
      */
     protected async handleCenter(action: CenterDiagramAction): Promise<void> {
         const elementIds = action.elementIds ?? this.getElementIds();
-        console.info('[ViewportActionHandler] Centering diagram with elements:', elementIds.length);
+        this.logger.info(`Centering diagram with elements: ${elementIds.length}`);
 
         const centerAction: CenterAction = {
             kind: 'center',
@@ -368,7 +371,7 @@ export class ViewportActionHandler implements IActionHandler {
      */
     protected async handleFit(action: FitDiagramAction): Promise<void> {
         const elementIds = action.elementIds ?? this.getElementIds();
-        console.info('[ViewportActionHandler] Fitting diagram with elements:', elementIds.length);
+        this.logger.info(`Fitting diagram with elements: ${elementIds.length}`);
 
         const fitAction: FitToScreenAction = {
             kind: 'fit',

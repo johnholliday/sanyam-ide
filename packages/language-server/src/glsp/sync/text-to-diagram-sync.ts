@@ -12,6 +12,9 @@ import type { CancellationToken } from 'vscode-languageserver';
 import type { GlspContext, RegisteredLanguage } from '@sanyam/types';
 import { Emitter, Event, Disposable, CancellationToken as VsCancellationToken } from 'vscode-languageserver';
 import { DisposableCollection } from '../../utils/disposable.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'TextToDiagramSync' });
 
 /**
  * Document change event.
@@ -223,7 +226,7 @@ export class TextToDiagramSync implements Disposable {
       this.onSyncCompleteEmitter.fire({ uri, success: true });
       return true;
     } catch (error) {
-      console.error(`Failed to sync document ${uri}:`, error);
+      logger.error({ err: error, uri }, 'Failed to sync document');
       state.pendingSync = false;
       this.onSyncCompleteEmitter.fire({ uri, success: false });
       return false;

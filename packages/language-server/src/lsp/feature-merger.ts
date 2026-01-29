@@ -7,13 +7,14 @@
  */
 
 import type { LspFeatureProviders } from '@sanyam/types';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspFeatureMerger' });
 
 /**
  * Feature merger options.
  */
 export interface FeatureMergerOptions {
-  /** Whether to log merge operations */
-  verbose?: boolean;
   /** How to handle conflicts */
   conflictResolution?: 'custom-wins' | 'default-wins' | 'throw';
 }
@@ -43,7 +44,6 @@ export class FeatureMerger {
 
   constructor(options?: FeatureMergerOptions) {
     this.options = {
-      verbose: options?.verbose ?? false,
       conflictResolution: options?.conflictResolution ?? 'custom-wins',
     };
   }
@@ -85,9 +85,7 @@ export class FeatureMerger {
         // Set to undefined or null to indicate disabled
         (result.providers as any)[featureName] = null;
 
-        if (this.options.verbose) {
-          console.log(`Feature '${featureName}' is disabled`);
-        }
+        logger.debug({ feature: featureName }, 'Feature disabled');
         continue;
       }
 
@@ -117,8 +115,8 @@ export class FeatureMerger {
           (result.providers as any)[featureName] = customProvider;
         }
 
-        if (this.options.verbose && result.overriddenFeatures.includes(featureName)) {
-          console.log(`Feature '${featureName}' overridden by custom provider`);
+        if (result.overriddenFeatures.includes(featureName)) {
+          logger.debug({ feature: featureName }, 'Feature overridden by custom provider');
         }
       } else if (defaultProvider !== undefined) {
         // Only default exists

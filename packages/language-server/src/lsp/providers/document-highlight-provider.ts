@@ -15,6 +15,9 @@ import type { LspContext } from '@sanyam/types';
 import type { AstNode, CstNode, Reference } from 'langium';
 import { findLeafNodeAtOffsetSafe, isNamed, streamAllContents } from '../helpers/langium-compat.js';
 import { isReference } from 'langium';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default document highlight provider.
@@ -38,7 +41,7 @@ export const defaultDocumentHighlightProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium DocumentHighlightProvider:', error);
+        logger.error({ err: error }, 'Error in Langium DocumentHighlightProvider');
       }
     }
 

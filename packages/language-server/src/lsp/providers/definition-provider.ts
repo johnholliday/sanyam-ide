@@ -15,6 +15,9 @@ import type { LspContext } from '@sanyam/types';
 import type { AstNode, CstNode, Reference } from 'langium';
 import { findLeafNodeAtOffsetSafe, getDocument, isNamed } from '../helpers/langium-compat.js';
 import { isReference } from 'langium';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default definition provider that uses Langium's reference resolution.
@@ -38,7 +41,7 @@ export const defaultDefinitionProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium DefinitionProvider:', error);
+        logger.error({ err: error }, 'Error in Langium DefinitionProvider');
       }
     }
 

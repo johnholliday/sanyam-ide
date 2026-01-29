@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: MIT
  ********************************************************************************/
 
+import { createLogger } from '@sanyam/logger';
 import { inject, injectable } from '@theia/core/shared/inversify';
 import { BackendApplicationContribution } from '@theia/core/lib/node/backend-application';
 import { Application, Router, Request, Response } from '@theia/core/shared/express';
@@ -28,6 +29,8 @@ export class TheiaLauncherServiceEndpoint implements BackendApplicationContribut
     protected static PATH = '/launcher';
     protected static STORAGE_FILE_NAME = 'paths.json';
     private LAUNCHER_LINK_SOURCE = '/usr/local/bin/theia';
+
+    protected readonly sanyamLogger = createLogger({ name: 'Launcher' });
 
     @inject(ILogger)
     protected readonly logger: ILogger;
@@ -69,7 +72,7 @@ export class TheiaLauncherServiceEndpoint implements BackendApplicationContribut
         try {
             return await fs.readJSON(storageFile);
         } catch (error) {
-            console.error('Failed to parse data from "', storageFile, '". Reason:', error);
+            this.sanyamLogger.error({ err: error, storageFile }, 'Failed to parse data from storage file');
             return [];
         }
     }

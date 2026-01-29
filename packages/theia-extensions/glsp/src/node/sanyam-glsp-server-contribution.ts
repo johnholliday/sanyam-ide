@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: MIT
  ********************************************************************************/
 
+import { createLogger, type SanyamLogger } from '@sanyam/logger';
 import { injectable, postConstruct } from '@theia/core/shared/inversify';
 import {
     GLSPServerContribution,
@@ -47,10 +48,11 @@ export class SanyamGlspServerContribution implements GLSPServerContribution {
 
     protected readonly toDispose = new DisposableCollection();
     protected clientConnections = new Map<string, Channel>();
+    protected readonly logger: SanyamLogger = createLogger({ name: 'GlspServerContribution' });
 
     @postConstruct()
     protected initialize(): void {
-        console.log('[SanyamGlspServerContribution] Initialized');
+        this.logger.info('Initialized');
     }
 
     /**
@@ -62,7 +64,7 @@ export class SanyamGlspServerContribution implements GLSPServerContribution {
      */
     connect(clientChannel: Channel): MaybePromise<Disposable> {
         const clientId = this.generateClientId();
-        console.log(`[SanyamGlspServerContribution] Client ${clientId} connecting...`);
+        this.logger.info({ clientId }, `Client ${clientId} connecting...`);
 
         try {
             // Store the client channel for communication
@@ -73,31 +75,31 @@ export class SanyamGlspServerContribution implements GLSPServerContribution {
                 const buffer: ReadBuffer = msgProvider();
                 // For now, log messages - in a full implementation, we would
                 // forward these to the language server
-                console.log(`[SanyamGlspServerContribution] Received message from client ${clientId}`);
+                this.logger.info({ clientId }, `Received message from client ${clientId}`);
                 this.handleClientMessage(clientId, buffer);
             });
 
             const closeHandler = clientChannel.onClose(() => {
-                console.log(`[SanyamGlspServerContribution] Client ${clientId} channel closed`);
+                this.logger.info({ clientId }, `Client ${clientId} channel closed`);
                 this.clientConnections.delete(clientId);
             });
 
             const errorHandler = clientChannel.onError((error) => {
-                console.error(`[SanyamGlspServerContribution] Client ${clientId} error:`, error);
+                this.logger.error({ clientId, err: error }, `Client ${clientId} error`);
             });
 
-            console.log(`[SanyamGlspServerContribution] Client ${clientId} connected successfully`);
+            this.logger.info({ clientId }, `Client ${clientId} connected successfully`);
 
             // Return a disposable that cleans up the connection
             return Disposable.create(() => {
-                console.log(`[SanyamGlspServerContribution] Client ${clientId} disconnecting...`);
+                this.logger.info({ clientId }, `Client ${clientId} disconnecting...`);
                 this.clientConnections.delete(clientId);
                 messageHandler.dispose();
                 closeHandler.dispose();
                 errorHandler.dispose();
             });
         } catch (error) {
-            console.error(`[SanyamGlspServerContribution] Failed to connect client ${clientId}:`, error);
+            this.logger.error({ clientId, err: error }, `Failed to connect client ${clientId}`);
             throw error;
         }
     }
@@ -112,12 +114,12 @@ export class SanyamGlspServerContribution implements GLSPServerContribution {
         try {
             const content = buffer.readString();
             const message = JSON.parse(content);
-            console.log(`[SanyamGlspServerContribution] Message from ${clientId}:`, message.method || message.id);
+            this.logger.debug({ clientId, method: message.method || message.id }, `Message from ${clientId}`);
 
             // TODO: Forward to language server and send response back to client
             // For now, just log the message
         } catch (error) {
-            console.error(`[SanyamGlspServerContribution] Failed to parse message:`, error);
+            this.logger.error({ err: error }, 'Failed to parse message');
         }
     }
 
@@ -137,7 +139,7 @@ export class SanyamGlspServerContribution implements GLSPServerContribution {
      * The language server is started by the VS Code extension.
      */
     launch?(): Promise<Disposable> {
-        console.log('[SanyamGlspServerContribution] Launch called - using embedded server');
+        this.logger.info('Launch called - using embedded server');
         return Promise.resolve(Disposable.NULL);
     }
 
@@ -149,7 +151,7 @@ export class SanyamGlspServerContribution implements GLSPServerContribution {
     }
 
     dispose(): void {
-        console.log('[SanyamGlspServerContribution] Disposing...');
+        this.logger.info('Disposing...');
         this.clientConnections.clear();
         this.toDispose.dispose();
     }

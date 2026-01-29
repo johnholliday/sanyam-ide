@@ -17,6 +17,7 @@
  */
 
 import { injectable } from 'inversify';
+import { createLogger } from '@sanyam/logger';
 import {
     SModelFactory,
     SEdgeImpl,
@@ -52,6 +53,7 @@ export class SanyamCompartmentImpl extends SCompartmentImpl {
  */
 @injectable()
 export class SanyamModelFactory extends SModelFactory {
+    protected readonly logger = createLogger({ name: 'ModelFactory' });
 
     createElement(schema: SModelElement, parent?: SParentElementImpl): SChildElementImpl {
         const originalType = schema.type;
@@ -62,36 +64,36 @@ export class SanyamModelFactory extends SModelFactory {
         // Create a modified schema with normalized type and preserved original
         const normalizedSchema = this.createNormalizedSchema(schema, normalizedType, originalType);
 
-        console.log('[SanyamModelFactory] createElement:', schema.id, 'type:', originalType, '->', normalizedType, 'parent:', parent?.id ?? 'none');
+        this.logger.debug({ id: schema.id, originalType, normalizedType, parent: parent?.id ?? 'none' }, 'createElement');
 
         try {
             // Let Sprotty's default factory handle everything
             const element = super.createElement(normalizedSchema, parent);
-            console.log('[SanyamModelFactory] Created element:', element.id, 'type:', element.type, 'hasParent:', !!element.parent);
+            this.logger.debug({ id: element.id, type: element.type, hasParent: !!element.parent }, 'Created element');
             return element;
         } catch (error) {
-            console.error('[SanyamModelFactory] Error creating element:', schema.id, error);
+            this.logger.error({ err: error, id: schema.id }, 'Error creating element');
             throw error;
         }
     }
 
     createRoot(schema: SModelRoot | SModelRootImpl): SModelRootImpl {
-        console.log('[SanyamModelFactory] createRoot:', schema.id, 'type:', schema.type, 'children:', (schema as any).children?.length ?? 0);
+        this.logger.debug({ id: schema.id, type: schema.type, children: (schema as any).children?.length ?? 0 }, 'createRoot');
 
         try {
             // For root, just pass through (type 'graph' doesn't need normalization)
             const root = super.createRoot(schema);
 
-            console.log('[SanyamModelFactory] Created root with', root.children.length, 'children');
+            this.logger.debug({ childCount: root.children.length }, 'Created root');
 
             // Log first few children for debugging
             if (root.children.length > 0) {
-                console.log('[SanyamModelFactory] First child:', root.children[0]?.id, 'type:', root.children[0]?.type);
+                this.logger.debug({ id: root.children[0]?.id, type: root.children[0]?.type }, 'First child');
             }
 
             return root;
         } catch (error) {
-            console.error('[SanyamModelFactory] Error in createRoot:', error);
+            this.logger.error({ err: error }, 'Error in createRoot');
             throw error;
         }
     }

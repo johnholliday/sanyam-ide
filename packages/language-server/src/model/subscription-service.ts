@@ -19,6 +19,9 @@ import type {
   ChangeType,
   NodeChange,
 } from '@sanyam/types';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'SubscriptionService' });
 
 /**
  * Default debounce time in milliseconds (SC-009 target).
@@ -327,7 +330,7 @@ export class SubscriptionService {
     try {
       subscription.callback(event);
     } catch (error) {
-      console.error('Error in subscription callback:', error);
+      logger.error({ err: error, subscriptionId: subscription.id }, 'Error in subscription callback');
       this.config.logger(`Error in callback for subscription ${subscription.id}: ${error}`);
     }
   }

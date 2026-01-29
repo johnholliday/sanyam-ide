@@ -49,6 +49,9 @@ import type { LspContext, WorkspaceContext, LspFeatureProviders, RegisteredLangu
 import { languageRegistry, type LanguageRegistry } from '../language-registry.js';
 import { createLspContext, createWorkspaceContext, createAnyWorkspaceContext } from './lsp-context-factory.js';
 import { isFeatureDisabled } from './feature-merger.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspHandler' });
 
 /**
  * LSP Handler configuration.
@@ -58,8 +61,6 @@ export interface LspHandlerConfig {
   connection: Connection;
   /** The language registry to use for lookups */
   registry: LanguageRegistry;
-  /** Enable debug logging for provider resolution */
-  logResolution?: boolean;
 }
 
 /**
@@ -67,7 +68,6 @@ export interface LspHandlerConfig {
  */
 interface HandlerContext {
   registry: LanguageRegistry;
-  logResolution: boolean;
 }
 
 /**
@@ -80,11 +80,9 @@ function logResolution(
   available: boolean,
   reason?: string
 ): void {
-  if (ctx.logResolution) {
-    const status = available ? 'resolved' : 'unavailable';
-    const msg = reason ? ` (${reason})` : '';
-    console.log(`[LSP] [${languageId}] ${feature}: ${status}${msg}`);
-  }
+  const status = available ? 'resolved' : 'unavailable';
+  const msg = reason ? ` (${reason})` : '';
+  logger.debug({ feature, languageId, available, reason }, `${feature}: ${status}${msg}`);
 }
 
 /**
@@ -138,10 +136,10 @@ function getEnabledProvider<K extends keyof LspFeatureProviders>(
  * - Return null consistently for unavailable providers
  */
 export function registerLspHandlers(config: LspHandlerConfig): void {
-  const { connection, registry, logResolution = false } = config;
+  const { connection, registry } = config;
 
   // Handler context for all handlers
-  const ctx: HandlerContext = { registry, logResolution };
+  const ctx: HandlerContext = { registry };
 
   // ═══════════════════════════════════════════════════════════════════════════
   // COMPLETION

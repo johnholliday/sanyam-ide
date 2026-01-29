@@ -6,6 +6,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, postConstruct } from 'inversify';
 import { BaseWidget, Message } from '@theia/core/lib/browser';
 import { Emitter, Event, DisposableCollection } from '@theia/core/lib/common';
@@ -36,6 +37,8 @@ export interface PropertiesPanelOptions {
 @injectable()
 export class PropertiesPanelWidget extends BaseWidget {
   static readonly ID = PROPERTIES_PANEL_ID;
+
+  protected readonly logger = createLogger({ name: 'PropertiesPanel' });
 
   /** Current document URI */
   protected currentUri: string | undefined;
@@ -199,10 +202,10 @@ export class PropertiesPanelWidget extends BaseWidget {
 
         this.update();
       } else {
-        console.error('[PropertiesPanelWidget] Failed to update property:', response.error);
+        this.logger.error({ error: response.error }, 'Failed to update property');
       }
     } catch (err) {
-      console.error('[PropertiesPanelWidget] Error updating property:', err);
+      this.logger.error({ err }, 'Error updating property');
     }
   }
 
@@ -265,9 +268,9 @@ export class PropertiesPanelWidget extends BaseWidget {
     // T075c: Log render performance
     const duration = performance.now() - startTime;
     if (duration > 100) {
-      console.warn(`[PropertiesPanelWidget] Render took ${duration.toFixed(2)}ms (target: <100ms)`);
+      this.logger.warn({ durationMs: duration.toFixed(2) }, 'Render took longer than target (<100ms)');
     } else {
-      console.log(`[PropertiesPanelWidget] Render completed in ${duration.toFixed(2)}ms`);
+      this.logger.info({ durationMs: duration.toFixed(2) }, 'Render completed');
     }
   }
 

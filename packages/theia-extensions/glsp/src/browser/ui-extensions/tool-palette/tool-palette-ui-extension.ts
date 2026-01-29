@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { SModelRootImpl } from 'sprotty';
 import {
@@ -77,6 +78,8 @@ export const ToolPaletteClasses = {
  */
 @injectable()
 export class ToolPaletteUIExtension extends AbstractUIExtension {
+    protected readonly logger = createLogger({ name: 'ToolPalette' });
+
     @inject(DIAGRAM_CONTAINER_ID) @optional()
     protected diagramContainerId: string | undefined;
 
@@ -433,7 +436,7 @@ export class ToolPaletteUIExtension extends AbstractUIExtension {
                     try {
                         this.dispatchTriggerAction(item.toolAction.actionKind, item.toolAction.args);
                     } catch (error) {
-                        console.warn(`[ToolPalette] Failed to execute action '${item.toolAction.actionKind}':`, error);
+                        this.logger.warn({ err: error, actionKind: item.toolAction.actionKind }, 'Failed to execute action');
                     }
                     // Reset to default tool after action
                     this.selectDefaultTool();
@@ -454,7 +457,7 @@ export class ToolPaletteUIExtension extends AbstractUIExtension {
                 case 'layout':
                     // Dispatch RequestLayoutAction which will be handled by LayoutActionHandler
                     // This triggers the ELK layout engine
-                    console.info('[ToolPalette] Dispatching layout action');
+                    this.logger.info('Dispatching layout action');
                     this.dispatch(RequestLayoutAction.create({
                         algorithm: args?.algorithm as RequestLayoutAction['algorithm'],
                         direction: args?.direction as RequestLayoutAction['direction'],
@@ -462,7 +465,7 @@ export class ToolPaletteUIExtension extends AbstractUIExtension {
                     break;
                 case 'fit':
                     // Use the custom FitDiagramAction which properly handles element IDs
-                    console.info('[ToolPalette] Dispatching fit diagram action');
+                    this.logger.info('Dispatching fit diagram action');
                     this.dispatch(FitDiagramAction.create(
                         args?.elementIds as string[] | undefined,
                         (args?.padding as number) ?? 20,
@@ -471,7 +474,7 @@ export class ToolPaletteUIExtension extends AbstractUIExtension {
                     break;
                 case 'center':
                     // Use the custom CenterDiagramAction which properly handles element IDs
-                    console.info('[ToolPalette] Dispatching center diagram action');
+                    this.logger.info('Dispatching center diagram action');
                     this.dispatch(CenterDiagramAction.create(
                         args?.elementIds as string[] | undefined,
                         (args?.animate as boolean) ?? true
@@ -479,37 +482,37 @@ export class ToolPaletteUIExtension extends AbstractUIExtension {
                     break;
                 case 'zoomIn':
                     // Use the custom ZoomInAction which properly handles relative zoom
-                    console.info('[ToolPalette] Dispatching zoom in action');
+                    this.logger.info('Dispatching zoom in action');
                     this.dispatch(ZoomInAction.create(1.2));
                     break;
                 case 'zoomOut':
                     // Use the custom ZoomOutAction which properly handles relative zoom
-                    console.info('[ToolPalette] Dispatching zoom out action');
+                    this.logger.info('Dispatching zoom out action');
                     this.dispatch(ZoomOutAction.create(1.2));
                     break;
                 case 'zoomReset':
                     // Use the custom ResetZoomAction
-                    console.info('[ToolPalette] Dispatching reset zoom action');
+                    this.logger.info('Dispatching reset zoom action');
                     this.dispatch(ResetZoomAction.create());
                     break;
                 case 'toggleMinimap':
-                    console.info('[ToolPalette] Dispatching toggle minimap action');
+                    this.logger.info('Dispatching toggle minimap action');
                     this.dispatch({ kind: 'toggleMinimap' } as import('sprotty-protocol').Action);
                     break;
                 case 'enableMarqueeSelect':
-                    console.info('[ToolPalette] Enabling marquee selection mode');
+                    this.logger.info('Enabling marquee selection mode');
                     this.dispatch({ kind: 'enableMarqueeSelect' } as import('sprotty-protocol').Action);
                     break;
                 default:
                     // For other actions, dispatch as-is with a warning if it fails
-                    console.debug(`[ToolPalette] Dispatching action: ${actionKind}`);
+                    this.logger.debug({ actionKind }, 'Dispatching action');
                     this.dispatch({
                         kind: actionKind,
                         ...args,
                     } as import('sprotty-protocol').Action);
             }
         } catch (error) {
-            console.error(`[ToolPalette] Error dispatching trigger action '${actionKind}':`, error);
+            this.logger.error({ err: error, actionKind }, 'Error dispatching trigger action');
         }
     }
 

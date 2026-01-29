@@ -7,6 +7,7 @@
  * @packageDocumentation
  */
 
+import { createLogger, type SanyamLogger } from '@sanyam/logger';
 import { injectable, inject, postConstruct, optional } from 'inversify';
 import {
   FrontendApplicationContribution,
@@ -60,6 +61,7 @@ export class GlspContribution
   protected readonly languageClientProvider: SanyamLanguageClientProvider | undefined;
 
   protected readonly toDispose = new DisposableCollection();
+  protected readonly logger: SanyamLogger = createLogger({ name: 'GlspContribution' });
   protected app: FrontendApplication | undefined;
   protected diagramLanguagesLoaded = false;
 
@@ -74,7 +76,7 @@ export class GlspContribution
    */
   async onStart(app: FrontendApplication): Promise<void> {
     this.app = app;
-    console.log('GLSP Contribution started');
+    this.logger.info('GLSP Contribution started');
 
     // Fetch and register diagram-enabled languages from backend
     await this.fetchDiagramLanguages();
@@ -88,12 +90,12 @@ export class GlspContribution
    */
   protected async fetchDiagramLanguages(): Promise<void> {
     if (!this.languageClientProvider) {
-      console.log('[GlspContribution] No language client provider available');
+      this.logger.info('No language client provider available');
       return;
     }
 
     try {
-      console.log('[GlspContribution] Fetching diagram-enabled languages...');
+      this.logger.info('Fetching diagram-enabled languages...');
       const languages = await this.languageClientProvider.sendRequest<DiagramLanguageInfo[]>(
         'glsp/getDiagramLanguages',
         {}
@@ -108,13 +110,13 @@ export class GlspContribution
           fileExtensions: lang.fileExtensions,
         };
         diagramTypeRegistry.register(config);
-        console.log(`[GlspContribution] Registered diagram type: ${config.diagramType} for ${lang.fileExtensions.join(', ')}`);
+        this.logger.info({ diagramType: config.diagramType, extensions: lang.fileExtensions }, `Registered diagram type: ${config.diagramType}`);
       }
 
       this.diagramLanguagesLoaded = true;
-      console.log(`[GlspContribution] Registered ${languages.length} diagram type(s) from backend`);
+      this.logger.info({ count: languages.length }, `Registered ${languages.length} diagram type(s) from backend`);
     } catch (error) {
-      console.error('[GlspContribution] Failed to fetch diagram languages:', error);
+      this.logger.error({ err: error }, 'Failed to fetch diagram languages');
     }
   }
 
@@ -126,7 +128,7 @@ export class GlspContribution
       diagramTypeRegistry.register(config);
     }
     if (DEFAULT_DIAGRAM_TYPES.length > 0) {
-      console.log(`Registered ${DEFAULT_DIAGRAM_TYPES.length} default diagram types`);
+      this.logger.info({ count: DEFAULT_DIAGRAM_TYPES.length }, `Registered ${DEFAULT_DIAGRAM_TYPES.length} default diagram types`);
     }
   }
 
@@ -143,7 +145,7 @@ export class GlspContribution
   protected registerOpenHandlers(): void {
     // This would integrate with Theia's open handler system
     // to intercept file opens for diagram-supported extensions
-    console.log('Diagram open handlers registered');
+    this.logger.info('Diagram open handlers registered');
   }
 
   /**
@@ -158,7 +160,7 @@ export class GlspContribution
     const diagramType = options?.diagramType ?? this.getDiagramTypeForUri(uriString);
 
     if (!diagramType) {
-      console.warn(`No diagram type found for URI: ${uriString}`);
+      this.logger.warn({ uri: uriString }, 'No diagram type found for URI');
       return undefined;
     }
 
@@ -179,7 +181,7 @@ export class GlspContribution
 
       return widget;
     } catch (error) {
-      console.error('Failed to open diagram view:', error);
+      this.logger.error({ err: error }, 'Failed to open diagram view');
       return undefined;
     }
   }

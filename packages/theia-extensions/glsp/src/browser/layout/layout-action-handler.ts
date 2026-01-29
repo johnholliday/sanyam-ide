@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { IActionHandler, TYPES, IActionDispatcher, LocalModelSource } from 'sprotty';
 import type { Action } from 'sprotty-protocol';
@@ -28,6 +29,8 @@ import { RequestLayoutAction, LayoutCompleteAction } from './layout-actions';
  */
 @injectable()
 export class LayoutActionHandler implements IActionHandler {
+    protected readonly logger = createLogger({ name: 'LayoutActions' });
+
     @inject(TYPES.IActionDispatcher) @optional()
     protected actionDispatcher?: IActionDispatcher;
 
@@ -38,29 +41,26 @@ export class LayoutActionHandler implements IActionHandler {
         if (action.kind === RequestLayoutAction.KIND) {
             // Handle asynchronously with error catching
             this.handleRequestLayout(action as RequestLayoutAction).catch(error => {
-                console.error('[LayoutActionHandler] Unhandled error in layout:', error);
+                this.logger.error({ err: error }, 'Unhandled error in layout');
             });
         }
     }
 
     protected async handleRequestLayout(action: RequestLayoutAction): Promise<void> {
         try {
-            console.info('[LayoutActionHandler] Starting layout request...');
+            this.logger.info('Starting layout request...');
 
             if (!this.modelSource) {
-                console.warn('[LayoutActionHandler] No model source available');
+                this.logger.warn('No model source available');
                 this.dispatchComplete(false, 'No model source configured');
                 return;
             }
 
             // Check if layout engine is available
             const layoutEngine = (this.modelSource as any).layoutEngine;
-            console.info('[LayoutActionHandler] Layout engine available:', !!layoutEngine);
-            if (layoutEngine) {
-                console.info('[LayoutActionHandler] Layout engine type:', layoutEngine.constructor?.name);
-            }
+            this.logger.info({ available: !!layoutEngine, type: layoutEngine?.constructor?.name }, 'Layout engine status');
 
-            console.info('[LayoutActionHandler] Triggering layout via model update...');
+            this.logger.info('Triggering layout via model update...');
 
             // Get the current model and trigger an update
             // The LocalModelSource will automatically invoke the layout engine
@@ -68,31 +68,26 @@ export class LayoutActionHandler implements IActionHandler {
             let currentModel;
             try {
                 currentModel = this.modelSource.model;
-                console.info('[LayoutActionHandler] Current model:', {
-                    type: currentModel?.type,
-                    id: currentModel?.id,
-                    childrenCount: currentModel?.children?.length ?? 0,
-                });
+                this.logger.info({ type: currentModel?.type, id: currentModel?.id, childrenCount: currentModel?.children?.length ?? 0 }, 'Current model');
             } catch (e) {
-                console.warn('[LayoutActionHandler] Failed to get model:', e);
+                this.logger.warn({ err: e }, 'Failed to get model');
                 this.dispatchComplete(false, 'Failed to access model');
                 return;
             }
 
             if (!currentModel) {
-                console.warn('[LayoutActionHandler] No model available');
+                this.logger.warn('No model available');
                 this.dispatchComplete(false, 'No model available');
                 return;
             }
 
             // Update the model - this triggers the layout engine
             try {
-                console.info('[LayoutActionHandler] Calling updateModel...');
+                this.logger.info('Calling updateModel...');
 
                 // Check if layout engine is properly configured
                 const modelSourceAny = this.modelSource as any;
-                console.info('[LayoutActionHandler] needsClientLayout:', modelSourceAny.viewerOptions?.needsClientLayout);
-                console.info('[LayoutActionHandler] layoutEngine exists:', !!modelSourceAny.layoutEngine);
+                this.logger.info({ needsClientLayout: modelSourceAny.viewerOptions?.needsClientLayout, layoutEngineExists: !!modelSourceAny.layoutEngine }, 'Layout engine configuration');
 
                 await this.modelSource.updateModel(currentModel);
 
@@ -100,35 +95,29 @@ export class LayoutActionHandler implements IActionHandler {
                 const updatedModel = this.modelSource.model;
                 if (updatedModel?.children) {
                     const firstChild = updatedModel.children[0] as any;
-                    console.info('[LayoutActionHandler] First child position after layout:', firstChild?.position);
+                    this.logger.info({ position: firstChild?.position }, 'First child position after layout');
                 }
 
-                console.info('[LayoutActionHandler] Layout complete');
+                this.logger.info('Layout complete');
                 this.dispatchComplete(true);
             } catch (updateError) {
-                console.error('[LayoutActionHandler] Model update failed:', updateError);
-                if (updateError instanceof Error) {
-                    console.error('[LayoutActionHandler] Error stack:', updateError.stack);
-                }
+                this.logger.error({ err: updateError }, 'Model update failed');
                 this.dispatchComplete(false, 'Model update failed');
             }
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            console.error('[LayoutActionHandler] Layout failed:', error);
-            if (error instanceof Error) {
-                console.error('[LayoutActionHandler] Error stack:', error.stack);
-            }
+            this.logger.error({ err: error }, 'Layout failed');
             this.dispatchComplete(false, message);
         }
     }
 
     protected dispatchComplete(success: boolean, error?: string): void {
         if (!this.actionDispatcher) {
-            console.warn('[LayoutActionHandler] No action dispatcher, cannot dispatch complete');
+            this.logger.warn('No action dispatcher, cannot dispatch complete');
             return;
         }
         this.actionDispatcher.dispatch(LayoutCompleteAction.create(success, error)).catch(err => {
-            console.warn('[LayoutActionHandler] Failed to dispatch complete action:', err);
+            this.logger.warn({ err }, 'Failed to dispatch complete action');
         });
     }
 }

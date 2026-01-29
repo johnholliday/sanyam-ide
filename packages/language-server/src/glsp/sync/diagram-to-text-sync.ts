@@ -11,6 +11,9 @@ import type { LangiumDocument } from 'langium';
 import type { TextEdit, Range, Position } from 'vscode-languageserver';
 import { Emitter, Event, Disposable } from 'vscode-languageserver';
 import { DisposableCollection } from '../../utils/disposable.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'DiagramToTextSync' });
 
 /**
  * Operation result with text edits.
@@ -480,7 +483,7 @@ export function createConnectionTextEditApplier(connection: any): TextEditApplie
         });
         return result.applied;
       } catch (error) {
-        console.error('Failed to apply edits:', error);
+        logger.error({ err: error }, 'Failed to apply edits');
         return false;
       }
     },
@@ -529,7 +532,7 @@ export function createDocumentTextEditApplier(
         setDocument(uri, text, document.version + 1);
         return true;
       } catch (error) {
-        console.error('Failed to apply edits:', error);
+        logger.error({ err: error }, 'Failed to apply edits');
         return false;
       }
     },

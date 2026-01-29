@@ -16,6 +16,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { ContainerModule } from 'inversify';
 import {
     ElkFactory,
@@ -176,6 +177,8 @@ export class SanyamLayoutConfigurator extends DefaultLayoutConfigurator {
  * @param customOptions - Optional custom layout options to merge with defaults
  * @returns Inversify container module with ELK layout bindings
  */
+const logger = createLogger({ name: 'ElkLayout' });
+
 export function createElkLayoutModule(customOptions?: LayoutOptions): ContainerModule {
     return new ContainerModule((bind, unbind, isBound, rebind) => {
         const context = { bind, unbind, isBound, rebind };
@@ -184,15 +187,15 @@ export function createElkLayoutModule(customOptions?: LayoutOptions): ContainerM
         // Valid algorithms: layered, stress, mrtree, radial, force, disco,
         // sporeOverlap, sporeCompaction, rectpacking, vertiflex
         bind(ElkFactory).toConstantValue(() => {
-            console.info('[ELK Layout] ElkFactory called, creating ELK instance...');
+            logger.info('ElkFactory called, creating ELK instance...');
             try {
                 const elk = new ElkConstructor({
                     algorithms: ['layered', 'force', 'rectpacking', 'radial', 'stress'],
                 });
-                console.info('[ELK Layout] ELK instance created successfully');
+                logger.info('ELK instance created successfully');
                 return elk;
             } catch (error) {
-                console.error('[ELK Layout] Failed to create ELK instance:', error);
+                logger.error({ err: error }, 'Failed to create ELK instance');
                 throw error;
             }
         });
@@ -205,24 +208,24 @@ export function createElkLayoutModule(customOptions?: LayoutOptions): ContainerM
 
         // Bind ELK layout engine using dynamic value to properly inject dependencies
         bind(ElkLayoutEngine).toDynamicValue(ctx => {
-            console.info('[ELK Layout] Creating ElkLayoutEngine...');
+            logger.info('Creating ElkLayoutEngine...');
             try {
                 const elkFactory = ctx.container.get<() => any>(ElkFactory);
-                console.info('[ELK Layout] Got elkFactory');
+                logger.info('Got elkFactory');
                 const elementFilter = ctx.container.get<any>(IElementFilter);
-                console.info('[ELK Layout] Got elementFilter');
+                logger.info('Got elementFilter');
                 const layoutConfigurator = ctx.container.get<any>(ILayoutConfigurator);
-                console.info('[ELK Layout] Got layoutConfigurator');
+                logger.info('Got layoutConfigurator');
                 const layoutPreprocessor = ctx.container.isBound(ILayoutPreprocessor)
                     ? ctx.container.get<any>(ILayoutPreprocessor) : undefined;
                 const layoutPostprocessor = ctx.container.isBound(ILayoutPostprocessor)
                     ? ctx.container.get<any>(ILayoutPostprocessor) : undefined;
-                console.info('[ELK Layout] Creating engine instance...');
+                logger.info('Creating engine instance...');
                 const engine = new ElkLayoutEngine(elkFactory, elementFilter, layoutConfigurator, layoutPreprocessor, layoutPostprocessor);
-                console.info('[ELK Layout] ElkLayoutEngine created successfully');
+                logger.info('ElkLayoutEngine created successfully');
                 return engine;
             } catch (error) {
-                console.error('[ELK Layout] Failed to create ElkLayoutEngine:', error);
+                logger.error({ err: error }, 'Failed to create ElkLayoutEngine');
                 throw error;
             }
         }).inSingletonScope();

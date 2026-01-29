@@ -15,6 +15,9 @@ import type {
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
 import { findLeafNodeAtOffsetSafe, asRecord } from '../helpers/langium-compat.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default signature help provider.
@@ -39,7 +42,7 @@ export const defaultSignatureHelpProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium SignatureHelp:', error);
+        logger.error({ err: error }, 'Error in Langium SignatureHelp');
       }
     }
 

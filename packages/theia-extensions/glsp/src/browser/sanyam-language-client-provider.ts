@@ -8,6 +8,7 @@
  ********************************************************************************/
 
 import { injectable, inject, postConstruct } from '@theia/core/shared/inversify';
+import { createLogger } from '@sanyam/logger';
 import { Emitter, Disposable, DisposableCollection } from '@theia/core/lib/common';
 import { LanguageClientProvider } from './diagram-language-client';
 import {
@@ -26,6 +27,8 @@ export const GlspServiceProxySymbol = Symbol.for('SanyamGlspServiceProxy');
 /**
  * Static holder for the GLSP service proxy (for external access).
  */
+const moduleLogger = createLogger({ name: 'LangClientProvider' });
+
 let _glspServiceProxy: SanyamGlspServiceInterface | undefined;
 
 /**
@@ -34,7 +37,7 @@ let _glspServiceProxy: SanyamGlspServiceInterface | undefined;
  */
 export function setGlspServiceProxy(proxy: SanyamGlspServiceInterface): void {
     _glspServiceProxy = proxy;
-    console.log('[SanyamLanguageClientProvider] GLSP service proxy set');
+    moduleLogger.debug('GLSP service proxy set');
 }
 
 /**
@@ -71,6 +74,7 @@ export interface ConnectionStatusEvent {
  */
 @injectable()
 export class SanyamLanguageClientProvider implements LanguageClientProvider {
+    protected readonly logger = createLogger({ name: 'LangClientProvider' });
     protected readonly toDispose = new DisposableCollection();
     protected notificationHandlers = new Map<string, Set<(params: unknown) => void>>();
 
@@ -89,7 +93,7 @@ export class SanyamLanguageClientProvider implements LanguageClientProvider {
         this.toDispose.push(this.onConnectionStatusChangedEmitter);
         // Also set the static proxy for external access
         setGlspServiceProxy(this.glspService);
-        console.log('[SanyamLanguageClientProvider] Initialized with GLSP service proxy');
+        this.logger.debug('Initialized with GLSP service proxy');
     }
 
     /**
@@ -99,7 +103,7 @@ export class SanyamLanguageClientProvider implements LanguageClientProvider {
      * backend service methods via the RPC proxy.
      */
     async sendRequest<R>(method: string, params: unknown): Promise<R> {
-        console.log(`[SanyamLanguageClientProvider] sendRequest: ${method}`, params);
+        this.logger.debug({ method, params }, 'sendRequest');
 
         const glspService = this.glspService;
 
@@ -191,7 +195,7 @@ export class SanyamLanguageClientProvider implements LanguageClientProvider {
         }
         handlers.add(handler);
 
-        console.log(`[SanyamLanguageClientProvider] Registered notification handler for: ${method}`);
+        this.logger.debug({ method }, 'Registered notification handler');
 
         return Disposable.create(() => {
             handlers?.delete(handler);
@@ -209,12 +213,12 @@ export class SanyamLanguageClientProvider implements LanguageClientProvider {
     fireNotification(method: string, params: unknown): void {
         const handlers = this.notificationHandlers.get(method);
         if (handlers) {
-            console.log(`[SanyamLanguageClientProvider] Firing notification: ${method}`);
+            this.logger.debug({ method }, 'Firing notification');
             for (const handler of handlers) {
                 try {
                     handler(params);
                 } catch (error) {
-                    console.error(`[SanyamLanguageClientProvider] Handler error for ${method}:`, error);
+                    this.logger.error({ err: error, method }, 'Handler error');
                 }
             }
         }

@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { IActionHandler, ICommand } from 'sprotty';
 import { Action } from 'sprotty-protocol';
@@ -34,6 +35,8 @@ export const ToggleGridVisibilityActionKind = 'toggleGridVisibility';
  */
 @injectable()
 export class SnapGridActionHandler implements IActionHandler {
+    protected readonly logger = createLogger({ name: 'SnapGridActions' });
+
     @inject(UI_EXTENSION_REGISTRY) @optional()
     protected readonly registry?: UIExtensionRegistry;
 
@@ -44,7 +47,7 @@ export class SnapGridActionHandler implements IActionHandler {
      * Handle snap-to-grid actions.
      */
     handle(action: Action): void | ICommand | Action {
-        console.log('[SnapGridActionHandler] Received action:', action.kind);
+        this.logger.debug({ actionKind: action.kind }, 'Received action');
 
         switch (action.kind) {
             case ToggleSnapToGridActionKind:
@@ -57,7 +60,7 @@ export class SnapGridActionHandler implements IActionHandler {
                 this.handleToggleGridVisibility(action as ToggleGridVisibilityAction);
                 break;
             default:
-                console.log('[SnapGridActionHandler] Unknown action kind:', action.kind);
+                this.logger.debug({ actionKind: action.kind }, 'Unknown action kind');
         }
     }
 
@@ -78,7 +81,7 @@ export class SnapGridActionHandler implements IActionHandler {
             }
         }
 
-        console.warn('[SnapGridActionHandler] SnapGridTool not found');
+        this.logger.warn('SnapGridTool not found');
         return undefined;
     }
 
@@ -88,7 +91,7 @@ export class SnapGridActionHandler implements IActionHandler {
     protected handleToggleSnapToGrid(action: ToggleSnapToGridAction): void {
         const tool = this.getSnapGridTool();
         if (!tool) {
-            console.warn('[SnapGridActionHandler] Cannot toggle snap-to-grid - tool not available');
+            this.logger.warn('Cannot toggle snap-to-grid - tool not available');
             return;
         }
 
@@ -100,7 +103,7 @@ export class SnapGridActionHandler implements IActionHandler {
             }
         } else {
             const newState = tool.toggle();
-            console.info('[SnapGridActionHandler] Snap-to-grid toggled:', newState ? 'enabled' : 'disabled');
+            this.logger.info(`Snap-to-grid toggled: ${newState ? 'enabled' : 'disabled'}`);
         }
     }
 
@@ -110,12 +113,12 @@ export class SnapGridActionHandler implements IActionHandler {
     protected handleUpdateConfig(action: UpdateSnapGridConfigAction): void {
         const tool = this.getSnapGridTool();
         if (!tool) {
-            console.warn('[SnapGridActionHandler] Cannot update config - tool not available');
+            this.logger.warn('Cannot update config - tool not available');
             return;
         }
 
         tool.setConfig(action.config);
-        console.info('[SnapGridActionHandler] Config updated:', action.config);
+        this.logger.info({ config: action.config }, 'Config updated');
     }
 
     /**
@@ -124,7 +127,7 @@ export class SnapGridActionHandler implements IActionHandler {
     protected handleToggleGridVisibility(action: ToggleGridVisibilityAction): void {
         const tool = this.getSnapGridTool();
         if (!tool) {
-            console.warn('[SnapGridActionHandler] Cannot toggle grid visibility - tool not available');
+            this.logger.warn('Cannot toggle grid visibility - tool not available');
             return;
         }
 
@@ -132,7 +135,7 @@ export class SnapGridActionHandler implements IActionHandler {
             tool.setConfig({ showGrid: action.visible });
         } else {
             const newState = tool.toggleGridVisibility();
-            console.info('[SnapGridActionHandler] Grid visibility toggled:', newState ? 'visible' : 'hidden');
+            this.logger.info(`Grid visibility toggled: ${newState ? 'visible' : 'hidden'}`);
         }
     }
 }

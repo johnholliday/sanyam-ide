@@ -13,6 +13,9 @@ import type {
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
 import { findLeafNodeAtOffsetSafe, getDocument, isNamed } from '../helpers/langium-compat.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default references provider that uses Langium's reference finding.
@@ -36,7 +39,7 @@ export const defaultReferencesProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium ReferencesProvider:', error);
+        logger.error({ err: error }, 'Error in Langium ReferencesProvider');
       }
     }
 
@@ -133,7 +136,7 @@ async function findAllReferences(
         }
       }
     } catch (error) {
-      console.error('Error finding references:', error);
+      logger.error({ err: error }, 'Error finding references');
     }
   }
 

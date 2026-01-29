@@ -17,6 +17,9 @@ import {
   TransportKind,
 } from 'vscode-languageclient/node.js';
 import { DOCUMENT_SELECTOR } from './generated/vsix-config.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'Extension' });
 
 /**
  * The language client instance.
@@ -31,7 +34,7 @@ let client: LanguageClient | undefined;
  * @param context - Extension context
  */
 export async function activate(context: ExtensionContext): Promise<void> {
-  console.log('Activating Sanyam Language Extension...');
+  logger.info('Activating Sanyam Language Extension');
 
   // Path to the server module (bundled by esbuild as CommonJS)
   const serverModule = context.asAbsolutePath(
@@ -77,7 +80,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
   // Register GLSP commands for diagram operations
   registerGlspCommands(context);
 
-  console.log('Sanyam Language Extension activated.');
+  logger.info('Sanyam Language Extension activated');
 }
 
 /**
@@ -94,7 +97,7 @@ function registerGlspCommands(context: ExtensionContext): void {
         const response = await client.sendRequest('glsp/loadModel', { uri });
         return response;
       } catch (error) {
-        console.error('Error loading diagram model:', error);
+        logger.error({ err: error }, 'Error loading diagram model');
         return { success: false, error: String(error) };
       }
     })
@@ -110,7 +113,7 @@ function registerGlspCommands(context: ExtensionContext): void {
         const response = await client.sendRequest('glsp/executeOperation', { uri, operation });
         return response;
       } catch (error) {
-        console.error('Error executing diagram operation:', error);
+        logger.error({ err: error }, 'Error executing diagram operation');
         return { success: false, error: String(error) };
       }
     })
@@ -126,7 +129,7 @@ function registerGlspCommands(context: ExtensionContext): void {
         const response = await client.sendRequest('glsp/layout', { uri, options });
         return response;
       } catch (error) {
-        console.error('Error requesting layout:', error);
+        logger.error({ err: error }, 'Error requesting layout');
         return { positions: {}, bounds: { width: 0, height: 0 }, error: String(error) };
       }
     })
@@ -142,7 +145,7 @@ function registerGlspCommands(context: ExtensionContext): void {
         const response = await client.sendRequest('glsp/toolPalette', { uri });
         return response;
       } catch (error) {
-        console.error('Error getting tool palette:', error);
+        logger.error({ err: error }, 'Error getting tool palette');
         return { groups: [], error: String(error) };
       }
     })
@@ -158,13 +161,13 @@ function registerGlspCommands(context: ExtensionContext): void {
         const response = await client.sendRequest('glsp/validate', { uri });
         return response;
       } catch (error) {
-        console.error('Error validating model:', error);
+        logger.error({ err: error }, 'Error validating model');
         return { markers: [], isValid: false, errorCount: 1, warningCount: 0 };
       }
     })
   );
 
-  console.log('GLSP commands registered.');
+  logger.info('GLSP commands registered');
 }
 
 /**
@@ -173,14 +176,14 @@ function registerGlspCommands(context: ExtensionContext): void {
  * Called when VS Code deactivates this extension.
  */
 export async function deactivate(): Promise<void> {
-  console.log('Deactivating Sanyam Language Extension...');
+  logger.info('Deactivating Sanyam Language Extension');
 
   if (client) {
     await client.stop();
     client = undefined;
   }
 
-  console.log('Sanyam Language Extension deactivated.');
+  logger.info('Sanyam Language Extension deactivated');
 }
 
 /**

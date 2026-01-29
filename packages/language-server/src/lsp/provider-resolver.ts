@@ -20,6 +20,9 @@ import {
   getProvider,
   type FeatureMergerOptions,
 } from './feature-merger.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProviderResolver' });
 
 /**
  * Provider resolver options.
@@ -27,8 +30,6 @@ import {
 export interface ProviderResolverOptions extends FeatureMergerOptions {
   /** Whether to cache resolved providers */
   cacheProviders?: boolean;
-  /** Whether to log resolution decisions */
-  logResolution?: boolean;
 }
 
 /**
@@ -61,14 +62,11 @@ export class ProviderResolver {
 
   constructor(options?: ProviderResolverOptions) {
     this.options = {
-      verbose: options?.verbose ?? false,
       conflictResolution: options?.conflictResolution ?? 'custom-wins',
       cacheProviders: options?.cacheProviders ?? true,
-      logResolution: options?.logResolution ?? false,
     };
 
     this.merger = createFeatureMerger({
-      verbose: this.options.verbose,
       conflictResolution: this.options.conflictResolution,
     });
 
@@ -102,9 +100,7 @@ export class ProviderResolver {
 
     // Check if feature is disabled
     if (this.merger.isDisabled(featureName, disabledFeatures)) {
-      if (this.options.logResolution) {
-        console.log(`[${languageId}] Feature '${featureName}' is disabled`);
-      }
+      logger.debug({ languageId, feature: featureName }, 'Feature disabled');
 
       return {
         provider: undefined,
@@ -121,11 +117,7 @@ export class ProviderResolver {
     // Determine if this is a custom provider
     const isCustom = this.isCustomProvider(featureName, contribution);
 
-    if (this.options.logResolution) {
-      console.log(
-        `[${languageId}] Resolved '${featureName}': ${isCustom ? 'custom' : 'default'}`
-      );
-    }
+    logger.debug({ languageId, feature: featureName, isCustom }, 'Provider resolved');
 
     return {
       provider,

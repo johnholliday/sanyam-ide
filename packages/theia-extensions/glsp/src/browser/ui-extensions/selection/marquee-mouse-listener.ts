@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { MouseListener, SModelElementImpl, SModelRootImpl, TYPES, IActionDispatcher } from 'sprotty';
 import { Action } from 'sprotty-protocol';
@@ -26,6 +27,8 @@ import { UI_EXTENSION_REGISTRY, UIExtensionRegistry } from '../base-ui-extension
  */
 @injectable()
 export class MarqueeMouseListener extends MouseListener {
+    protected readonly logger = createLogger({ name: 'MarqueeListener' });
+
     @inject(UI_EXTENSION_REGISTRY) @optional()
     protected readonly registry?: UIExtensionRegistry;
 
@@ -43,10 +46,10 @@ export class MarqueeMouseListener extends MouseListener {
         debugger; // TRACE: Is mouseDown being called?
         // Check if Ctrl (or Cmd on Mac) is pressed and we're clicking on the canvas (root)
         const isCtrlPressed = event.ctrlKey || event.metaKey;
-        console.log('[MarqueeMouseListener] mouseDown', { isCtrlPressed, isRoot: target instanceof SModelRootImpl, targetType: target.type });
+        this.logger.debug({ isCtrlPressed, isRoot: target instanceof SModelRootImpl, targetType: target.type }, 'mouseDown');
 
         if (isCtrlPressed && target instanceof SModelRootImpl) {
-            console.log('[MarqueeMouseListener] Ctrl+click detected on canvas, enabling marquee mode');
+            this.logger.debug('Ctrl+click detected on canvas, enabling marquee mode');
             this.ctrlMouseDownOnCanvas = true;
 
             // Dispatch enable marquee select action

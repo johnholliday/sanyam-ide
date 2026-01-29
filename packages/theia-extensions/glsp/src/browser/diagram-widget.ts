@@ -8,6 +8,7 @@
  */
 
 import { injectable, postConstruct, inject } from 'inversify';
+import { createLogger } from '@sanyam/logger';
 import { Widget, BaseWidget, Message } from '@theia/core/lib/browser';
 import { Emitter, Event, DisposableCollection, Disposable } from '@theia/core/lib/common';
 import { PreferenceService, PreferenceChange } from '@theia/core/lib/common/preferences/preference-service';
@@ -136,6 +137,8 @@ export interface DiagramWidgetEvents {
 export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     static readonly ID = DIAGRAM_WIDGET_FACTORY_ID;
 
+    protected readonly logger = createLogger({ name: 'DiagramWidget' });
+
     /** Source document URI */
     readonly uri: string;
 
@@ -253,12 +256,12 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
         // Subscribe to model updates for this URI
         this.modelUpdateSubscription = client.subscribeToChanges(this.uri, (update: DiagramModelUpdate) => {
-            console.log(`[DiagramWidget] Model update received for: ${this.uri}`);
+            this.logger.debug(`[DiagramWidget] Model update received for: ${this.uri}`);
             this.handleModelUpdate(update);
         });
 
         this.toDispose.push(this.modelUpdateSubscription);
-        console.log(`[DiagramWidget] DiagramLanguageClient set for: ${this.uri}`);
+        this.logger.debug(`[DiagramWidget] DiagramLanguageClient set for: ${this.uri}`);
     }
 
     /**
@@ -357,7 +360,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         }
 
         this.currentBackgroundStyle = style;
-        console.log(`[DiagramWidget] Applied background style: ${style}, opacity: ${patternOpacity}`);
+        this.logger.debug(`[DiagramWidget] Applied background style: ${style}, opacity: ${patternOpacity}`);
     }
 
     /**
@@ -475,7 +478,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             const marqueeTool = registry.get('sanyam-marquee-selection');
             if (marqueeTool && 'enableMarqueeMode' in marqueeTool) {
                 (marqueeTool as any).enableMarqueeMode();
-                console.log('[DiagramWidget] Marquee selection mode enabled via Ctrl+click');
+                this.logger.debug('[DiagramWidget] Marquee selection mode enabled via Ctrl+click');
             }
         }
     };
@@ -591,7 +594,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             }
 
             this.sprottyInitialized = true;
-            console.log(`[DiagramWidget] Sprotty initialized for: ${this.uri}`);
+            this.logger.debug(`[DiagramWidget] Sprotty initialized for: ${this.uri}`);
 
             // Request tool palette from server
             await this.sprottyManager.requestToolPalette();
@@ -599,7 +602,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             // Load initial model
             await this.loadModel();
         } catch (error) {
-            console.error('[DiagramWidget] Failed to initialize Sprotty:', error);
+            this.logger.error({ err: error }, 'Failed to initialize Sprotty');
             this.showError('Failed to initialize diagram viewer');
         }
     }
@@ -677,10 +680,10 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      * Load the diagram model from the server.
      */
     async loadModel(): Promise<void> {
-        console.log(`[DiagramWidget] Loading diagram model for: ${this.uri}`);
+        this.logger.debug(`[DiagramWidget] Loading diagram model for: ${this.uri}`);
 
         if (!this.diagramLanguageClient) {
-            console.warn('[DiagramWidget] No DiagramLanguageClient set, cannot load model');
+            this.logger.warn('[DiagramWidget] No DiagramLanguageClient set, cannot load model');
             this.showError('Diagram language client not available');
             return;
         }
@@ -692,14 +695,14 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             if (this.layoutStorageService) {
                 this.savedLayout = await this.layoutStorageService.loadLayout(this.uri);
                 if (this.savedLayout) {
-                    console.log(`[DiagramWidget] Found saved layout with ${Object.keys(this.savedLayout.elements).length} elements`);
+                    this.logger.debug(`[DiagramWidget] Found saved layout with ${Object.keys(this.savedLayout.elements).length} elements`);
                 }
             }
 
             const response = await this.diagramLanguageClient.loadModel(this.uri);
 
             if (response.success && response.gModel) {
-                console.log(`[DiagramWidget] Response has gModel with ${response.gModel.children?.length ?? 0} children`);
+                this.logger.debug(`[DiagramWidget] Response has gModel with ${response.gModel.children?.length ?? 0} children`);
                 // Update positions if available from server
                 if (response.metadata?.positions) {
                     this.state.positions = new Map(Object.entries(response.metadata.positions));
@@ -721,23 +724,23 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     const applyDuration = performance.now() - applyStartTime;
                     const elementCount = Object.keys(this.savedLayout.elements).length;
                     if (applyDuration > 100) {
-                        console.warn(`[DiagramWidget] Layout apply took ${applyDuration.toFixed(2)}ms for ${elementCount} elements (target: <100ms)`);
+                        this.logger.warn(`[DiagramWidget] Layout apply took ${applyDuration.toFixed(2)}ms for ${elementCount} elements (target: <100ms)`);
                     } else {
-                        console.log(`[DiagramWidget] Applied ${elementCount} saved positions in ${applyDuration.toFixed(2)}ms`);
+                        this.logger.debug(`[DiagramWidget] Applied ${elementCount} saved positions in ${applyDuration.toFixed(2)}ms`);
                     }
                 }
 
                 // Set the model
                 await this.setModel(response.gModel);
-                console.log(`[DiagramWidget] Model loaded successfully for: ${this.uri}`);
+                this.logger.debug(`[DiagramWidget] Model loaded successfully for: ${this.uri}`);
             } else {
                 const errorMsg = response.error || 'Unknown error loading diagram model';
-                console.error(`[DiagramWidget] Failed to load model: ${errorMsg}`);
+                this.logger.error(`[DiagramWidget] Failed to load model: ${errorMsg}`);
                 this.showError(errorMsg);
             }
         } catch (error) {
             const errorMsg = error instanceof Error ? error.message : String(error);
-            console.error(`[DiagramWidget] Error loading model: ${errorMsg}`);
+            this.logger.error(`[DiagramWidget] Error loading model: ${errorMsg}`);
             this.showError(errorMsg);
         }
     }
@@ -767,17 +770,17 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 if (this.svgContainer) {
                     this.layoutPending = true;
                     this.svgContainer.classList.add('layout-pending');
-                    console.log('[DiagramWidget] Layout pending - diagram hidden');
+                    this.logger.debug('[DiagramWidget] Layout pending - diagram hidden');
                 }
 
                 // Convert to Sprotty format with positions
                 const sprottyModel = this.convertToSprottyModel(gModel);
                 await this.sprottyManager.setModel(sprottyModel);
-                console.log('[DiagramWidget] Model set in Sprotty');
+                this.logger.debug('[DiagramWidget] Model set in Sprotty');
 
                 if (hasSavedLayout) {
                     // Skip auto-layout - we have saved positions
-                    console.log('[DiagramWidget] Skipping auto-layout - using saved positions');
+                    this.logger.debug('[DiagramWidget] Skipping auto-layout - using saved positions');
                     // Fit to screen with the saved positions
                     await this.sprottyManager.fitToScreen();
                     // T015: Reveal diagram after fitToScreen completes
@@ -787,11 +790,11 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 } else {
                     // Request automatic layout for fresh diagrams
                     await this.sprottyManager.requestLayout();
-                    console.log('[DiagramWidget] Layout requested');
+                    this.logger.debug('[DiagramWidget] Layout requested');
                     // Note: fitToScreen and revealDiagramAfterLayout are called in onLayoutComplete
                 }
             } catch (error) {
-                console.error('[DiagramWidget] Failed to set model in Sprotty:', error);
+                this.logger.error({ err: error }, 'Failed to set model in Sprotty');
                 // Reveal diagram on error (so user sees error state, not blank)
                 this.revealDiagramAfterLayout();
             }
@@ -805,7 +808,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      * Called when the ELK layout engine finishes positioning elements.
      */
     protected onLayoutComplete(success: boolean, error?: string): void {
-        console.log(`[DiagramWidget] Layout complete: success=${success}${error ? ', error=' + error : ''}`);
+        this.logger.debug(`[DiagramWidget] Layout complete: success=${success}${error ? ', error=' + error : ''}`);
 
         if (success) {
             // Fit to screen BEFORE revealing (while still hidden)
@@ -815,7 +818,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 // Update minimap after reveal
                 this.updateMinimapAfterLayout();
             }).catch(err => {
-                console.warn('[DiagramWidget] Failed to fit to screen:', err);
+                this.logger.warn({ err }, 'Failed to fit to screen');
                 // Still reveal even if fit fails
                 this.revealDiagramAfterLayout();
             });
@@ -858,7 +861,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             });
         });
 
-        console.log('[DiagramWidget] Layout complete - revealing diagram');
+        this.logger.debug('[DiagramWidget] Layout complete - revealing diagram');
     }
 
     /**
@@ -932,9 +935,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             try {
                 const sprottyModel = this.convertToSprottyModel(gModel);
                 await this.sprottyManager.updateModel(sprottyModel);
-                console.log('[DiagramWidget] Model updated in Sprotty');
+                this.logger.debug('[DiagramWidget] Model updated in Sprotty');
             } catch (error) {
-                console.error('[DiagramWidget] Failed to update model in Sprotty:', error);
+                this.logger.error({ err: error }, 'Failed to update model in Sprotty');
             }
         }
 
@@ -1113,22 +1116,22 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      * Dispatch a Sprotty action.
      */
     async dispatchAction(action: Action): Promise<void> {
-        console.log('[DiagramWidget] dispatchAction called with:', action.kind);
+        this.logger.debug({ actionKind: action.kind }, 'dispatchAction called');
         if (!this.sprottyManager) {
-            console.warn('[DiagramWidget] Cannot dispatch action - sprottyManager not initialized');
+            this.logger.warn('[DiagramWidget] Cannot dispatch action - sprottyManager not initialized');
             return;
         }
         if (!this.sprottyInitialized) {
-            console.warn('[DiagramWidget] Cannot dispatch action - sprotty not fully initialized');
+            this.logger.warn('[DiagramWidget] Cannot dispatch action - sprotty not fully initialized');
             return;
         }
         try {
             const modelSource = this.sprottyManager.getModelSource();
-            console.log('[DiagramWidget] Dispatching to action dispatcher...');
+            this.logger.debug('[DiagramWidget] Dispatching to action dispatcher...');
             await modelSource.actionDispatcher.dispatch(action);
-            console.log('[DiagramWidget] Action dispatched successfully:', action.kind);
+            this.logger.debug({ actionKind: action.kind }, 'Action dispatched successfully');
         } catch (error) {
-            console.error('[DiagramWidget] Error dispatching action:', error);
+            this.logger.error({ err: error }, 'Error dispatching action');
         }
     }
 
@@ -1167,7 +1170,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     dispose(): void {
         // T018: Save layout immediately on close (don't wait for debounce)
         this.saveLayoutImmediate().catch(error => {
-            console.warn('[DiagramWidget] Failed to save layout on dispose:', error);
+            this.logger.warn({ err: error }, 'Failed to save layout on dispose');
         });
 
         // Remove marquee mousedown listener

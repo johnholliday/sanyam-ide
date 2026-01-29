@@ -160,6 +160,7 @@
     "hono": "^4.0.0",
     "react-dom": "^18.2.0",
     "zod": "^3.25.0",
+    "@sanyam/logger": "workspace:*",
     "@sanyam-grammar/spdevkit": "workspace:*",
     "@sanyam-ide/glsp": "workspace:*",
     "@sanyam-ide/launcher": "workspace:*",

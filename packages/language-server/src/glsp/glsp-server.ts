@@ -75,8 +75,6 @@ export interface GlspServerConfig {
   validation?: boolean;
   /** Provider resolver options */
   resolverOptions?: Partial<GlspProviderResolverOptions>;
-  /** Enable debug logging for provider resolution */
-  logResolution?: boolean;
 }
 
 /**
@@ -119,7 +117,6 @@ export class GlspServer {
 
     // Initialize provider resolver
     this.providerResolver = createGlspProviderResolver({
-      logResolution: this.config.logResolution ?? false,
       deepMerge: true,
       ...this.config.resolverOptions,
     });

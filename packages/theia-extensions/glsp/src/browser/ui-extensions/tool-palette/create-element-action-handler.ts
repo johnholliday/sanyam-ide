@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject } from 'inversify';
 import {
     IActionHandler,
@@ -49,6 +50,8 @@ function generateElementId(prefix: string): string {
  */
 @injectable()
 export class CreateElementActionHandler implements IActionHandler {
+    protected readonly logger = createLogger({ name: 'CreateElement' });
+
     @inject(TYPES.ModelSource)
     protected modelSource!: LocalModelSource;
 
@@ -65,11 +68,11 @@ export class CreateElementActionHandler implements IActionHandler {
      * Handle element creation.
      */
     protected async handleCreateElement(action: CreateElementAction): Promise<void> {
-        console.info('[CreateElementActionHandler] Creating element:', action);
+        this.logger.info({ action }, 'Creating element');
 
         const currentModel = await this.getCurrentModel();
         if (!currentModel) {
-            console.error('[CreateElementActionHandler] No current model available');
+            this.logger.error('No current model available');
             return;
         }
 
@@ -124,7 +127,7 @@ export class CreateElementActionHandler implements IActionHandler {
             Object.assign(node, args);
         }
 
-        console.info('[CreateElementActionHandler] Adding node to model:', node);
+        this.logger.info({ node }, 'Adding node to model');
 
         // Add node to the model's children
         if (!model.children) {
@@ -135,7 +138,7 @@ export class CreateElementActionHandler implements IActionHandler {
         // Update the model
         await this.modelSource.updateModel(model);
 
-        console.info('[CreateElementActionHandler] Node created successfully:', nodeId);
+        this.logger.info({ nodeId }, 'Node created successfully');
     }
 
     /**
@@ -145,7 +148,7 @@ export class CreateElementActionHandler implements IActionHandler {
         const { elementTypeId, sourceId, targetId, args } = action;
 
         if (!sourceId || !targetId) {
-            console.error('[CreateElementActionHandler] Edge creation requires sourceId and targetId');
+            this.logger.error('Edge creation requires sourceId and targetId');
             return;
         }
 
@@ -154,11 +157,11 @@ export class CreateElementActionHandler implements IActionHandler {
         const targetExists = this.findElement(model, targetId);
 
         if (!sourceExists) {
-            console.error('[CreateElementActionHandler] Source element not found:', sourceId);
+            this.logger.error({ sourceId }, 'Source element not found');
             return;
         }
         if (!targetExists) {
-            console.error('[CreateElementActionHandler] Target element not found:', targetId);
+            this.logger.error({ targetId }, 'Target element not found');
             return;
         }
 
@@ -181,7 +184,7 @@ export class CreateElementActionHandler implements IActionHandler {
             Object.assign(edge, args);
         }
 
-        console.info('[CreateElementActionHandler] Adding edge to model:', edge);
+        this.logger.info({ edge }, 'Adding edge to model');
 
         // Add edge to the model's children
         if (!model.children) {
@@ -192,7 +195,7 @@ export class CreateElementActionHandler implements IActionHandler {
         // Update the model
         await this.modelSource.updateModel(model);
 
-        console.info('[CreateElementActionHandler] Edge created successfully:', edgeId);
+        this.logger.info({ edgeId }, 'Edge created successfully');
     }
 
     /**

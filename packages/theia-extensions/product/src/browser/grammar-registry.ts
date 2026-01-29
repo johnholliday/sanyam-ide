@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: MIT
  ********************************************************************************/
 
+import { createLogger } from '@sanyam/logger';
 import { FrontendApplicationContribution } from '@theia/core/lib/browser';
 import { inject, injectable } from '@theia/core/shared/inversify';
 import type { GrammarManifest, GrammarManifestMap } from '@sanyam/types';
@@ -40,6 +41,7 @@ export class GrammarRegistry implements FrontendApplicationContribution {
     @inject(GrammarManifestMapToken)
     protected readonly manifestMap: GrammarManifestMap;
 
+    protected readonly logger = createLogger({ name: 'GrammarRegistry' });
     protected _manifests: readonly GrammarManifest[] = [];
     protected _extensionToManifest: Map<string, GrammarManifest> = new Map();
 
@@ -51,7 +53,7 @@ export class GrammarRegistry implements FrontendApplicationContribution {
     initialize(): void {
         this._manifests = Object.freeze(Object.values(this.manifestMap));
         this.buildExtensionLookup();
-        console.log('[GrammarRegistry] Initialized with', this._manifests.length, 'manifest(s)');
+        this.logger.info({ count: this._manifests.length }, `Initialized with ${this._manifests.length} manifest(s)`);
     }
 
     /**

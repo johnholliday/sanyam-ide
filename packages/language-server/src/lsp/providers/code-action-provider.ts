@@ -13,6 +13,9 @@ import type {
   CodeActionKind,
 } from 'vscode-languageserver';
 import type { LspContext } from '@sanyam/types';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default code action kinds supported.
@@ -49,7 +52,7 @@ export const defaultCodeActionProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium CodeActionProvider:', error);
+        logger.error({ err: error }, 'Error in Langium CodeActionProvider');
       }
     }
 
@@ -84,7 +87,7 @@ export const defaultCodeActionProvider = {
           return resolved;
         }
       } catch (error) {
-        console.error('Error resolving code action:', error);
+        logger.error({ err: error }, 'Error resolving code action');
       }
     }
 

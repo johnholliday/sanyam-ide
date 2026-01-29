@@ -8,9 +8,12 @@
 
 import type { AstNode } from 'langium';
 import { AstUtils } from 'langium';
+import { createLogger } from '@sanyam/logger';
 
 // Langium 4.x exports these via AstUtils namespace
 const { streamAllContents } = AstUtils;
+
+const logger = createLogger({ name: 'AstToGModel' });
 
 // Helper to check if an AST node has a name property
 function isNamed(node: AstNode): node is AstNode & { name: string } {
@@ -45,17 +48,19 @@ export const defaultAstToGModelProvider = {
     let nodeIndex = 0;
 
     // Debug logging
-    console.log('[AstToGModel] Converting AST to GModel');
-    console.log('[AstToGModel] Document URI:', context.document?.uri?.toString());
-    console.log('[AstToGModel] Root type:', root?.$type);
-    console.log('[AstToGModel] Root exists:', !!root);
-    console.log('[AstToGModel] Manifest exists:', !!(context as any).manifest);
-    console.log('[AstToGModel] Manifest languageId:', (context as any).manifest?.languageId);
-    console.log('[AstToGModel] Manifest rootTypes count:', (context as any).manifest?.rootTypes?.length ?? 0);
+    const manifest = (context as any).manifest as GrammarManifest | undefined;
+    logger.debug({
+      uri: context.document?.uri?.toString(),
+      rootType: root?.$type,
+      rootExists: !!root,
+      manifestExists: !!manifest,
+      languageId: manifest?.languageId,
+      rootTypesCount: manifest?.rootTypes?.length ?? 0,
+    }, 'Converting AST to GModel');
 
     // Return empty model if no root
     if (!root) {
-      console.log('[AstToGModel] No root AST node, returning empty model');
+      logger.debug('No root AST node, returning empty model');
       return {
         id: `root_${context.document.uri.toString()}`,
         type: ElementTypes.GRAPH,
@@ -73,7 +78,7 @@ export const defaultAstToGModelProvider = {
         namedNodes++;
       }
     }
-    console.log(`[AstToGModel] Total AST nodes: ${totalNodes}, Named nodes: ${namedNodes}`);
+    logger.debug({ totalNodes, namedNodes }, 'AST node enumeration complete');
 
     // First pass: create nodes
     for (const astNode of streamAllContents(root)) {
@@ -82,7 +87,7 @@ export const defaultAstToGModelProvider = {
         nodes.push(node);
         nodeMap.set(astNode, node.id);
         nodeIndex++;
-        console.log(`[AstToGModel] Created node: ${node.id} (type: ${node.type})`);
+        logger.trace({ nodeId: node.id, nodeType: node.type }, 'Created node');
       }
     }
 
@@ -98,7 +103,7 @@ export const defaultAstToGModelProvider = {
         if (parentId) {
           const edge = this.createEdge(context, parentId, childId, 'contains');
           edges.push(edge);
-          console.log(`[AstToGModel] Created containment edge: ${parentId} -> ${childId}`);
+          logger.trace({ parentId, childId }, 'Created containment edge');
         }
       }
 
@@ -107,7 +112,7 @@ export const defaultAstToGModelProvider = {
       edges.push(...nodeEdges);
     }
 
-    console.log(`[AstToGModel] Conversion complete: ${nodes.length} nodes, ${edges.length} edges`);
+    logger.info({ nodeCount: nodes.length, edgeCount: edges.length }, 'Conversion complete');
 
     return {
       id: `root_${context.document.uri.toString()}`,

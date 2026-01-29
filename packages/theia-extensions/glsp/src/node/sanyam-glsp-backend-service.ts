@@ -28,6 +28,7 @@
  * @packageDocumentation
  */
 
+import { createLogger, type SanyamLogger } from '@sanyam/logger';
 import { injectable, postConstruct, inject, optional } from '@theia/core/shared/inversify';
 import { Emitter, DisposableCollection } from '@theia/core';
 import type { ILogger } from '@theia/core/lib/common/logger';
@@ -148,7 +149,9 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
     readonly onModelUpdated = this.onModelUpdatedEmitter.event;
 
     @inject('ILogger') @optional()
-    protected readonly logger: ILogger | undefined;
+    protected readonly theiaLogger: ILogger | undefined;
+
+    protected readonly logger: SanyamLogger = createLogger({ name: 'GlspBackendService' });
 
     @postConstruct()
     protected init(): void {
@@ -412,35 +415,28 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
     }
 
     /**
-     * Log a message using the logger if available, otherwise console.
+     * Log a message at info level.
      */
-    protected log(message: string, ...args: unknown[]): void {
-        if (this.logger) {
-            this.logger.info(message, ...args);
-        } else {
-            console.log(message, ...args);
-        }
+    protected log(message: string, ..._args: unknown[]): void {
+        this.logger.info(message);
     }
 
     /**
      * Log a debug message.
      */
-    protected debug(message: string, ...args: unknown[]): void {
-        if (this.logger) {
-            this.logger.debug(message, ...args);
-        } else {
-            console.debug(message, ...args);
-        }
+    protected debug(message: string, ..._args: unknown[]): void {
+        this.logger.debug(message);
     }
 
     /**
-     * Log an error using the logger if available, otherwise console.
+     * Log an error message.
      */
     protected logError(message: string, ...args: unknown[]): void {
-        if (this.logger) {
-            this.logger.error(message, ...args);
+        const err = args.length > 0 ? args[0] : undefined;
+        if (err instanceof Error || (err !== undefined && typeof err === 'object')) {
+            this.logger.error({ err }, message);
         } else {
-            console.error(message, ...args);
+            this.logger.error(message);
         }
     }
 

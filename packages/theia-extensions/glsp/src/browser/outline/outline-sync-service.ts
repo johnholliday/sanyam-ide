@@ -7,6 +7,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, postConstruct } from 'inversify';
 import { Emitter, Disposable, DisposableCollection } from '@theia/core/lib/common';
 import { EditorManager } from '@theia/editor/lib/browser';
@@ -33,6 +34,8 @@ import { ElementSymbolMapper } from './element-symbol-mapper';
  */
 @injectable()
 export class OutlineSyncServiceImpl implements Disposable {
+  protected readonly logger = createLogger({ name: 'OutlineSync' });
+
   /** Current configuration */
   protected config: OutlineSyncConfig = { ...DEFAULT_OUTLINE_SYNC_CONFIG };
 
@@ -269,7 +272,7 @@ export class OutlineSyncServiceImpl implements Disposable {
         }
       }
     } catch (error) {
-      console.warn('[OutlineSyncService] Failed to navigate to range:', error);
+      this.logger.warn({ err: error }, 'Failed to navigate to range');
     }
   }
 

@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { SModelRootImpl, TYPES, IActionDispatcher } from 'sprotty';
 import { Action } from 'sprotty-protocol';
@@ -102,6 +103,8 @@ export namespace ToggleMinimapAction {
  */
 @injectable()
 export class MinimapUIExtension extends AbstractUIExtension {
+    protected readonly logger = createLogger({ name: 'Minimap' });
+
     @inject(DIAGRAM_CONTAINER_ID) @optional()
     protected diagramContainerId: string | undefined;
 
@@ -247,16 +250,16 @@ export class MinimapUIExtension extends AbstractUIExtension {
     protected startObservingViewport(): void {
         const svgContainer = this.findSvgContainer();
         if (!svgContainer || !this.viewportObserver) {
-            console.log('[MinimapUIExtension] Cannot start observing - svgContainer:', !!svgContainer, 'observer:', !!this.viewportObserver);
+            this.logger.debug({ svgContainer: !!svgContainer, observer: !!this.viewportObserver }, 'Cannot start observing');
             return;
         }
 
         // Log all group elements in the SVG for debugging
         const allGroups = svgContainer.querySelectorAll('g');
-        console.log('[MinimapUIExtension] All <g> elements in SVG:', allGroups.length);
+        this.logger.debug({ count: allGroups.length }, 'All <g> elements in SVG');
         allGroups.forEach((g, i) => {
             if (i < 5) {
-                console.log(`[MinimapUIExtension]   g[${i}]: id="${g.id}", class="${g.className?.baseVal}", transform="${g.getAttribute('transform')}"`);
+                this.logger.debug({ index: i, id: g.id, class: g.className?.baseVal, transform: g.getAttribute('transform') }, 'SVG group element');
             }
         });
 
@@ -275,13 +278,13 @@ export class MinimapUIExtension extends AbstractUIExtension {
         }
 
         if (graphGroup) {
-            console.log('[MinimapUIExtension] Starting viewport observation on:', graphGroup.id || graphGroup.className?.baseVal, 'transform:', graphGroup.getAttribute('transform'));
+            this.logger.debug({ element: graphGroup.id || graphGroup.className?.baseVal, transform: graphGroup.getAttribute('transform') }, 'Starting viewport observation');
             this.viewportObserver.observe(graphGroup, {
                 attributes: true,
                 attributeFilter: ['transform'],
             });
         } else {
-            console.warn('[MinimapUIExtension] No graph group found to observe');
+            this.logger.warn('No graph group found to observe');
         }
     }
 
@@ -289,7 +292,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
      * Called when the diagram viewport changes.
      */
     protected onViewportChanged(): void {
-        console.log('[MinimapUIExtension] onViewportChanged triggered');
+        this.logger.debug('onViewportChanged triggered');
         // Sync viewport and update indicator (but don't re-render shapes)
         this.syncViewportFromDiagram();
         this.updateViewportIndicator();
@@ -335,27 +338,27 @@ export class MinimapUIExtension extends AbstractUIExtension {
      * dispatch ToggleMinimapAction to avoid infinite recursion.
      */
     toggleMinimap(): void {
-        console.log('[MinimapUIExtension] toggleMinimap called, containerElement:', !!this.containerElement);
+        this.logger.debug({ hasContainer: !!this.containerElement }, 'toggleMinimap called');
 
         // Ensure the extension is initialized first
         if (!this.containerElement) {
-            console.log('[MinimapUIExtension] Initializing minimap before toggle');
+            this.logger.debug('Initializing minimap before toggle');
             this.show();
         }
 
         if (this.containerElement) {
             const isHidden = this.containerElement.style.display === 'none';
-            console.log('[MinimapUIExtension] isHidden:', isHidden);
+            this.logger.debug({ isHidden }, 'Minimap visibility state');
             this.containerElement.style.display = isHidden ? '' : 'none';
-            console.log('[MinimapUIExtension] Minimap toggled:', isHidden ? 'shown' : 'hidden');
+            this.logger.info(`Minimap toggled: ${isHidden ? 'shown' : 'hidden'}`);
 
             // Update the minimap content when showing
             if (isHidden) {
-                console.log('[MinimapUIExtension] Calling updateMinimap...');
+                this.logger.debug('Calling updateMinimap...');
                 this.updateMinimap();
             }
         } else {
-            console.warn('[MinimapUIExtension] Container element not found');
+            this.logger.warn('Container element not found');
         }
     }
 
@@ -363,14 +366,14 @@ export class MinimapUIExtension extends AbstractUIExtension {
      * Update the mini-map.
      */
     updateMinimap(): void {
-        console.log('[MinimapUIExtension] updateMinimap called');
+        this.logger.debug('updateMinimap called');
         // Throttle updates
         if (this.updateTimer) {
             clearTimeout(this.updateTimer);
         }
 
         this.updateTimer = setTimeout(() => {
-            console.log('[MinimapUIExtension] updateMinimap timer fired, calling doUpdateMinimap');
+            this.logger.debug('updateMinimap timer fired, calling doUpdateMinimap');
             this.doUpdateMinimap();
         }, 100);
     }
@@ -379,12 +382,12 @@ export class MinimapUIExtension extends AbstractUIExtension {
      * Actually update the mini-map.
      */
     protected doUpdateMinimap(): void {
-        console.log('[MinimapUIExtension] doUpdateMinimap called');
+        this.logger.debug('doUpdateMinimap called');
         this.syncViewportFromDiagram();
         this.updateModelBounds();
         this.renderDiagram();
         this.updateViewportIndicator();
-        console.log('[MinimapUIExtension] doUpdateMinimap completed');
+        this.logger.debug('doUpdateMinimap completed');
     }
 
     /**
@@ -394,7 +397,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
     protected syncViewportFromDiagram(): void {
         const svgContainer = this.findSvgContainer();
         if (!svgContainer) {
-            console.log('[MinimapUIExtension] syncViewportFromDiagram: no SVG container');
+            this.logger.debug('syncViewportFromDiagram: no SVG container');
             return;
         }
 
@@ -411,21 +414,21 @@ export class MinimapUIExtension extends AbstractUIExtension {
         }
 
         if (!graphGroup) {
-            console.log('[MinimapUIExtension] syncViewportFromDiagram: no graph group found');
+            this.logger.debug('syncViewportFromDiagram: no graph group found');
             return;
         }
 
         // Parse the transform attribute to get scroll and zoom
         const transform = graphGroup.getAttribute('transform');
-        console.log('[MinimapUIExtension] syncViewportFromDiagram: transform =', transform);
+        this.logger.debug({ transform }, 'syncViewportFromDiagram: transform');
         if (transform) {
             const viewport = this.parseTransform(transform);
             if (viewport) {
                 this.currentViewport = viewport;
-                console.log('[MinimapUIExtension] Synced viewport from diagram:', this.currentViewport);
+                this.logger.debug({ viewport: this.currentViewport }, 'Synced viewport from diagram');
             }
         } else {
-            console.log('[MinimapUIExtension] syncViewportFromDiagram: no transform attribute on graph group');
+            this.logger.debug('syncViewportFromDiagram: no transform attribute on graph group');
         }
     }
 
@@ -442,14 +445,14 @@ export class MinimapUIExtension extends AbstractUIExtension {
         if (translateMatch) {
             scroll.x = parseFloat(translateMatch[1]) || 0;
             scroll.y = parseFloat(translateMatch[2]) || 0;
-            console.log('[MinimapUIExtension] parseTransform: translate =', scroll);
+            this.logger.debug({ scroll }, 'parseTransform: translate');
         }
 
         // Try to parse scale - handle "scale(z)" or "scale(x, y)"
         const scaleMatch = transform.match(/scale\s*\(\s*(-?[\d.]+)/);
         if (scaleMatch) {
             zoom = parseFloat(scaleMatch[1]) || 1;
-            console.log('[MinimapUIExtension] parseTransform: scale =', zoom);
+            this.logger.debug({ zoom }, 'parseTransform: scale');
         }
 
         // Try to parse matrix(a, b, c, d, e, f) where e=translateX, f=translateY, a=scaleX
@@ -458,10 +461,10 @@ export class MinimapUIExtension extends AbstractUIExtension {
             zoom = parseFloat(matrixMatch[1]) || 1;
             scroll.x = parseFloat(matrixMatch[5]) || 0;
             scroll.y = parseFloat(matrixMatch[6]) || 0;
-            console.log('[MinimapUIExtension] parseTransform: matrix -> zoom =', zoom, 'scroll =', scroll);
+            this.logger.debug({ zoom, scroll }, 'parseTransform: matrix');
         }
 
-        console.log('[MinimapUIExtension] parseTransform result: scroll =', scroll, 'zoom =', zoom);
+        this.logger.debug({ scroll, zoom }, 'parseTransform result');
         return { scroll, zoom };
     }
 
@@ -472,11 +475,11 @@ export class MinimapUIExtension extends AbstractUIExtension {
     protected updateModelBounds(): void {
         const svgContainer = this.findSvgContainer();
         if (!svgContainer) {
-            console.warn('[MinimapUIExtension] updateModelBounds: SVG container not found');
+            this.logger.warn('updateModelBounds: SVG container not found');
             return;
         }
 
-        console.log('[MinimapUIExtension] updateModelBounds: SVG found, id:', svgContainer.id, 'class:', svgContainer.className?.baseVal);
+        this.logger.debug({ id: svgContainer.id, class: svgContainer.className?.baseVal }, 'updateModelBounds: SVG found');
 
         try {
             // Calculate bounds from shape elements directly to ensure coordinate consistency
@@ -493,13 +496,13 @@ export class MinimapUIExtension extends AbstractUIExtension {
                 const scaleY = this.config.height / paddedHeight;
                 this.scale = Math.min(scaleX, scaleY, 1);
 
-                console.log('[MinimapUIExtension] Model bounds from shapes:', this.modelBounds, 'scale:', this.scale);
+                this.logger.debug({ modelBounds: this.modelBounds, scale: this.scale }, 'Model bounds from shapes');
             } else {
-                console.warn('[MinimapUIExtension] No valid bounds found from shapes');
+                this.logger.warn('No valid bounds found from shapes');
             }
         } catch (e) {
             // Ignore errors when model is empty
-            console.warn('[MinimapUIExtension] Error getting model bounds:', e);
+            this.logger.warn({ err: e }, 'Error getting model bounds');
         }
     }
 
@@ -510,7 +513,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
      */
     protected calculateBoundsFromShapes(svgContainer: SVGSVGElement): { x: number; y: number; width: number; height: number } | undefined {
         const shapes = svgContainer.querySelectorAll('rect, ellipse, polygon, circle');
-        console.log('[MinimapUIExtension] calculateBoundsFromShapes: found', shapes.length, 'shapes');
+        this.logger.debug({ count: shapes.length }, 'calculateBoundsFromShapes: found shapes');
 
         if (shapes.length === 0) {
             return undefined;
@@ -519,7 +522,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
         // Get the SVG's CTM to calculate relative positions
         const svgCTM = svgContainer.getScreenCTM();
         if (!svgCTM) {
-            console.warn('[MinimapUIExtension] Could not get SVG screen CTM');
+            this.logger.warn('Could not get SVG screen CTM');
             return undefined;
         }
         const svgCTMInverse = svgCTM.inverse();
@@ -577,8 +580,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
             }
         });
 
-        console.log('[MinimapUIExtension] calculateBoundsFromShapes: valid shapes:', validShapeCount,
-            'bounds:', { minX, minY, maxX, maxY }, 'viewport:', { scroll: viewportScroll, zoom: viewportZoom });
+        this.logger.debug({ validShapeCount, bounds: { minX, minY, maxX, maxY }, viewport: { scroll: viewportScroll, zoom: viewportZoom } }, 'calculateBoundsFromShapes result');
 
         if (validShapeCount === 0 || minX === Infinity) {
             return undefined;
@@ -652,14 +654,14 @@ export class MinimapUIExtension extends AbstractUIExtension {
      */
     protected renderDiagram(): void {
         if (!this.canvasElement) {
-            console.warn('[MinimapUIExtension] Cannot render - no canvas');
+            this.logger.warn('Cannot render - no canvas');
             return;
         }
         if (!this.modelBounds) {
-            console.warn('[MinimapUIExtension] Cannot render - no model bounds');
+            this.logger.warn('Cannot render - no model bounds');
             return;
         }
-        console.log('[MinimapUIExtension] renderDiagram: canvas size', this.canvasElement.width, 'x', this.canvasElement.height, 'modelBounds:', this.modelBounds);
+        this.logger.debug({ canvasWidth: this.canvasElement.width, canvasHeight: this.canvasElement.height, modelBounds: this.modelBounds }, 'renderDiagram');
 
         const ctx = this.canvasElement.getContext('2d');
         if (!ctx) {
@@ -680,23 +682,22 @@ export class MinimapUIExtension extends AbstractUIExtension {
         // Find all elements and render simplified versions
         const svgContainer = this.findSvgContainer();
         if (!svgContainer) {
-            console.warn('[MinimapUIExtension] renderDiagram: No SVG container');
+            this.logger.warn('renderDiagram: No SVG container');
             return;
         }
 
         // Log the SVG structure for debugging
-        console.log('[MinimapUIExtension] SVG children count:', svgContainer.children.length);
-        console.log('[MinimapUIExtension] SVG innerHTML length:', svgContainer.innerHTML.length);
+        this.logger.debug({ childrenCount: svgContainer.children.length, innerHtmlLength: svgContainer.innerHTML.length }, 'SVG structure');
 
         // Render all rect, ellipse, and polygon elements (nodes are typically rendered as these)
         const shapes = svgContainer.querySelectorAll('rect, ellipse, polygon, circle');
-        console.log('[MinimapUIExtension] Found shapes (rect, ellipse, polygon, circle):', shapes.length);
+        this.logger.debug({ count: shapes.length }, 'Found shapes (rect, ellipse, polygon, circle)');
         ctx.fillStyle = fgColor;
 
         let nodeCount = 0;
         let skippedSmall = 0;
         let outOfBounds = 0;
-        console.log('[MinimapUIExtension] scale:', this.scale, 'modelBounds:', this.modelBounds);
+        this.logger.debug({ scale: this.scale, modelBounds: this.modelBounds }, 'Rendering shapes');
         shapes.forEach((shape, i) => {
             try {
                 // Use transformed bounds to get actual position in SVG space
@@ -713,7 +714,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
 
                 // Log first few shapes to debug coordinates
                 if (nodeCount < 3) {
-                    console.log(`[MinimapUIExtension] Shape ${i}: transformed(${transformedBounds.x.toFixed(1)}, ${transformedBounds.y.toFixed(1)}, ${transformedBounds.width.toFixed(1)}, ${transformedBounds.height.toFixed(1)}) -> canvas(${x.toFixed(1)}, ${y.toFixed(1)}, ${w.toFixed(1)}, ${h.toFixed(1)})`);
+                    this.logger.debug({ index: i, transformed: { x: transformedBounds.x.toFixed(1), y: transformedBounds.y.toFixed(1), w: transformedBounds.width.toFixed(1), h: transformedBounds.height.toFixed(1) }, canvas: { x: x.toFixed(1), y: y.toFixed(1), w: w.toFixed(1), h: h.toFixed(1) } }, 'Shape coordinates');
                 }
 
                 // Check if within canvas bounds
@@ -727,11 +728,11 @@ export class MinimapUIExtension extends AbstractUIExtension {
                 // Ignore
             }
         });
-        console.log('[MinimapUIExtension] Rendered shapes:', nodeCount, 'skipped small:', skippedSmall, 'out of bounds:', outOfBounds);
+        this.logger.debug({ rendered: nodeCount, skippedSmall, outOfBounds }, 'Rendered shapes');
 
         // Also render Sprotty nodes if present (using transformed bounds)
         const nodes = svgContainer.querySelectorAll('.sprotty-node, [id^="node"]');
-        console.log('[MinimapUIExtension] Found Sprotty nodes (.sprotty-node, [id^="node"]):', nodes.length);
+        this.logger.debug({ count: nodes.length }, 'Found Sprotty nodes');
         let sprottyNodeCount = 0;
         nodes.forEach(node => {
             try {
@@ -751,7 +752,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
                 // Ignore
             }
         });
-        console.log('[MinimapUIExtension] Rendered Sprotty nodes:', sprottyNodeCount);
+        this.logger.debug({ count: sprottyNodeCount }, 'Rendered Sprotty nodes');
 
         // Render edges as lines (converting to model space)
         const edges = svgContainer.querySelectorAll('path, line, polyline');
@@ -849,7 +850,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
             }
         });
 
-        console.debug(`[MinimapUIExtension] Rendered ${nodeCount} shapes and ${edgeCount} edges`);
+        this.logger.debug({ shapes: nodeCount, edges: edgeCount }, 'Render complete');
     }
 
     /**
@@ -1007,30 +1008,30 @@ export class MinimapUIExtension extends AbstractUIExtension {
      * Tries multiple selectors to handle different Sprotty configurations.
      */
     protected findSvgContainer(): SVGSVGElement | undefined {
-        console.log('[MinimapUIExtension] findSvgContainer - diagramContainerId:', this.diagramContainerId);
+        this.logger.debug({ diagramContainerId: this.diagramContainerId }, 'findSvgContainer');
 
         // Try 1: Direct container ID lookup
         if (this.diagramContainerId) {
             const container = document.getElementById(this.diagramContainerId);
-            console.log('[MinimapUIExtension] Container by ID:', container?.tagName, container?.className);
+            this.logger.debug({ tagName: container?.tagName, className: container?.className }, 'Container by ID');
             if (container) {
                 // The container itself might be the SVG (Sprotty creates SVG with the container ID)
                 if (container.tagName.toLowerCase() === 'svg') {
-                    console.log('[MinimapUIExtension] Container IS the SVG');
+                    this.logger.debug('Container IS the SVG');
                     return container as unknown as SVGSVGElement;
                 }
 
                 // Try SVG with sprotty-graph class first (most specific)
                 let svg = container.querySelector('svg.sprotty-graph') as SVGSVGElement;
                 if (svg) {
-                    console.log('[MinimapUIExtension] Found svg.sprotty-graph in container');
+                    this.logger.debug('Found svg.sprotty-graph in container');
                     return svg;
                 }
 
                 // Try any SVG element in the container
                 svg = container.querySelector('svg') as SVGSVGElement;
                 if (svg) {
-                    console.log('[MinimapUIExtension] Found svg in container');
+                    this.logger.debug('Found svg in container');
                     return svg;
                 }
             }
@@ -1038,12 +1039,12 @@ export class MinimapUIExtension extends AbstractUIExtension {
 
         // Try 2: Look in parent container
         const parent = this.getParentContainer();
-        console.log('[MinimapUIExtension] Parent container:', parent?.tagName, parent?.className);
+        this.logger.debug({ tagName: parent?.tagName, className: parent?.className }, 'Parent container');
         if (parent) {
             // Try SVG with sprotty-graph class
             let svg = parent.querySelector('svg.sprotty-graph') as SVGSVGElement;
             if (svg) {
-                console.log('[MinimapUIExtension] Found svg.sprotty-graph in parent');
+                this.logger.debug('Found svg.sprotty-graph in parent');
                 return svg;
             }
 
@@ -1053,13 +1054,13 @@ export class MinimapUIExtension extends AbstractUIExtension {
                 // Check if the container has an SVG child
                 svg = svgContainer.querySelector('svg') as SVGSVGElement;
                 if (svg) {
-                    console.log('[MinimapUIExtension] Found svg in .sanyam-diagram-svg-container');
+                    this.logger.debug('Found svg in .sanyam-diagram-svg-container');
                     return svg;
                 }
                 // Also check if any child element is actually a Sprotty SVG
                 const sprottyContainer = svgContainer.querySelector('[id^="sprotty"]');
                 if (sprottyContainer?.tagName.toLowerCase() === 'svg') {
-                    console.log('[MinimapUIExtension] Found Sprotty SVG by ID prefix');
+                    this.logger.debug('Found Sprotty SVG by ID prefix');
                     return sprottyContainer as SVGSVGElement;
                 }
             }
@@ -1067,7 +1068,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
             // Fallback: any SVG in parent
             svg = parent.querySelector('svg') as SVGSVGElement;
             if (svg) {
-                console.log('[MinimapUIExtension] Found svg in parent (fallback)');
+                this.logger.debug('Found svg in parent (fallback)');
                 return svg;
             }
         }
@@ -1075,18 +1076,18 @@ export class MinimapUIExtension extends AbstractUIExtension {
         // Try 3: Global search for sprotty graph (last resort)
         const globalSvg = document.querySelector('svg.sprotty-graph') as SVGSVGElement;
         if (globalSvg) {
-            console.log('[MinimapUIExtension] Found svg.sprotty-graph globally');
+            this.logger.debug('Found svg.sprotty-graph globally');
             return globalSvg;
         }
 
         // Try 4: Look for any SVG with sprotty ID pattern
         const sprottyIdSvg = document.querySelector('svg[id^="sprotty"]') as SVGSVGElement;
         if (sprottyIdSvg) {
-            console.log('[MinimapUIExtension] Found SVG with sprotty ID prefix globally');
+            this.logger.debug('Found SVG with sprotty ID prefix globally');
             return sprottyIdSvg;
         }
 
-        console.warn('[MinimapUIExtension] Could not find SVG container');
+        this.logger.warn('Could not find SVG container');
         return undefined;
     }
 
@@ -1116,7 +1117,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
         // Wait a bit for DOM to be ready, then update
         setTimeout(() => {
             this.doUpdateMinimap();
-            console.debug('[MinimapUIExtension] Force update completed');
+            this.logger.debug('Force update completed');
         }, 150);
     }
 

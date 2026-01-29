@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: MIT
  ********************************************************************************/
 
+import { createLogger } from '@sanyam/logger';
 import { BackendApplicationContribution } from '@theia/core/lib/node/backend-application';
 import { Application, Router } from '@theia/core/shared/express';
 import { inject, injectable } from '@theia/core/shared/inversify';
@@ -28,6 +29,8 @@ export class TheiaDesktopFileServiceEndpoint implements BackendApplicationContri
     protected static PATH = '/desktopfile';
     protected static STORAGE_FILE_NAME = 'desktopfile.json';
 
+    protected readonly logger = createLogger({ name: 'DesktopFile' });
+
     @inject(EnvVariablesServer)
     protected readonly envServer: EnvVariablesServer;
 
@@ -46,7 +49,7 @@ export class TheiaDesktopFileServiceEndpoint implements BackendApplicationContri
         }
         if (process.env.HOME === undefined) {
             // log error but assume initialized, since we can't proceed
-            console.error('Desktop files can only be created if there is a set HOME directory');
+            this.logger.error('Desktop files can only be created if there is a set HOME directory');
             response.json({ initialized: true });
         }
         const storageFile = await getStorageFilePath(this.envServer, TheiaDesktopFileServiceEndpoint.STORAGE_FILE_NAME);
@@ -79,7 +82,7 @@ export class TheiaDesktopFileServiceEndpoint implements BackendApplicationContri
             const data: DesktopFileInformation = await fs.readJSON(storageFile);
             return data;
         } catch (error) {
-            console.error('Failed to parse data from "', storageFile, '". Reason:', error);
+            this.logger.error({ err: error, storageFile }, 'Failed to parse data from storage file');
             return undefined;
         }
     }
@@ -101,10 +104,10 @@ export class TheiaDesktopFileServiceEndpoint implements BackendApplicationContri
                     if (fs.existsSync(unpackedImagePath)) {
                         fs.copyFileSync(unpackedImagePath, imagePath);
                     } else {
-                        console.warn('Launcher Icon not Found in App Image');
+                        this.logger.warn('Launcher Icon not Found in App Image');
                     }
                 } else {
-                    console.warn('Path for unpacked App Image not found');
+                    this.logger.warn('Path for unpacked App Image not found');
                 }
             }
 

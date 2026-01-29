@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { IActionHandler, ICommand, TYPES, IActionDispatcher } from 'sprotty';
 import { Action, SetViewportAction } from 'sprotty-protocol';
@@ -31,6 +32,8 @@ import { UI_EXTENSION_REGISTRY, UIExtensionRegistry } from '../base-ui-extension
  */
 @injectable()
 export class MinimapActionHandler implements IActionHandler {
+    protected readonly logger = createLogger({ name: 'MinimapActions' });
+
     @inject(UI_EXTENSION_REGISTRY) @optional()
     protected readonly uiExtensionRegistry?: UIExtensionRegistry;
 
@@ -49,7 +52,7 @@ export class MinimapActionHandler implements IActionHandler {
                 this.handleSetViewportFromMinimap(action as SetViewportFromMinimapAction);
                 break;
             default:
-                console.warn('[MinimapActionHandler] Unknown action kind:', action.kind);
+                this.logger.warn({ actionKind: action.kind }, 'Unknown action kind');
         }
     }
 
@@ -106,7 +109,7 @@ export class MinimapActionHandler implements IActionHandler {
                 }
             }, 100);
         } else {
-            console.warn('[MinimapActionHandler] Minimap extension not found');
+            this.logger.warn('Minimap extension not found');
         }
     }
 
@@ -117,7 +120,7 @@ export class MinimapActionHandler implements IActionHandler {
         // Find the Sprotty model root element ID
         const elementId = this.findSprottyRootId();
         if (!elementId) {
-            console.warn('[MinimapActionHandler] Could not find Sprotty root element ID');
+            this.logger.warn('Could not find Sprotty root element ID');
             return;
         }
 

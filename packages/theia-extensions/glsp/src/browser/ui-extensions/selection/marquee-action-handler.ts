@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { IActionHandler, ICommand } from 'sprotty';
 import { Action } from 'sprotty-protocol';
@@ -30,6 +31,8 @@ import { UI_EXTENSION_REGISTRY, UIExtensionRegistry } from '../base-ui-extension
  */
 @injectable()
 export class MarqueeSelectionActionHandler implements IActionHandler {
+    protected readonly logger = createLogger({ name: 'MarqueeActions' });
+
     @inject(UI_EXTENSION_REGISTRY) @optional()
     protected readonly uiExtensionRegistry?: UIExtensionRegistry;
 
@@ -60,22 +63,22 @@ export class MarqueeSelectionActionHandler implements IActionHandler {
     protected handleEnableMarqueeSelect(): void {
         const tool = this.getMarqueeSelectionTool();
         if (tool) {
-            console.info('[MarqueeSelectionActionHandler] Enabling marquee selection mode');
+            this.logger.info('Enabling marquee selection mode');
             // Ensure the tool has a parent container before enabling
             if (!tool['parentContainerElement']) {
                 // Try to find the diagram container
                 const diagramContainer = document.querySelector('.sprotty-graph')?.parentElement?.parentElement;
                 if (diagramContainer instanceof HTMLElement) {
-                    console.info('[MarqueeSelectionActionHandler] Setting parent container from DOM');
+                    this.logger.info('Setting parent container from DOM');
                     tool.setParentContainer(diagramContainer);
                 }
             }
             tool.enableMarqueeMode();
         } else {
-            console.warn('[MarqueeSelectionActionHandler] Marquee selection tool not found in registry');
+            this.logger.warn('Marquee selection tool not found in registry');
             // List what's in the registry for debugging
             if (this.uiExtensionRegistry) {
-                console.warn('[MarqueeSelectionActionHandler] Registry contents:', this.uiExtensionRegistry.getAll().map(e => e.id()));
+                this.logger.warn({ registryContents: this.uiExtensionRegistry.getAll().map(e => e.id()) }, 'Registry contents');
             }
         }
     }

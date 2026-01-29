@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { SModelRootImpl, TYPES, IActionDispatcher } from 'sprotty';
 import { AbstractUIExtension, DIAGRAM_CONTAINER_ID } from '../base-ui-extension';
@@ -65,6 +66,8 @@ interface MarkerPosition {
  */
 @injectable()
 export class ValidationMarkersExtension extends AbstractUIExtension {
+    protected readonly logger = createLogger({ name: 'ValidationMarkers' });
+
     @inject(DIAGRAM_CONTAINER_ID) @optional()
     protected diagramContainerId: string | undefined;
 
@@ -308,7 +311,7 @@ export class ValidationMarkersExtension extends AbstractUIExtension {
                 height: bbox.height,
             };
         } catch (e) {
-            console.warn(`[ValidationMarkers] Could not get position for element:`, e);
+            this.logger.warn({ err: e }, 'Could not get position for element');
             return undefined;
         }
     }

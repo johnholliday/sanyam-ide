@@ -25,6 +25,9 @@
 
 import { createLanguageServer, type LanguageContributionInterface } from './server-factory.js';
 import { GRAMMAR_CONTRIBUTIONS } from './generated/server-contributions.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'Main' });
 
 /**
  * Start the language server.
@@ -34,16 +37,15 @@ import { GRAMMAR_CONTRIBUTIONS } from './generated/server-contributions.js';
  * the application's grammar dependencies.
  */
 async function main(): Promise<void> {
-  console.log('Starting Sanyam Language Server...');
+  logger.info('Starting Sanyam Language Server');
 
   const contributions: LanguageContributionInterface[] = GRAMMAR_CONTRIBUTIONS;
 
   if (contributions.length === 0) {
-    console.log('NOTE: No grammars configured. Use server-factory to specify contributions.');
+    logger.info('No grammars configured - use server-factory to specify contributions');
   } else {
-    console.log(`Loading ${contributions.length} grammar contribution(s) from VSIX bundle...`);
+    logger.info({ count: contributions.length }, 'Loading grammar contributions from VSIX bundle');
   }
-  console.log('');
 
   const server = await createLanguageServer({
     contributions,
@@ -54,7 +56,7 @@ async function main(): Promise<void> {
 
 // Start the server
 main().catch((error) => {
-  console.error('Failed to start language server:', error);
+  logger.error({ err: error }, 'Failed to start language server');
   process.exit(1);
 });
 

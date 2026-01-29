@@ -15,6 +15,9 @@ import type {
 import type { LspContext, MaybePromise } from '@sanyam/types';
 import type { LangiumDocument } from 'langium';
 import { URI } from 'vscode-uri';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default completion provider that delegates to Langium's completion service.
@@ -47,7 +50,7 @@ export const defaultCompletionProvider = {
 
       return completionList ?? null;
     } catch (error) {
-      console.error('Error providing completions:', error);
+      logger.error({ err: error }, 'Error providing completions');
       return null;
     }
   },

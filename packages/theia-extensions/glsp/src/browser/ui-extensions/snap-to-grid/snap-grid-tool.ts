@@ -9,6 +9,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { Emitter } from '@theia/core/lib/common';
 import { PreferenceService } from '@theia/core/lib/common/preferences/preference-service';
@@ -42,6 +43,8 @@ export const SNAP_GRID_TOOL_ID = 'sanyam-snap-grid-tool';
  */
 @injectable()
 export class SnapGridTool extends AbstractUIExtension implements SnapGridService {
+  protected readonly logger = createLogger({ name: 'SnapGridTool' });
+
   @inject(DIAGRAM_CONTAINER_ID) @optional()
   protected diagramContainerId: string | undefined;
 
@@ -128,9 +131,9 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
         gridSize: gridSize ?? 10,
       };
 
-      console.log('[SnapGridTool] Loaded preferences:', { enabled, gridSize });
+      this.logger.info({ enabled, gridSize }, 'Loaded preferences');
     } catch (error) {
-      console.warn('[SnapGridTool] Failed to load preferences:', error);
+      this.logger.warn({ err: error }, 'Failed to load preferences');
     }
   }
 
@@ -145,9 +148,9 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
     try {
       await this.preferenceService.set(SNAP_TO_GRID_PREFERENCE_ID, this.config.enabled);
       await this.preferenceService.set(GRID_SIZE_PREFERENCE_ID, this.config.gridSize);
-      console.log('[SnapGridTool] Saved preferences');
+      this.logger.info('Saved preferences');
     } catch (error) {
-      console.warn('[SnapGridTool] Failed to save preferences:', error);
+      this.logger.warn({ err: error }, 'Failed to save preferences');
     }
   }
 
@@ -194,7 +197,7 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
   toggle(): boolean {
     const newEnabled = !this.config.enabled;
     this.setConfig({ enabled: newEnabled });
-    console.log(`[SnapGridTool] Snap-to-grid ${newEnabled ? 'enabled' : 'disabled'}`);
+    this.logger.info(`Snap-to-grid ${newEnabled ? 'enabled' : 'disabled'}`);
     return newEnabled;
   }
 
@@ -204,7 +207,7 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
   enable(): void {
     if (!this.config.enabled) {
       this.setConfig({ enabled: true });
-      console.log('[SnapGridTool] Snap-to-grid enabled');
+      this.logger.info('Snap-to-grid enabled');
     }
   }
 
@@ -214,7 +217,7 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
   disable(): void {
     if (this.config.enabled) {
       this.setConfig({ enabled: false });
-      console.log('[SnapGridTool] Snap-to-grid disabled');
+      this.logger.info('Snap-to-grid disabled');
     }
   }
 

@@ -8,6 +8,7 @@
  ********************************************************************************/
 
 import { injectable, inject, postConstruct } from '@theia/core/shared/inversify';
+import { createLogger } from '@sanyam/logger';
 import {
     BaseWidget,
     Widget,
@@ -91,6 +92,8 @@ export class CompositeEditorWidget extends BaseWidget
     implements NavigatableWidget, SaveableSource, StatefulWidget {
 
     static readonly ID = COMPOSITE_EDITOR_WIDGET_FACTORY_ID;
+
+    protected readonly logger = createLogger({ name: 'CompositeEditor' });
 
     @inject(EditorManager)
     protected readonly editorManager: EditorManager;
@@ -290,7 +293,7 @@ export class CompositeEditorWidget extends BaseWidget
         }
 
         if (view === 'diagram' && !this.manifest.diagrammingEnabled) {
-            console.warn('Diagramming not enabled for this grammar');
+            this.logger.warn('Diagramming not enabled for this grammar');
             return;
         }
 
@@ -390,9 +393,9 @@ export class CompositeEditorWidget extends BaseWidget
      * Load the diagram model from the language server.
      */
     protected async loadDiagramModel(): Promise<void> {
-        console.log('[CompositeEditor] loadDiagramModel called for:', this.uri.toString());
+        this.logger.debug({ uri: this.uri.toString() }, 'loadDiagramModel called');
         if (!this.diagramWidget) {
-            console.warn('[CompositeEditor] No diagram widget available');
+            this.logger.warn('No diagram widget available');
             return;
         }
 
@@ -400,14 +403,14 @@ export class CompositeEditorWidget extends BaseWidget
         this.diagramWidget.showLoading?.();
 
         try {
-            console.log('[CompositeEditor] Calling diagramLanguageClient.loadModel...');
+            this.logger.debug('Calling diagramLanguageClient.loadModel...');
             const response = await this.diagramLanguageClient.loadModel(this.uri.toString());
-            console.log('[CompositeEditor] loadModel response:', {
+            this.logger.debug({
                 success: response.success,
                 hasGModel: !!response.gModel,
                 childCount: response.gModel?.children?.length ?? 0,
                 error: response.error,
-            });
+            }, 'loadModel response');
 
             if (response.success && response.gModel) {
                 this.diagramModelLoaded = true;
@@ -428,7 +431,7 @@ export class CompositeEditorWidget extends BaseWidget
                 this.diagramWidget.showError?.(response.error || 'Failed to load diagram model');
             }
         } catch (error) {
-            console.error('[CompositeEditor] Error loading diagram model:', error);
+            this.logger.error({ err: error }, 'Error loading diagram model');
             this.diagramWidget.showError?.(error instanceof Error ? error.message : 'Failed to load diagram model');
         }
     }
@@ -464,7 +467,7 @@ export class CompositeEditorWidget extends BaseWidget
                 });
             }
         } catch (error) {
-            console.error('Failed to create text editor:', error);
+            this.logger.error({ err: error }, 'Failed to create text editor');
         }
     }
 
@@ -492,7 +495,7 @@ export class CompositeEditorWidget extends BaseWidget
                 });
             }
         } catch (error) {
-            console.error('Failed to create diagram widget:', error);
+            this.logger.error({ err: error }, 'Failed to create diagram widget');
         }
     }
 

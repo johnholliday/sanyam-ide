@@ -15,6 +15,9 @@ import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
 import { findLeafNodeAtOffsetSafe, getDocument, isNamed, streamAllContents, asRecord } from '../helpers/langium-compat.js';
 import { isReference } from 'langium';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default implementation provider.
@@ -38,7 +41,7 @@ export const defaultImplementationProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium ImplementationProvider:', error);
+        logger.error({ err: error }, 'Error in Langium ImplementationProvider');
       }
     }
 

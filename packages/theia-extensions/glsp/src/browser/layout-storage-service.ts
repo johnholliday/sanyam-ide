@@ -17,6 +17,7 @@
  */
 
 import { injectable, inject } from 'inversify';
+import { createLogger } from '@sanyam/logger';
 import { StorageService } from '@theia/core/lib/browser';
 
 /**
@@ -61,6 +62,8 @@ const CURRENT_LAYOUT_VERSION = 1;
  */
 @injectable()
 export class DiagramLayoutStorageService {
+    protected readonly logger = createLogger({ name: 'LayoutStorage' });
+
     @inject(StorageService)
     protected readonly storageService: StorageService;
 
@@ -108,11 +111,11 @@ export class DiagramLayoutStorageService {
                 if (migrated) {
                     // Save migrated layout for future loads
                     await this.storageService.setData(key, migrated);
-                    console.log(`[DiagramLayoutStorageService] Migrated layout from v${data.version} to v${CURRENT_LAYOUT_VERSION}`);
+                    this.logger.info(`Migrated layout from v${data.version} to v${CURRENT_LAYOUT_VERSION}`);
                     return migrated;
                 } else {
                     // Migration failed, discard old layout
-                    console.warn(`[DiagramLayoutStorageService] Discarding incompatible layout (v${data.version})`);
+                    this.logger.warn(`Discarding incompatible layout (v${data.version})`);
                     return undefined;
                 }
             }
@@ -121,13 +124,13 @@ export class DiagramLayoutStorageService {
             const duration = performance.now() - startTime;
             const elementCount = Object.keys(data.elements).length;
             if (duration > 100) {
-                console.warn(`[DiagramLayoutStorageService] Layout load took ${duration.toFixed(2)}ms for ${elementCount} elements (target: <100ms)`);
+                this.logger.warn(`Layout load took ${duration.toFixed(2)}ms for ${elementCount} elements (target: <100ms)`);
             } else {
-                console.log(`[DiagramLayoutStorageService] Loaded layout in ${duration.toFixed(2)}ms: ${elementCount} elements`);
+                this.logger.debug(`Loaded layout in ${duration.toFixed(2)}ms: ${elementCount} elements`);
             }
             return data;
         } catch (error) {
-            console.warn('[DiagramLayoutStorageService] Failed to load layout:', error);
+            this.logger.warn({ err: error }, 'Failed to load layout');
         }
         return undefined;
     }
@@ -159,7 +162,7 @@ export class DiagramLayoutStorageService {
         // For versions higher than current, also return undefined
         // (shouldn't happen, but defensive)
         if (layout.version > CURRENT_LAYOUT_VERSION) {
-            console.warn(`[DiagramLayoutStorageService] Layout version ${layout.version} is newer than supported ${CURRENT_LAYOUT_VERSION}`);
+            this.logger.warn(`Layout version ${layout.version} is newer than supported ${CURRENT_LAYOUT_VERSION}`);
             return undefined;
         }
 
@@ -184,9 +187,9 @@ export class DiagramLayoutStorageService {
 
         try {
             await this.storageService.setData(key, layout);
-            console.log(`[DiagramLayoutStorageService] Saved layout for ${uri}:`, Object.keys(elements).length, 'elements');
+            this.logger.debug({ uri, elementCount: Object.keys(elements).length }, 'Saved layout');
         } catch (error) {
-            console.error('[DiagramLayoutStorageService] Failed to save layout:', error);
+            this.logger.error({ err: error }, 'Failed to save layout');
         }
     }
 
@@ -208,7 +211,7 @@ export class DiagramLayoutStorageService {
         const timer = setTimeout(() => {
             this.saveTimers.delete(uri);
             this.saveLayout(uri, elements).catch(error => {
-                console.error('[DiagramLayoutStorageService] Debounced save failed:', error);
+                this.logger.error({ err: error }, 'Debounced save failed');
             });
         }, this.SAVE_DEBOUNCE_MS);
 
@@ -224,9 +227,9 @@ export class DiagramLayoutStorageService {
         const key = this.getStorageKey(uri);
         try {
             await this.storageService.setData(key, undefined);
-            console.log(`[DiagramLayoutStorageService] Deleted layout for ${uri}`);
+            this.logger.debug({ uri }, 'Deleted layout');
         } catch (error) {
-            console.warn('[DiagramLayoutStorageService] Failed to delete layout:', error);
+            this.logger.warn({ err: error }, 'Failed to delete layout');
         }
     }
 
@@ -276,7 +279,7 @@ export class DiagramLayoutStorageService {
         }
 
         if (removedCount > 0) {
-            console.log(`[DiagramLayoutStorageService] Removed ${removedCount} stale layout entries`);
+            this.logger.debug({ removedCount }, 'Removed stale layout entries');
         }
 
         return {

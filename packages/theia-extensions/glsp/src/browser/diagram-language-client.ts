@@ -8,6 +8,7 @@
  ********************************************************************************/
 
 import { injectable, inject, postConstruct, optional } from '@theia/core/shared/inversify';
+import { createLogger } from '@sanyam/logger';
 import { Emitter, Event, DisposableCollection, Disposable, MessageService, CommandService } from '@theia/core/lib/common';
 import type { GModelRoot, GNode, GEdge, GLabel } from '@sanyam/types';
 
@@ -116,6 +117,7 @@ export const LanguageClientProviderSymbol = Symbol.for('LanguageClientProvider')
  */
 @injectable()
 export class DiagramLanguageClient implements Disposable {
+    protected readonly logger = createLogger({ name: 'DiagramLangClient' });
 
     @inject(LanguageClientProviderSymbol) @optional()
     protected readonly languageClientProvider?: LanguageClientProvider;
@@ -220,23 +222,23 @@ export class DiagramLanguageClient implements Disposable {
      * Internal method to load the model via language server.
      */
     protected async doLoadModel(uri: string): Promise<LoadModelResponse> {
-        console.log('[DiagramLanguageClient] doLoadModel called for:', uri);
-        console.log('[DiagramLanguageClient] languageClientProvider available:', !!this.languageClientProvider);
+        this.logger.debug({ uri }, 'doLoadModel called');
+        this.logger.debug({ available: !!this.languageClientProvider }, 'languageClientProvider');
 
         try {
             // If language client provider is available, use it directly
             if (this.languageClientProvider) {
-                console.log('[DiagramLanguageClient] Sending glsp/loadModel request...');
+                this.logger.debug('[DiagramLanguageClient] Sending glsp/loadModel request...');
                 const response = await this.languageClientProvider.sendRequest<LoadModelResponse>(
                     'glsp/loadModel',
                     { uri }
                 );
-                console.log('[DiagramLanguageClient] Response received:', {
+                this.logger.debug({
                     success: response.success,
                     hasGModel: !!response.gModel,
                     childCount: response.gModel?.children?.length ?? 0,
                     error: response.error,
-                });
+                }, 'Response received');
 
                 if (response.success && response.gModel) {
                     this.cachedModels.set(uri, response.gModel);
@@ -276,18 +278,18 @@ export class DiagramLanguageClient implements Disposable {
 
                 // If command returned but no success, fall through to mock
                 if (response && !response.success) {
-                    console.warn('[DiagramLanguageClient] GLSP command failed:', response.error);
+                    this.logger.warn({ error: response.error }, 'GLSP command failed');
                 }
             } catch (cmdError) {
                 // Command not found or failed - this is expected if extension not loaded
-                console.warn('[DiagramLanguageClient] GLSP command not available:', cmdError);
+                this.logger.warn({ err: cmdError }, 'GLSP command not available');
             }
 
             // Fall back to mock implementation if command failed
             return this.createMockModel(uri);
 
         } catch (error) {
-            console.error('[DiagramLanguageClient] Error loading model:', error);
+            this.logger.error({ err: error }, 'Error loading model');
             const errorMessage = error instanceof Error ? error.message : String(error);
             this.onErrorEmitter.fire({ uri, error: errorMessage });
             return {
@@ -398,15 +400,15 @@ export class DiagramLanguageClient implements Disposable {
                     return response;
                 }
             } catch (cmdError) {
-                console.warn('[DiagramLanguageClient] GLSP executeOperation command not available:', cmdError);
+                this.logger.warn({ err: cmdError }, 'GLSP executeOperation command not available');
             }
 
             // Mock response when no command available
-            console.log('[DiagramLanguageClient] Mock executeOperation:', operation);
+            this.logger.debug({ operation }, 'Mock executeOperation');
             return { success: true };
 
         } catch (error) {
-            console.error('[DiagramLanguageClient] Error executing operation:', error);
+            this.logger.error({ err: error }, 'Error executing operation');
             return {
                 success: false,
                 error: error instanceof Error ? error.message : String(error),
@@ -438,14 +440,14 @@ export class DiagramLanguageClient implements Disposable {
                     return response;
                 }
             } catch (cmdError) {
-                console.warn('[DiagramLanguageClient] GLSP requestLayout command not available:', cmdError);
+                this.logger.warn({ err: cmdError }, 'GLSP requestLayout command not available');
             }
 
             // Mock response when no command available
             return { positions: {}, bounds: { width: 0, height: 0 } };
 
         } catch (error) {
-            console.error('[DiagramLanguageClient] Error requesting layout:', error);
+            this.logger.error({ err: error }, 'Error requesting layout');
             return {
                 positions: {},
                 bounds: { width: 0, height: 0 },
@@ -476,14 +478,14 @@ export class DiagramLanguageClient implements Disposable {
                     return response;
                 }
             } catch (cmdError) {
-                console.warn('[DiagramLanguageClient] GLSP getToolPalette command not available:', cmdError);
+                this.logger.warn({ err: cmdError }, 'GLSP getToolPalette command not available');
             }
 
             // Mock response when no command available
             return { groups: [] };
 
         } catch (error) {
-            console.error('[DiagramLanguageClient] Error getting tool palette:', error);
+            this.logger.error({ err: error }, 'Error getting tool palette');
             return {
                 groups: [],
                 error: error instanceof Error ? error.message : String(error),
@@ -507,7 +509,7 @@ export class DiagramLanguageClient implements Disposable {
             return { items: [] };
 
         } catch (error) {
-            console.error('[DiagramLanguageClient] Error getting context menu:', error);
+            this.logger.error({ err: error }, 'Error getting context menu');
             return {
                 items: [],
                 error: error instanceof Error ? error.message : String(error),
@@ -547,14 +549,14 @@ export class DiagramLanguageClient implements Disposable {
                     return response;
                 }
             } catch (cmdError) {
-                console.warn('[DiagramLanguageClient] GLSP validate command not available:', cmdError);
+                this.logger.warn({ err: cmdError }, 'GLSP validate command not available');
             }
 
             // Mock response when no command available
             return { markers: [], isValid: true, errorCount: 0, warningCount: 0 };
 
         } catch (error) {
-            console.error('[DiagramLanguageClient] Error validating model:', error);
+            this.logger.error({ err: error }, 'Error validating model');
             return {
                 markers: [],
                 isValid: false,
@@ -580,7 +582,7 @@ export class DiagramLanguageClient implements Disposable {
             return { success: true };
 
         } catch (error) {
-            console.error('[DiagramLanguageClient] Error saving model:', error);
+            this.logger.error({ err: error }, 'Error saving model');
             return {
                 success: false,
                 error: error instanceof Error ? error.message : String(error),
@@ -604,7 +606,7 @@ export class DiagramLanguageClient implements Disposable {
             return { operations: [] };
 
         } catch (error) {
-            console.error('[DiagramLanguageClient] Error getting supported operations:', error);
+            this.logger.error({ err: error }, 'Error getting supported operations');
             return { operations: [] };
         }
     }

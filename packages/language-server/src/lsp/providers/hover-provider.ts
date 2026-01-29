@@ -14,6 +14,9 @@ import type {
 import type { LspContext } from '@sanyam/types';
 import type { AstNode, CstNode } from 'langium';
 import { findLeafNodeAtOffsetSafe, getDocument, isNamed } from '../helpers/langium-compat.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default hover provider that shows AST node information.
@@ -37,7 +40,7 @@ export const defaultHoverProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium HoverProvider:', error);
+        logger.error({ err: error }, 'Error in Langium HoverProvider');
       }
     }
 

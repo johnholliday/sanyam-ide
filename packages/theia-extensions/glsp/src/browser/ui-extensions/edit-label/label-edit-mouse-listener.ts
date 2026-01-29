@@ -15,6 +15,7 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { injectable, inject } from 'inversify';
 import {
     MouseListener,
@@ -31,6 +32,8 @@ import { EditLabelAction } from './edit-label-actions';
  */
 @injectable()
 export class LabelEditMouseListener extends MouseListener {
+    protected readonly logger = createLogger({ name: 'LabelEditListener' });
+
     @inject(TYPES.IActionDispatcher)
     protected actionDispatcher!: IActionDispatcher;
 
@@ -41,7 +44,7 @@ export class LabelEditMouseListener extends MouseListener {
         // Find the label element (target or ancestor)
         const label = this.findEditableLabel(target);
         if (label) {
-            console.info('[LabelEditMouseListener] Double-click on label:', label.id);
+            this.logger.info({ labelId: label.id }, 'Double-click on label');
             // Prevent default browser behavior (text selection)
             event.preventDefault();
             event.stopPropagation();
@@ -51,7 +54,7 @@ export class LabelEditMouseListener extends MouseListener {
         // Also check if the target is a node with a label child
         const nodeLabel = this.findNodeLabel(target);
         if (nodeLabel) {
-            console.info('[LabelEditMouseListener] Double-click on node, found label:', nodeLabel.id);
+            this.logger.info({ labelId: nodeLabel.id }, 'Double-click on node, found label');
             event.preventDefault();
             event.stopPropagation();
             return [EditLabelAction.create(nodeLabel.id)];

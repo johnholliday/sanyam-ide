@@ -14,6 +14,9 @@ import type {
 import type { LspContext } from '@sanyam/types';
 import type { AstNode } from 'langium';
 import { streamAllContents } from '../helpers/langium-compat.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'LspProvider' });
 
 /**
  * Default folding range provider that creates folds for AST blocks.
@@ -37,7 +40,7 @@ export const defaultFoldingRangeProvider = {
           return result;
         }
       } catch (error) {
-        console.error('Error in Langium FoldingRangeProvider:', error);
+        logger.error({ err: error }, 'Error in Langium FoldingRangeProvider');
       }
     }
 

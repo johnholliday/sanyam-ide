@@ -10,6 +10,9 @@
 
 import type { GlspContext, GrammarManifest, RootTypeConfig, DiagramTypeConfig, NodeTypeConfig, EdgeTypeConfig } from '@sanyam/types';
 import type { ToolPaletteProvider } from '../provider-types.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'ToolPalette' });
 
 /**
  * Tool item in the palette.
@@ -89,9 +92,9 @@ export const defaultToolPaletteProvider = {
     // T075b: Log performance
     const duration = performance.now() - startTime;
     if (duration > 50) {
-      console.warn(`[ToolPaletteProvider] Generation took ${duration.toFixed(2)}ms (target: <50ms)`);
+      logger.warn({ durationMs: duration }, 'Tool palette generation exceeded 50ms target');
     } else {
-      console.log(`[ToolPaletteProvider] Generated palette in ${duration.toFixed(2)}ms`);
+      logger.info({ durationMs: duration }, 'Tool palette generated');
     }
 
     return palette;

@@ -148,6 +148,7 @@
     "@theia/vsx-registry": "1.67.0",
     "@theia/workspace": "1.67.0",
     "fs-extra": "^9.0.1",
+    "@sanyam/logger": "workspace:*",
     "@sanyam-grammar/spdevkit": "workspace:*",
     "@sanyam-ide/glsp": "workspace:*",
     "@sanyam-ide/product": "workspace:*",

@@ -7,13 +7,14 @@
  */
 
 import type { GlspFeatureProviders } from '@sanyam/types';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'GlspFeatureMerger' });
 
 /**
  * GLSP feature merger options.
  */
 export interface GlspFeatureMergerOptions {
-  /** Whether to log merge operations */
-  verbose?: boolean;
   /** How to handle conflicts */
   conflictResolution?: 'custom-wins' | 'default-wins' | 'throw';
   /** Whether to deep merge provider configurations */
@@ -48,7 +49,6 @@ export class GlspFeatureMerger {
 
   constructor(options?: GlspFeatureMergerOptions) {
     this.options = {
-      verbose: options?.verbose ?? false,
       conflictResolution: options?.conflictResolution ?? 'custom-wins',
       deepMerge: options?.deepMerge ?? false,
     };
@@ -91,9 +91,7 @@ export class GlspFeatureMerger {
         result.disabledFeatures.push(featureName);
         (result.providers as any)[featureName] = null;
 
-        if (this.options.verbose) {
-          console.log(`GLSP Feature '${featureName}' is disabled`);
-        }
+        logger.debug({ feature: featureName }, 'GLSP feature disabled');
         continue;
       }
 

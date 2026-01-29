@@ -7,17 +7,19 @@
  * @packageDocumentation
  */
 
+import { createLogger } from '@sanyam/logger';
 import { createLanguageServer } from 'sanyam-language-server/server-factory';
 import { ENABLED_GRAMMARS, getEnabledLanguageIds } from './grammars.js';
+
+const logger = createLogger({ name: 'ElectronServer' });
 
 /**
  * Start the language server with the application's configured grammars.
  */
 async function main(): Promise<void> {
   const grammarNames = getEnabledLanguageIds();
-  console.log('Starting Sanyam Language Server for Electron...');
-  console.log(`Enabled grammars: ${grammarNames.join(', ') || 'none'}`);
-  console.log('');
+  logger.info('Starting Sanyam Language Server for Electron...');
+  logger.info({ grammars: grammarNames }, `Enabled grammars: ${grammarNames.join(', ') || 'none'}`);
 
   const server = await createLanguageServer({
     contributions: ENABLED_GRAMMARS,
@@ -27,7 +29,7 @@ async function main(): Promise<void> {
 }
 
 // Start the server
-main().catch((error) => {
-  console.error('Failed to start language server:', error);
+main().catch((error: unknown) => {
+  logger.error({ err: error }, 'Failed to start language server');
   process.exit(1);
 });

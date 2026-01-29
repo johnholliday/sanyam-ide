@@ -54,6 +54,9 @@
     },
     {
       "path": "../grammar-definitions/spdevkit"
+    },
+    {
+      "path": "../grammar-definitions/ecml"
     }
   ]
 }

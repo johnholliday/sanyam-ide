@@ -60,6 +60,7 @@
     "vscode-uri": "^3.0.8"
   },
   "devDependencies": {
+    "@sanyam-grammar/ecml": "workspace:*",
     "@sanyam-grammar/spdevkit": "workspace:*",
     "@sanyam/grammar-scanner": "workspace:*",
     "@types/node": "^20.0.0",
@@ -95,27 +96,27 @@
     "url": "https://github.com/johnholliday/sanyam-ide/issues"
   },
   "activationEvents": [
-    "onLanguage:spdevkit"
+    "onLanguage:ecml"
   ],
   "contributes": {
     "languages": [
       {
-        "id": "spdevkit",
+        "id": "ecml",
         "aliases": [
-          "Spdevkit",
-          "spdevkit"
+          "Ecml",
+          "ecml"
         ],
         "extensions": [
-          ".spdk"
+          ".ecml"
         ],
-        "configuration": "./language-configurations/spdevkit.json"
+        "configuration": "./language-configurations/ecml.json"
       }
     ],
     "grammars": [
       {
-        "language": "spdevkit",
-        "scopeName": "source.spdevkit",
-        "path": "./syntaxes/spdevkit.tmLanguage.json"
+        "language": "ecml",
+        "scopeName": "source.ecml",
+        "path": "./syntaxes/ecml.tmLanguage.json"
       }
     ]
   }

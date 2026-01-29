@@ -17,6 +17,10 @@
     "./manifest": {
       "types": "./lib/manifest.d.ts",
       "import": "./lib/manifest.js"
+    },
+    "./diagram": {
+      "types": "./lib/diagram/index.d.ts",
+      "import": "./lib/diagram/index.js"
     }
   },
   "files": [
@@ -24,19 +28,23 @@
     "src"
   ],
   "scripts": {
-    "build": "npm run build:langium && tsc -b tsconfig.json",
+    "build": "npm run build:langium && tsc -b tsconfig.json && npm run copy:css",
     "build:langium": "langium generate",
-    "clean": "rimraf lib src/generated",
+    "copy:css": "mkdir -p lib/diagram && cp -- src/diagram/styles.css lib/diagram/styles.css",
+    "clean": "rimraf lib src/generated tsconfig.tsbuildinfo",
     "watch": "tsc -b tsconfig.json --watch",
     "lint": "eslint src --ext .ts"
   },
   "sanyam": {
     "grammar": true,
     "languageId": "ecml",
-    "contribution": "./lib/contribution.js"
+    "contribution": "./lib/contribution.js",
+    "diagramModule": "./lib/diagram/module.js"
   },
   "dependencies": {
-    "langium": "^4.1.0"
+    "langium": "^4.1.0",
+    "sprotty": "^1.4.0",
+    "inversify": "^6.0.2"
   },
   "devDependencies": {
     "@sanyam/types": "workspace:*",

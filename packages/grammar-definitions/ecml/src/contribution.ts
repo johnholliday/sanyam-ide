@@ -8,6 +8,7 @@
 
 import type { Module } from 'langium';
 import type { LangiumServices, LangiumSharedServices } from 'langium/lsp';
+import type { ContainerModule } from 'inversify';
 import type {
   LanguageContribution,
   LspFeatureProviders,
@@ -19,6 +20,7 @@ import {
   EcmlGeneratedModule,
   EcmlGeneratedSharedModule,
 } from './generated/module.js';
+import { ecmlDiagramModule } from './diagram/index.js';
 
 /**
  * Custom LSP providers for ECML.
@@ -65,6 +67,7 @@ export const contribution: LanguageContribution = {
   manifest,
   lspProviders,
   glspProviders,
+  diagramModule: ecmlDiagramModule as ContainerModule,
 };
 
 export default contribution;

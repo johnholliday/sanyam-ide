@@ -24,16 +24,16 @@
   "theia": {
     "frontend": {
       "config": {
-        "applicationName": "SPDevKit",
-        "applicationGrammar": "spdevkit",
+        "applicationName": "E C M L",
+        "applicationGrammar": "ecml",
         "applicationData": {
-          "name": "SPDevKit",
-          "description": "A development environment for modeling collaborative applications for SharePoint Online.",
+          "name": "E C M L",
+          "description": "A development environment for modeling enterprise content",
           "logo": "resources/sanyam-banner.svg",
-          "tagline": "SharePoint Development Kit",
+          "tagline": "Enteprise Content Modeling Language",
           "text": [
-            "SPDevKit provides a complete development environment for creating and working with SPDevKit files.",
-            "Features include syntax highlighting, validation, code completion, and diagram generation for your SPDevKit models."
+            "E C M L provides a complete development environment for creating and working with Enterprise Content Modeling Language files.",
+            "Features include syntax highlighting, validation, code completion, and diagram generation for your ECML models."
           ],
           "links": [
             {
@@ -149,7 +149,7 @@
     "@theia/workspace": "1.67.0",
     "fs-extra": "^9.0.1",
     "@sanyam/logger": "workspace:*",
-    "@sanyam-grammar/spdevkit": "workspace:*",
+    "@sanyam-grammar/ecml": "workspace:*",
     "@sanyam-ide/glsp": "workspace:*",
     "@sanyam-ide/product": "workspace:*",
     "sanyam-language-server": "workspace:*"

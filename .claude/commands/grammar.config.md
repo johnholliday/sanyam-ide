@@ -930,11 +930,17 @@ Diagram shapes:
 {list of rootType → shape mappings}
 
 Next steps:
-1. Build the grammar package (generates Langium modules):
-   cd packages/grammar-definitions/{name} && pnpm build
+1. Select this grammar for the applications:
+   /grammar.select {name}
 
-2. Install workspace dependencies:
-   pnpm install
+2. Build the full project:
+   pnpm build
+
+   This will automatically:
+   - Generate Langium modules (langium generate)
+   - Compile TypeScript
+   - Wire grammar into language-server dependencies (build-vsix.ts)
+   - Generate grammars.ts and grammar-manifests-module.js for applications
 
 3. To modify the grammar:
    - Edit packages/grammar-definitions/.source/{name}.langium (master)

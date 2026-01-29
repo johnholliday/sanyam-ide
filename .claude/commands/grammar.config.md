@@ -732,8 +732,8 @@ Create `packages/grammar-definitions/{name}/package.json`:
   },
   "scripts": {
     "build": "npm run langium:generate && tsc -b tsconfig.json && npm run copy:css",
-    "copy:css": "mkdir -p lib/diagram && cp src/diagram/styles.css lib/diagram/",
-    "clean": "rimraf lib src/generated",
+    "copy:css": "mkdir -p lib/diagram && cp -- src/diagram/styles.css lib/diagram/styles.css",
+    "clean": "rimraf lib src/generated tsconfig.tsbuildinfo",
     "langium:generate": "langium generate",
     "watch": "tsc -b tsconfig.json --watch"
   },

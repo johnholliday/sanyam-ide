@@ -44,10 +44,16 @@
   ],
   "references": [
     {
+      "path": "../logger"
+    },
+    {
       "path": "../types"
     },
     {
       "path": "../grammar-scanner"
+    },
+    {
+      "path": "../grammar-definitions/spdevkit"
     }
   ]
 }

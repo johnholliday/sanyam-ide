@@ -605,6 +605,84 @@ export const GRAMMAR_CONTRIBUTIONS: LanguageContributionInterface[] = [
   console.log('Generated: src/generated/server-contributions.ts');
 }
 
+/**
+ * Update language-server package.json devDependencies and tsconfig.json references
+ * to include all discovered grammar packages.
+ *
+ * This ensures:
+ * - pnpm resolves the grammar packages into node_modules (strict mode)
+ * - Turbo knows to build grammar packages before the language server
+ * - tsc can resolve the static imports in generated server-contributions.ts
+ *
+ * @param packages - Discovered grammar packages
+ * @param workspaceRoot - Root directory of the workspace
+ */
+function updateGrammarDependencies(
+  packages: readonly GrammarPackageWithConfig[],
+  workspaceRoot: string
+): void {
+  if (packages.length === 0) {
+    return;
+  }
+
+  // --- Update package.json devDependencies ---
+  const packageJsonPath = path.resolve(__dirname, '../package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+
+  const devDeps = packageJson.devDependencies ?? {};
+  let packageJsonChanged = false;
+
+  for (const pkg of packages) {
+    if (!(pkg.packageName in devDeps)) {
+      devDeps[pkg.packageName] = 'workspace:*';
+      packageJsonChanged = true;
+      console.log(`  Added devDependency: ${pkg.packageName}`);
+    }
+  }
+
+  if (packageJsonChanged) {
+    // Sort devDependencies for deterministic output
+    const sorted: Record<string, string> = {};
+    for (const key of Object.keys(devDeps).sort()) {
+      sorted[key] = devDeps[key];
+    }
+    packageJson.devDependencies = sorted;
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n', 'utf-8');
+    console.log('  Updated: package.json devDependencies');
+  } else {
+    console.log('  package.json devDependencies already up to date');
+  }
+
+  // --- Update tsconfig.json references ---
+  const tsconfigPath = path.resolve(__dirname, '../tsconfig.json');
+  const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf-8'));
+  const refs: Array<{ path: string }> = tsconfig.references ?? [];
+  let tsconfigChanged = false;
+
+  for (const pkg of packages) {
+    const grammarName = pkg.packageName.replace('@sanyam-grammar/', '');
+    const relativePath = `../grammar-definitions/${grammarName}`;
+
+    const alreadyReferenced = refs.some(
+      (ref) => ref.path === relativePath
+    );
+
+    if (!alreadyReferenced) {
+      refs.push({ path: relativePath });
+      tsconfigChanged = true;
+      console.log(`  Added tsconfig reference: ${relativePath}`);
+    }
+  }
+
+  if (tsconfigChanged) {
+    tsconfig.references = refs;
+    fs.writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2) + '\n', 'utf-8');
+    console.log('  Updated: tsconfig.json references');
+  } else {
+    console.log('  tsconfig.json references already up to date');
+  }
+}
+
 async function main(): Promise<void> {
   console.log('=== VSIX Build Script ===\n');
 
@@ -675,6 +753,11 @@ async function main(): Promise<void> {
   // Generate server-contributions.ts for main.ts
   console.log('\nGenerating server-contributions.ts...');
   generateServerContributions(packagesWithConfig);
+
+  // Ensure grammar packages are declared as devDependencies and tsconfig references
+  // so that tsc can resolve the generated imports
+  console.log('\nUpdating grammar dependencies...');
+  updateGrammarDependencies(packagesWithConfig, workspaceRoot);
 
   // Report results
   console.log('\n=== Build Summary ===');

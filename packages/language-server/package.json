@@ -50,6 +50,7 @@
     "package:vsix": "npm run build:extension && vsce package --no-dependencies"
   },
   "dependencies": {
+    "@sanyam/logger": "workspace:*",
     "@sanyam/types": "workspace:*",
     "@eclipse-glsp/server": "^2.5.0",
     "inversify": "^6.0.1",
@@ -59,6 +60,8 @@
     "vscode-uri": "^3.0.8"
   },
   "devDependencies": {
+    "@sanyam-grammar/spdevkit": "workspace:*",
+    "@sanyam/grammar-scanner": "workspace:*",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "esbuild": "^0.20.0",

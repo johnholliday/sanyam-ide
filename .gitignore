@@ -27,11 +27,14 @@ license-check-summary.txt
 *.tgz
 *:Zone.Identifier
 
+# Langium-generated source (rebuilt from .langium files)
+packages/grammar-definitions/*/src/generated/
+
 # Grammar build artifacts (should go to lib/ but ignore root just in case)
-grammars/*/manifest.js
-grammars/*/manifest.d.ts
-grammars/*/*.js.map
-grammars/*/*.d.ts.map
+packages/grammar-definitions/*/manifest.js
+packages/grammar-definitions/*/manifest.d.ts
+packages/grammar-definitions/*/*.js.map
+packages/grammar-definitions/*/*.d.ts.map
 
 # Auto-generated grammar configuration files
 applications/*/src/language-server/grammars.ts

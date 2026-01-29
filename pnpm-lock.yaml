@@ -941,6 +941,9 @@ importers:
       pino:
         specifier: ^9.6.0
         version: 9.14.0
+      pino-seq:
+        specifier: ^2.0.0
+        version: 2.1.0(encoding@0.1.13)(pino@9.14.0)
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -4112,6 +4115,10 @@ packages:
     resolution: {integrity: sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==}
     engines: {node: '>=16'}
 
+  commander@13.1.0:
+    resolution: {integrity: sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw==}
+    engines: {node: '>=18'}
+
   commander@14.0.2:
     resolution: {integrity: sha512-TywoWNNRbhoD0BXs1P3ZEScW8W5iKrnbithIl0YH+uCmBd0QpPOA8yc82DS3BIE5Ma6FnBVUsJ7wVUDz4dvOWQ==}
     engines: {node: '>=20'}
@@ -7255,6 +7262,13 @@ packages:
     resolution: {integrity: sha512-ttXRkkOz6WWC95KeY9+xxWL6AtImwbyMHrL1mSwqwW9u+vLp/WIElvHvCSDg0xO/Dzrggz1zv3rN5ovTRVowKg==}
     hasBin: true
 
+  pino-seq@2.1.0:
+    resolution: {integrity: sha512-nmqjdr6y1KfntUQY6qJyVmHHBkdaRbnxn0HBMQvoJ2o/4y0/pMvndjg8a2Tv7gqb5criyejY4nr8Gz52qatHEg==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
+    peerDependencies:
+      pino: 9.x
+
   pino-std-serializers@7.1.0:
     resolution: {integrity: sha512-BndPH67/JxGExRgiX1dX0w1FvZck5Wa4aal9198SrRhZjH3GxKQUKIBnYJTdj2HDN3UQAS06HlfcSbQj2OHmaw==}
 
@@ -7885,6 +7899,10 @@ packages:
   send@1.2.1:
     resolution: {integrity: sha512-1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ==}
     engines: {node: '>= 18'}
+
+  seq-logging@3.0.0:
+    resolution: {integrity: sha512-ys5QV0745vxBCWuZBPSkgoobuLoUMxTSz1g7ZclHqX1tXXKFLyRIIn8V89EPgDnfRiWfoSo4KSxy/E0MtOYYyw==}
+    engines: {node: '>=14.18'}
 
   serialize-error@7.0.1:
     resolution: {integrity: sha512-8I8TjW5KMOKsZQTvoxjuSIa7foAwPWGOts+6o7sgjz41/qMD9VQHEDxi6PBvK2l0MXUmqZyNpUK+T2tQaaElvw==}
@@ -15078,6 +15096,8 @@ snapshots:
 
   commander@11.1.0: {}
 
+  commander@13.1.0: {}
+
   commander@14.0.2: {}
 
   commander@2.20.3: {}
@@ -18705,6 +18725,15 @@ snapshots:
       sonic-boom: 4.2.0
       strip-json-comments: 5.0.3
 
+  pino-seq@2.1.0(encoding@0.1.13)(pino@9.14.0):
+    dependencies:
+      commander: 13.1.0
+      pino: 9.14.0
+      seq-logging: 3.0.0(encoding@0.1.13)
+      split2: 4.2.0
+    transitivePeerDependencies:
+      - encoding
+
   pino-std-serializers@7.1.0: {}
 
   pino@9.14.0:
@@ -19540,6 +19569,13 @@ snapshots:
       statuses: 2.0.2
     transitivePeerDependencies:
       - supports-color
+
+  seq-logging@3.0.0(encoding@0.1.13):
+    dependencies:
+      abort-controller: 3.0.0
+      node-fetch: 2.7.0(encoding@0.1.13)
+    transitivePeerDependencies:
+      - encoding
 
   serialize-error@7.0.1:
     dependencies:

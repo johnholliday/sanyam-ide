@@ -37,21 +37,59 @@ function resolveLevel(options: LoggerOptions): LogLevel {
 }
 
 /**
- * Build pino transport options for pretty-printing.
+ * Build pino transport options for pretty-printing and optional Seq ingestion.
+ *
+ * When `SANYAM_SEQ_URL` is set, logs are forwarded to a Seq server in addition
+ * to stdout. An optional `SANYAM_SEQ_API_KEY` provides authentication.
  */
-function buildTransport(options: LoggerOptions): pino.TransportSingleOptions | undefined {
-  if (!options.pretty) {
-    return undefined;
+function buildTransport(
+  options: LoggerOptions,
+): pino.TransportSingleOptions | pino.TransportMultiOptions | undefined {
+  const targets: pino.TransportTargetOptions[] = [];
+
+  if (options.pretty) {
+    targets.push({
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'HH:MM:ss.l',
+        ignore: 'pid,hostname',
+      },
+    });
   }
 
-  return {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'HH:MM:ss.l',
-      ignore: 'pid,hostname',
-    },
-  };
+  const seqUrl = typeof process !== 'undefined'
+    ? process.env['SANYAM_SEQ_URL']
+    : undefined;
+
+  if (seqUrl) {
+    // When using transport targets, stdout is no longer implicit.
+    // Add explicit stdout target so logs still appear in the console.
+    if (!options.pretty) {
+      targets.push({
+        target: 'pino/file',
+        options: { destination: 1 }, // fd 1 = stdout
+      });
+    }
+
+    targets.push({
+      target: 'pino-seq',
+      options: {
+        serverUrl: seqUrl,
+        ...(process.env['SANYAM_SEQ_API_KEY']
+          ? { apiKey: process.env['SANYAM_SEQ_API_KEY'] }
+          : {}),
+      },
+    });
+  }
+
+  if (targets.length === 0) {
+    return undefined;
+  }
+  if (targets.length === 1) {
+    return targets[0];
+  }
+  return { targets };
 }
 
 /**

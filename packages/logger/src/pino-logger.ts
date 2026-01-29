@@ -8,6 +8,7 @@
  */
 
 import pino from 'pino';
+import type { DestinationStream } from 'pino';
 import type { LogContext, LoggerOptions, LogLevel, SanyamLogger } from './types.js';
 
 /**
@@ -37,125 +38,150 @@ function resolveLevel(options: LoggerOptions): LogLevel {
 }
 
 /**
- * Build pino transport options for pretty-printing and optional Seq ingestion.
- *
- * When `SANYAM_SEQ_URL` is set, logs are forwarded to a Seq server in addition
- * to stdout. An optional `SANYAM_SEQ_API_KEY` provides authentication.
+ * Build pino transport options for pretty-printing.
  */
-function buildTransport(
-  options: LoggerOptions,
-): pino.TransportSingleOptions | pino.TransportMultiOptions | undefined {
-  const targets: pino.TransportTargetOptions[] = [];
-
-  if (options.pretty) {
-    targets.push({
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'HH:MM:ss.l',
-        ignore: 'pid,hostname',
-      },
-    });
+function buildTransport(options: LoggerOptions): pino.TransportSingleOptions | undefined {
+  if (!options.pretty) {
+    return undefined;
   }
 
+  return {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      translateTime: 'HH:MM:ss.l',
+      ignore: 'pid,hostname',
+    },
+  };
+}
+
+/**
+ * Build a pino destination stream that includes Seq if `SANYAM_SEQ_URL` is set.
+ *
+ * pino-seq v2 is an ESM package that exports `createStream()` — it is NOT a
+ * pino transport (does not export a worker-compatible function). Therefore we
+ * use `pino.multistream()` to tee output to both stdout and the Seq stream.
+ *
+ * Because pino-seq is ESM-only (with top-level await in its dependency chain),
+ * it must be loaded via dynamic `import()`. This function is async; the caller
+ * should create the logger immediately and upgrade the destination once the
+ * import resolves.
+ */
+async function buildSeqDestination(): Promise<DestinationStream | undefined> {
   const seqUrl = typeof process !== 'undefined'
     ? process.env['SANYAM_SEQ_URL']
     : undefined;
 
-  if (seqUrl) {
-    // When using transport targets, stdout is no longer implicit.
-    // Add explicit stdout target so logs still appear in the console.
-    if (!options.pretty) {
-      targets.push({
-        target: 'pino/file',
-        options: { destination: 1 }, // fd 1 = stdout
-      });
-    }
-
-    targets.push({
-      target: 'pino-seq',
-      options: {
-        serverUrl: seqUrl,
-        ...(process.env['SANYAM_SEQ_API_KEY']
-          ? { apiKey: process.env['SANYAM_SEQ_API_KEY'] }
-          : {}),
-      },
-    });
-  }
-
-  if (targets.length === 0) {
+  if (!seqUrl) {
     return undefined;
   }
-  if (targets.length === 1) {
-    return targets[0];
+
+  try {
+    // Dynamic import with computed specifier to prevent webpack from
+    // bundling pino-seq (which is Node-only and ESM with top-level await).
+    const moduleName = 'pino-' + 'seq';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pinoSeq = await (Function('m', 'return import(m)') as (m: string) => Promise<any>)(moduleName);
+    const createStream = pinoSeq.default?.createStream ?? pinoSeq.createStream ?? pinoSeq.default;
+    if (typeof createStream !== 'function') {
+      return undefined;
+    }
+
+    const seqStream = createStream({
+      serverUrl: seqUrl,
+      ...(process.env['SANYAM_SEQ_API_KEY']
+        ? { apiKey: process.env['SANYAM_SEQ_API_KEY'] }
+        : {}),
+    }) as DestinationStream;
+
+    return pino.multistream([
+      { stream: pino.destination(1) },  // stdout
+      { stream: seqStream },
+    ]);
+  } catch {
+    // pino-seq not available or failed to initialize — stdout only.
+    return undefined;
   }
-  return { targets };
 }
 
 /**
  * Wrap a pino.Logger as a SanyamLogger.
  *
+ * The wrapper uses a mutable `delegate` reference so the underlying pino
+ * instance can be swapped (e.g. when Seq stream becomes available after
+ * async initialization).
+ *
  * This adapter ensures a stable public API that doesn't leak pino internals.
  */
-function wrapPino(pinoInstance: pino.Logger): SanyamLogger {
-  const logger: SanyamLogger = {
+function wrapPino(initialInstance: pino.Logger): SanyamLogger & { _setDelegate(p: pino.Logger): void } {
+  let delegate = initialInstance;
+
+  const logger: SanyamLogger & { _setDelegate(p: pino.Logger): void } = {
     get level(): LogLevel {
-      return pinoInstance.level as LogLevel;
+      return delegate.level as LogLevel;
     },
     set level(value: LogLevel) {
-      pinoInstance.level = value;
+      delegate.level = value;
     },
 
     trace(contextOrMsg: LogContext | string, msg?: string): void {
       if (typeof contextOrMsg === 'string') {
-        pinoInstance.trace(contextOrMsg);
+        delegate.trace(contextOrMsg);
       } else {
-        pinoInstance.trace(contextOrMsg, msg!);
+        delegate.trace(contextOrMsg, msg!);
       }
     },
 
     debug(contextOrMsg: LogContext | string, msg?: string): void {
       if (typeof contextOrMsg === 'string') {
-        pinoInstance.debug(contextOrMsg);
+        delegate.debug(contextOrMsg);
       } else {
-        pinoInstance.debug(contextOrMsg, msg!);
+        delegate.debug(contextOrMsg, msg!);
       }
     },
 
     info(contextOrMsg: LogContext | string, msg?: string): void {
       if (typeof contextOrMsg === 'string') {
-        pinoInstance.info(contextOrMsg);
+        delegate.info(contextOrMsg);
       } else {
-        pinoInstance.info(contextOrMsg, msg!);
+        delegate.info(contextOrMsg, msg!);
       }
     },
 
     warn(contextOrMsg: LogContext | string, msg?: string): void {
       if (typeof contextOrMsg === 'string') {
-        pinoInstance.warn(contextOrMsg);
+        delegate.warn(contextOrMsg);
       } else {
-        pinoInstance.warn(contextOrMsg, msg!);
+        delegate.warn(contextOrMsg, msg!);
       }
     },
 
     error(contextOrMsg: LogContext | string, msg?: string): void {
       if (typeof contextOrMsg === 'string') {
-        pinoInstance.error(contextOrMsg);
+        delegate.error(contextOrMsg);
       } else {
-        pinoInstance.error(contextOrMsg, msg!);
+        delegate.error(contextOrMsg, msg!);
       }
     },
 
     fatal(contextOrMsg: LogContext | string, msg?: string): void {
       if (typeof contextOrMsg === 'string') {
-        pinoInstance.fatal(contextOrMsg);
+        delegate.fatal(contextOrMsg);
       } else {
-        pinoInstance.fatal(contextOrMsg, msg!);
+        delegate.fatal(contextOrMsg, msg!);
       }
     },
 
     child(bindings: LogContext): SanyamLogger {
-      return wrapPino(pinoInstance.child(bindings));
+      return wrapPino(delegate.child(bindings));
+    },
+
+    /**
+     * Replace the underlying pino instance. Used internally to upgrade
+     * from stdout-only to stdout+Seq after async initialization.
+     */
+    _setDelegate(p: pino.Logger): void {
+      delegate = p;
     },
   };
 
@@ -215,5 +241,22 @@ export function createLogger(options: LoggerOptions): SanyamLogger {
     ? pino(pinoOptions, pino.transport(transport))
     : pino(pinoOptions);
 
-  return wrapPino(pinoInstance);
+  const logger = wrapPino(pinoInstance);
+
+  // Asynchronously attach Seq stream if SANYAM_SEQ_URL is configured.
+  // The logger works immediately (stdout or pretty). Once the async import
+  // of pino-seq resolves, the delegate is swapped to a multistream that
+  // writes to both stdout and Seq. Logs emitted before the swap go to
+  // stdout only — this is acceptable since the import resolves in ~ms.
+  if (!transport) {
+    // Only for non-pretty mode. Pretty mode uses pino.transport() which
+    // runs in a worker thread and can't be combined with multistream.
+    void buildSeqDestination().then((dest) => {
+      if (dest) {
+        logger._setDelegate(pino(pinoOptions, dest));
+      }
+    });
+  }
+
+  return logger;
 }

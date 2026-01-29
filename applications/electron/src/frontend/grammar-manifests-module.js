@@ -6,11 +6,11 @@
  *
  * This module is imported by the product extension via webpack alias (@app/grammar-manifests).
  *
- * Generated at: 2026-01-29T14:25:09.042Z
+ * Generated at: 2026-01-29T15:30:55.509Z
  * Packages: 1
  */
 
-import { manifest as spdevkitManifest } from '@sanyam-grammar/spdevkit/manifest';
+import { manifest as ecmlManifest } from '@sanyam-grammar/ecml/manifest';
 
 /**
  * Map of language IDs to grammar manifests for sanyam-electron.
@@ -20,5 +20,5 @@ import { manifest as spdevkitManifest } from '@sanyam-grammar/spdevkit/manifest'
  * @type {Record<string, import('@sanyam/types').GrammarManifest>}
  */
 export const grammarManifests = {
-  [spdevkitManifest.languageId]: spdevkitManifest,
+  [ecmlManifest.languageId]: ecmlManifest,
 };

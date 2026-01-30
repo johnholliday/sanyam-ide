@@ -39,7 +39,8 @@
   },
   "scripts": {
     "browser": "pnpm --dir applications/browser",
-    "build": "turbo run build --filter=\"sanyam*\" --filter=\"@sanyam/*\" --filter=\"@sanyam-ide/*\" --filter=\"@sanyam-grammar/*\"",
+    "build": "pnpm build:browser",
+    "build:all": "turbo run build --filter=\"sanyam*\" --filter=\"@sanyam/*\" --filter=\"@sanyam-ide/*\" --filter=\"@sanyam-grammar/*\"",
     "build:browser": "turbo run build --filter=sanyam-browser && pnpm deploy:language-server",
     "build:browser:prod": "turbo run build:prod --filter=sanyam-browser && pnpm deploy:language-server",
     "build:electron": "turbo run build --filter=sanyam-electron && pnpm deploy:language-server",

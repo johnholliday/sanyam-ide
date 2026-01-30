@@ -47,17 +47,6 @@ export const defaultAstToGModelProvider = {
     const nodeMap = new Map<AstNode, string>();
     let nodeIndex = 0;
 
-    // Debug logging
-    const manifest = (context as any).manifest as GrammarManifest | undefined;
-    logger.debug({
-      uri: context.document?.uri?.toString(),
-      rootType: root?.$type,
-      rootExists: !!root,
-      manifestExists: !!manifest,
-      languageId: manifest?.languageId,
-      rootTypesCount: manifest?.rootTypes?.length ?? 0,
-    }, 'Converting AST to GModel');
-
     // Return empty model if no root
     if (!root) {
       logger.debug('No root AST node, returning empty model');
@@ -68,17 +57,6 @@ export const defaultAstToGModelProvider = {
         revision: (context.gModel?.revision ?? 0) + 1,
       };
     }
-
-    // Debug: count total nodes
-    let totalNodes = 0;
-    let namedNodes = 0;
-    for (const astNode of streamAllContents(root)) {
-      totalNodes++;
-      if (isNamed(astNode)) {
-        namedNodes++;
-      }
-    }
-    logger.debug({ totalNodes, namedNodes }, 'AST node enumeration complete');
 
     // First pass: create nodes
     for (const astNode of streamAllContents(root)) {
@@ -168,6 +146,10 @@ export const defaultAstToGModelProvider = {
 
   /**
    * Create edges from references in an AST node.
+   *
+   * Langium grammar rules like `members+=[Actor:ID]` may create intermediate
+   * child AST nodes that wrap the actual reference arrays. This method recurses
+   * into non-named child AST nodes to find references at any depth.
    */
   createEdgesFromReferences(
     context: GlspContext,
@@ -178,11 +160,29 @@ export const defaultAstToGModelProvider = {
     const sourceId = nodeMap.get(astNode);
     if (!sourceId) return edges;
 
-    // Check all properties for references
+    this.collectReferences(context, astNode, sourceId, nodeMap, edges, new Set());
+
+    return edges;
+  },
+
+  /**
+   * Recursively collect references from an AST node and its non-named children.
+   */
+  collectReferences(
+    context: GlspContext,
+    astNode: AstNode,
+    sourceId: string,
+    nodeMap: Map<AstNode, string>,
+    edges: GModelEdge[],
+    visited: Set<unknown>
+  ): void {
+    if (visited.has(astNode)) return;
+    visited.add(astNode);
+
     for (const [key, value] of Object.entries(astNode)) {
       if (key.startsWith('$')) continue;
 
-      // Check for single reference
+      // Single reference
       if (this.isReference(value)) {
         const target = value.ref;
         if (target) {
@@ -191,23 +191,48 @@ export const defaultAstToGModelProvider = {
             edges.push(this.createEdge(context, sourceId, targetId, key));
           }
         }
+        continue;
       }
 
-      // Check for array of references
+      // Array — may contain references or child AST nodes
       if (Array.isArray(value)) {
         for (let i = 0; i < value.length; i++) {
           const item = value[i];
-          if (this.isReference(item) && item.ref) {
-            const targetId = nodeMap.get(item.ref);
-            if (targetId) {
-              edges.push(this.createEdge(context, sourceId, targetId, `${key}[${i}]`));
+          if (this.isReference(item)) {
+            if (item.ref) {
+              const targetId = nodeMap.get(item.ref);
+              if (targetId) {
+                edges.push(this.createEdge(context, sourceId, targetId, `${key}[${i}]`));
+              }
             }
+          } else if (this.isChildAstNode(item, nodeMap)) {
+            // Recurse into non-named child AST nodes in arrays
+            this.collectReferences(context, item, sourceId, nodeMap, edges, visited);
           }
         }
+        continue;
+      }
+
+      // Non-named child AST node (wrapper) — recurse into it
+      if (this.isChildAstNode(value, nodeMap)) {
+        this.collectReferences(context, value, sourceId, nodeMap, edges, visited);
       }
     }
+  },
 
-    return edges;
+  /**
+   * Check if a value is a child AST node that should be recursed into.
+   * Returns true for AST nodes that are NOT independently mapped (not named nodes
+   * in the nodeMap), meaning they are wrapper/intermediate nodes whose references
+   * should be attributed to their parent.
+   */
+  isChildAstNode(value: unknown, nodeMap: Map<AstNode, string>): value is AstNode {
+    return (
+      value !== null &&
+      typeof value === 'object' &&
+      '$type' in value &&
+      !nodeMap.has(value as AstNode)
+    );
   },
 
   /**

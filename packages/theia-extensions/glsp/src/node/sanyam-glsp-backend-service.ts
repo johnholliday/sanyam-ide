@@ -341,16 +341,19 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
                 return [];
             }
 
-            // Clear require cache to pick up changes during development.
-            // This allows hot-reloading when grammars.js is regenerated.
-            delete require.cache[require.resolve(grammarsPath)];
+            // Use Node's native require via createRequire to bypass webpack's
+            // static module resolution. Webpack replaces bare `require()` calls
+            // with its own resolver, which fails for files outside the bundle.
+            // createRequire gives us Node's real require, resolving from the
+            // application directory where grammar packages are installed.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const nodeModule = await this.dynamicImport('node:module') as { createRequire: (url: string) => any };
+            const nativeRequire = nodeModule.createRequire(grammarsPath);
 
-            // IMPORTANT: We use require() instead of dynamic import() here.
-            // The require() call loads the file from the APPLICATION's directory,
-            // so the import statements inside grammars.js resolve against the
-            // APPLICATION's node_modules where grammar packages are installed.
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const grammarsModule = require(grammarsPath);
+            // Clear require cache to pick up changes during development.
+            delete nativeRequire.cache[nativeRequire.resolve(grammarsPath)];
+
+            const grammarsModule = nativeRequire(grammarsPath);
 
             // Support both export names for compatibility:
             // - GrammarContributions: preferred name for GLSP service

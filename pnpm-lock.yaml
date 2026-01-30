@@ -908,6 +908,9 @@ importers:
         specifier: ^3.0.8
         version: 3.1.0
     devDependencies:
+      '@sanyam-grammar/ecml':
+        specifier: workspace:*
+        version: link:../grammar-definitions/ecml
       '@sanyam-grammar/spdevkit':
         specifier: workspace:*
         version: link:../grammar-definitions/spdevkit
@@ -978,9 +981,6 @@ importers:
       '@lumino/messaging':
         specifier: ^2.0.0
         version: 2.0.4
-      '@sanyam-grammar/spdevkit':
-        specifier: workspace:*
-        version: link:../../grammar-definitions/spdevkit
       '@sanyam-ide/product':
         specifier: workspace:*
         version: link:../product

@@ -27,3 +27,6 @@
 - Clicking Zoom In/Out moves the viewport down/up instead of changing its size.
 
 - Clicking on the canvas background should de-select any selected elements.  Currently does nothing.
+
+----
+Update the Electron splash with the correct logo per the primary application grammar.

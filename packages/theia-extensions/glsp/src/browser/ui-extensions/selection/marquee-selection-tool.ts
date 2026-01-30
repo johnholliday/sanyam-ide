@@ -18,6 +18,7 @@
 import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { SModelRootImpl, TYPES, IActionDispatcher } from 'sprotty';
+import { DOMHelper } from 'sprotty/lib/base/views/dom-helper';
 import { Action, SelectAction } from 'sprotty-protocol';
 import { AbstractUIExtension, DIAGRAM_CONTAINER_ID } from '../base-ui-extension';
 
@@ -150,6 +151,9 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
     @inject(TYPES.IActionDispatcher)
     protected override actionDispatcher: IActionDispatcher;
 
+    @inject(TYPES.DOMHelper)
+    protected domHelper: DOMHelper;
+
     /** Selection state */
     protected isSelecting: boolean = false;
     protected startPosition: { x: number; y: number } = { x: 0, y: 0 };
@@ -180,7 +184,7 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
         this.parentContainerElement = element;
     }
 
-    protected getParentContainer(): HTMLElement | undefined {
+    getParentContainer(): HTMLElement | undefined {
         if (this.parentContainerElement) {
             return this.parentContainerElement;
         }
@@ -224,36 +228,7 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
     enableMarqueeMode(): void {
         this.marqueeEnabled = true;
         this.show();
-
-        // Wait for the container to be created
-        if (!this.containerElement) {
-            this.logger.warn('Container element not created, checking parent');
-            // Try to initialize with fallback parent
-            const parent = this.getParentContainer();
-            if (parent) {
-                this.initialize();
-            } else {
-                this.logger.error('No parent container available');
-                return;
-            }
-        }
-
-        this.logger.info('Marquee selection mode enabled - click and drag to select');
-
-        // Add visual indicator that marquee mode is active
-        if (this.containerElement) {
-            this.containerElement.style.cursor = 'crosshair';
-            this.containerElement.style.pointerEvents = 'auto';
-
-            // Add mouse listeners for marquee selection
-            this.containerElement.addEventListener('mousedown', this.onMarqueeMouseDown);
-            document.addEventListener('mousemove', this.onMarqueeMouseMove);
-            document.addEventListener('mouseup', this.onMarqueeMouseUp);
-
-            this.logger.info({ containerId: this.containerElement.id }, 'Mouse listeners attached to container');
-        } else {
-            this.logger.error('Failed to create container element');
-        }
+        this.logger.info('Marquee selection mode enabled');
     }
 
     /**
@@ -262,68 +237,8 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
     disableMarqueeMode(): void {
         this.marqueeEnabled = false;
         this.isSelecting = false;
-
-        if (this.containerElement) {
-            this.containerElement.style.cursor = '';
-            this.containerElement.style.pointerEvents = 'none';
-
-            // Remove mouse listeners
-            this.containerElement.removeEventListener('mousedown', this.onMarqueeMouseDown);
-            document.removeEventListener('mousemove', this.onMarqueeMouseMove);
-            document.removeEventListener('mouseup', this.onMarqueeMouseUp);
-        }
-
         this.hide();
         this.logger.info('Marquee selection mode disabled');
-    }
-
-    /**
-     * Handle mouse down for marquee selection.
-     */
-    protected onMarqueeMouseDown = (event: MouseEvent): void => {
-        if (!this.marqueeEnabled) return;
-
-        const position = { x: event.offsetX, y: event.offsetY };
-        this.startSelection(position, this.getSelectionModeFromEvent(event));
-        event.preventDefault();
-        event.stopPropagation();
-    };
-
-    /**
-     * Handle mouse move for marquee selection.
-     */
-    protected onMarqueeMouseMove = (event: MouseEvent): void => {
-        if (!this.isSelecting) return;
-
-        const parent = this.getParentContainer();
-        if (!parent) return;
-
-        const rect = parent.getBoundingClientRect();
-        const position = {
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top
-        };
-        this.updateSelection(position);
-    };
-
-    /**
-     * Handle mouse up for marquee selection.
-     */
-    protected onMarqueeMouseUp = (_event: MouseEvent): void => {
-        if (!this.isSelecting) return;
-
-        this.completeSelection();
-        this.disableMarqueeMode();
-    };
-
-    /**
-     * Get selection mode from modifier keys.
-     */
-    protected getSelectionModeFromEvent(event: MouseEvent): SelectionMode {
-        if (event.ctrlKey || event.metaKey) return 'add';
-        if (event.altKey) return 'remove';
-        if (event.shiftKey) return 'toggle';
-        return 'replace';
     }
 
     /**
@@ -356,7 +271,6 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
      * Complete the selection.
      */
     completeSelection(): string[] {
-        debugger; // VS Code will pause here when DevTools is open
         if (!this.isSelecting) {
             return [];
         }
@@ -462,17 +376,16 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
         this.logger.debug({ elementCount: elements.length, bounds }, 'Found elements for selection');
 
         elements.forEach(element => {
-            const id = element.id;
-            if (!id) {
+            if (!element.id) {
                 return;
             }
 
-            const elementBounds = this.getElementBounds(element as SVGGraphicsElement);
-            this.logger.debug({ id, elementBounds }, 'Element bounds');
+            // Convert DOM ID to Sprotty model ID
+            const modelId = this.domHelper.findSModelIdByDOMElement(element);
 
+            const elementBounds = this.getElementBounds(element as SVGGraphicsElement);
             if (elementBounds && this.boundsIntersect(bounds, elementBounds)) {
-                result.push(id);
-                this.logger.debug({ id }, 'Element is within selection');
+                result.push(modelId);
             }
         });
 
@@ -486,15 +399,10 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
     protected getElementBounds(element: SVGGraphicsElement): MarqueeBounds | undefined {
         try {
             const bbox = element.getBBox();
-            const ctm = element.getCTM();
+            const screenCtm = element.getScreenCTM();
 
-            if (!ctm) {
-                return {
-                    x: bbox.x,
-                    y: bbox.y,
-                    width: bbox.width,
-                    height: bbox.height,
-                };
+            if (!screenCtm) {
+                return undefined;
             }
 
             const svg = element.ownerSVGElement;
@@ -502,29 +410,28 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
                 return undefined;
             }
 
-            const point = svg.createSVGPoint();
-            point.x = bbox.x;
-            point.y = bbox.y;
-            const transformed = point.matrixTransform(ctm);
+            // Transform both corners through screenCTM to get screen-space coordinates
+            const tl = svg.createSVGPoint();
+            tl.x = bbox.x;
+            tl.y = bbox.y;
+            const br = svg.createSVGPoint();
+            br.x = bbox.x + bbox.width;
+            br.y = bbox.y + bbox.height;
 
-            // Adjust for container position
-            const svgRect = svg.getBoundingClientRect();
+            const tlScreen = tl.matrixTransform(screenCtm);
+            const brScreen = br.matrixTransform(screenCtm);
+
+            // Convert from screen coords to parent-container-relative coords
+            // (matching the marquee rectangle's coordinate space)
             const parentRect = this.getParentContainer()?.getBoundingClientRect();
-
-            if (parentRect) {
-                return {
-                    x: transformed.x + svgRect.left - parentRect.left,
-                    y: transformed.y + svgRect.top - parentRect.top,
-                    width: bbox.width,
-                    height: bbox.height,
-                };
-            }
+            const offsetX = parentRect ? parentRect.left : 0;
+            const offsetY = parentRect ? parentRect.top : 0;
 
             return {
-                x: transformed.x,
-                y: transformed.y,
-                width: bbox.width,
-                height: bbox.height,
+                x: tlScreen.x - offsetX,
+                y: tlScreen.y - offsetY,
+                width: brScreen.x - tlScreen.x,
+                height: brScreen.y - tlScreen.y,
             };
         } catch (e) {
             return undefined;

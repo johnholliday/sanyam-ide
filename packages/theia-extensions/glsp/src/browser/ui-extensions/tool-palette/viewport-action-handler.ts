@@ -124,6 +124,9 @@ export class ViewportActionHandler implements IActionHandler {
     @inject(TYPES.ModelSource)
     protected modelSource!: LocalModelSource;
 
+    @inject(TYPES.DOMHelper)
+    protected domHelper!: { findSModelIdByDOMElement(element: Element): string };
+
     /** Minimum zoom level */
     protected readonly MIN_ZOOM = 0.1;
 
@@ -209,9 +212,7 @@ export class ViewportActionHandler implements IActionHandler {
      */
     protected getViewportFromDom(): Viewport | undefined {
         // Find the main graph group with the viewport transform
-        const graphGroup = document.querySelector('g.sprotty-graph') as SVGGElement
-            ?? document.querySelector('g[id$="_root"]') as SVGGElement
-            ?? document.querySelector('svg.sprotty-graph > g[transform]') as SVGGElement;
+        const graphGroup = document.querySelector('svg.sprotty-graph > g[transform]') as SVGGElement;
 
         if (!graphGroup) {
             return undefined;
@@ -228,8 +229,9 @@ export class ViewportActionHandler implements IActionHandler {
 
         const translateMatch = transform.match(/translate\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/);
         if (translateMatch) {
-            scroll.x = parseFloat(translateMatch[1]) || 0;
-            scroll.y = parseFloat(translateMatch[2]) || 0;
+            // Sprotty writes translate(-scroll.x, -scroll.y), so negate to get actual scroll
+            scroll.x = -parseFloat(translateMatch[1]) || 0;
+            scroll.y = -parseFloat(translateMatch[2]) || 0;
         }
 
         const scaleMatch = transform.match(/scale\s*\(\s*(-?[\d.]+)/);
@@ -241,8 +243,9 @@ export class ViewportActionHandler implements IActionHandler {
         const matrixMatch = transform.match(/matrix\s*\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)/);
         if (matrixMatch) {
             zoom = parseFloat(matrixMatch[1]) || 1;
-            scroll.x = parseFloat(matrixMatch[5]) || 0;
-            scroll.y = parseFloat(matrixMatch[6]) || 0;
+            // Matrix e/f values are the negated scroll, same as translate
+            scroll.x = -parseFloat(matrixMatch[5]) || 0;
+            scroll.y = -parseFloat(matrixMatch[6]) || 0;
         }
 
         this.logger.debug({ scroll, zoom, transform }, 'getViewportFromDom');
@@ -266,13 +269,21 @@ export class ViewportActionHandler implements IActionHandler {
      * Get the viewport dimensions from the DOM.
      */
     protected getViewportDimensions(): { width: number; height: number } {
-        // Try to find the diagram container
-        const model = (this.modelSource as any).model;
-        if (model?.id) {
-            const container = document.getElementById(model.id);
+        // Find the SVG element that contains the sprotty diagram
+        const svgElement = document.querySelector('svg.sprotty-graph') as SVGSVGElement;
+        if (svgElement) {
+            // Use the SVG's parent container dimensions (the actual visible viewport)
+            const container = svgElement.parentElement;
             if (container) {
                 const rect = container.getBoundingClientRect();
-                return { width: rect.width, height: rect.height };
+                if (rect.width > 0 && rect.height > 0) {
+                    return { width: rect.width, height: rect.height };
+                }
+            }
+            // Fall back to SVG element itself
+            const svgRect = svgElement.getBoundingClientRect();
+            if (svgRect.width > 0 && svgRect.height > 0) {
+                return { width: svgRect.width, height: svgRect.height };
             }
         }
         // Default fallback
@@ -284,9 +295,13 @@ export class ViewportActionHandler implements IActionHandler {
      * When zooming, we want the center of the view to stay at the center.
      *
      * In Sprotty's coordinate system:
-     * - Transform is: translate(scroll.x, scroll.y) scale(zoom)
-     * - A model point (mx, my) appears at screen position: (mx * zoom + scroll.x, my * zoom + scroll.y)
-     * - The center of viewport in model coords: ((viewportWidth/2 - scroll.x) / zoom, (viewportHeight/2 - scroll.y) / zoom)
+     * - Transform is: scale(zoom) translate(-scroll.x, -scroll.y)
+     * - Transforms apply right-to-left, so effective mapping is:
+     *   screenX = (modelX - scroll.x) * zoom
+     *   screenY = (modelY - scroll.y) * zoom
+     * - Center of viewport in model coords:
+     *   centerModelX = viewportWidth / (2 * zoom) + scroll.x
+     *   centerModelY = viewportHeight / (2 * zoom) + scroll.y
      */
     protected calculateCenteredScroll(
         oldScroll: { x: number; y: number },
@@ -296,13 +311,13 @@ export class ViewportActionHandler implements IActionHandler {
         const dimensions = this.getViewportDimensions();
 
         // Calculate the center point in model coordinates (before zoom)
-        const centerModelX = (dimensions.width / 2 - oldScroll.x) / oldZoom;
-        const centerModelY = (dimensions.height / 2 - oldScroll.y) / oldZoom;
+        const centerModelX = dimensions.width / (2 * oldZoom) + oldScroll.x;
+        const centerModelY = dimensions.height / (2 * oldZoom) + oldScroll.y;
 
         // Calculate new scroll to keep the same model point at viewport center after zoom
-        // newScroll.x + centerModelX * newZoom = viewportWidth/2
-        const newScrollX = dimensions.width / 2 - centerModelX * newZoom;
-        const newScrollY = dimensions.height / 2 - centerModelY * newZoom;
+        // centerModelX = viewportWidth / (2 * newZoom) + newScroll.x
+        const newScrollX = centerModelX - dimensions.width / (2 * newZoom);
+        const newScrollY = centerModelY - dimensions.height / (2 * newZoom);
 
         return { x: newScrollX, y: newScrollY };
     }
@@ -353,7 +368,13 @@ export class ViewportActionHandler implements IActionHandler {
      * Handle center action.
      */
     protected async handleCenter(action: CenterDiagramAction): Promise<void> {
-        const elementIds = action.elementIds ?? this.getElementIds();
+        let elementIds: string[];
+        if (action.elementIds && action.elementIds.length > 0) {
+            elementIds = action.elementIds;
+        } else {
+            const selected = this.getSelectedElementIds();
+            elementIds = selected.length > 0 ? selected : this.getElementIds();
+        }
         this.logger.info(`Centering diagram with elements: ${elementIds.length}`);
 
         const centerAction: CenterAction = {
@@ -367,10 +388,46 @@ export class ViewportActionHandler implements IActionHandler {
     }
 
     /**
+     * Get IDs of currently selected elements.
+     *
+     * The protocol model from LocalModelSource does not carry runtime `selected` state,
+     * so we query the DOM. The `selected` CSS class is applied to inner shape elements
+     * by the node view, while the Sprotty element `id` is on the parent `<g>` wrapper.
+     * We find `.selected` elements, walk up to the nearest ancestor with an `id`,
+     * then use DOMHelper to convert the DOM id back to the Sprotty model element id.
+     */
+    protected getSelectedElementIds(): string[] {
+        const selectedShapes = document.querySelectorAll('svg.sprotty-graph .selected');
+        const ids = new Set<string>();
+        selectedShapes.forEach(el => {
+            // Walk up to find the Sprotty element wrapper with an id
+            let current: Element | null = el;
+            while (current && !current.getAttribute('id')) {
+                current = current.parentElement;
+            }
+            if (current) {
+                // Convert DOM id (which has a prefix) to Sprotty model element id
+                const modelId = this.domHelper.findSModelIdByDOMElement(current as HTMLElement);
+                if (modelId) {
+                    ids.add(modelId);
+                }
+            }
+        });
+        return Array.from(ids);
+    }
+
+    /**
      * Handle fit to screen action.
      */
     protected async handleFit(action: FitDiagramAction): Promise<void> {
-        const elementIds = action.elementIds ?? this.getElementIds();
+        // If explicit elementIds provided, use those. Otherwise prefer selected elements, then all.
+        let elementIds: string[];
+        if (action.elementIds && action.elementIds.length > 0) {
+            elementIds = action.elementIds;
+        } else {
+            const selected = this.getSelectedElementIds();
+            elementIds = selected.length > 0 ? selected : this.getElementIds();
+        }
         this.logger.info(`Fitting diagram with elements: ${elementIds.length}`);
 
         const fitAction: FitToScreenAction = {

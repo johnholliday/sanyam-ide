@@ -31,3 +31,5 @@ Update the browser tab with the application product name. On startup, it is "Wel
 
 Ctrl+Drag = Marquee Select
 Ctrl+Shift+Drag = Marquee Select and Center on Selection
+
+Separators between groups of items in the toolbar? (zoom in, zoom out)(fit to screen, center view)(refresh, auto-layout, layout top-down, layout left-right, custom layouts? )(toggle minimap, toggle grid, toggle snap)(export as SVG)

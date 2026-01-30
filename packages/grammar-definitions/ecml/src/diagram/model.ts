@@ -40,6 +40,7 @@ export const EcmlTypes = {
   // Labels
   LABEL_NAME: 'label:name',
   LABEL_TYPE: 'label:type',
+  LABEL_TEXT: 'label:text',
 
   // Compartments
   COMPARTMENT_HEADER: 'compartment:header',

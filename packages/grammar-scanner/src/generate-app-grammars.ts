@@ -172,11 +172,47 @@ ${entries}
 }
 
 /**
- * Generate TypeScript code for the grammars.ts file.
+ * Generate JavaScript code for the grammars module.
  *
- * @param packages - Array of grammar package names
- * @param appName - Application name for documentation
- * @returns Generated TypeScript source code
+ * ## Why JavaScript Instead of TypeScript?
+ *
+ * Theia applications have `"include": []` in their tsconfig.json, meaning
+ * the `src/` folder is NOT compiled by `tsc`. The build process uses webpack
+ * to bundle pre-compiled code from `node_modules/` and Theia-generated files
+ * in `src-gen/`. Custom TypeScript in the application's `src/` folder would
+ * require additional tsconfig configuration that doesn't exist.
+ *
+ * By generating JavaScript directly to `lib/`, we bypass TypeScript compilation
+ * entirely. The GLSP backend service can `require()` this file immediately.
+ *
+ * ## Why a Generated File Instead of Runtime Scanning?
+ *
+ * We considered having the GLSP backend service scan `package.json` and
+ * dynamically import grammar packages at runtime. However, this creates a
+ * **module resolution context problem**:
+ *
+ * - The GLSP backend service runs from `@sanyam-ide/glsp` package
+ * - Dynamic imports resolve from the GLSP package's `node_modules/`
+ * - Grammar packages (e.g., `@sanyam-grammar/ecml`) are dependencies of the
+ *   APPLICATION, not the GLSP package
+ * - With pnpm's strict isolation, the import would fail because the grammar
+ *   package isn't in the GLSP package's dependency tree
+ *
+ * By generating a file in the APPLICATION's `lib/` folder, the imports
+ * execute in the application's module resolution context where grammar
+ * packages ARE installed.
+ *
+ * ## How the GLSP Backend Service Uses This File
+ *
+ * 1. Service calls `resolveGrammarsModule()` to find the application root
+ *    by walking up from `__dirname` looking for `package.json` with `theia` config
+ * 2. Service calls `require(appRoot/lib/language-server/grammars.js)`
+ * 3. The `grammars.js` file exports `GrammarContributions` array
+ * 4. Service registers each contribution with the GLSP server
+ *
+ * @param packages - Array of grammar package names (e.g., ['@sanyam-grammar/ecml'])
+ * @param appName - Application name for documentation comments
+ * @returns Generated JavaScript source code
  */
 export function generateGrammarsCode(packages: string[], appName?: string): string {
   const appLabel = appName ?? 'this application';
@@ -196,33 +232,36 @@ export function generateGrammarsCode(packages: string[], appName?: string): stri
  * Generated at: ${new Date().toISOString()}
  */
 
-import type { LanguageContributionInterface } from '@sanyam/types';
-
 /**
  * List of enabled grammar contributions for ${appLabel}.
+ * @type {import('@sanyam/types').LanguageContributionInterface[]}
  */
-export const ENABLED_GRAMMARS: LanguageContributionInterface[] = [];
+const ENABLED_GRAMMARS = [];
 
 /**
  * Get the language IDs of all enabled grammars.
+ * @returns {string[]}
  */
-export function getEnabledLanguageIds(): string[] {
+function getEnabledLanguageIds() {
   return ENABLED_GRAMMARS.map(g => g.languageId);
 }
 
 /**
  * Get file extensions supported by enabled grammars.
+ * @returns {string[]}
  */
-export function getEnabledFileExtensions(): string[] {
+function getEnabledFileExtensions() {
   return ENABLED_GRAMMARS.flatMap(g => g.fileExtensions);
 }
+
+module.exports = { ENABLED_GRAMMARS, GrammarContributions: ENABLED_GRAMMARS, getEnabledLanguageIds, getEnabledFileExtensions };
 `;
   }
 
-  const imports = packages
+  const requires = packages
     .map((pkg) => {
       const varName = packageNameToVariable(pkg);
-      return `import { contribution as ${varName} } from '${pkg}/contribution';`;
+      return `const { contribution: ${varName} } = require('${pkg}/contribution');`;
     })
     .join('\n');
 
@@ -241,11 +280,36 @@ export function getEnabledFileExtensions(): string[] {
  *
  * Generated at: ${new Date().toISOString()}
  * Packages: ${packages.length}
+ *
+ * ## Why This File Exists
+ *
+ * The GLSP backend service (\`@sanyam-ide/glsp\`) needs to load grammar contributions
+ * but must remain grammar-agnostic (no hardcoded grammar dependencies). This file
+ * solves that by:
+ *
+ * 1. Living in the APPLICATION directory (not the GLSP extension)
+ * 2. Importing grammar packages that ARE dependencies of this application
+ * 3. Exporting them for the GLSP service to consume via require()
+ *
+ * ## Module Resolution Context
+ *
+ * When the GLSP backend service calls \`require(this-file-path)\`:
+ * - Node.js loads this file from the application's lib/language-server/ directory
+ * - The require statements below resolve from the application's node_modules/
+ * - Grammar packages ARE installed there (they're app dependencies)
+ * - This avoids the module resolution problem that would occur if the GLSP
+ *   service tried to import grammar packages directly
+ *
+ * ## How to Change Grammars
+ *
+ * 1. Edit this application's package.json dependencies
+ * 2. Run: pnpm install
+ * 3. Run: pnpm generate:grammars (or pnpm build)
+ *
+ * This file will be regenerated with the new grammar imports.
  */
 
-import type { LanguageContributionInterface } from '@sanyam/types';
-
-${imports}
+${requires}
 
 /**
  * List of enabled grammar contributions for ${appLabel}.
@@ -254,24 +318,30 @@ ${imports}
  * To add a grammar:
  * 1. pnpm add @sanyam-grammar/newlang
  * 2. Run: pnpm generate:grammars
+ *
+ * @type {import('@sanyam/types').LanguageContributionInterface[]}
  */
-export const ENABLED_GRAMMARS: LanguageContributionInterface[] = [
+const ENABLED_GRAMMARS = [
 ${entries}
 ];
 
 /**
  * Get the language IDs of all enabled grammars.
+ * @returns {string[]}
  */
-export function getEnabledLanguageIds(): string[] {
+function getEnabledLanguageIds() {
   return ENABLED_GRAMMARS.map(g => g.languageId);
 }
 
 /**
  * Get file extensions supported by enabled grammars.
+ * @returns {string[]}
  */
-export function getEnabledFileExtensions(): string[] {
+function getEnabledFileExtensions() {
   return ENABLED_GRAMMARS.flatMap(g => g.fileExtensions);
 }
+
+module.exports = { ENABLED_GRAMMARS, GrammarContributions: ENABLED_GRAMMARS, getEnabledLanguageIds, getEnabledFileExtensions };
 `;
 }
 
@@ -347,7 +417,7 @@ export function generateAppGrammars(options: GeneratorOptions): GenerationResult
  */
 function parseArgs(args: string[]): { cwd: string; outputPath: string; frontendOutputPath: string; help: boolean } {
   let cwd = process.cwd();
-  let outputPath = 'src/language-server/grammars.ts';
+  let outputPath = 'lib/language-server/grammars.js';
   let frontendOutputPath = 'src/frontend/grammar-manifests-module.js';
   let help = false;
 
@@ -373,13 +443,13 @@ function parseArgs(args: string[]): { cwd: string; outputPath: string; frontendO
  */
 function printHelp(): void {
   console.log(`
-generate-app-grammars - Generate grammars.ts from package.json dependencies
+generate-app-grammars - Generate grammars.js from package.json dependencies
 
 Usage:
   npx generate-app-grammars [options]
 
 Options:
-  --output, -o <path>   Output file path (default: src/language-server/grammars.ts)
+  --output, -o <path>   Output file path (default: lib/language-server/grammars.js)
   --cwd <path>          Working directory with package.json (default: cwd)
   --help, -h            Show this help message
 

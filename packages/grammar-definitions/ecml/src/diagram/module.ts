@@ -151,6 +151,7 @@ export const ecmlDiagramModule = new ContainerModule((bind, unbind, isBound, reb
   // ═══════════════════════════════════════════════════════════════
   configureModelElement(context, EcmlTypes.LABEL_NAME, SLabelImpl, SLabelView);
   configureModelElement(context, EcmlTypes.LABEL_TYPE, SLabelImpl, SLabelView);
+  configureModelElement(context, EcmlTypes.LABEL_TEXT, SLabelImpl, SLabelView);
 });
 
 export default ecmlDiagramModule;

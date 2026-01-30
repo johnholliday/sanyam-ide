@@ -1000,6 +1000,7 @@ export const {GrammarName}Types = {
   // Labels
   LABEL_NAME: 'label:name',
   LABEL_TYPE: 'label:type',
+  LABEL_TEXT: 'label:text',
 
   // Compartments
   COMPARTMENT_HEADER: 'compartment:header',
@@ -1199,6 +1200,7 @@ export const {grammarName}DiagramModule = new ContainerModule((bind, unbind, isB
   // ═══════════════════════════════════════════════════════════════
   configureModelElement(context, {GrammarName}Types.LABEL_NAME, SLabelImpl, SLabelView);
   configureModelElement(context, {GrammarName}Types.LABEL_TYPE, SLabelImpl, SLabelView);
+  configureModelElement(context, {GrammarName}Types.LABEL_TEXT, SLabelImpl, SLabelView);
 });
 
 export default {grammarName}DiagramModule;

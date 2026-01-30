@@ -542,43 +542,37 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
             let document = langiumDocuments.getDocument(parsedUri);
             this.log(`[SanyamGlspBackendService] Existing document found: ${!!document}`);
 
-            // If document not loaded, try to load from file system
+            // If document not loaded, create and build it through Langium's full pipeline
+            // (parse → index → link → validate) so cross-references are resolved.
             if (!document) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const fileSystemProvider = (this.sharedServices as any).workspace.FileSystemProvider;
                 const content = await fileSystemProvider.readFile(parsedUri);
                 const textContent = typeof content === 'string' ? content : new TextDecoder().decode(content);
 
-                // Create text document
-                const textDocument = {
-                    uri,
-                    languageId: contribution.languageId,
-                    version: 1,
-                    getText: () => textContent,
-                    positionAt: (offset: number) => ({ line: 0, character: offset }),
-                    offsetAt: (position: { line: number; character: number }) => position.character,
-                    lineCount: textContent.split('\n').length,
-                };
+                this.log(`[SanyamGlspBackendService] Building document via DocumentBuilder...`);
 
-                // Parse the document
+                // Create a TextDocument for Langium
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const serviceRegistry = (this.sharedServices as any).ServiceRegistry;
-                const languageServices = serviceRegistry.getServices(parsedUri);
+                const { TextDocument } = await this.dynamicImport('vscode-languageserver-textdocument') as any;
+                const textDocument = TextDocument.create(uri, contribution.languageId, 1, textContent);
 
-                if (languageServices) {
-                    this.log(`[SanyamGlspBackendService] Language services found, parsing document...`);
-                    const parseResult = languageServices.parser.LangiumParser.parse(textContent);
-                    this.log(`[SanyamGlspBackendService] Parse result: value=${!!parseResult?.value}, type=${parseResult?.value?.$type}`);
-                    this.log(`[SanyamGlspBackendService] Parse errors: ${parseResult?.parserErrors?.length ?? 0}`);
-                    document = {
-                        uri: parsedUri,
-                        textDocument,
-                        parseResult,
-                        state: 2, // DocumentState.Parsed
-                    };
-                } else {
-                    this.log(`[SanyamGlspBackendService] No language services found!`);
-                }
+                // Use LangiumDocuments to create a proper document
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const documentFactory = (this.sharedServices as any).workspace.LangiumDocumentFactory;
+                document = documentFactory.fromTextDocument(textDocument, parsedUri);
+
+                // Add to document store so the builder can process it
+                langiumDocuments.addDocument(document);
+
+                // Build the document through the full pipeline (parse → index → link → validate)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const documentBuilder = (this.sharedServices as any).workspace.DocumentBuilder;
+                await documentBuilder.build([document]);
+
+                this.log(`[SanyamGlspBackendService] Document built, state: ${document.state}`);
+                this.log(`[SanyamGlspBackendService] Parse result: value=${!!document.parseResult?.value}, type=${document.parseResult?.value?.$type}`);
+                this.log(`[SanyamGlspBackendService] Parse errors: ${document.parseResult?.parserErrors?.length ?? 0}`);
             }
 
             if (!document) {

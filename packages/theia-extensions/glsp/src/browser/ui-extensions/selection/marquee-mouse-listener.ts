@@ -16,11 +16,12 @@
  */
 
 import { createLogger } from '@sanyam/logger';
-import { injectable, inject, optional } from 'inversify';
-import { MouseListener, SModelElementImpl, SModelRootImpl, TYPES, IActionDispatcher } from 'sprotty';
+import { inject, injectable, optional } from 'inversify';
+import { MouseListener, SModelElementImpl, SModelRootImpl } from 'sprotty';
 import { Action } from 'sprotty-protocol';
-import { MarqueeSelectionTool, MARQUEE_SELECTION_ID, EnableMarqueeSelectAction } from './marquee-selection-tool';
+import { MarqueeSelectionTool, MARQUEE_SELECTION_ID } from './marquee-selection-tool';
 import { UI_EXTENSION_REGISTRY, UIExtensionRegistry } from '../base-ui-extension';
+import { SanyamScrollMouseListener } from '../../di/sanyam-scroll-mouse-listener';
 
 /**
  * Mouse listener that enables marquee selection when Ctrl+drag is detected on the canvas.
@@ -32,8 +33,8 @@ export class MarqueeMouseListener extends MouseListener {
     @inject(UI_EXTENSION_REGISTRY) @optional()
     protected readonly registry?: UIExtensionRegistry;
 
-    @inject(TYPES.IActionDispatcher)
-    protected actionDispatcher!: IActionDispatcher;
+    @inject(SanyamScrollMouseListener) @optional()
+    protected readonly scrollListener?: SanyamScrollMouseListener;
 
     /** Track if we started a potential marquee selection */
     protected ctrlMouseDownOnCanvas: boolean = false;
@@ -43,7 +44,6 @@ export class MarqueeMouseListener extends MouseListener {
      * If Ctrl is pressed and target is the root (canvas), start marquee selection.
      */
     override mouseDown(target: SModelElementImpl, event: MouseEvent): (Action | Promise<Action>)[] {
-        debugger; // TRACE: Is mouseDown being called?
         // Check if Ctrl (or Cmd on Mac) is pressed and we're clicking on the canvas (root)
         const isCtrlPressed = event.ctrlKey || event.metaKey;
         this.logger.debug({ isCtrlPressed, isRoot: target instanceof SModelRootImpl, targetType: target.type }, 'mouseDown');
@@ -52,20 +52,21 @@ export class MarqueeMouseListener extends MouseListener {
             this.logger.debug('Ctrl+click detected on canvas, enabling marquee mode');
             this.ctrlMouseDownOnCanvas = true;
 
-            // Dispatch enable marquee select action
-            this.actionDispatcher.dispatch(EnableMarqueeSelectAction.create());
+            // Prevent ScrollMouseListener from capturing lastScrollPosition
+            if (this.scrollListener) {
+                this.scrollListener.preventScrolling = true;
+            }
 
-            // Also directly start selection if we have access to the tool
             const tool = this.getMarqueeSelectionTool();
             if (tool) {
-                // Get position relative to the diagram container
-                const position = { x: event.offsetX, y: event.offsetY };
+                const position = this.getPositionFromEvent(event);
 
                 // Determine selection mode from modifiers
                 let mode: 'replace' | 'add' | 'remove' | 'toggle' = 'add'; // Ctrl+drag defaults to add
                 if (event.altKey) mode = 'remove';
                 if (event.shiftKey) mode = 'toggle';
 
+                tool.show();
                 tool.startSelection(position, mode);
             }
 
@@ -99,9 +100,10 @@ export class MarqueeMouseListener extends MouseListener {
         if (this.ctrlMouseDownOnCanvas) {
             const tool = this.getMarqueeSelectionTool();
             if (tool && tool.isSelectionActive()) {
-                // Get position relative to the diagram container
-                const position = { x: event.offsetX, y: event.offsetY };
+                const position = this.getPositionFromEvent(event);
                 tool.updateSelection(position);
+                event.preventDefault();
+                event.stopPropagation();
                 return [];
             }
         }
@@ -117,9 +119,36 @@ export class MarqueeMouseListener extends MouseListener {
             if (tool && tool.isSelectionActive()) {
                 tool.completeSelection();
             }
+            if (tool) {
+                tool.cancelSelection();
+                tool.hide();
+            }
             this.ctrlMouseDownOnCanvas = false;
+
+            // Re-enable scrolling
+            if (this.scrollListener) {
+                this.scrollListener.preventScrolling = false;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
             return [];
         }
         return super.mouseUp(target, event);
+    }
+
+    /**
+     * Get position relative to the parent container from client coordinates.
+     */
+    protected getPositionFromEvent(event: MouseEvent): { x: number; y: number } {
+        const tool = this.getMarqueeSelectionTool();
+        if (tool) {
+            const parent = tool.getParentContainer();
+            if (parent) {
+                const rect = parent.getBoundingClientRect();
+                return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+            }
+        }
+        return { x: event.clientX, y: event.clientY };
     }
 }

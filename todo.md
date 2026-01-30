@@ -22,11 +22,12 @@
 
 - The 'Snap to Grid' toggle does not affect the diagram and fails to visually convey the state of the toggle button.
 
-- Marquee selection with Ctrl+Drag on the canvas draws the selection rectangle, but does not select the items upon releasing the mouse.
-
 - Clicking Zoom In/Out moves the viewport down/up instead of changing its size.
 
 - Clicking on the canvas background should de-select any selected elements.  Currently does nothing.
 
 ----
-Update the Electron splash with the correct logo per the primary application grammar.
+Update the browser tab with the application product name. On startup, it is "Welcome - ecml - E C M L".  It should be simply "E C M L".
+
+Ctrl+Drag = Marquee Select
+Ctrl+Shift+Drag = Marquee Select and Center on Selection

@@ -84,7 +84,8 @@
     "update:theia": "ts-node scripts/update-theia-version.ts",
     "update:theia:children": "pnpm -r run update:theia -- ",
     "watch": "turbo run watch --concurrency=20",
-    "watch:ide": "turbo run watch --filter=\"@sanyam-ide/*\""
+    "watch:ide": "turbo run watch --filter=\"@sanyam-ide/*\"",
+    "go": "pnpm build:browser && pnpm start:browser"
   },
   "theiaPluginsDir": "plugins",
   "theiaPlugins": {

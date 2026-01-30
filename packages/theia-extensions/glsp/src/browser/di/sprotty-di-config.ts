@@ -45,6 +45,8 @@ import { Action } from 'sprotty-protocol';
 import { SanyamNodeImpl, SanyamNodeView, SanyamLabelImpl } from './sanyam-node-view';
 import { SanyamModelFactory, SanyamEdgeImpl, SanyamCompartmentImpl } from './sanyam-model-factory';
 import { SanyamPortImpl, SanyamPortView } from '../ports';
+import { ScrollMouseListener } from 'sprotty/lib/features/viewport/scroll';
+import { SanyamScrollMouseListener } from './sanyam-scroll-mouse-listener';
 import {
     SModelRoot,
     SetModelAction,
@@ -305,6 +307,11 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
 
     // Load Sanyam-specific module
     container.load(createSanyamDiagramModule());
+
+    // Rebind ScrollMouseListener to SanyamScrollMouseListener to support preventScrolling.
+    // Done on the container directly (not in a ContainerModule) for reliable rebind behavior.
+    container.rebind(ScrollMouseListener).to(SanyamScrollMouseListener).inSingletonScope();
+    container.bind(SanyamScrollMouseListener).toService(ScrollMouseListener);
 
     // Load ELK layout module BEFORE binding LocalModelSource
     // This ensures IModelLayoutEngine is available when LocalModelSource is instantiated

@@ -153,13 +153,25 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
 
     protected readonly logger: SanyamLogger = createLogger({ name: 'GlspBackendService' });
 
+    /** Promise that resolves when initialization completes */
+    protected initPromise: Promise<void> | null = null;
+
     @postConstruct()
     protected init(): void {
         this.toDispose.push(this.onModelUpdatedEmitter);
         this.log('[SanyamGlspBackendService] Initializing...');
+        this.startInitialization();
+    }
 
-        // Start lazy initialization
-        this.initializeAsync().catch(error => {
+    /**
+     * Start initialization if not already started.
+     * Can be called from @postConstruct or lazily from ensureInitialized.
+     */
+    protected startInitialization(): void {
+        if (this.initPromise) {
+            return;
+        }
+        this.initPromise = this.initializeAsync().catch(error => {
             this.logError('[SanyamGlspBackendService] Initialization failed:', error);
             this.state = 'failed';
             this.initError = error instanceof Error ? error.message : String(error);
@@ -341,27 +353,22 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
                 return [];
             }
 
-            // Use Node's native require via createRequire to bypass webpack's
-            // static module resolution. Webpack replaces bare `require()` calls
-            // with its own resolver, which fails for files outside the bundle.
-            // createRequire gives us Node's real require, resolving from the
-            // application directory where grammar packages are installed.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const nodeModule = await this.dynamicImport('node:module') as { createRequire: (url: string) => any };
-            const nativeRequire = nodeModule.createRequire(grammarsPath);
-
-            // Clear require cache to pick up changes during development.
-            delete nativeRequire.cache[nativeRequire.resolve(grammarsPath)];
-
-            const grammarsModule = nativeRequire(grammarsPath);
+            // Use dynamic import() to load the ESM grammars module.
+            // The grammars.js file is ESM (grammar packages are "type": "module")
+            // and their exports only define "import" conditions, not "require".
+            // We use file:// URL with cache-busting query to bypass Node's module cache
+            // during development (allows hot-reloading when grammars.js is regenerated).
+            const { pathToFileURL } = await this.dynamicImport('node:url') as { pathToFileURL: (path: string) => URL };
+            const moduleUrl = pathToFileURL(grammarsPath).href + `?t=${Date.now()}`;
+            const grammarsModule = await this.dynamicImport(moduleUrl) as Record<string, unknown>;
 
             // Support both export names for compatibility:
             // - GrammarContributions: preferred name for GLSP service
             // - ENABLED_GRAMMARS: original name used by language server
-            const contributions: LanguageContribution[] =
-                grammarsModule.GrammarContributions ??
+            const contributions =
+                (grammarsModule.GrammarContributions ??
                 grammarsModule.ENABLED_GRAMMARS ??
-                [];
+                []) as LanguageContribution[];
 
             if (contributions.length === 0) {
                 this.log('[SanyamGlspBackendService] No grammar contributions found in grammars module');
@@ -618,6 +625,14 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
      * If not ready, the request is queued for later execution.
      */
     protected async ensureInitialized<T>(execute: () => Promise<T>): Promise<T> {
+        // Lazily trigger initialization if @postConstruct didn't fire.
+        // This can happen when Theia's RPC layer creates the service instance
+        // outside of Inversify's normal lifecycle.
+        if (this.state === 'uninitialized' && !this.initPromise) {
+            this.log('[SanyamGlspBackendService] Lazy initialization triggered (postConstruct did not fire)');
+            this.startInitialization();
+        }
+
         if (this.state === 'ready') {
             return execute();
         }

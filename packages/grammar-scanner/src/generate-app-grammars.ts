@@ -236,13 +236,13 @@ export function generateGrammarsCode(packages: string[], appName?: string): stri
  * List of enabled grammar contributions for ${appLabel}.
  * @type {import('@sanyam/types').LanguageContributionInterface[]}
  */
-const ENABLED_GRAMMARS = [];
+export const ENABLED_GRAMMARS = [];
 
 /**
  * Get the language IDs of all enabled grammars.
  * @returns {string[]}
  */
-function getEnabledLanguageIds() {
+export function getEnabledLanguageIds() {
   return ENABLED_GRAMMARS.map(g => g.languageId);
 }
 
@@ -250,18 +250,21 @@ function getEnabledLanguageIds() {
  * Get file extensions supported by enabled grammars.
  * @returns {string[]}
  */
-function getEnabledFileExtensions() {
+export function getEnabledFileExtensions() {
   return ENABLED_GRAMMARS.flatMap(g => g.fileExtensions);
 }
 
-module.exports = { ENABLED_GRAMMARS, GrammarContributions: ENABLED_GRAMMARS, getEnabledLanguageIds, getEnabledFileExtensions };
+/**
+ * Alias export for GLSP backend service.
+ */
+export { ENABLED_GRAMMARS as GrammarContributions };
 `;
   }
 
-  const requires = packages
+  const imports = packages
     .map((pkg) => {
       const varName = packageNameToVariable(pkg);
-      return `const { contribution: ${varName} } = require('${pkg}/contribution');`;
+      return `import { contribution as ${varName} } from '${pkg}/contribution';`;
     })
     .join('\n');
 
@@ -289,13 +292,13 @@ module.exports = { ENABLED_GRAMMARS, GrammarContributions: ENABLED_GRAMMARS, get
  *
  * 1. Living in the APPLICATION directory (not the GLSP extension)
  * 2. Importing grammar packages that ARE dependencies of this application
- * 3. Exporting them for the GLSP service to consume via require()
+ * 3. Exporting them for the GLSP service to consume via dynamic import()
  *
  * ## Module Resolution Context
  *
- * When the GLSP backend service calls \`require(this-file-path)\`:
+ * When the GLSP backend service calls \`import(this-file-url)\`:
  * - Node.js loads this file from the application's lib/language-server/ directory
- * - The require statements below resolve from the application's node_modules/
+ * - The import statements below resolve from the application's node_modules/
  * - Grammar packages ARE installed there (they're app dependencies)
  * - This avoids the module resolution problem that would occur if the GLSP
  *   service tried to import grammar packages directly
@@ -309,7 +312,7 @@ module.exports = { ENABLED_GRAMMARS, GrammarContributions: ENABLED_GRAMMARS, get
  * This file will be regenerated with the new grammar imports.
  */
 
-${requires}
+${imports}
 
 /**
  * List of enabled grammar contributions for ${appLabel}.
@@ -321,7 +324,7 @@ ${requires}
  *
  * @type {import('@sanyam/types').LanguageContributionInterface[]}
  */
-const ENABLED_GRAMMARS = [
+export const ENABLED_GRAMMARS = [
 ${entries}
 ];
 
@@ -329,7 +332,7 @@ ${entries}
  * Get the language IDs of all enabled grammars.
  * @returns {string[]}
  */
-function getEnabledLanguageIds() {
+export function getEnabledLanguageIds() {
   return ENABLED_GRAMMARS.map(g => g.languageId);
 }
 
@@ -337,11 +340,19 @@ function getEnabledLanguageIds() {
  * Get file extensions supported by enabled grammars.
  * @returns {string[]}
  */
-function getEnabledFileExtensions() {
+export function getEnabledFileExtensions() {
   return ENABLED_GRAMMARS.flatMap(g => g.fileExtensions);
 }
 
-module.exports = { ENABLED_GRAMMARS, GrammarContributions: ENABLED_GRAMMARS, getEnabledLanguageIds, getEnabledFileExtensions };
+/**
+ * Alias export for GLSP backend service.
+ *
+ * The GLSP backend service looks for this export name when loading grammar
+ * contributions. We export both names for compatibility:
+ * - ENABLED_GRAMMARS: Original name, used by language server
+ * - GrammarContributions: Preferred name for GLSP service
+ */
+export { ENABLED_GRAMMARS as GrammarContributions };
 `;
 }
 

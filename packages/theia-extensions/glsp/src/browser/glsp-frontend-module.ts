@@ -13,8 +13,12 @@ import './style/sprotty.css';
 
 import { ContainerModule, interfaces } from 'inversify';
 import { WidgetFactory, FrontendApplicationContribution, KeybindingContribution, OpenHandler } from '@theia/core/lib/browser';
+import { ColorContribution } from '@theia/core/lib/browser/color-application-contribution';
 import { TabBarToolbarContribution } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { CommandContribution, MenuContribution, PreferenceContribution } from '@theia/core/lib/common';
+
+// Diagram color contribution
+import { DiagramColorContribution } from './diagram-color-contribution';
 
 // Diagram widget imports
 import { GlspContribution } from '../common/glsp-contribution';
@@ -255,6 +259,13 @@ export default new ContainerModule((bind: interfaces.Bind) => {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   bind(EdgeRoutingService).toSelf().inSingletonScope();
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Diagram Color Tokens
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  bind(DiagramColorContribution).toSelf().inSingletonScope();
+  bind(ColorContribution).toService(DiagramColorContribution);
 });
 
 /**

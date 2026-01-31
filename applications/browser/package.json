@@ -57,7 +57,8 @@
         "preferences": {
           "toolbar.showToolbar": true,
           "files.enableTrash": false,
-          "security.workspace.trust.enabled": false
+          "security.workspace.trust.enabled": false,
+          "window.title": "${appName}"
         },
         "reloadOnReconnect": true
       }
@@ -152,6 +153,7 @@
     "@sanyam-grammar/ecml": "workspace:*",
     "@sanyam-ide/glsp": "workspace:*",
     "@sanyam-ide/product": "workspace:*",
+    "@sanyam-ide/themes": "workspace:*",
     "sanyam-language-server": "workspace:*"
   },
   "devDependencies": {

@@ -345,16 +345,23 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         // Apply pattern opacity
         this.svgContainer.style.setProperty('--diagram-pattern-opacity', String(patternOpacity));
 
-        // Determine if we're in a light or dark theme
-        const isLightTheme = document.body.classList.contains('theia-light');
+        // Read the theme-driven grid color from the color token CSS variable.
+        // If a blueprint (or other custom) theme defines sanyam.diagram.gridColor,
+        // it will be available here; otherwise we fall back to a computed default.
+        const computedGridColor = getComputedStyle(this.svgContainer)
+            .getPropertyValue('--theia-sanyam-diagram-gridColor').trim();
 
-        // Apply theme-aware pattern colors with opacity
-        // Dark theme: light gray patterns, Light theme: dark patterns
-        const patternColorBase = isLightTheme ? '0, 0, 0' : '128, 128, 128';
-        const patternColorWithOpacity = `rgba(${patternColorBase}, ${patternOpacity})`;
-
-        this.svgContainer.style.setProperty('--diagram-dots-color', patternColorWithOpacity);
-        this.svgContainer.style.setProperty('--diagram-grid-color', patternColorWithOpacity);
+        if (computedGridColor) {
+            this.svgContainer.style.setProperty('--diagram-dots-color', computedGridColor);
+            this.svgContainer.style.setProperty('--diagram-grid-color', computedGridColor);
+        } else {
+            // Fallback when no color token is resolved
+            const isLightTheme = document.body.classList.contains('theia-light');
+            const patternColorBase = isLightTheme ? '0, 0, 0' : '128, 128, 128';
+            const patternColorWithOpacity = `rgba(${patternColorBase}, ${patternOpacity})`;
+            this.svgContainer.style.setProperty('--diagram-dots-color', patternColorWithOpacity);
+            this.svgContainer.style.setProperty('--diagram-grid-color', patternColorWithOpacity);
+        }
 
         // Apply dots settings
         this.svgContainer.style.setProperty('--diagram-dots-size', `${dotsSize}px`);

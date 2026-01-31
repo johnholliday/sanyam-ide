@@ -45,4 +45,5 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     [CommandContribution, MenuContribution].forEach(serviceIdentifier =>
         bind(serviceIdentifier).toService(TheiaIDEContribution)
     );
+
 });

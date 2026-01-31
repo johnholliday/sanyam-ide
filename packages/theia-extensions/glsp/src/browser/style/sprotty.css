@@ -101,12 +101,12 @@
 
 /* CSS custom properties for diagram backgrounds - set via JavaScript preferences */
 .sanyam-diagram-svg-container {
-    --diagram-bg-color: var(--theia-editor-background, #1e1e1e);
+    --diagram-bg-color: var(--theia-sanyam-diagram-background, var(--theia-editor-background, #1e1e1e));
     --diagram-pattern-opacity: 0.3;
-    --diagram-dots-color: rgba(128, 128, 128, 0.3);
+    --diagram-dots-color: var(--theia-sanyam-diagram-gridColor, rgba(128, 128, 128, 0.3));
     --diagram-dots-size: 1px;
     --diagram-dots-spacing: 20px;
-    --diagram-grid-color: rgba(128, 128, 128, 0.3);
+    --diagram-grid-color: var(--theia-sanyam-diagram-gridColor, rgba(128, 128, 128, 0.3));
     --diagram-grid-size: 20px;
 }
 
@@ -167,24 +167,15 @@
     z-index: 1;
 }
 
-/* Light theme adjustments for background patterns
- * Note: Actual colors with opacity are set dynamically via JavaScript preferences
- */
-.theia-light .sanyam-diagram-svg-container {
-    --diagram-bg-color: var(--theia-editor-background, #ffffff);
-    --diagram-dots-color: rgba(0, 0, 0, 0.15);
-    --diagram-grid-color: rgba(0, 0, 0, 0.15);
-}
-
 /* High contrast theme adjustments */
 .theia-hcDark .sanyam-diagram-svg-container {
-    --diagram-dots-color: var(--theia-contrastBorder, rgba(111, 195, 223, 0.4));
-    --diagram-grid-color: var(--theia-contrastBorder, rgba(111, 195, 223, 0.3));
+    --diagram-dots-color: var(--theia-sanyam-diagram-gridColor, var(--theia-contrastBorder, rgba(111, 195, 223, 0.4)));
+    --diagram-grid-color: var(--theia-sanyam-diagram-gridColor, var(--theia-contrastBorder, rgba(111, 195, 223, 0.3)));
 }
 
 .theia-hcLight .sanyam-diagram-svg-container {
-    --diagram-dots-color: var(--theia-contrastBorder, rgba(15, 74, 133, 0.4));
-    --diagram-grid-color: var(--theia-contrastBorder, rgba(15, 74, 133, 0.3));
+    --diagram-dots-color: var(--theia-sanyam-diagram-gridColor, var(--theia-contrastBorder, rgba(15, 74, 133, 0.4)));
+    --diagram-grid-color: var(--theia-sanyam-diagram-gridColor, var(--theia-contrastBorder, rgba(15, 74, 133, 0.3)));
 }
 
 /* ============================================

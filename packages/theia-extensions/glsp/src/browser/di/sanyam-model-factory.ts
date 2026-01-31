@@ -16,7 +16,7 @@
  * @packageDocumentation
  */
 
-import { injectable } from 'inversify';
+import { injectable, inject, optional } from 'inversify';
 import { createLogger } from '@sanyam/logger';
 import {
     SModelFactory,
@@ -27,6 +27,7 @@ import {
     SModelRootImpl,
 } from 'sprotty';
 import type { SModelElement, SModelRoot } from 'sprotty-protocol';
+import { EdgeRoutingService, EdgeRoutingServiceSymbol } from '../layout/edge-routing-service';
 
 /**
  * Extended edge class with Sanyam-specific properties.
@@ -54,6 +55,9 @@ export class SanyamCompartmentImpl extends SCompartmentImpl {
 @injectable()
 export class SanyamModelFactory extends SModelFactory {
     protected readonly logger = createLogger({ name: 'ModelFactory' });
+
+    @inject(EdgeRoutingServiceSymbol) @optional()
+    protected readonly edgeRoutingService: EdgeRoutingService | undefined;
 
     createElement(schema: SModelElement, parent?: SParentElementImpl): SChildElementImpl {
         const originalType = schema.type;
@@ -112,6 +116,9 @@ export class SanyamModelFactory extends SModelFactory {
             normalizedSchema.cssClasses = [...(normalizedSchema.cssClasses || []), cssClass];
         } else if (this.isEdgeType(originalType)) {
             normalizedSchema.edgeType = originalType;
+            if (this.edgeRoutingService) {
+                normalizedSchema.routerKind = this.edgeRoutingService.getSprottyRouterKind();
+            }
         }
 
         // Recursively normalize children

@@ -286,3 +286,17 @@
 .theia-hcLight .sanyam-editor-tab.active {
     border-bottom: 2px solid var(--theia-contrastActiveBorder, #0f4a85);
 }
+
+/* ============================================
+   Toolbar Group Separators
+   ============================================ */
+
+.lm-TabBar-toolbar > .item:has(> [id="sanyam.diagram.toolbar.zoomToFit"]),
+.lm-TabBar-toolbar > .item:has(> [id="sanyam.diagram.toolbar.layout"]),
+.lm-TabBar-toolbar > .item:has(> [id="sanyam.diagram.toolbar.edgeRouteOrthogonal"]),
+.lm-TabBar-toolbar > .item:has(> [id="sanyam.diagram.toolbar.minimap"]),
+.lm-TabBar-toolbar > .item:has(> [id="sanyam.diagram.toolbar.refresh"]) {
+    margin-left: 4px;
+    padding-left: 4px;
+    border-left: 1px solid var(--theia-activityBar-border, rgba(128, 128, 128, 0.35));
+}

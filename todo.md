@@ -23,7 +23,4 @@
 ----
 Set the browser title to the application product name, regardless of which view is currently open.  As an example, for the ecml grammar it should be simply "E C M L".
 
-Ctrl+Drag = Marquee Select
-Ctrl+Shift+Drag = Marquee Select and Center on Selection
-
-Separators between groups of items in the toolbar? (zoom in, zoom out)(fit to screen, center view)(refresh, auto-layout, layout top-down, layout left-right, custom layouts? )(toggle minimap, toggle grid, toggle snap)(export as SVG)
+Can we allow the user to dock the text or diagram views within the composite editor frame in the same way that Theia supports docking windows?  For example, if the composite editor has tabs for 'Text' and 'Diagram', can we allow the user to drag either tab to dock the associated view within the composite editor frame?  Conversely, if the text or diagram view is currently docked, can we allow the user to drag a view to the top or bottom of the frame?

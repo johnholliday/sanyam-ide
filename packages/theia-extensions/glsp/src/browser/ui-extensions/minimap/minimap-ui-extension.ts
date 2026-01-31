@@ -160,8 +160,11 @@ export class MinimapUIExtension extends AbstractUIExtension {
     /** Throttle timer for updates */
     protected updateTimer: ReturnType<typeof setTimeout> | undefined;
 
-    /** MutationObserver for viewport changes */
+    /** MutationObserver for viewport and element changes */
     protected viewportObserver: MutationObserver | undefined;
+
+    /** The root graph group being observed, used to distinguish viewport vs element mutations */
+    protected observedGraphGroup: SVGGElement | undefined;
 
     id(): string {
         return MINIMAP_ID;
@@ -233,11 +236,22 @@ export class MinimapUIExtension extends AbstractUIExtension {
         }
 
         this.viewportObserver = new MutationObserver((mutations) => {
+            let viewportChanged = false;
+            let elementsChanged = false;
             for (const mutation of mutations) {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'transform') {
-                    // Viewport changed, update the minimap
-                    this.onViewportChanged();
+                    if (mutation.target === this.observedGraphGroup) {
+                        viewportChanged = true;
+                    } else {
+                        elementsChanged = true;
+                    }
                 }
+            }
+            if (viewportChanged) {
+                this.onViewportChanged();
+            }
+            if (elementsChanged) {
+                this.updateMinimap();
             }
         });
 
@@ -272,9 +286,11 @@ export class MinimapUIExtension extends AbstractUIExtension {
 
         if (graphGroup) {
             this.logger.debug({ element: graphGroup.id || graphGroup.className?.baseVal, transform: graphGroup.getAttribute('transform') }, 'Starting viewport observation');
+            this.observedGraphGroup = graphGroup;
             this.viewportObserver.observe(graphGroup, {
                 attributes: true,
                 attributeFilter: ['transform'],
+                subtree: true,
             });
         } else {
             this.logger.warn('No graph group found to observe');
@@ -765,39 +781,33 @@ export class MinimapUIExtension extends AbstractUIExtension {
                 if (edge instanceof SVGPathElement) {
                     const pathLength = edge.getTotalLength();
                     if (pathLength > 20) { // Skip tiny paths
-                        const start = edge.getPointAtLength(0);
-                        const end = edge.getPointAtLength(pathLength);
+                        // Sample points along the path to preserve orthogonal routing
+                        const sampleStep = Math.min(10, pathLength / 4);
+                        const numSamples = Math.max(2, Math.ceil(pathLength / sampleStep) + 1);
 
-                        // Transform the points to SVG coordinate space
-                        let startX = start.x, startY = start.y;
-                        let endX = end.x, endY = end.y;
-
-                        if (svgCTMInverse) {
-                            const edgeCTM = edge.getScreenCTM();
-                            if (edgeCTM) {
-                                const relativeMatrix = svgCTMInverse.multiply(edgeCTM);
-                                startX = relativeMatrix.e + start.x * relativeMatrix.a;
-                                startY = relativeMatrix.f + start.y * relativeMatrix.d;
-                                endX = relativeMatrix.e + end.x * relativeMatrix.a;
-                                endY = relativeMatrix.f + end.y * relativeMatrix.d;
-                            }
-                        }
-
-                        // Convert from transformed space to MODEL space
-                        const modelStartX = startX / viewportZoom + viewportScroll.x;
-                        const modelStartY = startY / viewportZoom + viewportScroll.y;
-                        const modelEndX = endX / viewportZoom + viewportScroll.x;
-                        const modelEndY = endY / viewportZoom + viewportScroll.y;
+                        const edgeCTM = svgCTMInverse ? edge.getScreenCTM() : undefined;
+                        const relativeMatrix = edgeCTM ? svgCTMInverse!.multiply(edgeCTM) : undefined;
 
                         ctx.beginPath();
-                        ctx.moveTo(
-                            (modelStartX - this.modelBounds!.x + 20) * this.scale,
-                            (modelStartY - this.modelBounds!.y + 20) * this.scale
-                        );
-                        ctx.lineTo(
-                            (modelEndX - this.modelBounds!.x + 20) * this.scale,
-                            (modelEndY - this.modelBounds!.y + 20) * this.scale
-                        );
+                        for (let s = 0; s < numSamples; s++) {
+                            const len = Math.min(s * sampleStep, pathLength);
+                            const pt = edge.getPointAtLength(len);
+
+                            let px = pt.x, py = pt.y;
+                            if (relativeMatrix) {
+                                px = relativeMatrix.e + pt.x * relativeMatrix.a;
+                                py = relativeMatrix.f + pt.y * relativeMatrix.d;
+                            }
+
+                            const mx = (px / viewportZoom + viewportScroll.x - this.modelBounds!.x + 20) * this.scale;
+                            const my = (py / viewportZoom + viewportScroll.y - this.modelBounds!.y + 20) * this.scale;
+
+                            if (s === 0) {
+                                ctx.moveTo(mx, my);
+                            } else {
+                                ctx.lineTo(mx, my);
+                            }
+                        }
                         ctx.stroke();
                         edgeCount++;
                     }
@@ -1125,6 +1135,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
             this.viewportObserver.disconnect();
             this.viewportObserver = undefined;
         }
+        this.observedGraphGroup = undefined;
 
         super.dispose();
     }

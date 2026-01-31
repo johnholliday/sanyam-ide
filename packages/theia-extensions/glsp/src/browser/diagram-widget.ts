@@ -30,6 +30,9 @@ import {
 // Preferences
 import { DiagramPreferences, DiagramBackgroundStyle } from './diagram-preferences';
 
+// Edge routing
+import { EdgeRoutingService } from './layout';
+
 // Layout storage
 import { DiagramLayoutStorageService, type ElementLayout, type DiagramLayout } from './layout-storage-service';
 
@@ -199,6 +202,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     /** Saved layout loaded from storage (if any) */
     protected savedLayout: DiagramLayout | undefined;
 
+    /** Edge routing service for dynamic edge routing mode */
+    protected edgeRoutingService: EdgeRoutingService | undefined;
+
     constructor(
         protected readonly options: DiagramWidget.Options
     ) {
@@ -269,6 +275,13 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      */
     setLayoutStorageService(service: DiagramLayoutStorageService): void {
         this.layoutStorageService = service;
+    }
+
+    /**
+     * Set edge routing service for dynamic edge routing mode.
+     */
+    setEdgeRoutingService(service: EdgeRoutingService): void {
+        this.edgeRoutingService = service;
     }
 
     /**
@@ -535,6 +548,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             this.sprottyManager = new SprottyDiagramManager({
                 diagramId: this.svgContainer.id,
                 needsMoveAction: true,
+                edgeRoutingService: this.edgeRoutingService,
                 uiExtensions: {
                     enableToolPalette: true,
                     enableValidation: true,
@@ -1202,6 +1216,9 @@ export class DiagramWidgetFactory {
     @inject(DiagramLayoutStorageService)
     protected readonly layoutStorageService: DiagramLayoutStorageService;
 
+    @inject(EdgeRoutingService)
+    protected readonly edgeRoutingService: EdgeRoutingService;
+
     /**
      * Create a diagram widget.
      */
@@ -1210,6 +1227,7 @@ export class DiagramWidgetFactory {
         widget.setPreferenceService(this.preferenceService);
         widget.setDiagramLanguageClient(this.diagramLanguageClient);
         widget.setLayoutStorageService(this.layoutStorageService);
+        widget.setEdgeRoutingService(this.edgeRoutingService);
         return widget;
     }
 }

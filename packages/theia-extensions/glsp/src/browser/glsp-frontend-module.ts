@@ -57,6 +57,9 @@ import { OutlineSyncServiceSymbol, OutlineSyncServiceImpl, ElementSymbolMapper }
 // T051: Snap-to-grid imports
 import { GridSnapper, SnapGridTool, bindSnapGridPreferences, SnapGridServiceSymbol } from './ui-extensions/snap-to-grid';
 
+// Edge routing service
+import { EdgeRoutingService } from './layout';
+
 // Note: Sprotty types are re-exported from di/sprotty-di-config via index.ts
 
 /**
@@ -246,6 +249,12 @@ export default new ContainerModule((bind: interfaces.Bind) => {
 
   // Bind GridSnapper for Sprotty's ISnapper interface
   bind(GridSnapper).toSelf().inSingletonScope();
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Edge Routing Service
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  bind(EdgeRoutingService).toSelf().inSingletonScope();
 });
 
 /**

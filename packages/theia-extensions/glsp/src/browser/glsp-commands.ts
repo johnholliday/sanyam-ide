@@ -17,7 +17,7 @@ import { GlspContribution } from '../common/glsp-contribution';
 import { DiagramWidget } from './diagram-widget';
 import { CompositeEditorWidget } from './composite-editor-widget';
 import { diagramTypeRegistry } from './glsp-frontend-module';
-import { RequestLayoutAction } from './layout';
+import { RequestLayoutAction, EdgeRoutingService, type EdgeRoutingMode } from './layout';
 import {
   ZoomInAction,
   ZoomOutAction,
@@ -160,6 +160,24 @@ export namespace DiagramCommands {
     label: 'Enable Marquee Selection',
     category: 'Diagram',
   };
+
+  export const EDGE_ROUTING_ORTHOGONAL: Command = {
+    id: 'sanyam.diagram.edgeRouting.orthogonal',
+    label: 'Orthogonal Edge Routing',
+    category: 'Diagram',
+  };
+
+  export const EDGE_ROUTING_STRAIGHT: Command = {
+    id: 'sanyam.diagram.edgeRouting.straight',
+    label: 'Straight Edge Routing',
+    category: 'Diagram',
+  };
+
+  export const EDGE_ROUTING_BEZIER: Command = {
+    id: 'sanyam.diagram.edgeRouting.bezier',
+    label: 'Bezier Edge Routing',
+    category: 'Diagram',
+  };
 }
 
 /**
@@ -174,6 +192,9 @@ export class GlspDiagramCommands implements CommandContribution {
 
   @inject(GlspContribution)
   protected readonly glspContribution: GlspContribution;
+
+  @inject(EdgeRoutingService)
+  protected readonly edgeRoutingService: EdgeRoutingService;
 
   /**
    * Cache of the last known diagram widget.
@@ -289,6 +310,31 @@ export class GlspDiagramCommands implements CommandContribution {
       execute: (...args: unknown[]) => this.toggleSnapToGrid(this.extractWidgetFromArgs(args)),
       isEnabled: () => this.hasDiagramFocus(),
       isToggled: () => this.isSnapToGridEnabled(),
+    });
+
+    // Edge routing mode commands
+    this.registerEdgeRoutingCommand(registry, DiagramCommands.EDGE_ROUTING_ORTHOGONAL, 'orthogonal');
+    this.registerEdgeRoutingCommand(registry, DiagramCommands.EDGE_ROUTING_STRAIGHT, 'straight');
+    this.registerEdgeRoutingCommand(registry, DiagramCommands.EDGE_ROUTING_BEZIER, 'bezier');
+  }
+
+  /**
+   * Register an edge routing mode command.
+   */
+  protected registerEdgeRoutingCommand(registry: CommandRegistry, command: Command, mode: EdgeRoutingMode): void {
+    registry.registerCommand(command, {
+      execute: (...args: unknown[]) => {
+        this.edgeRoutingService.setMode(mode);
+        const diagram = this.getActiveDiagram(this.extractWidgetFromArgs(args));
+        if (diagram) {
+          const action = RequestLayoutAction.create();
+          diagram.dispatchAction(action).catch(err => {
+            this.logger.error({ err }, `Edge routing ${mode} layout failed`);
+          });
+        }
+      },
+      isEnabled: () => this.hasDiagramFocus(),
+      isToggled: () => this.edgeRoutingService.currentMode === mode,
     });
   }
 

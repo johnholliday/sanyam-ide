@@ -26,7 +26,6 @@ import {
     SGraphView,
     SNodeImpl,
     SEdgeImpl,
-    PolylineEdgeView,
     SLabelImpl,
     SLabelView,
     SCompartmentImpl,
@@ -45,6 +44,7 @@ import { Action } from 'sprotty-protocol';
 import { SanyamNodeImpl, SanyamNodeView, SanyamLabelImpl } from './sanyam-node-view';
 import { SanyamModelFactory, SanyamEdgeImpl, SanyamCompartmentImpl } from './sanyam-model-factory';
 import { SanyamPortImpl, SanyamPortView } from '../ports';
+import { SanyamEdgeView } from './sanyam-edge-view';
 import { ScrollMouseListener } from 'sprotty/lib/features/viewport/scroll';
 import { SanyamScrollMouseListener } from './sanyam-scroll-mouse-listener';
 import {
@@ -68,7 +68,7 @@ import {
     RequestToolPaletteAction,
 } from '../ui-extensions';
 
-import { createElkLayoutModule, LayoutCompleteAction } from '../layout';
+import { createElkLayoutModule, LayoutCompleteAction, EdgeRoutingService } from '../layout';
 
 /**
  * Service identifier for the diagram ID.
@@ -266,13 +266,13 @@ function createSanyamDiagramModule(): ContainerModule {
         configureModelElement(context, SanyamModelTypes.NODE_PACKAGE, SanyamNodeImpl, SanyamNodeView);
         configureModelElement(context, SanyamModelTypes.NODE_GENERIC, SanyamNodeImpl, SanyamNodeView);
 
-        // Edges - register all backend edge types
-        configureModelElement(context, SanyamModelTypes.EDGE, SanyamEdgeImpl, PolylineEdgeView);
-        configureModelElement(context, SanyamModelTypes.EDGE_DEFAULT, SanyamEdgeImpl, PolylineEdgeView);
-        configureModelElement(context, SanyamModelTypes.EDGE_REFERENCE, SanyamEdgeImpl, PolylineEdgeView);
-        configureModelElement(context, SanyamModelTypes.EDGE_INHERITANCE, SanyamEdgeImpl, PolylineEdgeView);
-        configureModelElement(context, SanyamModelTypes.EDGE_COMPOSITION, SanyamEdgeImpl, PolylineEdgeView);
-        configureModelElement(context, SanyamModelTypes.EDGE_AGGREGATION, SanyamEdgeImpl, PolylineEdgeView);
+        // Edges - register all backend edge types with SanyamEdgeView for dynamic routing
+        configureModelElement(context, SanyamModelTypes.EDGE, SanyamEdgeImpl, SanyamEdgeView);
+        configureModelElement(context, SanyamModelTypes.EDGE_DEFAULT, SanyamEdgeImpl, SanyamEdgeView);
+        configureModelElement(context, SanyamModelTypes.EDGE_REFERENCE, SanyamEdgeImpl, SanyamEdgeView);
+        configureModelElement(context, SanyamModelTypes.EDGE_INHERITANCE, SanyamEdgeImpl, SanyamEdgeView);
+        configureModelElement(context, SanyamModelTypes.EDGE_COMPOSITION, SanyamEdgeImpl, SanyamEdgeView);
+        configureModelElement(context, SanyamModelTypes.EDGE_AGGREGATION, SanyamEdgeImpl, SanyamEdgeView);
 
         // Labels - register all backend label types
         configureModelElement(context, SanyamModelTypes.LABEL, SanyamLabelImpl, SLabelView);
@@ -314,6 +314,8 @@ export interface CreateDiagramContainerOptions {
     uiExtensions?: Partial<UIExtensionsModuleOptions>;
     /** Callback invoked when layout completes */
     onLayoutComplete?: LayoutCompleteCallback;
+    /** Edge routing service for dynamic edge routing mode */
+    edgeRoutingService?: EdgeRoutingService;
 }
 
 /**
@@ -338,7 +340,7 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
 
     // Load ELK layout module BEFORE binding LocalModelSource
     // This ensures IModelLayoutEngine is available when LocalModelSource is instantiated
-    container.load(createElkLayoutModule());
+    container.load(createElkLayoutModule(undefined, options.edgeRoutingService));
 
     // Bind LocalModelSource to TYPES.ModelSource directly on the container
     // (modelSourceModule provides the wiring but not the actual binding)

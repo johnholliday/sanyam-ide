@@ -35,6 +35,7 @@ import type { SGraph, SNode, SEdge, SPort, SLabel } from 'sprotty-protocol/lib/m
 import type { SModelIndex } from 'sprotty-protocol/lib/utils/model-utils';
 import { LayoutActionHandler } from './layout-action-handler';
 import { RequestLayoutAction } from './layout-actions';
+import { EdgeRoutingService, EdgeRoutingServiceSymbol } from './edge-routing-service';
 
 /**
  * Symbol for the ELK layout engine.
@@ -106,6 +107,15 @@ export const LayoutPresets = {
  * custom layout options for different element types.
  */
 export class SanyamLayoutConfigurator extends DefaultLayoutConfigurator {
+    private edgeRoutingService: EdgeRoutingService | undefined;
+
+    /**
+     * Set the edge routing service for dynamic edge routing configuration.
+     */
+    setEdgeRoutingService(service: EdgeRoutingService): void {
+        this.edgeRoutingService = service;
+    }
+
     /**
      * Apply layout options based on element type.
      */
@@ -113,8 +123,10 @@ export class SanyamLayoutConfigurator extends DefaultLayoutConfigurator {
         sgraph: SGraph,
         index: SModelIndex
     ): LayoutOptions | undefined {
+        const edgeRouting = this.edgeRoutingService?.getElkEdgeRouting() ?? 'ORTHOGONAL';
         return {
             ...DEFAULT_LAYOUT_OPTIONS,
+            'elk.edgeRouting': edgeRouting,
         };
     }
 
@@ -179,7 +191,7 @@ export class SanyamLayoutConfigurator extends DefaultLayoutConfigurator {
  */
 const logger = createLogger({ name: 'ElkLayout' });
 
-export function createElkLayoutModule(customOptions?: LayoutOptions): ContainerModule {
+export function createElkLayoutModule(customOptions?: LayoutOptions, edgeRoutingService?: EdgeRoutingService): ContainerModule {
     return new ContainerModule((bind, unbind, isBound, rebind) => {
         const context = { bind, unbind, isBound, rebind };
 
@@ -204,7 +216,13 @@ export function createElkLayoutModule(customOptions?: LayoutOptions): ContainerM
         bind(IElementFilter).to(DefaultElementFilter).inSingletonScope();
 
         // Bind layout configurator with our custom one
-        bind(ILayoutConfigurator).to(SanyamLayoutConfigurator).inSingletonScope();
+        bind(SanyamLayoutConfigurator).toSelf().inSingletonScope();
+        bind(ILayoutConfigurator).toService(SanyamLayoutConfigurator);
+
+        // Bind edge routing service if provided, and wire it into the configurator
+        if (edgeRoutingService) {
+            bind(EdgeRoutingServiceSymbol).toConstantValue(edgeRoutingService);
+        }
 
         // Bind ELK layout engine using dynamic value to properly inject dependencies
         bind(ElkLayoutEngine).toDynamicValue(ctx => {
@@ -214,7 +232,10 @@ export function createElkLayoutModule(customOptions?: LayoutOptions): ContainerM
                 logger.info('Got elkFactory');
                 const elementFilter = ctx.container.get<any>(IElementFilter);
                 logger.info('Got elementFilter');
-                const layoutConfigurator = ctx.container.get<any>(ILayoutConfigurator);
+                const layoutConfigurator = ctx.container.get<SanyamLayoutConfigurator>(SanyamLayoutConfigurator);
+                if (edgeRoutingService) {
+                    layoutConfigurator.setEdgeRoutingService(edgeRoutingService);
+                }
                 logger.info('Got layoutConfigurator');
                 const layoutPreprocessor = ctx.container.isBound(ILayoutPreprocessor)
                     ? ctx.container.get<any>(ILayoutPreprocessor) : undefined;

@@ -128,6 +128,36 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
             priority: 115,
             isVisible,
         });
+
+        // Edge Routing: Orthogonal
+        registry.registerItem({
+            id: 'sanyam.diagram.toolbar.edgeRouteOrthogonal',
+            command: DiagramCommands.EDGE_ROUTING_ORTHOGONAL.id,
+            tooltip: 'Orthogonal Edge Routing',
+            icon: 'codicon codicon-type-hierarchy',
+            priority: 116,
+            isVisible,
+        });
+
+        // Edge Routing: Straight
+        registry.registerItem({
+            id: 'sanyam.diagram.toolbar.edgeRouteStraight',
+            command: DiagramCommands.EDGE_ROUTING_STRAIGHT.id,
+            tooltip: 'Straight Edge Routing',
+            icon: 'codicon codicon-arrow-right',
+            priority: 117,
+            isVisible,
+        });
+
+        // Edge Routing: Bezier
+        registry.registerItem({
+            id: 'sanyam.diagram.toolbar.edgeRouteBezier',
+            command: DiagramCommands.EDGE_ROUTING_BEZIER.id,
+            tooltip: 'Bezier Edge Routing',
+            icon: 'codicon codicon-debug-disconnect',
+            priority: 118,
+            isVisible,
+        });
     }
 
     /**

@@ -13,8 +13,6 @@ import {
     BaseWidget,
     Widget,
     Message,
-    BoxLayout,
-    BoxPanel,
     StatefulWidget,
     Saveable,
     SaveableSource,
@@ -22,6 +20,8 @@ import {
     ApplicationShell,
     WidgetManager,
 } from '@theia/core/lib/browser';
+import { DockPanel } from '@lumino/widgets';
+import { PanelLayout } from '@lumino/widgets';
 import { MessageLoop } from '@lumino/messaging';
 import { DisposableCollection, Emitter, Event } from '@theia/core/lib/common';
 import URI from '@theia/core/lib/common/uri';
@@ -84,6 +84,7 @@ export namespace CompositeEditorWidget {
 
     export interface State {
         activeView: 'text' | 'diagram';
+        dockLayout?: DockPanel.ILayoutConfig;
     }
 }
 
@@ -115,8 +116,7 @@ export class CompositeEditorWidget extends BaseWidget
     protected textEditor: EditorWidget | undefined;
     protected diagramWidget: DiagramWidgetCapabilities | undefined;
 
-    protected toggleBar: HTMLDivElement | undefined;
-    protected contentPanel: BoxPanel | undefined;
+    protected dockPanel: DockPanel;
 
     protected _activeView: 'text' | 'diagram' = 'text';
 
@@ -124,6 +124,19 @@ export class CompositeEditorWidget extends BaseWidget
 
     protected readonly onActiveViewChangedEmitter = new Emitter<'text' | 'diagram'>();
     readonly onActiveViewChanged: Event<'text' | 'diagram'> = this.onActiveViewChangedEmitter.event;
+
+    /**
+     * Bound listener that constrains drag operations to this composite editor.
+     * Prevents tabs from being dragged out to the Theia shell's DockPanel.
+     */
+    protected readonly constrainDragListener = (event: globalThis.Event): void => {
+        // Cast to access Lumino Drag.Event properties
+        const dragEvent = event as globalThis.Event & { source?: unknown };
+        if (dragEvent.source === this.dockPanel && !this.node.contains(event.target as Node)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+        }
+    };
 
     constructor(
         protected readonly options: CompositeEditorWidget.Options
@@ -206,6 +219,7 @@ export class CompositeEditorWidget extends BaseWidget
     storeState(): CompositeEditorWidget.State {
         return {
             activeView: this._activeView,
+            dockLayout: this.dockPanel.saveLayout(),
         };
     }
 
@@ -213,78 +227,80 @@ export class CompositeEditorWidget extends BaseWidget
         if (state.activeView && state.activeView !== this._activeView) {
             this.switchView(state.activeView);
         }
+        if (state.dockLayout) {
+            // Layout restore requires widgets to exist; kick off async restore
+            this.restoreDockLayout(state.dockLayout).catch(error => {
+                this.logger.error({ err: error }, 'Failed to restore dock layout');
+            });
+        }
+    }
+
+    /**
+     * Asynchronously create widgets and restore a saved dock layout.
+     */
+    protected async restoreDockLayout(config: DockPanel.ILayoutConfig): Promise<void> {
+        // Eagerly create both widgets so restoreLayout can find them
+        if (!this.textEditor) {
+            await this.createTextEditor();
+        }
+        if (this.manifest.diagrammingEnabled && !this.diagramWidget) {
+            await this.createDiagramWidget();
+        }
+        this.dockPanel.restoreLayout(config);
     }
 
     protected createLayout(): void {
-        // Use vertical BoxLayout: [content panel] [tab bar at bottom]
-        const layout = new BoxLayout({ direction: 'top-to-bottom' });
+        const layout = new PanelLayout();
         this.layout = layout;
 
-        // Content panel holds the editor/diagram widgets - takes all available space
-        this.contentPanel = new BoxPanel({ direction: 'top-to-bottom' });
-        this.contentPanel.addClass('sanyam-composite-editor-content');
-        BoxLayout.setStretch(this.contentPanel, 1);
-
-        // Tab bar widget at the bottom
-        const tabBarWidget = new Widget();
-        tabBarWidget.addClass('sanyam-composite-editor-tab-bar');
-        this.toggleBar = tabBarWidget.node as HTMLDivElement;
-        this.createToggleButtons();
-        BoxLayout.setSizeBasis(tabBarWidget, 32);
-        BoxLayout.setStretch(tabBarWidget, 0);
-
-        layout.addWidget(this.contentPanel);
-        layout.addWidget(tabBarWidget);
-    }
-
-    protected createToggleButtons(): void {
-        if (!this.toggleBar) {
-            return;
-        }
-
-        const textTab = this.createTab('text', 'codicon-file-code', 'Text');
-        const diagramTab = this.createTab('diagram', 'codicon-type-hierarchy', 'Diagram');
-
-        textTab.classList.add('active');
-
-        if (!this.manifest.diagrammingEnabled) {
-            diagramTab.classList.add('disabled');
-            diagramTab.title = 'Diagramming not enabled for this grammar';
-        }
-
-        this.toggleBar.appendChild(textTab);
-        this.toggleBar.appendChild(diagramTab);
-    }
-
-    protected createTab(
-        view: 'text' | 'diagram',
-        iconClass: string,
-        label: string
-    ): HTMLDivElement {
-        const tab = document.createElement('div');
-        tab.className = 'sanyam-editor-tab';
-        tab.dataset['view'] = view;
-        tab.title = `${label} View`;
-
-        // Icon
-        const icon = document.createElement('span');
-        icon.className = `sanyam-editor-tab-icon codicon ${iconClass}`;
-        tab.appendChild(icon);
-
-        // Label
-        const labelSpan = document.createElement('span');
-        labelSpan.className = 'sanyam-editor-tab-label';
-        labelSpan.textContent = label;
-        tab.appendChild(labelSpan);
-
-        tab.addEventListener('click', () => {
-            if (view === 'diagram' && !this.manifest.diagrammingEnabled) {
-                return;
-            }
-            this.switchView(view);
+        this.dockPanel = new DockPanel({
+            mode: 'multiple-document',
+            spacing: 2,
         });
+        this.dockPanel.tabsMovable = true;
+        this.dockPanel.tabsConstrained = true;
+        this.dockPanel.addClass('sanyam-composite-editor-dock');
 
-        return tab;
+        // Track active view when dock layout changes (tab selection, splits)
+        this.dockPanel.layoutModified.connect(this.onDockLayoutModified, this);
+
+        layout.addWidget(this.dockPanel);
+    }
+
+    /**
+     * Handle dock layout modifications to track which view is active.
+     */
+    protected onDockLayoutModified(): void {
+        // Determine active view from selected widgets in the dock panel
+        const selectedWidgets = Array.from(this.dockPanel.selectedWidgets());
+        let newActiveView: 'text' | 'diagram' = this._activeView;
+
+        // If only one widget is selected, that's the active view
+        // If both are selected (split mode), prefer the most recently focused
+        if (selectedWidgets.length > 0) {
+            const lastSelected = selectedWidgets[selectedWidgets.length - 1];
+            if (lastSelected === this.textEditor) {
+                newActiveView = 'text';
+            } else if (lastSelected === this.diagramWidget) {
+                newActiveView = 'diagram';
+            }
+        }
+
+        if (newActiveView !== this._activeView) {
+            this._activeView = newActiveView;
+            this.onActiveViewChangedEmitter.fire(newActiveView);
+
+            // Load diagram model on first activation via tab click
+            if (newActiveView === 'diagram' && this.diagramWidget && !this.diagramModelLoaded) {
+                this.loadDiagramModel().catch(error => {
+                    this.logger.error({ err: error }, 'Failed to load diagram model on tab switch');
+                });
+            }
+            // Trigger Monaco resize when switching back to text
+            if (newActiveView === 'text') {
+                this.triggerEditorResize();
+            }
+        }
     }
 
     async switchView(view: 'text' | 'diagram'): Promise<void> {
@@ -298,7 +314,6 @@ export class CompositeEditorWidget extends BaseWidget
         }
 
         this._activeView = view;
-        this.updateToggleButtons();
 
         if (view === 'text') {
             await this.showTextView();
@@ -310,39 +325,16 @@ export class CompositeEditorWidget extends BaseWidget
         this.update();
     }
 
-    protected updateToggleButtons(): void {
-        if (!this.toggleBar) {
-            return;
-        }
-
-        const tabs = this.toggleBar.querySelectorAll('.sanyam-editor-tab');
-        tabs.forEach(tab => {
-            const tabView = (tab as HTMLElement).dataset['view'];
-            if (tabView === this._activeView) {
-                tab.classList.add('active');
-            } else {
-                tab.classList.remove('active');
-            }
-        });
-    }
-
     protected async showTextView(): Promise<void> {
-        if (this.diagramWidget) {
-            this.diagramWidget.hide();
-        }
-
         if (!this.textEditor) {
             await this.createTextEditor();
         }
 
-        if (this.textEditor && this.contentPanel) {
-            // Ensure editor is in the content panel
-            if (!this.textEditor.isAttached || this.textEditor.parent !== this.contentPanel) {
-                this.contentPanel.addWidget(this.textEditor);
-                BoxLayout.setStretch(this.textEditor, 1);
+        if (this.textEditor) {
+            if (!this.textEditor.isAttached) {
+                this.dockPanel.addWidget(this.textEditor);
             }
-            this.textEditor.show();
-            // Trigger Monaco editor re-layout
+            this.dockPanel.activateWidget(this.textEditor);
             this.triggerEditorResize();
         }
     }
@@ -351,11 +343,11 @@ export class CompositeEditorWidget extends BaseWidget
      * Trigger resize on the embedded editor to ensure Monaco re-layouts properly.
      */
     protected triggerEditorResize(): void {
-        if (this.textEditor && this.contentPanel) {
+        if (this.textEditor && this.dockPanel) {
             // Use requestAnimationFrame to ensure DOM has settled
             requestAnimationFrame(() => {
-                if (this.textEditor && this.isVisible && this.contentPanel) {
-                    const rect = this.contentPanel.node.getBoundingClientRect();
+                if (this.textEditor && this.isVisible && this.dockPanel) {
+                    const rect = this.dockPanel.node.getBoundingClientRect();
                     if (rect.width > 0 && rect.height > 0) {
                         const msg = new Widget.ResizeMessage(rect.width, rect.height);
                         MessageLoop.sendMessage(this.textEditor, msg);
@@ -366,21 +358,15 @@ export class CompositeEditorWidget extends BaseWidget
     }
 
     protected async showDiagramView(): Promise<void> {
-        if (this.textEditor) {
-            this.textEditor.hide();
-        }
-
         if (!this.diagramWidget) {
             await this.createDiagramWidget();
         }
 
-        if (this.diagramWidget && this.contentPanel) {
-            // Ensure diagram widget is in the content panel
-            if (!this.diagramWidget.isAttached || this.diagramWidget.parent !== this.contentPanel) {
-                this.contentPanel.addWidget(this.diagramWidget);
-                BoxLayout.setStretch(this.diagramWidget, 1);
+        if (this.diagramWidget) {
+            if (!this.diagramWidget.isAttached) {
+                this.dockPanel.addWidget(this.diagramWidget);
             }
-            this.diagramWidget.show();
+            this.dockPanel.activateWidget(this.diagramWidget);
 
             // Load diagram model if not already loaded
             if (!this.diagramModelLoaded) {
@@ -453,6 +439,9 @@ export class CompositeEditorWidget extends BaseWidget
             if (editor) {
                 this.textEditor = editor;
                 this.textEditor.addClass('sanyam-composite-text-editor');
+                this.textEditor.title.label = 'Text';
+                this.textEditor.title.iconClass = 'codicon codicon-file-code';
+                this.textEditor.title.closable = false;
 
                 this.toDispose.push(this.textEditor.saveable.onDirtyChanged(() => {
                     this.setDirty(this.textEditor?.saveable.dirty ?? false);
@@ -485,6 +474,9 @@ export class CompositeEditorWidget extends BaseWidget
             if (widget) {
                 this.diagramWidget = widget;
                 this.diagramWidget.addClass('sanyam-composite-diagram');
+                this.diagramWidget.title.label = 'Diagram';
+                this.diagramWidget.title.iconClass = 'codicon codicon-type-hierarchy';
+                this.diagramWidget.title.closable = false;
 
                 this.toDispose.push({
                     dispose: () => {
@@ -521,40 +513,67 @@ export class CompositeEditorWidget extends BaseWidget
         super.onActivateRequest(msg);
 
         if (this._activeView === 'text' && this.textEditor) {
-            this.textEditor.activate();
+            this.dockPanel.activateWidget(this.textEditor);
         } else if (this._activeView === 'diagram' && this.diagramWidget) {
-            this.diagramWidget.activate();
+            this.dockPanel.activateWidget(this.diagramWidget);
         }
     }
 
     protected onAfterAttach(msg: Message): void {
         super.onAfterAttach(msg);
-        this.showTextView();
+        // Constrain drag operations: capture lm-dragenter on document to prevent
+        // the Theia shell from accepting tabs dragged from our DockPanel.
+        document.addEventListener('lm-dragenter', this.constrainDragListener, true);
+        document.addEventListener('lm-dragover', this.constrainDragListener, true);
+        document.addEventListener('lm-drop', this.constrainDragListener, true);
+        this.initializeViews();
+    }
+
+    protected onBeforeDetach(msg: Message): void {
+        document.removeEventListener('lm-dragenter', this.constrainDragListener, true);
+        document.removeEventListener('lm-dragover', this.constrainDragListener, true);
+        document.removeEventListener('lm-drop', this.constrainDragListener, true);
+        super.onBeforeDetach(msg);
+    }
+
+    /**
+     * Eagerly create and add both widgets to the DockPanel so both tabs appear.
+     */
+    protected async initializeViews(): Promise<void> {
+        await this.showTextView();
+        if (this.manifest.diagrammingEnabled) {
+            if (!this.diagramWidget) {
+                await this.createDiagramWidget();
+            }
+            if (this.diagramWidget && !this.diagramWidget.isAttached) {
+                this.dockPanel.addWidget(this.diagramWidget);
+            }
+            // Ensure the text editor is the active tab
+            if (this.textEditor) {
+                this.dockPanel.activateWidget(this.textEditor);
+            }
+        }
     }
 
     protected onAfterShow(msg: Message): void {
         super.onAfterShow(msg);
 
         if (this._activeView === 'text' && this.textEditor) {
-            this.textEditor.show();
             this.triggerEditorResize();
-        } else if (this._activeView === 'diagram' && this.diagramWidget) {
-            this.diagramWidget.show();
         }
     }
 
     protected onResize(msg: Widget.ResizeMessage): void {
         super.onResize(msg);
-
-        if (this.textEditor && this._activeView === 'text') {
-            MessageLoop.sendMessage(this.textEditor, msg);
-        }
-        if (this.diagramWidget && this._activeView === 'diagram') {
-            MessageLoop.sendMessage(this.diagramWidget, msg);
-        }
+        // DockPanel propagates resize to its children automatically
+        MessageLoop.sendMessage(this.dockPanel, msg);
     }
 
     dispose(): void {
+        document.removeEventListener('lm-dragenter', this.constrainDragListener, true);
+        document.removeEventListener('lm-dragover', this.constrainDragListener, true);
+        document.removeEventListener('lm-drop', this.constrainDragListener, true);
+        this.dockPanel.layoutModified.disconnect(this.onDockLayoutModified, this);
         this.toDispose.dispose();
         super.dispose();
     }

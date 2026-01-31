@@ -7,18 +7,97 @@
  * SPDX-License-Identifier: MIT
  ********************************************************************************/
 
-/* Composite editor uses Lumino BoxLayout for proper widget management */
+/* Composite editor uses Lumino DockPanel for split/tabbed docking */
 .sanyam-composite-editor {
     height: 100%;
     width: 100%;
     overflow: hidden;
 }
 
-/* Content panel holds the editor/diagram - uses Lumino BoxPanel */
-.sanyam-composite-editor-content {
+/* DockPanel fills the composite editor */
+.sanyam-composite-editor-dock {
     height: 100%;
     width: 100%;
-    overflow: hidden;
+}
+
+/* Style DockPanel tab bars to match Theia */
+.sanyam-composite-editor-dock .lm-TabBar {
+    background-color: var(--theia-editorGroupHeader-tabsBackground, #252526);
+    border-bottom: 1px solid var(--theia-editorGroupHeader-tabsBorder, #3c3c3c);
+    min-height: 32px;
+    font-size: 12px;
+}
+
+.sanyam-composite-editor-dock .lm-TabBar-tab {
+    padding: 0 12px;
+    line-height: 32px;
+    color: var(--theia-tab-inactiveForeground, #969696);
+    cursor: pointer;
+}
+
+.sanyam-composite-editor-dock .lm-TabBar-tab.lm-mod-current {
+    background-color: var(--theia-tab-activeBackground, #1e1e1e);
+    color: var(--theia-tab-activeForeground, #ffffff);
+    border-bottom: 2px solid var(--theia-focusBorder, #007fd4);
+}
+
+.sanyam-composite-editor-dock .lm-TabBar-tab:hover:not(.lm-mod-current) {
+    background-color: var(--theia-tab-hoverBackground, #2a2d2e);
+    color: var(--theia-tab-hoverForeground, #ffffff);
+}
+
+/* Hide close icons — tabs are non-closable */
+.sanyam-composite-editor-dock .lm-TabBar-tabCloseIcon {
+    display: none;
+}
+
+/* Split handle styling */
+.sanyam-composite-editor-dock .lm-DockPanel-handle {
+    background-color: var(--theia-editorGroup-border, #444444);
+}
+
+.sanyam-composite-editor-dock .lm-DockPanel-handle:hover {
+    background-color: var(--theia-focusBorder, #007fd4);
+}
+
+/* Light theme adjustments */
+.theia-light .sanyam-composite-editor-dock .lm-TabBar {
+    background-color: var(--theia-editorGroupHeader-tabsBackground, #f3f3f3);
+    border-bottom: 1px solid var(--theia-editorGroupHeader-tabsBorder, #e7e7e7);
+}
+
+.theia-light .sanyam-composite-editor-dock .lm-TabBar-tab {
+    color: var(--theia-tab-inactiveForeground, #616161);
+}
+
+.theia-light .sanyam-composite-editor-dock .lm-TabBar-tab.lm-mod-current {
+    background-color: var(--theia-tab-activeBackground, #ffffff);
+    color: var(--theia-tab-activeForeground, #333333);
+}
+
+.theia-light .sanyam-composite-editor-dock .lm-TabBar-tab:hover:not(.lm-mod-current) {
+    background-color: var(--theia-tab-hoverBackground, #e8e8e8);
+    color: var(--theia-tab-hoverForeground, #000000);
+}
+
+/* High contrast dark theme */
+.theia-hcDark .sanyam-composite-editor-dock .lm-TabBar {
+    background-color: var(--theia-editorGroupHeader-tabsBackground, #000000);
+    border-bottom: 1px solid var(--theia-contrastBorder, #6fc3df);
+}
+
+.theia-hcDark .sanyam-composite-editor-dock .lm-TabBar-tab.lm-mod-current {
+    border-bottom: 2px solid var(--theia-contrastActiveBorder, #f38518);
+}
+
+/* High contrast light theme */
+.theia-hcLight .sanyam-composite-editor-dock .lm-TabBar {
+    background-color: var(--theia-editorGroupHeader-tabsBackground, #ffffff);
+    border-bottom: 1px solid var(--theia-contrastBorder, #0f4a85);
+}
+
+.theia-hcLight .sanyam-composite-editor-dock .lm-TabBar-tab.lm-mod-current {
+    border-bottom: 2px solid var(--theia-contrastActiveBorder, #0f4a85);
 }
 
 /* Embedded text editor from Monaco */
@@ -158,133 +237,6 @@
 .sanyam-label {
     fill: var(--theia-foreground, #cccccc);
     font-size: 12px;
-}
-
-/* ============================================
-   Tab Bar Styles - Horizontal bar at the bottom
-   ============================================ */
-
-.sanyam-composite-editor-tab-bar {
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    justify-content: flex-start;
-    padding: 0;
-    gap: 0;
-    background-color: var(--theia-editorGroupHeader-tabsBackground, #252526);
-    border-top: 1px solid var(--theia-editorGroupHeader-tabsBorder, #3c3c3c);
-    min-height: 32px;
-    height: 32px;
-}
-
-/* Editor Tab Styles */
-.sanyam-editor-tab {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 0 16px;
-    min-width: 80px;
-    height: 100%;
-    border: none;
-    border-right: 1px solid var(--theia-editorGroupHeader-tabsBorder, #3c3c3c);
-    background-color: transparent;
-    color: var(--theia-tab-inactiveForeground, #969696);
-    font-size: 12px;
-    cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
-    user-select: none;
-}
-
-.sanyam-editor-tab:hover:not(.disabled) {
-    background-color: var(--theia-tab-hoverBackground, #2a2d2e);
-    color: var(--theia-tab-hoverForeground, #ffffff);
-}
-
-.sanyam-editor-tab:focus {
-    outline: 1px solid var(--theia-focusBorder, #007fd4);
-    outline-offset: -1px;
-}
-
-.sanyam-editor-tab.active {
-    background-color: var(--theia-tab-activeBackground, #1e1e1e);
-    color: var(--theia-tab-activeForeground, #ffffff);
-    border-bottom: 2px solid var(--theia-focusBorder, #007fd4);
-}
-
-.sanyam-editor-tab.active:hover {
-    background-color: var(--theia-tab-activeBackground, #1e1e1e);
-}
-
-.sanyam-editor-tab.disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.sanyam-editor-tab.disabled:hover {
-    background-color: transparent;
-    color: var(--theia-tab-inactiveForeground, #969696);
-}
-
-.sanyam-editor-tab-icon {
-    font-size: 14px;
-}
-
-.sanyam-editor-tab-label {
-    font-weight: 400;
-}
-
-.sanyam-editor-tab.active .sanyam-editor-tab-label {
-    font-weight: 500;
-}
-
-/* Light theme adjustments */
-.theia-light .sanyam-composite-editor-tab-bar {
-    background-color: var(--theia-editorGroupHeader-tabsBackground, #f3f3f3);
-    border-top: 1px solid var(--theia-editorGroupHeader-tabsBorder, #e7e7e7);
-}
-
-.theia-light .sanyam-editor-tab {
-    color: var(--theia-tab-inactiveForeground, #616161);
-    border-right: 1px solid var(--theia-editorGroupHeader-tabsBorder, #e7e7e7);
-}
-
-.theia-light .sanyam-editor-tab:hover:not(.disabled) {
-    background-color: var(--theia-tab-hoverBackground, #e8e8e8);
-    color: var(--theia-tab-hoverForeground, #000000);
-}
-
-.theia-light .sanyam-editor-tab.active {
-    background-color: var(--theia-tab-activeBackground, #ffffff);
-    color: var(--theia-tab-activeForeground, #333333);
-}
-
-/* High contrast theme adjustments */
-.theia-hcDark .sanyam-composite-editor-tab-bar {
-    background-color: var(--theia-editorGroupHeader-tabsBackground, #000000);
-    border-top: 1px solid var(--theia-contrastBorder, #6fc3df);
-}
-
-.theia-hcDark .sanyam-editor-tab {
-    border-right: 1px solid var(--theia-contrastBorder, #6fc3df);
-}
-
-.theia-hcDark .sanyam-editor-tab.active {
-    border-bottom: 2px solid var(--theia-contrastActiveBorder, #f38518);
-}
-
-.theia-hcLight .sanyam-composite-editor-tab-bar {
-    background-color: var(--theia-editorGroupHeader-tabsBackground, #ffffff);
-    border-top: 1px solid var(--theia-contrastBorder, #0f4a85);
-}
-
-.theia-hcLight .sanyam-editor-tab {
-    border-right: 1px solid var(--theia-contrastBorder, #0f4a85);
-}
-
-.theia-hcLight .sanyam-editor-tab.active {
-    border-bottom: 2px solid var(--theia-contrastActiveBorder, #0f4a85);
 }
 
 /* ============================================

@@ -1,0 +1,82 @@
+/********************************************************************************
+ * Blueprint Theme — Diagram Element Overrides
+ *
+ * Scoped under `.sanyam-blueprint` (toggled on document.body by
+ * BlueprintThemeContribution when a blueprint theme is active).
+ ********************************************************************************/
+
+/* ============================================
+   Dark Blueprint — Diagram Elements
+   ============================================ */
+
+.sanyam-blueprint.theia-dark .sprotty-node {
+    fill: #1e3050;
+    stroke: #6ab0f0;
+}
+
+.sanyam-blueprint.theia-dark .sprotty-edge path {
+    stroke: #6ab0f0;
+}
+
+.sanyam-blueprint.theia-dark text.sprotty-label {
+    fill: #c8ddf0;
+}
+
+.sanyam-blueprint.theia-dark .sanyam-shape-rectangle,
+.sanyam-blueprint.theia-dark .sanyam-shape-rounded {
+    fill: #1e3050;
+}
+
+.sanyam-blueprint.theia-dark .sanyam-shape-ellipse {
+    fill: #1a2744;
+}
+
+.sanyam-blueprint.theia-dark .sanyam-shape-diamond {
+    fill: #243858;
+}
+
+.sanyam-blueprint.theia-dark .sanyam-shape-hexagon {
+    fill: #1c3050;
+}
+
+.sanyam-blueprint.theia-dark .sanyam-shape-pill {
+    fill: #2a5a8a;
+}
+
+/* ============================================
+   Light Blueprint — Diagram Elements
+   ============================================ */
+
+.sanyam-blueprint.theia-light .sprotty-node {
+    fill: #e0ecf8;
+    stroke: #2a5a8a;
+}
+
+.sanyam-blueprint.theia-light .sprotty-edge path {
+    stroke: #2a5a8a;
+}
+
+.sanyam-blueprint.theia-light text.sprotty-label {
+    fill: #1a2744;
+}
+
+.sanyam-blueprint.theia-light .sanyam-shape-rectangle,
+.sanyam-blueprint.theia-light .sanyam-shape-rounded {
+    fill: #e0ecf8;
+}
+
+.sanyam-blueprint.theia-light .sanyam-shape-ellipse {
+    fill: #d4e4f7;
+}
+
+.sanyam-blueprint.theia-light .sanyam-shape-diamond {
+    fill: #c8ddf0;
+}
+
+.sanyam-blueprint.theia-light .sanyam-shape-hexagon {
+    fill: #d8e8f5;
+}
+
+.sanyam-blueprint.theia-light .sanyam-shape-pill {
+    fill: #5088c0;
+}

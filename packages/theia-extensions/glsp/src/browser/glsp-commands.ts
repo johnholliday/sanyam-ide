@@ -178,6 +178,18 @@ export namespace DiagramCommands {
     label: 'Bezier Edge Routing',
     category: 'Diagram',
   };
+
+  export const TOGGLE_EDGE_JUMPS: Command = {
+    id: 'sanyam.diagram.toggleEdgeJumps',
+    label: 'Toggle Edge Jumps',
+    category: 'Diagram',
+  };
+
+  export const TOGGLE_ARROWHEADS: Command = {
+    id: 'sanyam.diagram.toggleArrowheads',
+    label: 'Toggle Arrowheads',
+    category: 'Diagram',
+  };
 }
 
 /**
@@ -316,6 +328,41 @@ export class GlspDiagramCommands implements CommandContribution {
     this.registerEdgeRoutingCommand(registry, DiagramCommands.EDGE_ROUTING_ORTHOGONAL, 'orthogonal');
     this.registerEdgeRoutingCommand(registry, DiagramCommands.EDGE_ROUTING_STRAIGHT, 'straight');
     this.registerEdgeRoutingCommand(registry, DiagramCommands.EDGE_ROUTING_BEZIER, 'bezier');
+
+    // Toggle arrowheads visibility
+    registry.registerCommand(DiagramCommands.TOGGLE_ARROWHEADS, {
+      execute: (...args: unknown[]) => {
+        const visible = !this.edgeRoutingService.arrowheadsVisible;
+        this.edgeRoutingService.setArrowheadsVisible(visible);
+        // Trigger re-render so the edge view adds/removes arrowhead polygons
+        const diagram = this.getActiveDiagram(this.extractWidgetFromArgs(args));
+        if (diagram) {
+          diagram.dispatchAction(RequestLayoutAction.create()).catch(err => {
+            this.logger.error({ err }, 'Toggle arrowheads re-render failed');
+          });
+        }
+      },
+      isEnabled: () => this.hasDiagramFocus(),
+      isToggled: () => !this.edgeRoutingService.arrowheadsVisible,
+    });
+
+    // Toggle edge jumps (line bridges)
+    registry.registerCommand(DiagramCommands.TOGGLE_EDGE_JUMPS, {
+      execute: (...args: unknown[]) => {
+        const enabled = !this.edgeRoutingService.edgeJumpsEnabled;
+        this.edgeRoutingService.setEdgeJumpsEnabled(enabled);
+        // Trigger re-render by requesting layout
+        const diagram = this.getActiveDiagram(this.extractWidgetFromArgs(args));
+        if (diagram) {
+          const action = RequestLayoutAction.create();
+          diagram.dispatchAction(action).catch(err => {
+            this.logger.error({ err }, 'Toggle edge jumps layout failed');
+          });
+        }
+      },
+      isEnabled: () => this.hasDiagramFocus(),
+      isToggled: () => this.edgeRoutingService.edgeJumpsEnabled,
+    });
   }
 
   /**

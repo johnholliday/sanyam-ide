@@ -158,6 +158,26 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
             priority: 118,
             isVisible,
         });
+
+        // Toggle Arrowheads
+        registry.registerItem({
+            id: 'sanyam.diagram.toolbar.toggleArrowheads',
+            command: DiagramCommands.TOGGLE_ARROWHEADS.id,
+            tooltip: 'Toggle Arrowheads',
+            icon: 'codicon codicon-triangle-right',
+            priority: 119,
+            isVisible,
+        });
+
+        // Toggle Edge Jumps (line bridges)
+        registry.registerItem({
+            id: 'sanyam.diagram.toolbar.toggleEdgeJumps',
+            command: DiagramCommands.TOGGLE_EDGE_JUMPS.id,
+            tooltip: 'Toggle Edge Jumps',
+            icon: 'codicon codicon-git-compare',
+            priority: 120,
+            isVisible,
+        });
     }
 
     /**

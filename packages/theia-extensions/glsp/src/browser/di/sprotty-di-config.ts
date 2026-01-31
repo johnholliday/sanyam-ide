@@ -68,7 +68,7 @@ import {
     RequestToolPaletteAction,
 } from '../ui-extensions';
 
-import { createElkLayoutModule, LayoutCompleteAction, EdgeRoutingService } from '../layout';
+import { createElkLayoutModule, LayoutCompleteAction, EdgeRoutingService, EdgeJumpPostprocessor } from '../layout';
 
 /**
  * Service identifier for the diagram ID.
@@ -299,6 +299,10 @@ function createSanyamDiagramModule(): ContainerModule {
         // Bind custom mouse listener
         bind(SanyamMouseListener).toSelf().inSingletonScope();
         bind(TYPES.MouseListener).toService(SanyamMouseListener);
+
+        // Bind edge jump postprocessor for line bridges at edge crossings
+        bind(EdgeJumpPostprocessor).toSelf().inSingletonScope();
+        bind(TYPES.IVNodePostprocessor).toService(EdgeJumpPostprocessor);
     });
 }
 

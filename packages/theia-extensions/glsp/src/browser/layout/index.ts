@@ -19,3 +19,4 @@ export * from './edge-routing-service';
 export * from './elk-layout-module';
 export * from './layout-actions';
 export * from './layout-action-handler';
+export * from './edge-jump-postprocessor';

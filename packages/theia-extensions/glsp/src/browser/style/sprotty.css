@@ -537,6 +537,15 @@ circle.sprotty-port.mouseover {
 }
 
 /* ============================================
+   Edge Jumps (Line Bridges)
+   ============================================ */
+
+.sanyam-edge-jump {
+    fill: none;
+    /* stroke inherited from parent edge */
+}
+
+/* ============================================
    Animations
    ============================================ */
 

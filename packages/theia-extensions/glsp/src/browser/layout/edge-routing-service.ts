@@ -70,6 +70,42 @@ export class EdgeRoutingService {
         }
     }
 
+    private _edgeJumpsEnabled = false;
+
+    /**
+     * Get whether edge jumps (line bridges) are enabled.
+     */
+    get edgeJumpsEnabled(): boolean {
+        return this._edgeJumpsEnabled;
+    }
+
+    /**
+     * Set whether edge jumps (line bridges) are enabled.
+     *
+     * @param enabled - Whether to enable edge jumps
+     */
+    setEdgeJumpsEnabled(enabled: boolean): void {
+        this._edgeJumpsEnabled = enabled;
+    }
+
+    private _arrowheadsVisible = true;
+
+    /**
+     * Get whether edge arrowheads are visible.
+     */
+    get arrowheadsVisible(): boolean {
+        return this._arrowheadsVisible;
+    }
+
+    /**
+     * Set whether edge arrowheads are visible.
+     *
+     * @param visible - Whether arrowheads should be displayed
+     */
+    setArrowheadsVisible(visible: boolean): void {
+        this._arrowheadsVisible = visible;
+    }
+
     /**
      * Get the sprotty `routerKind` value for the current mode.
      */

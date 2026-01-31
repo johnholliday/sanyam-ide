@@ -184,6 +184,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     /** Flag indicating layout is in progress (used to hide diagram during initial layout) */
     protected layoutPending = false;
 
+    /** Flag indicating whether the initial layout+fitToScreen has been completed */
+    protected initialLayoutDone = false;
+
     /** Preference service for reading diagram preferences */
     protected preferenceService: PreferenceService | undefined;
 
@@ -711,6 +714,8 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
         try {
             this.showLoading();
+            // Reset initial layout flag so the new model gets a fit-to-screen
+            this.initialLayoutDone = false;
 
             // Try to load saved layout first
             if (this.layoutStorageService) {
@@ -804,6 +809,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     this.logger.debug('[DiagramWidget] Skipping auto-layout - using saved positions');
                     // Fit to screen with the saved positions
                     await this.sprottyManager.fitToScreen();
+                    this.initialLayoutDone = true;
                     // T015: Reveal diagram after fitToScreen completes
                     this.revealDiagramAfterLayout();
                     // Update minimap
@@ -829,20 +835,27 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      * Called when the ELK layout engine finishes positioning elements.
      */
     protected onLayoutComplete(success: boolean, error?: string): void {
-        this.logger.debug(`[DiagramWidget] Layout complete: success=${success}${error ? ', error=' + error : ''}`);
+        this.logger.debug(`[DiagramWidget] Layout complete: success=${success}, initialLayoutDone=${this.initialLayoutDone}${error ? ', error=' + error : ''}`);
 
         if (success) {
-            // Fit to screen BEFORE revealing (while still hidden)
-            this.sprottyManager?.fitToScreen().then(() => {
-                // Now reveal the diagram with smooth transition
-                this.revealDiagramAfterLayout();
-                // Update minimap after reveal
+            if (!this.initialLayoutDone) {
+                // First layout: fit to screen BEFORE revealing (while still hidden)
+                this.initialLayoutDone = true;
+                this.sprottyManager?.fitToScreen().then(() => {
+                    // Now reveal the diagram with smooth transition
+                    this.revealDiagramAfterLayout();
+                    // Update minimap after reveal
+                    this.updateMinimapAfterLayout();
+                }).catch(err => {
+                    this.logger.warn({ err }, 'Failed to fit to screen');
+                    // Still reveal even if fit fails
+                    this.revealDiagramAfterLayout();
+                });
+            } else {
+                // Subsequent layouts (edge routing change, manual auto-layout):
+                // preserve current viewport, just update minimap
                 this.updateMinimapAfterLayout();
-            }).catch(err => {
-                this.logger.warn({ err }, 'Failed to fit to screen');
-                // Still reveal even if fit fails
-                this.revealDiagramAfterLayout();
-            });
+            }
         } else {
             // On error, just reveal without fitToScreen
             this.revealDiagramAfterLayout();

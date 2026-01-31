@@ -22,6 +22,7 @@ import { Action } from 'sprotty-protocol';
 import { MarqueeSelectionTool, MARQUEE_SELECTION_ID } from './marquee-selection-tool';
 import { UI_EXTENSION_REGISTRY, UIExtensionRegistry } from '../base-ui-extension';
 import { SanyamScrollMouseListener } from '../../di/sanyam-scroll-mouse-listener';
+import { FitDiagramAction } from '../tool-palette/viewport-action-handler';
 
 /**
  * Mouse listener that enables marquee selection when Ctrl+drag is detected on the canvas.
@@ -38,6 +39,9 @@ export class MarqueeMouseListener extends MouseListener {
 
     /** Track if we started a potential marquee selection */
     protected ctrlMouseDownOnCanvas: boolean = false;
+
+    /** Track if Ctrl+Shift was held (fit-to-screen after selection) */
+    protected fitAfterSelect: boolean = false;
 
     /**
      * Handle mouse down event.
@@ -62,9 +66,16 @@ export class MarqueeMouseListener extends MouseListener {
                 const position = this.getPositionFromEvent(event);
 
                 // Determine selection mode from modifiers
-                let mode: 'replace' | 'add' | 'remove' | 'toggle' = 'add'; // Ctrl+drag defaults to add
+                // Ctrl+Drag = replace selection with marquee contents
+                // Ctrl+Alt+Drag = remove from selection
+                // Ctrl+Shift+Drag = replace selection + fit to screen
+                let mode: 'replace' | 'add' | 'remove' | 'toggle' = 'replace';
                 if (event.altKey) mode = 'remove';
-                if (event.shiftKey) mode = 'toggle';
+                if (event.shiftKey) {
+                    this.fitAfterSelect = true;
+                } else {
+                    this.fitAfterSelect = false;
+                }
 
                 tool.show();
                 tool.startSelection(position, mode);
@@ -116,13 +127,17 @@ export class MarqueeMouseListener extends MouseListener {
     override mouseUp(target: SModelElementImpl, event: MouseEvent): (Action | Promise<Action>)[] {
         if (this.ctrlMouseDownOnCanvas) {
             const tool = this.getMarqueeSelectionTool();
+            let selectedIds: string[] = [];
             if (tool && tool.isSelectionActive()) {
-                tool.completeSelection();
+                selectedIds = tool.completeSelection();
             }
             if (tool) {
                 tool.cancelSelection();
                 tool.hide();
             }
+
+            const shouldFit = this.fitAfterSelect && selectedIds.length > 0;
+            this.fitAfterSelect = false;
             this.ctrlMouseDownOnCanvas = false;
 
             // Re-enable scrolling
@@ -132,6 +147,14 @@ export class MarqueeMouseListener extends MouseListener {
 
             event.preventDefault();
             event.stopPropagation();
+
+            // Ctrl+Shift+Drag: fit to screen on the selected elements
+            // Dispatch after a short delay to let the SelectAction from completeSelection()
+            // propagate through the model first
+            if (shouldFit) {
+                const fitAction = FitDiagramAction.create(selectedIds);
+                return [new Promise<Action>(resolve => setTimeout(() => resolve(fitAction), 50))];
+            }
             return [];
         }
         return super.mouseUp(target, event);

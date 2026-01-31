@@ -18,16 +18,10 @@
 
 ----
 
-- When the diagram is larger than the view, the minimap responds to mouse hover by displaying the correct icon for moving and highlighting the viewport, but fails to process mouse drags.
-
 - The 'Snap to Grid' toggle does not affect the diagram and fails to visually convey the state of the toggle button.
 
-- Clicking Zoom In/Out moves the viewport down/up instead of changing its size.
-
-- Clicking on the canvas background should de-select any selected elements.  Currently does nothing.
-
 ----
-Update the browser tab with the application product name. On startup, it is "Welcome - ecml - E C M L".  It should be simply "E C M L".
+Set the browser title to the application product name, regardless of which view is currently open.  As an example, for the ecml grammar it should be simply "E C M L".
 
 Ctrl+Drag = Marquee Select
 Ctrl+Shift+Drag = Marquee Select and Center on Selection

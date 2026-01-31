@@ -17,7 +17,7 @@
 
 import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
-import { IActionHandler, ICommand, TYPES, IActionDispatcher } from 'sprotty';
+import { IActionHandler, ICommand, TYPES, IActionDispatcher, LocalModelSource } from 'sprotty';
 import { Action, SetViewportAction } from 'sprotty-protocol';
 import {
     MinimapUIExtension,
@@ -39,6 +39,9 @@ export class MinimapActionHandler implements IActionHandler {
 
     @inject(TYPES.IActionDispatcher)
     protected actionDispatcher: IActionDispatcher;
+
+    @inject(TYPES.ModelSource)
+    protected modelSource!: LocalModelSource;
 
     /**
      * Handle minimap actions.
@@ -128,44 +131,22 @@ export class MinimapActionHandler implements IActionHandler {
         const viewportAction = SetViewportAction.create(elementId, {
             scroll: action.scroll,
             zoom: action.zoom,
-        }, { animate: true });
+        }, { animate: action.animate });
 
         this.actionDispatcher.dispatch(viewportAction);
     }
 
     /**
      * Find the Sprotty model root element ID.
+     * Uses the LocalModelSource to get the actual model root ID rather than
+     * parsing DOM element IDs (which are prefixed and don't match model IDs).
      */
     protected findSprottyRootId(): string | undefined {
-        // Try to find the SVG element with sprotty-graph class
-        const svg = document.querySelector('svg.sprotty-graph');
-        if (svg) {
-            // The SVG ID typically contains the root element ID
-            // Format: sprotty-{widget-id}_root_{uri}
-            const svgId = svg.id;
-            if (svgId) {
-                // Extract the part after the last underscore-separated segment that contains 'root'
-                const rootMatch = svgId.match(/^(.+_root)/);
-                if (rootMatch) {
-                    return rootMatch[1];
-                }
-                // If no 'root' in ID, use the SVG ID directly
-                return svgId;
-            }
+        const model = (this.modelSource as any).model;
+        if (model?.id) {
+            return model.id;
         }
-
-        // Try to find by looking for the main graph group
-        const graphGroup = document.querySelector('g[id$="_root"]') as SVGGElement;
-        if (graphGroup?.id) {
-            return graphGroup.id;
-        }
-
-        // Fallback: look for any element with sprotty in the ID ending with _root
-        const rootElement = document.querySelector('[id*="sprotty"][id$="_root"]');
-        if (rootElement?.id) {
-            return rootElement.id;
-        }
-
-        return undefined;
+        // Fallback to conventional default
+        return 'graph';
     }
 }

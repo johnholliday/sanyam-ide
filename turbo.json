@@ -5,6 +5,11 @@
       "dependsOn": [
         "^build"
       ],
+      "inputs": [
+        "src/**",
+        "tsconfig*.json",
+        "package.json"
+      ],
       "outputs": [
         "lib/**",
         "src/generated/**",
@@ -15,6 +20,11 @@
     "build:prod": {
       "dependsOn": [
         "^build"
+      ],
+      "inputs": [
+        "src/**",
+        "tsconfig*.json",
+        "package.json"
       ],
       "outputs": [
         "lib/**",
@@ -28,6 +38,11 @@
         "^build",
         "sanyam-browser#build"
       ],
+      "inputs": [
+        "src/**",
+        "tsconfig*.json",
+        "package.json"
+      ],
       "outputs": [
         "lib/**",
         "*.tsbuildinfo"
@@ -38,6 +53,11 @@
       "dependsOn": [
         "^build",
         "sanyam-browser#build:prod"
+      ],
+      "inputs": [
+        "src/**",
+        "tsconfig*.json",
+        "package.json"
       ],
       "outputs": [
         "lib/**",
@@ -50,6 +70,11 @@
         "^build",
         "sanyam-language-server#build:vsix"
       ],
+      "inputs": [
+        "src/**",
+        "tsconfig*.json",
+        "package.json"
+      ],
       "outputs": [
         "lib/**",
         "*.tsbuildinfo"
@@ -60,6 +85,11 @@
       "dependsOn": [
         "^build",
         "sanyam-language-server#build:vsix"
+      ],
+      "inputs": [
+        "src/**",
+        "tsconfig*.json",
+        "package.json"
       ],
       "outputs": [
         "lib/**",

@@ -180,21 +180,44 @@ export class SanyamMouseListener extends MouseListener {
         this.callbacks = callbacks;
     }
 
+    /** Track whether a canvas mouseDown occurred without Ctrl */
+    private canvasMouseDown = false;
+    /** Track whether the mouse moved (drag/pan) since mouseDown */
+    private hasDraggedSinceDown = false;
+
     mouseDown(target: SModelElementImpl, event: MouseEvent): (Action | Promise<Action>)[] {
-        // Click on canvas (root) should deselect all elements
-        // But not if Ctrl/Cmd is pressed (that's for marquee selection)
+        // Track canvas click for deselect-on-mouseUp (not mouseDown, to avoid
+        // deselecting when the user is about to pan/drag the canvas)
         if (target instanceof SModelRootImpl && !event.ctrlKey && !event.metaKey) {
-            // Dispatch SelectAllAction with select=false to deselect all
-            const deselectAction: SelectAllAction = {
-                kind: 'allSelected',
-                select: false,
-            };
-            return [deselectAction];
+            this.canvasMouseDown = true;
+            this.hasDraggedSinceDown = false;
+        } else {
+            this.canvasMouseDown = false;
         }
         return super.mouseDown(target, event);
     }
 
+    override mouseMove(target: SModelElementImpl, event: MouseEvent): (Action | Promise<Action>)[] {
+        if (this.canvasMouseDown) {
+            this.hasDraggedSinceDown = true;
+        }
+        return super.mouseMove(target, event);
+    }
+
     mouseUp(target: SModelElementImpl, event: MouseEvent): (Action | Promise<Action>)[] {
+        const actions: (Action | Promise<Action>)[] = [];
+
+        // Deselect all on canvas click (not drag/pan)
+        if (this.canvasMouseDown && !this.hasDraggedSinceDown) {
+            const deselectAction: SelectAllAction = {
+                kind: 'allSelected',
+                select: false,
+            };
+            actions.push(deselectAction);
+        }
+        this.canvasMouseDown = false;
+        this.hasDraggedSinceDown = false;
+
         // Handle move completion
         if (target instanceof SanyamNodeImpl) {
             const node = target;
@@ -202,7 +225,7 @@ export class SanyamMouseListener extends MouseListener {
                 this.callbacks.onMoveCompleted(node.id, { x: node.position.x, y: node.position.y });
             }
         }
-        return super.mouseUp(target, event);
+        return [...actions, ...super.mouseUp(target, event)];
     }
 
     doubleClick(target: SModelElementImpl, event: MouseEvent): (Action | Promise<Action>)[] {

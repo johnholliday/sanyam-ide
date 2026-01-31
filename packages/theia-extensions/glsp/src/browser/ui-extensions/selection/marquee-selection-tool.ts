@@ -19,7 +19,7 @@ import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { SModelRootImpl, TYPES, IActionDispatcher } from 'sprotty';
 import { DOMHelper } from 'sprotty/lib/base/views/dom-helper';
-import { Action, SelectAction } from 'sprotty-protocol';
+import { Action, SelectAction, SelectAllAction } from 'sprotty-protocol';
 import { AbstractUIExtension, DIAGRAM_CONTAINER_ID } from '../base-ui-extension';
 
 /**
@@ -301,10 +301,15 @@ export class MarqueeSelectionTool extends AbstractUIExtension {
                 break;
         }
 
-        // Dispatch Sprotty SelectAction to perform the actual selection
+        // In replace mode, deselect all first, then select the marquee contents
+        if (this.selectionMode === 'replace') {
+            const deselectAll: SelectAllAction = { kind: 'allSelected', select: false };
+            this.dispatch(deselectAll);
+        }
+
         const selectAction = SelectAction.create({
             selectedElementsIDs: finalSelection,
-            deselectedElementsIDs: this.selectionMode === 'replace' ? this.previousSelection : [],
+            deselectedElementsIDs: [],
         });
         this.dispatch(selectAction);
 

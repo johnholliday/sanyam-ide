@@ -67,13 +67,14 @@ export interface SetViewportFromMinimapAction extends Action {
     kind: 'setViewportFromMinimap';
     scroll: { x: number; y: number };
     zoom: number;
+    animate: boolean;
 }
 
 export namespace SetViewportFromMinimapAction {
     export const KIND = 'setViewportFromMinimap';
 
-    export function create(scroll: { x: number; y: number }, zoom: number): SetViewportFromMinimapAction {
-        return { kind: KIND, scroll, zoom };
+    export function create(scroll: { x: number; y: number }, zoom: number, animate: boolean = true): SetViewportFromMinimapAction {
+        return { kind: KIND, scroll, zoom, animate };
     }
 }
 
@@ -263,18 +264,10 @@ export class MinimapUIExtension extends AbstractUIExtension {
             }
         });
 
-        // Find the main graph group - try multiple selectors
-        let graphGroup = svgContainer.querySelector('g.sprotty-graph') as SVGGElement;
+        // Find the viewport root group — always the direct child <g> of the SVG container
+        let graphGroup = svgContainer.querySelector(':scope > g') as SVGGElement;
         if (!graphGroup) {
             graphGroup = svgContainer.querySelector('g[id$="_root"]') as SVGGElement;
-        }
-        if (!graphGroup) {
-            // Try the first group with a transform
-            graphGroup = svgContainer.querySelector('g[transform]') as SVGGElement;
-        }
-        if (!graphGroup) {
-            // Last resort: first child group
-            graphGroup = svgContainer.querySelector('g') as SVGGElement;
         }
 
         if (graphGroup) {
@@ -401,16 +394,13 @@ export class MinimapUIExtension extends AbstractUIExtension {
             return;
         }
 
-        // Find the main graph group which typically has the viewport transform
-        let graphGroup = svgContainer.querySelector('g.sprotty-graph') as SVGGElement;
+        // Find the viewport root group — always the direct child <g> of the SVG container.
+        // IMPORTANT: Do not use 'g[transform]' here — it does a depth-first search and may
+        // match a node's local transform group instead of the viewport group, especially when
+        // the viewport group has no transform attribute at default scroll/zoom.
+        let graphGroup = svgContainer.querySelector(':scope > g') as SVGGElement;
         if (!graphGroup) {
             graphGroup = svgContainer.querySelector('g[id$="_root"]') as SVGGElement;
-        }
-        if (!graphGroup) {
-            graphGroup = svgContainer.querySelector('g[transform]') as SVGGElement;
-        }
-        if (!graphGroup) {
-            graphGroup = svgContainer.querySelector('g') as SVGGElement;
         }
 
         if (!graphGroup) {
@@ -428,7 +418,9 @@ export class MinimapUIExtension extends AbstractUIExtension {
                 this.logger.debug({ viewport: this.currentViewport }, 'Synced viewport from diagram');
             }
         } else {
-            this.logger.debug('syncViewportFromDiagram: no transform attribute on graph group');
+            // No transform attribute means default viewport (identity transform)
+            this.currentViewport = { scroll: { x: 0, y: 0 }, zoom: 1 };
+            this.logger.debug('syncViewportFromDiagram: no transform, using default viewport');
         }
     }
 
@@ -443,8 +435,8 @@ export class MinimapUIExtension extends AbstractUIExtension {
         // Try to parse translate - handle both "translate(x,y)" and "translate(x, y)"
         const translateMatch = transform.match(/translate\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/);
         if (translateMatch) {
-            scroll.x = parseFloat(translateMatch[1]) || 0;
-            scroll.y = parseFloat(translateMatch[2]) || 0;
+            scroll.x = -(parseFloat(translateMatch[1]) || 0);
+            scroll.y = -(parseFloat(translateMatch[2]) || 0);
             this.logger.debug({ scroll }, 'parseTransform: translate');
         }
 
@@ -459,8 +451,8 @@ export class MinimapUIExtension extends AbstractUIExtension {
         const matrixMatch = transform.match(/matrix\s*\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)/);
         if (matrixMatch) {
             zoom = parseFloat(matrixMatch[1]) || 1;
-            scroll.x = parseFloat(matrixMatch[5]) || 0;
-            scroll.y = parseFloat(matrixMatch[6]) || 0;
+            scroll.x = -(parseFloat(matrixMatch[5]) || 0);
+            scroll.y = -(parseFloat(matrixMatch[6]) || 0);
             this.logger.debug({ zoom, scroll }, 'parseTransform: matrix');
         }
 
@@ -563,10 +555,11 @@ export class MinimapUIExtension extends AbstractUIExtension {
                 const height = bbox.height * Math.abs(relativeMatrix.d);
 
                 // Convert from transformed space back to MODEL space
-                // Transformed position = (modelPosition * zoom) + scroll
-                // Therefore: modelPosition = (transformedPosition - scroll) / zoom
-                const modelX = (transformedX - viewportScroll.x) / viewportZoom;
-                const modelY = (transformedY - viewportScroll.y) / viewportZoom;
+                // Sprotty SVG transform: scale(zoom) translate(-scroll.x, -scroll.y)
+                // screenPos = (modelPos - scroll) * zoom
+                // Therefore: modelPos = screenPos / zoom + scroll
+                const modelX = transformedX / viewportZoom + viewportScroll.x;
+                const modelY = transformedY / viewportZoom + viewportScroll.y;
                 const modelWidth = width / viewportZoom;
                 const modelHeight = height / viewportZoom;
 
@@ -620,14 +613,13 @@ export class MinimapUIExtension extends AbstractUIExtension {
             const transformedHeight = bbox.height * Math.abs(relativeMatrix.d);
 
             // Convert from transformed space to MODEL space
-            // Transformed position = (modelPosition * zoom) + scroll
-            // Therefore: modelPosition = (transformedPosition - scroll) / zoom
+            // screenPos = (modelPos - scroll) * zoom → modelPos = screenPos / zoom + scroll
             const viewportScroll = this.currentViewport.scroll;
             const viewportZoom = this.currentViewport.zoom;
 
             return {
-                x: (transformedX - viewportScroll.x) / viewportZoom,
-                y: (transformedY - viewportScroll.y) / viewportZoom,
+                x: transformedX / viewportZoom + viewportScroll.x,
+                y: transformedY / viewportZoom + viewportScroll.y,
                 width: transformedWidth / viewportZoom,
                 height: transformedHeight / viewportZoom,
             };
@@ -792,10 +784,10 @@ export class MinimapUIExtension extends AbstractUIExtension {
                         }
 
                         // Convert from transformed space to MODEL space
-                        const modelStartX = (startX - viewportScroll.x) / viewportZoom;
-                        const modelStartY = (startY - viewportScroll.y) / viewportZoom;
-                        const modelEndX = (endX - viewportScroll.x) / viewportZoom;
-                        const modelEndY = (endY - viewportScroll.y) / viewportZoom;
+                        const modelStartX = startX / viewportZoom + viewportScroll.x;
+                        const modelStartY = startY / viewportZoom + viewportScroll.y;
+                        const modelEndX = endX / viewportZoom + viewportScroll.x;
+                        const modelEndY = endY / viewportZoom + viewportScroll.y;
 
                         ctx.beginPath();
                         ctx.moveTo(
@@ -828,10 +820,10 @@ export class MinimapUIExtension extends AbstractUIExtension {
                     }
 
                     // Convert from transformed space to MODEL space
-                    const modelX1 = (x1 - viewportScroll.x) / viewportZoom;
-                    const modelY1 = (y1 - viewportScroll.y) / viewportZoom;
-                    const modelX2 = (x2 - viewportScroll.x) / viewportZoom;
-                    const modelY2 = (y2 - viewportScroll.y) / viewportZoom;
+                    const modelX1 = x1 / viewportZoom + viewportScroll.x;
+                    const modelY1 = y1 / viewportZoom + viewportScroll.y;
+                    const modelX2 = x2 / viewportZoom + viewportScroll.x;
+                    const modelY2 = y2 / viewportZoom + viewportScroll.y;
 
                     ctx.beginPath();
                     ctx.moveTo(
@@ -872,8 +864,8 @@ export class MinimapUIExtension extends AbstractUIExtension {
         const viewWidth = parentRect.width / this.currentViewport.zoom;
         const viewHeight = parentRect.height / this.currentViewport.zoom;
 
-        const x = (-this.currentViewport.scroll.x - this.modelBounds.x + 20) * this.scale;
-        const y = (-this.currentViewport.scroll.y - this.modelBounds.y + 20) * this.scale;
+        const x = (this.currentViewport.scroll.x - this.modelBounds.x + 20) * this.scale;
+        const y = (this.currentViewport.scroll.y - this.modelBounds.y + 20) * this.scale;
         const w = viewWidth * this.scale;
         const h = viewHeight * this.scale;
 
@@ -910,8 +902,8 @@ export class MinimapUIExtension extends AbstractUIExtension {
         if (parent) {
             const parentRect = parent.getBoundingClientRect();
             const newScroll = {
-                x: -(diagramX - parentRect.width / (2 * this.currentViewport.zoom)),
-                y: -(diagramY - parentRect.height / (2 * this.currentViewport.zoom)),
+                x: diagramX - parentRect.width / (2 * this.currentViewport.zoom),
+                y: diagramY - parentRect.height / (2 * this.currentViewport.zoom),
             };
 
             this.dispatch(SetViewportFromMinimapAction.create(newScroll, this.currentViewport.zoom));
@@ -954,14 +946,14 @@ export class MinimapUIExtension extends AbstractUIExtension {
         const diagramDeltaX = deltaX / this.scale;
         const diagramDeltaY = deltaY / this.scale;
 
-        // Calculate new scroll position (dragging viewport moves in opposite direction of scroll)
+        // Calculate new scroll position (dragging viewport right increases scroll)
         const newScroll = {
-            x: this.dragStartViewport.x - diagramDeltaX,
-            y: this.dragStartViewport.y - diagramDeltaY,
+            x: this.dragStartViewport.x + diagramDeltaX,
+            y: this.dragStartViewport.y + diagramDeltaY,
         };
 
-        // Dispatch viewport change
-        this.dispatch(SetViewportFromMinimapAction.create(newScroll, this.currentViewport.zoom));
+        // Dispatch viewport change without animation for responsive dragging
+        this.dispatch(SetViewportFromMinimapAction.create(newScroll, this.currentViewport.zoom, false));
     };
 
     /**

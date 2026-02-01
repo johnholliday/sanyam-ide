@@ -74,6 +74,16 @@ export interface DiagramWidgetCapabilities extends Widget {
     getSelection?(): string[];
     /** Execute an operation */
     executeOperation?(operation: unknown): void;
+    /** Event fired when selection changes */
+    onSelectionChanged?: Event<{ selectedIds: string[] }>;
+    /** Event fired when model changes */
+    onModelChanged?: Event<unknown>;
+    /** Programmatically select an element */
+    selectElement?(elementId: string, addToSelection?: boolean): Promise<void>;
+    /** Get the current diagram model */
+    getModel?(): unknown;
+    /** Get source ranges for outline↔diagram mapping */
+    getSourceRanges?(): ReadonlyMap<string, { start: { line: number; character: number }; end: { line: number; character: number } }> | undefined;
 }
 
 export namespace CompositeEditorWidget {

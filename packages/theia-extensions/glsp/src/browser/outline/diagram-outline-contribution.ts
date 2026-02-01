@@ -32,11 +32,13 @@ import { StandaloneServices } from '@theia/monaco-editor-core/esm/vs/editor/stan
 import { ITextModel } from '@theia/monaco-editor-core/esm/vs/editor/common/model';
 import { IModelService } from '@theia/monaco-editor-core/esm/vs/editor/common/services/model';
 import type { DocumentSymbol } from '@theia/monaco-editor-core/esm/vs/editor/common/languages';
+import type { DocumentSymbol as LspDocumentSymbol } from 'vscode-languageserver-types';
 import { createLogger } from '@sanyam/logger';
 import type { Range } from '@theia/editor/lib/browser';
 
-import { CompositeEditorWidget } from '../composite-editor-widget';
-import { type OutlineSyncService, OutlineSyncServiceSymbol } from './outline-sync-types';
+import { CompositeEditorWidget, type DiagramWidgetCapabilities } from '../composite-editor-widget';
+import { type OutlineSyncService, type OutlineSelectionEvent, OutlineSyncServiceSymbol } from './outline-sync-types';
+import { ElementSymbolMapper } from './element-symbol-mapper';
 
 // =============================================================================
 // Outline node types
@@ -131,6 +133,9 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
     @inject(OutlineSyncServiceSymbol) @optional()
     protected readonly outlineSyncService: OutlineSyncService | undefined;
 
+    @inject(ElementSymbolMapper) @optional()
+    protected readonly symbolMapper: ElementSymbolMapper | undefined;
+
     /** Disposables scoped to the currently tracked composite editor */
     protected readonly toDisposeOnWidget = new DisposableCollection();
 
@@ -221,6 +226,13 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
         this.releaseCompositeEditor();
         this.currentComposite = composite;
 
+        // Disable the sync service's own text editor navigation — we handle
+        // text reveal ourselves via revealInEmbeddedEditor, and the sync
+        // service's editorManager.open() would open a separate editor tab.
+        if (this.outlineSyncService) {
+            this.outlineSyncService.setConfig({ syncOutlineToTextEditor: false });
+        }
+
         // Re-publish when user switches between text / diagram tab
         this.toDisposeOnWidget.push(
             composite.onActiveViewChanged(() => this.scheduleUpdate())
@@ -250,6 +262,9 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
                 })
         );
 
+        // Wire up diagram ↔ outline selection sync
+        this.wireDiagramOutlineSync(composite);
+
         // Initial publish
         this.scheduleUpdate();
     }
@@ -278,13 +293,341 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
         this.toDisposeOnWidget.push(Disposable.create(() => clearTimeout(retryTimer)));
     }
 
+    /**
+     * Wire up bidirectional selection sync between diagram and outline.
+     * If the diagram widget isn't available yet, polls periodically until it is.
+     */
+    protected wireDiagramOutlineSync(composite: CompositeEditorWidget): void {
+        if (!this.outlineSyncService || !this.symbolMapper) {
+            return;
+        }
+
+        const diagramWidget = composite.getDiagramWidget();
+        if (diagramWidget) {
+            this.wireDiagramOutlineSyncForWidget(composite, diagramWidget);
+            return;
+        }
+
+        // Diagram widget not created yet — poll until it appears.
+        // We also hook onActiveViewChanged as a secondary trigger.
+        const tryWire = (): void => {
+            const dw = composite.getDiagramWidget();
+            if (dw && !this.diagramSyncWired) {
+                this.wireDiagramOutlineSyncForWidget(composite, dw);
+                if (pollTimer !== undefined) {
+                    clearInterval(pollTimer);
+                }
+            }
+        };
+
+        this.toDisposeOnWidget.push(
+            composite.onActiveViewChanged(() => tryWire())
+        );
+
+        const pollTimer = setInterval(() => tryWire(), 1000);
+        this.toDisposeOnWidget.push(Disposable.create(() => clearInterval(pollTimer)));
+    }
+
+    /** Whether diagram sync subscriptions have been wired for the current composite */
+    protected diagramSyncWired = false;
+
+    /** Guard flag to suppress diagram→outline sync when we caused the selection */
+    protected suppressDiagramSync = false;
+
+    /**
+     * Wire sync subscriptions for a specific diagram widget.
+     */
+    protected wireDiagramOutlineSyncForWidget(
+        composite: CompositeEditorWidget,
+        diagramWidget: DiagramWidgetCapabilities,
+    ): void {
+        if (!this.outlineSyncService || !this.symbolMapper) {
+            return;
+        }
+        if (this.diagramSyncWired) {
+            return;
+        }
+        this.diagramSyncWired = true;
+
+        const uri = composite.uri.toString();
+        const syncService = this.outlineSyncService;
+
+        // (a) Diagram selection → outline highlight
+        if (diagramWidget.onSelectionChanged) {
+            this.toDisposeOnWidget.push(
+                diagramWidget.onSelectionChanged(selection => {
+                    // Skip if we just caused this selection from outline→diagram
+                    if (this.suppressDiagramSync) {
+                        return;
+                    }
+                    syncService.handleSelectionChange(uri, selection.selectedIds, 'diagram');
+                })
+            );
+        }
+
+        // Subscribe to outline selection events from sync service (for diagram→outline direction)
+        this.toDisposeOnWidget.push(
+            syncService.onOutlineSelection((event: OutlineSelectionEvent) => {
+                if (event.source === 'diagram' && this.cachedRoots && this.outlineViewService) {
+                    // Mark matching node as selected and re-publish
+                    this.clearSelection(this.cachedRoots);
+                    for (const symbolPath of event.selectedSymbolPaths) {
+                        const node = this.findNodeBySymbolPath(this.cachedRoots, symbolPath as string[]);
+                        if (node) {
+                            node.selected = true;
+                            // Expand ancestors so the node is visible
+                            let parent = node.parent;
+                            while (parent) {
+                                parent.expanded = true;
+                                parent = parent.parent;
+                            }
+                            break;
+                        }
+                    }
+                    this.canUpdate = false;
+                    try {
+                        this.outlineViewService.publish(this.cachedRoots);
+                    } finally {
+                        this.canUpdate = true;
+                    }
+                }
+            })
+        );
+
+        // (b) Outline click → diagram selection
+        // The OutlineSyncServiceImpl fires onDiagramSelectionRequest when outline triggers it.
+        // Use suppressDiagramSync to prevent the resulting onSelectionChanged from
+        // bouncing back into diagram→outline sync.
+        if ('onDiagramSelectionRequest' in syncService) {
+            const impl = syncService as { onDiagramSelectionRequest(cb: (event: { uri: string; elementIds: string[] }) => void): { dispose(): void } };
+            this.toDisposeOnWidget.push(
+                impl.onDiagramSelectionRequest(event => {
+                    const selectElementFn = diagramWidget.selectElement;
+                    if (event.uri === uri && selectElementFn) {
+                        this.suppressDiagramSync = true;
+                        // Clear existing selection first, then select and center
+                        const doSelect = async (): Promise<void> => {
+                            try {
+                                // Clear previous selection
+                                if (typeof diagramWidget.dispatchAction === 'function') {
+                                    await diagramWidget.dispatchAction({
+                                        kind: 'elementSelected',
+                                        selectedElementsIDs: [],
+                                        deselectedElementsIDs: diagramWidget.getSelection?.() ?? [],
+                                    });
+                                }
+                                // Select new elements
+                                for (const elementId of event.elementIds) {
+                                    await selectElementFn.call(diagramWidget, elementId, false);
+                                }
+                                // Center the view on the selected elements
+                                if (diagramWidget.center && event.elementIds.length > 0) {
+                                    await diagramWidget.center(event.elementIds);
+                                }
+                            } finally {
+                                this.suppressDiagramSync = false;
+                            }
+                        };
+                        doSelect();
+                    }
+                })
+            );
+        }
+
+        // (c) Build mappings when model changes (debounced)
+        if (diagramWidget.onModelChanged) {
+            this.toDisposeOnWidget.push(
+                diagramWidget.onModelChanged(() => {
+                    this.scheduleRebuildMappings(composite);
+                })
+            );
+        }
+
+        // (d) Build mappings immediately if model is already loaded
+        this.scheduleRebuildMappings(composite);
+    }
+
+    /** Debounce timer for rebuildMappings */
+    protected rebuildMappingsTimer: ReturnType<typeof setTimeout> | undefined;
+
+    /**
+     * Schedule a rebuild of element↔symbol mappings (debounced).
+     */
+    protected scheduleRebuildMappings(composite: CompositeEditorWidget): void {
+        if (this.rebuildMappingsTimer !== undefined) {
+            clearTimeout(this.rebuildMappingsTimer);
+        }
+        this.rebuildMappingsTimer = setTimeout(() => {
+            this.rebuildMappingsTimer = undefined;
+            this.rebuildMappings(composite);
+        }, 100);
+    }
+
+    /**
+     * Rebuild element↔symbol mappings from current diagram model and cached outline roots.
+     *
+     * Prefers source-range-based mapping (grammar-agnostic) when sourceRanges are
+     * available from the server. Falls back to name-based matching otherwise.
+     */
+    protected rebuildMappings(composite: CompositeEditorWidget): void {
+        if (!this.outlineSyncService || !this.symbolMapper) {
+            this.logger.debug('rebuildMappings: missing sync service or symbol mapper');
+            return;
+        }
+        if (!this.cachedRoots) {
+            return;
+        }
+
+        const diagramWidget = composite.getDiagramWidget();
+        if (!diagramWidget) {
+            return;
+        }
+        const gModel = diagramWidget.getModel?.() as { id: string; children?: unknown[] } | undefined;
+        if (!gModel) {
+            return;
+        }
+
+        const uri = composite.uri.toString();
+
+        // Convert cached outline nodes to DocumentSymbol format
+        const symbols = this.outlineNodesToDocumentSymbols(this.cachedRoots);
+
+        // Prefer range-based mapping if sourceRanges are available
+        const sourceRanges = diagramWidget.getSourceRanges?.();
+        let mappings: import('./outline-sync-types').ElementSymbolMapping[];
+
+        if (sourceRanges && sourceRanges.size > 0) {
+            mappings = this.symbolMapper.buildMappingsFromRanges(symbols, sourceRanges);
+            this.logger.debug({ mappingCount: mappings.length, method: 'sourceRanges' }, 'rebuildMappings complete');
+        } else {
+            // Fallback: name-based matching
+            const elementIds = this.collectElementIds(gModel);
+            mappings = this.symbolMapper.buildMappingsFromSymbols(symbols, elementIds);
+            this.logger.debug({ mappingCount: mappings.length, method: 'nameBased' }, 'rebuildMappings complete');
+        }
+
+        this.outlineSyncService.registerMappings(uri, mappings);
+    }
+
+    /**
+     * Recursively collect element IDs from a GModel tree.
+     */
+    protected collectElementIds(element: { id: string; children?: unknown[] }): string[] {
+        const ids: string[] = [element.id];
+        if (element.children) {
+            for (const child of element.children) {
+                if (child && typeof child === 'object' && 'id' in child) {
+                    ids.push(...this.collectElementIds(child as { id: string; children?: unknown[] }));
+                }
+            }
+        }
+        return ids;
+    }
+
+    /**
+     * Convert DiagramOutlineNode[] to DocumentSymbol[] format for buildMappingsFromSymbols.
+     */
+    protected outlineNodesToDocumentSymbols(nodes: DiagramOutlineNode[]): LspDocumentSymbol[] {
+        return nodes.map(node => ({
+            name: node.name,
+            kind: this.symbolKindFromIconClass(node.iconClass),
+            range: {
+                start: { line: node.fullRange.start.line, character: node.fullRange.start.character },
+                end: { line: node.fullRange.end.line, character: node.fullRange.end.character },
+            },
+            selectionRange: {
+                start: { line: node.range.start.line, character: node.range.start.character },
+                end: { line: node.range.end.line, character: node.range.end.character },
+            },
+            children: node.children.length > 0 ? this.outlineNodesToDocumentSymbols(node.children) : undefined,
+        } as LspDocumentSymbol));
+    }
+
+    /**
+     * Approximate SymbolKind from the icon class string.
+     */
+    protected symbolKindFromIconClass(iconClass: string): number {
+        // Monaco SymbolKind enum values; iconClass is the lowercase name
+        const kindMap: Record<string, number> = {
+            file: 0, module: 1, namespace: 2, package: 3, class: 4,
+            method: 5, property: 6, field: 7, constructor: 8, enum: 9,
+            interface: 10, function: 11, variable: 12, constant: 13, string: 14,
+            number: 15, boolean: 16, array: 17, object: 18, key: 19,
+            null: 20, enummember: 21, struct: 22, event: 23, operator: 24,
+            typeparameter: 25,
+        };
+        return kindMap[iconClass] ?? 4; // Default to Class
+    }
+
+    /**
+     * Clear selection on all outline nodes recursively.
+     */
+    protected clearSelection(nodes: DiagramOutlineNode[]): void {
+        for (const node of nodes) {
+            node.selected = false;
+            if (node.children.length > 0) {
+                this.clearSelection(node.children);
+            }
+        }
+    }
+
+    /**
+     * Find a DiagramOutlineNode by its symbolPath.
+     */
+    protected findNodeBySymbolPath(
+        nodes: DiagramOutlineNode[],
+        symbolPath: string[],
+    ): DiagramOutlineNode | undefined {
+        for (const node of nodes) {
+            if (this.arraysEqual(node.symbolPath, symbolPath)) {
+                return node;
+            }
+            if (node.children.length > 0) {
+                const found = this.findNodeBySymbolPath(node.children, symbolPath);
+                if (found) {
+                    return found;
+                }
+            }
+        }
+        return undefined;
+    }
+
+    /**
+     * Compare two string arrays for equality.
+     */
+    protected arraysEqual(a: string[], b: string[]): boolean {
+        if (a.length !== b.length) {
+            return false;
+        }
+        for (let i = 0; i < a.length; i++) {
+            if (a[i] !== b[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     protected releaseCompositeEditor(): void {
+        // Restore sync config and clear mappings
+        if (this.outlineSyncService) {
+            this.outlineSyncService.setConfig({ syncOutlineToTextEditor: true });
+            if (this.currentComposite) {
+                this.outlineSyncService.clearMappings(this.currentComposite.uri.toString());
+            }
+        }
+
         this.toDisposeOnWidget.dispose();
         this.currentComposite = undefined;
         this.cachedRoots = undefined;
+        this.diagramSyncWired = false;
+        this.suppressDiagramSync = false;
         if (this.debounceTimer !== undefined) {
             clearTimeout(this.debounceTimer);
             this.debounceTimer = undefined;
+        }
+        if (this.rebuildMappingsTimer !== undefined) {
+            clearTimeout(this.rebuildMappingsTimer);
+            this.rebuildMappingsTimer = undefined;
         }
     }
 
@@ -344,7 +687,13 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
             return;
         }
 
+        this.cachedRoots = roots;
         this.outlineViewService?.publish(roots);
+
+        // Rebuild element↔symbol mappings after outline updates (debounced)
+        if (this.currentComposite) {
+            this.scheduleRebuildMappings(this.currentComposite);
+        }
     }
 
     /**
@@ -476,6 +825,44 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
     // -------------------------------------------------------------------------
 
     /**
+     * Resolve a DiagramOutlineNode from an outline tree node.
+     * Theia's tree widget may reconstruct nodes on re-render, losing our custom
+     * properties (uri, range, symbolPath). Fall back to looking up by name
+     * in cachedRoots (Theia preserves the `name` property but may regenerate IDs).
+     */
+    protected resolveDiagramOutlineNode(node: unknown): DiagramOutlineNode | undefined {
+        if (DiagramOutlineNode.is(node)) {
+            return node;
+        }
+        // Fall back to cachedRoots lookup by name
+        if (this.cachedRoots && node && typeof node === 'object' && 'name' in node) {
+            return this.findNodeByName(this.cachedRoots, (node as { name: string }).name);
+        }
+        return undefined;
+    }
+
+    /**
+     * Find a DiagramOutlineNode by its name in the cached tree.
+     */
+    protected findNodeByName(
+        nodes: DiagramOutlineNode[],
+        name: string,
+    ): DiagramOutlineNode | undefined {
+        for (const node of nodes) {
+            if (node.name === name) {
+                return node;
+            }
+            if (node.children.length > 0) {
+                const found = this.findNodeByName(node.children, name);
+                if (found) {
+                    return found;
+                }
+            }
+        }
+        return undefined;
+    }
+
+    /**
      * Check if an outline tree node has the uri and range properties needed for navigation.
      */
     protected isOutlineNodeWithRange(node: unknown): node is OutlineNodeWithRange {
@@ -490,28 +877,27 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
             return;
         }
 
+        // Resolve the DiagramOutlineNode — either the node itself has our
+        // custom properties, or we look it up from cachedRoots by node ID
+        // (Theia's tree widget may reconstruct nodes and lose custom props).
+        const diagramNode = this.resolveDiagramOutlineNode(node);
+
         // Sync to diagram via OutlineSyncService (if available)
-        if (this.outlineSyncService && DiagramOutlineNode.is(node)) {
-            const elementId = this.outlineSyncService.lookupElement(
-                node.uri.toString(),
-                node.symbolPath,
-            );
+        if (this.outlineSyncService && diagramNode) {
+            const uri = diagramNode.uri.toString();
+            const elementId = this.outlineSyncService.lookupElement(uri, diagramNode.symbolPath);
             if (elementId) {
-                this.outlineSyncService.handleSelectionChange(
-                    node.uri.toString(),
-                    [elementId],
-                    'outline',
-                );
+                this.outlineSyncService.handleSelectionChange(uri, [elementId], 'outline');
             }
         }
 
         // Reveal in the embedded text editor within the composite widget
-        this.revealInEmbeddedEditor(node, false);
+        this.revealInEmbeddedEditor(diagramNode ?? node, false);
     }
 
     protected async handleOutlineOpen(node: OutlineNodeWithRange): Promise<void> {
-        // Reveal and set cursor in the embedded text editor
-        this.revealInEmbeddedEditor(node, true);
+        const diagramNode = this.resolveDiagramOutlineNode(node);
+        this.revealInEmbeddedEditor(diagramNode ?? node, true);
     }
 
     /**

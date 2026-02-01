@@ -94,9 +94,73 @@ export class ElementSymbolMapper {
   }
 
   /**
+   * Build mappings from source ranges and DocumentSymbols.
+   *
+   * For each element's source range, finds the most specific (smallest)
+   * DocumentSymbol whose range contains the element's start position.
+   * This is grammar-agnostic and immune to name/title mismatches.
+   *
+   * @param symbols - DocumentSymbols from LSP
+   * @param sourceRanges - Map of element ID to source range (LSP positions)
+   * @returns Generated mappings
+   */
+  buildMappingsFromRanges(
+    symbols: readonly DocumentSymbol[],
+    sourceRanges: ReadonlyMap<string, Range>
+  ): ElementSymbolMapping[] {
+    const mappings: ElementSymbolMapping[] = [];
+
+    // Flatten all symbols with their paths for efficient lookup
+    const flatSymbols: Array<{ symbol: DocumentSymbol; path: string[] }> = [];
+    this.flattenSymbols(symbols, [], flatSymbols);
+
+    for (const [elementId, sourceRange] of sourceRanges) {
+      // Find the most specific symbol containing this element's start position
+      let bestMatch: { symbol: DocumentSymbol; path: string[]; size: number } | undefined;
+
+      for (const { symbol, path } of flatSymbols) {
+        if (this.rangeContainsPosition(symbol.range, sourceRange.start.line, sourceRange.start.character)) {
+          const size = this.rangeSize(symbol.range);
+          if (!bestMatch || size < bestMatch.size) {
+            bestMatch = { symbol, path, size };
+          }
+        }
+      }
+
+      if (bestMatch) {
+        mappings.push({
+          elementId,
+          symbolPath: [...bestMatch.path, bestMatch.symbol.name],
+          range: bestMatch.symbol.range,
+          kind: bestMatch.symbol.kind,
+        });
+      }
+    }
+
+    return mappings;
+  }
+
+  /**
+   * Flatten symbol tree into a list with paths.
+   */
+  protected flattenSymbols(
+    symbols: readonly DocumentSymbol[],
+    parentPath: string[],
+    result: Array<{ symbol: DocumentSymbol; path: string[] }>
+  ): void {
+    for (const symbol of symbols) {
+      result.push({ symbol, path: parentPath });
+      if (symbol.children && symbol.children.length > 0) {
+        this.flattenSymbols(symbol.children, [...parentPath, symbol.name], result);
+      }
+    }
+  }
+
+  /**
    * Build mappings from DocumentSymbols and element IDs.
    *
    * This method attempts to match elements to symbols by name.
+   * Used as fallback when sourceRanges are not available.
    *
    * @param symbols - DocumentSymbols from LSP
    * @param elementIds - Available diagram element IDs
@@ -109,19 +173,49 @@ export class ElementSymbolMapper {
     const mappings: ElementSymbolMapping[] = [];
     const elementIdSet = new Set(elementIds);
 
-    // Build a lookup from name to element ID
-    const elementByName = new Map<string, string>();
+    // Build lookups from element names to element IDs.
+    // We index by exact lowercase name AND by normalized name (no spaces/special chars)
+    // to handle cases where element IDs use identifiers (e.g., "LegalReviewer")
+    // but symbol names use display titles (e.g., "Legal Reviewer").
+    const elementByExactName = new Map<string, string>();
+    const elementByNormalized = new Map<string, string>();
     for (const id of elementIds) {
       const name = this.extractNameFromElementId(id);
       if (name) {
-        elementByName.set(name.toLowerCase(), id);
+        elementByExactName.set(name.toLowerCase(), id);
+        elementByNormalized.set(this.normalizeName(name), id);
       }
     }
 
-    // Traverse symbols and try to match
+    // Traverse symbols and try to match using multiple strategies:
+    // 1. Exact lowercase match
+    // 2. Normalized match (strip non-alphanumeric, lowercase)
+    // 3. Suffix match (normalized symbol name ends with normalized element name)
     this.traverseSymbols(symbols, [], (symbol, path) => {
-      const name = symbol.name.toLowerCase();
-      const elementId = elementByName.get(name);
+      const exactKey = symbol.name.toLowerCase();
+      const normalizedKey = this.normalizeName(symbol.name);
+
+      // Strategy 1 & 2: exact or normalized match
+      let elementId = elementByExactName.get(exactKey)
+        ?? elementByNormalized.get(normalizedKey);
+
+      // Strategy 3: substring match — handles cases like:
+      // - element "Requester" matching symbol "Contract Requester" (suffix)
+      // - element "CanReview" matching symbol "Can Review Role" (prefix)
+      if (!elementId) {
+        let bestMatch: { id: string; len: number } | undefined;
+        for (const [normalizedElemName, id] of elementByNormalized) {
+          if (normalizedKey.includes(normalizedElemName) && elementIdSet.has(id)) {
+            // Prefer longer element name matches to avoid false positives
+            if (!bestMatch || normalizedElemName.length > bestMatch.len) {
+              bestMatch = { id, len: normalizedElemName.length };
+            }
+          }
+        }
+        if (bestMatch) {
+          elementId = bestMatch.id;
+        }
+      }
 
       if (elementId && elementIdSet.has(elementId)) {
         mappings.push({
@@ -176,6 +270,15 @@ export class ElementSymbolMapper {
 
     // Use the whole ID as name
     return elementId;
+  }
+
+  /**
+   * Normalize a name for fuzzy matching by stripping all non-alphanumeric
+   * characters and lowercasing. This maps both "LegalReviewer" and
+   * "Legal Reviewer" to "legalreviewer".
+   */
+  protected normalizeName(name: string): string {
+    return name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
   }
 
   /**

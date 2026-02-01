@@ -396,12 +396,16 @@ export async function createLanguageServer(
         return { success: false, error: `Document not found: ${params.uri}` };
       }
       const context = await glspServer.loadModel(langiumDoc, CancellationToken.None);
+      const idRegistryData = (context as any).idRegistryData;
       return {
         success: true,
         gModel: context.gModel,
         metadata: {
           positions: context.metadata?.positions ? Object.fromEntries(context.metadata.positions) : {},
           sizes: context.metadata?.sizes ? Object.fromEntries(context.metadata.sizes) : {},
+          sourceRanges: context.metadata?.sourceRanges ? Object.fromEntries(context.metadata.sourceRanges) : {},
+          idMap: idRegistryData?.idMap,
+          fingerprints: idRegistryData?.fingerprints,
         },
       };
     } catch (error) {
@@ -637,12 +641,16 @@ export async function createLanguageServer(
             // Reload the diagram model and send notification
             const context = await glspServer.loadModel(langiumDoc, CancellationToken.None);
             if (context.gModel) {
+              const updateIdRegistryData = (context as any).idRegistryData;
               connection.sendNotification('glsp/modelUpdated', {
                 uri: change.document.uri,
                 gModel: context.gModel,
                 metadata: {
                   positions: context.metadata?.positions ? Object.fromEntries(context.metadata.positions) : {},
                   sizes: context.metadata?.sizes ? Object.fromEntries(context.metadata.sizes) : {},
+                  sourceRanges: context.metadata?.sourceRanges ? Object.fromEntries(context.metadata.sourceRanges) : {},
+                  idMap: updateIdRegistryData?.idMap,
+                  fingerprints: updateIdRegistryData?.fingerprints,
                 },
               });
             }

@@ -10,6 +10,7 @@ import type { LangiumDocument, LangiumCoreServices, AstNode, URI } from 'langium
 import type { TextDocumentEdit, TextEdit } from 'vscode-languageserver';
 import { LangiumModelState, createLangiumModelState } from './langium-model-state.js';
 import type { ModelMetadata, GModelRoot } from './glsp-context-factory.js';
+import type { IdRegistryLayoutData } from './element-id-registry.js';
 
 /**
  * Load result from source model storage.
@@ -309,13 +310,20 @@ export class LangiumSourceModelStorage {
    * @param metadata - The metadata to export
    * @returns JSON string
    */
-  exportMetadataToJson(metadata: ModelMetadata): string {
-    const data = {
+  exportMetadataToJson(metadata: ModelMetadata, idRegistryData?: IdRegistryLayoutData): string {
+    const data: Record<string, unknown> = {
       positions: Object.fromEntries(metadata.positions),
       sizes: Object.fromEntries(metadata.sizes),
       routingPoints: Object.fromEntries(metadata.routingPoints),
       collapsed: Array.from(metadata.collapsed),
     };
+
+    // Include id registry data for v2 layout format
+    if (idRegistryData) {
+      data.idMap = idRegistryData.idMap;
+      data.fingerprints = idRegistryData.fingerprints;
+    }
+
     return JSON.stringify(data, null, 2);
   }
 
@@ -325,14 +333,24 @@ export class LangiumSourceModelStorage {
    * @param json - The JSON string
    * @returns The imported metadata
    */
-  importMetadataFromJson(json: string): ModelMetadata {
+  importMetadataFromJson(json: string): ModelMetadata & { idRegistryData?: IdRegistryLayoutData } {
     const data = JSON.parse(json);
-    return {
+    const metadata: ModelMetadata & { idRegistryData?: IdRegistryLayoutData } = {
       positions: new Map(Object.entries(data.positions || {})),
       sizes: new Map(Object.entries(data.sizes || {})),
       routingPoints: new Map(Object.entries(data.routingPoints || {})),
       collapsed: new Set(data.collapsed || []),
     };
+
+    // Extract id registry data if present (v2 layout format)
+    if (data.idMap || data.fingerprints) {
+      metadata.idRegistryData = {
+        idMap: data.idMap || {},
+        fingerprints: data.fingerprints || {},
+      };
+    }
+
+    return metadata;
   }
 }
 

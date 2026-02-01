@@ -21,6 +21,11 @@ export interface LoadModelResponse {
     metadata?: {
         positions: Record<string, { x: number; y: number }>;
         sizes: Record<string, { width: number; height: number }>;
+        sourceRanges?: Record<string, { start: { line: number; character: number }; end: { line: number; character: number } }>;
+        /** UUID registry exact-match index: fingerprintKey → UUID */
+        idMap?: Record<string, string>;
+        /** UUID registry fingerprints: UUID → StructuralFingerprint */
+        fingerprints?: Record<string, unknown>;
     };
     error?: string;
 }
@@ -93,6 +98,11 @@ export interface DiagramModelUpdate {
     metadata?: {
         positions: Map<string, { x: number; y: number }>;
         sizes: Map<string, { width: number; height: number }>;
+        sourceRanges?: Map<string, { start: { line: number; character: number }; end: { line: number; character: number } }>;
+        /** UUID registry exact-match index: fingerprintKey → UUID */
+        idMap?: Record<string, string>;
+        /** UUID registry fingerprints: UUID → StructuralFingerprint */
+        fingerprints?: Record<string, unknown>;
     };
 }
 
@@ -159,7 +169,7 @@ export class DiagramLanguageClient implements Disposable {
             // Subscribe to model update notifications
             const subscription = this.languageClientProvider.onNotification(
                 'glsp/modelUpdated',
-                (params: { uri: string; gModel: GModelRoot; metadata?: { positions?: Record<string, any>; sizes?: Record<string, any> } }) => {
+                (params: { uri: string; gModel: GModelRoot; metadata?: { positions?: Record<string, any>; sizes?: Record<string, any>; sourceRanges?: Record<string, any> } }) => {
                     this.handleModelUpdateNotification(params);
                 }
             );
@@ -173,7 +183,7 @@ export class DiagramLanguageClient implements Disposable {
     protected handleModelUpdateNotification(params: {
         uri: string;
         gModel: GModelRoot;
-        metadata?: { positions?: Record<string, any>; sizes?: Record<string, any> };
+        metadata?: { positions?: Record<string, any>; sizes?: Record<string, any>; sourceRanges?: Record<string, any>; idMap?: Record<string, string>; fingerprints?: Record<string, unknown> };
     }): void {
         this.cachedModels.set(params.uri, params.gModel);
         this.onModelUpdatedEmitter.fire({
@@ -182,6 +192,9 @@ export class DiagramLanguageClient implements Disposable {
             metadata: params.metadata ? {
                 positions: new Map(Object.entries(params.metadata.positions || {})),
                 sizes: new Map(Object.entries(params.metadata.sizes || {})),
+                sourceRanges: params.metadata.sourceRanges ? new Map(Object.entries(params.metadata.sourceRanges)) : undefined,
+                idMap: params.metadata.idMap,
+                fingerprints: params.metadata.fingerprints,
             } : undefined,
         });
     }
@@ -248,6 +261,9 @@ export class DiagramLanguageClient implements Disposable {
                         metadata: response.metadata ? {
                             positions: new Map(Object.entries(response.metadata.positions || {})),
                             sizes: new Map(Object.entries(response.metadata.sizes || {})),
+                            sourceRanges: response.metadata.sourceRanges ? new Map(Object.entries(response.metadata.sourceRanges)) : undefined,
+                            idMap: response.metadata.idMap,
+                            fingerprints: response.metadata.fingerprints,
                         } : undefined,
                     });
                 }
@@ -271,6 +287,9 @@ export class DiagramLanguageClient implements Disposable {
                         metadata: response.metadata ? {
                             positions: new Map(Object.entries(response.metadata.positions || {})),
                             sizes: new Map(Object.entries(response.metadata.sizes || {})),
+                            sourceRanges: response.metadata.sourceRanges ? new Map(Object.entries(response.metadata.sourceRanges)) : undefined,
+                            idMap: response.metadata.idMap,
+                            fingerprints: response.metadata.fingerprints,
                         } : undefined,
                     });
                     return response;
@@ -614,7 +633,7 @@ export class DiagramLanguageClient implements Disposable {
     /**
      * Receive a model update from an external source (e.g., language server notification).
      */
-    handleModelUpdate(uri: string, gModel: GModelRoot, metadata?: { positions?: Record<string, any>; sizes?: Record<string, any> }): void {
+    handleModelUpdate(uri: string, gModel: GModelRoot, metadata?: { positions?: Record<string, any>; sizes?: Record<string, any>; sourceRanges?: Record<string, any> }): void {
         this.cachedModels.set(uri, gModel);
         this.onModelUpdatedEmitter.fire({
             uri,
@@ -622,6 +641,7 @@ export class DiagramLanguageClient implements Disposable {
             metadata: metadata ? {
                 positions: new Map(Object.entries(metadata.positions || {})),
                 sizes: new Map(Object.entries(metadata.sizes || {})),
+                sourceRanges: metadata.sourceRanges ? new Map(Object.entries(metadata.sourceRanges)) : undefined,
             } : undefined,
         });
     }

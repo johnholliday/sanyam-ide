@@ -9,6 +9,7 @@
 import type { AstNode } from 'langium';
 import { AstUtils } from 'langium';
 import { createLogger } from '@sanyam/logger';
+import type { ElementIdRegistry } from '../element-id-registry.js';
 
 // Langium 4.x exports these via AstUtils namespace
 const { streamAllContents } = AstUtils;
@@ -47,6 +48,17 @@ export const defaultAstToGModelProvider = {
     const nodeMap = new Map<AstNode, string>();
     let nodeIndex = 0;
 
+    // Initialize sourceRanges on metadata if not present
+    if (context.metadata && !context.metadata.sourceRanges) {
+      context.metadata.sourceRanges = new Map();
+    }
+
+    // Reconcile element IDs using the registry if available
+    const idRegistry: ElementIdRegistry | undefined = (context as any).idRegistry;
+    if (idRegistry && root) {
+      idRegistry.reconcile(root, context.document);
+    }
+
     // Return empty model if no root
     if (!root) {
       logger.debug('No root AST node, returning empty model');
@@ -65,6 +77,10 @@ export const defaultAstToGModelProvider = {
         nodes.push(node);
         nodeMap.set(astNode, node.id);
         nodeIndex++;
+
+        // Record source range from CST node for outline mapping
+        this.recordSourceRange(context, astNode, node.id);
+
         logger.trace({ nodeId: node.id, nodeType: node.type }, 'Created node');
       }
     }
@@ -109,7 +125,7 @@ export const defaultAstToGModelProvider = {
       return undefined;
     }
 
-    const id = this.getNodeId(astNode);
+    const id = this.getNodeId(astNode, context);
     const type = this.getNodeType(context, astNode);
     const position = this.getPosition(context, astNode);
     const size = this.getSize(context, astNode);
@@ -249,7 +265,7 @@ export const defaultAstToGModelProvider = {
    * Get the position for an AST node.
    */
   getPosition(context: GlspContext, astNode: AstNode): Point {
-    const id = this.getNodeId(astNode);
+    const id = this.getNodeId(astNode, context);
 
     // Check metadata first
     const metadataPos = context.metadata?.positions?.get(id);
@@ -271,7 +287,7 @@ export const defaultAstToGModelProvider = {
    * Get the size for an AST node.
    */
   getSize(context: GlspContext, astNode: AstNode): Dimension {
-    const id = this.getNodeId(astNode);
+    const id = this.getNodeId(astNode, context);
 
     // Check metadata first
     const metadataSize = context.metadata?.sizes?.get(id);
@@ -306,33 +322,22 @@ export const defaultAstToGModelProvider = {
 
   /**
    * Get a unique ID for an AST node.
-   * Builds a path-like ID using parent names to ensure uniqueness.
+   *
+   * Uses the ElementIdRegistry (UUID-based) if available on the context,
+   * falling back to legacy path-based IDs otherwise.
    */
-  getNodeId(astNode: AstNode): string {
-    // Build a path from root to this node using named ancestors
-    const pathParts: string[] = [];
-
-    // Walk up the tree to build the path
-    let current: AstNode | undefined = astNode;
-    while (current) {
-      if (isNamed(current)) {
-        pathParts.unshift(current.name);
+  getNodeId(astNode: AstNode, context?: GlspContext): string {
+    // Try UUID from registry first
+    const idRegistry: ElementIdRegistry | undefined = context ? (context as any).idRegistry : undefined;
+    if (idRegistry) {
+      const uuid = idRegistry.getUuid(astNode);
+      if (uuid) {
+        return uuid;
       }
-      current = current.$container;
     }
 
-    // If we have a path, use it
-    if (pathParts.length > 0) {
-      return pathParts.join('.');
-    }
-
-    // Fallback: Generate ID from type and position in document
-    const cstNode = astNode.$cstNode;
-    if (cstNode) {
-      return `${astNode.$type}_${cstNode.offset}`;
-    }
-
-    return `${astNode.$type}_${Math.random().toString(36).substr(2, 9)}`;
+    // Fallback: legacy path-based ID
+    return computeLegacyPathId(astNode);
   },
 
   /**
@@ -414,6 +419,26 @@ export const defaultAstToGModelProvider = {
     }
     // Default to rectangle
     return 'rectangle';
+  },
+
+  /**
+   * Record source range from an AST node's CST node into metadata.sourceRanges.
+   *
+   * Converts offset/length to LSP line/character positions using the document's
+   * TextDocument, enabling range-based outline↔diagram mapping on the client.
+   */
+  recordSourceRange(context: GlspContext, astNode: AstNode, elementId: string): void {
+    const cstNode = astNode.$cstNode;
+    if (!cstNode || !context.metadata?.sourceRanges) {
+      return;
+    }
+    const textDocument = context.document.textDocument;
+    if (!textDocument) {
+      return;
+    }
+    const start = textDocument.positionAt(cstNode.offset);
+    const end = textDocument.positionAt(cstNode.offset + cstNode.length);
+    context.metadata.sourceRanges.set(elementId, { start, end });
   },
 
   /**
@@ -539,6 +564,38 @@ export const defaultAstToGModelProvider = {
     }
   },
 };
+
+/**
+ * Compute a legacy path-based ID for an AST node.
+ *
+ * This was the original ID scheme: walk up the tree concatenating named ancestors
+ * with dots (e.g., "Model.Customer"). Preserved for v1 → v2 layout migration.
+ *
+ * @param astNode - The AST node
+ * @returns Legacy path-based ID
+ */
+export function computeLegacyPathId(astNode: AstNode): string {
+  const pathParts: string[] = [];
+
+  let current: AstNode | undefined = astNode;
+  while (current) {
+    if (isNamed(current)) {
+      pathParts.unshift(current.name);
+    }
+    current = current.$container;
+  }
+
+  if (pathParts.length > 0) {
+    return pathParts.join('.');
+  }
+
+  const cstNode = astNode.$cstNode;
+  if (cstNode) {
+    return `${astNode.$type}_${cstNode.offset}`;
+  }
+
+  return `${astNode.$type}_${Math.random().toString(36).substr(2, 9)}`;
+}
 
 /**
  * Create a custom AST to GModel provider.

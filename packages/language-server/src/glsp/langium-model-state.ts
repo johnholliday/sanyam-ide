@@ -15,6 +15,7 @@ import type {
   ModelState,
   ModelMetadata,
 } from './glsp-context-factory.js';
+import { ElementIdRegistry } from './element-id-registry.js';
 
 /**
  * Element ID to AST node mapping.
@@ -37,6 +38,9 @@ export class LangiumModelState implements ModelState {
   private elementMappings: Map<string, ElementMapping> = new Map();
   private astToElementId: WeakMap<AstNode, string> = new WeakMap();
 
+  /** Registry for persistent UUID-based element IDs. */
+  readonly idRegistry: ElementIdRegistry;
+
   constructor(
     public readonly document: LangiumDocument,
     public metadata: ModelMetadata
@@ -47,6 +51,7 @@ export class LangiumModelState implements ModelState {
       children: [],
       revision: 0,
     };
+    this.idRegistry = new ElementIdRegistry();
   }
 
   /**

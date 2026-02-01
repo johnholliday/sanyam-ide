@@ -15,6 +15,7 @@ import type { CancellationToken } from 'vscode-languageserver';
 import type { GlspContext, LanguageContribution, GlspFeatureProviders } from '@sanyam/types';
 import { GlspContextFactory, createGlspContextFactory } from './glsp-context-factory.js';
 import { LangiumSourceModelStorage, createLangiumSourceModelStorage } from './langium-source-model-storage.js';
+import type { IdRegistryLayoutData } from './element-id-registry.js';
 import { ManifestDrivenGModelFactory, createManifestDrivenGModelFactory } from './manifest-converter.js';
 import {
   OperationHandlerRegistry,
@@ -232,6 +233,12 @@ export class GlspServer {
       loadMetadata: true,
     });
 
+    // Wire the element ID registry into the context for the converter
+    const modelState = this.sourceModelStorage.getModelState(document.uri.toString());
+    if (modelState) {
+      (context as any).idRegistry = modelState.idRegistry;
+    }
+
     // Convert AST to GModel using resolver if contribution exists
     const astToGModel = this.getResolvedProvider('astToGModel', contribution);
     if (astToGModel?.convert) {
@@ -240,6 +247,11 @@ export class GlspServer {
       // Handle both sync and async results
       const gModel = gModelResult instanceof Promise ? await gModelResult : gModelResult;
       context.gModel = gModel;
+    }
+
+    // Export id registry data into context metadata for client consumption
+    if (modelState) {
+      (context as any).idRegistryData = modelState.idRegistry.exportToLayoutData();
     }
 
     // Apply auto-layout if enabled and no positions exist

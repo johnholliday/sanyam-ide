@@ -111,6 +111,11 @@ export interface DiagramState {
     gModel?: GModelRootType;
     positions: Map<string, Point>;
     sizes: Map<string, Dimension>;
+    sourceRanges?: Map<string, { start: { line: number; character: number }; end: { line: number; character: number } }>;
+    /** UUID registry exact-match index from server */
+    idMap?: Record<string, string>;
+    /** UUID registry fingerprints from server */
+    fingerprints?: Record<string, unknown>;
     selection: SelectionState;
     viewport: {
         scroll: Point;
@@ -299,6 +304,17 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             // Update sizes if available
             if (update.metadata?.sizes) {
                 this.state.sizes = update.metadata.sizes;
+            }
+            // Update source ranges if available (for outline↔diagram mapping)
+            if (update.metadata?.sourceRanges) {
+                this.state.sourceRanges = update.metadata.sourceRanges;
+            }
+            // Store UUID registry data from server
+            if (update.metadata?.idMap) {
+                this.state.idMap = update.metadata.idMap;
+            }
+            if (update.metadata?.fingerprints) {
+                this.state.fingerprints = update.metadata.fingerprints;
             }
             // Set the model
             await this.setModel(update.gModel);
@@ -737,6 +753,17 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 if (response.metadata?.sizes) {
                     this.state.sizes = new Map(Object.entries(response.metadata.sizes));
                 }
+                // Update source ranges if available from server (for outline↔diagram mapping)
+                if (response.metadata?.sourceRanges) {
+                    this.state.sourceRanges = new Map(Object.entries(response.metadata.sourceRanges));
+                }
+                // Store UUID registry data from server
+                if (response.metadata?.idMap) {
+                    this.state.idMap = response.metadata.idMap;
+                }
+                if (response.metadata?.fingerprints) {
+                    this.state.fingerprints = response.metadata.fingerprints;
+                }
 
                 // T075a: Override with saved layout positions if available (with performance logging)
                 if (this.savedLayout) {
@@ -934,8 +961,10 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             };
         }
 
-        // Use debounced save
-        this.layoutStorageService.saveLayoutDebounced(this.uri, elements);
+        // Use debounced save, including UUID registry data
+        this.layoutStorageService.saveLayoutDebounced(
+            this.uri, elements, this.state.idMap, this.state.fingerprints
+        );
     }
 
     /**
@@ -956,7 +985,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             };
         }
 
-        await this.layoutStorageService.saveLayout(this.uri, elements);
+        await this.layoutStorageService.saveLayout(
+            this.uri, elements, this.state.idMap, this.state.fingerprints
+        );
     }
 
     /**
@@ -1019,6 +1050,14 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      */
     getModel(): GModelRootType | undefined {
         return this.state.gModel;
+    }
+
+    /**
+     * Get the source ranges map for outline↔diagram mapping.
+     * Maps element IDs to their source code ranges (LSP line/character positions).
+     */
+    getSourceRanges(): ReadonlyMap<string, { start: { line: number; character: number }; end: { line: number; character: number } }> | undefined {
+        return this.state.sourceRanges;
     }
 
     /**

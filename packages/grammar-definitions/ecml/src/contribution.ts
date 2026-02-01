@@ -21,6 +21,7 @@ import {
   EcmlGeneratedSharedModule,
 } from './generated/module.js';
 import { ecmlDiagramModule } from './diagram/index.js';
+import { EcmlDocumentSymbolProvider } from './document-symbol-provider.js';
 
 /**
  * Custom LSP providers for ECML.
@@ -36,6 +37,18 @@ const lspProviders: Partial<LspFeatureProviders> = {
   //   })
   // }
 };
+
+/**
+ * Custom Langium module for ECML.
+ *
+ * Overrides the default DocumentSymbolProvider with one that
+ * properly traverses the ECML AST to produce outline symbols.
+ */
+const ecmlCustomModule = {
+  lsp: {
+    DocumentSymbolProvider: (services: LangiumServices) => new EcmlDocumentSymbolProvider(services),
+  },
+} as unknown as Module<LangiumServices>;
 
 /**
  * Custom GLSP providers for ECML.
@@ -65,6 +78,7 @@ export const contribution: LanguageContribution = {
   generatedSharedModule: EcmlGeneratedSharedModule as Module<LangiumSharedServices>,
   generatedModule: EcmlGeneratedModule as Module<LangiumServices>,
   manifest,
+  customModule: ecmlCustomModule,
   lspProviders,
   glspProviders,
   diagramModule: ecmlDiagramModule as ContainerModule,

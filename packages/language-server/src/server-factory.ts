@@ -352,11 +352,28 @@ export async function createLanguageServer(
     return null;
   });
 
-  connection.onDocumentSymbol(async (params) => {
+  connection.onDocumentSymbol(async (params, token) => {
     if (!initialized) return null;
     const language = registry.getByUri(params.textDocument.uri);
     if (!language) return null;
-    return null;
+
+    const symbolProvider = language.services.lsp?.DocumentSymbolProvider;
+    if (!symbolProvider) return null;
+
+    const shared = registry.sharedServices;
+    if (!shared) return null;
+
+    const uri = URI.parse(params.textDocument.uri);
+    const document = await shared.workspace.LangiumDocuments.getOrCreateDocument(uri, token);
+    if (!document) return null;
+
+    try {
+      const result = await symbolProvider.getSymbols(document, params, token);
+      return result ?? null;
+    } catch (err) {
+      logger.error({ err }, 'Error in document symbol handler');
+      return null;
+    }
   });
 
   // GLSP Request Handlers

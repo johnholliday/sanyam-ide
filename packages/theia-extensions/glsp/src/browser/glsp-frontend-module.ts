@@ -11,7 +11,7 @@
 import './style/index.css';
 import './style/sprotty.css';
 
-import { ContainerModule, interfaces } from 'inversify';
+import { ContainerModule, interfaces, injectable, inject } from 'inversify';
 import { WidgetFactory, FrontendApplicationContribution, KeybindingContribution, OpenHandler } from '@theia/core/lib/browser';
 import { ColorContribution } from '@theia/core/lib/browser/color-application-contribution';
 import { TabBarToolbarContribution } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
@@ -56,7 +56,8 @@ import { PROPERTIES_PANEL_ID, SanyamGlspService as SanyamGlspServiceSymbol } fro
 import { PropertiesPanelWidget, PropertiesPanelContribution, PropertiesPanelFactory } from './properties';
 
 // T045: Outline sync imports
-import { OutlineSyncServiceSymbol, OutlineSyncServiceImpl, ElementSymbolMapper } from './outline';
+import { OutlineSyncServiceSymbol, OutlineSyncServiceImpl, ElementSymbolMapper, DiagramOutlineContribution } from './outline';
+import { MonacoOutlineContribution } from '@theia/monaco/lib/browser/monaco-outline-contribution';
 
 // T051: Snap-to-grid imports
 import { GridSnapper, SnapGridTool, bindSnapGridPreferences, SnapGridServiceSymbol } from './ui-extensions/snap-to-grid';
@@ -91,7 +92,29 @@ export const GLSP_FRONTEND_TYPES = {
  * - Command and menu contributions for diagram operations
  * - Frontend application contribution for initialization
  */
-export default new ContainerModule((bind: interfaces.Bind) => {
+/**
+ * Override MonacoOutlineContribution to skip handling outline clicks
+ * when a CompositeEditorWidget is active. Without this, Monaco's handler
+ * calls editorManager.open() which opens a new tab instead of navigating
+ * within the embedded editor.
+ */
+@injectable()
+class CompositeAwareMonacoOutlineContribution extends MonacoOutlineContribution {
+    @inject(DiagramOutlineContribution)
+    protected readonly diagramOutline: DiagramOutlineContribution;
+
+    protected override async selectInEditor(node: unknown, options?: unknown): Promise<void> {
+        if (this.diagramOutline.isTrackingComposite) {
+            // Let DiagramOutlineContribution handle navigation in composite editors
+            return;
+        }
+        return super.selectInEditor(node as never, options as never);
+    }
+}
+
+export default new ContainerModule((bind: interfaces.Bind, _unbind, _isBound, rebind) => {
+  // Override MonacoOutlineContribution to avoid opening new tabs for composite editor symbols
+  rebind(MonacoOutlineContribution).to(CompositeAwareMonacoOutlineContribution).inSingletonScope();
   // ═══════════════════════════════════════════════════════════════════════════════
   // Diagram Widget Bindings
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -239,6 +262,10 @@ export default new ContainerModule((bind: interfaces.Bind) => {
   // Bind outline sync service
   bind(OutlineSyncServiceImpl).toSelf().inSingletonScope();
   bind(OutlineSyncServiceSymbol).toService(OutlineSyncServiceImpl);
+
+  // Diagram outline contribution (publishes symbols for composite editors)
+  bind(DiagramOutlineContribution).toSelf().inSingletonScope();
+  bind(FrontendApplicationContribution).toService(DiagramOutlineContribution);
 
   // ═══════════════════════════════════════════════════════════════════════════════
   // T051: Snap-to-Grid

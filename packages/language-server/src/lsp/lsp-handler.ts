@@ -283,16 +283,32 @@ export function registerLspHandlers(config: LspHandlerConfig): void {
   // ═══════════════════════════════════════════════════════════════════════════
 
   connection.onDocumentSymbol(async (params: DocumentSymbolParams, token) => {
+    logger.info({ uri: params.textDocument.uri }, 'onDocumentSymbol called');
+
     const context = createLspContext(params.textDocument.uri, token);
-    if (!context) return null;
+    if (!context) {
+      logger.warn({ uri: params.textDocument.uri }, 'onDocumentSymbol: no context');
+      return null;
+    }
 
     const language = registry.getByUri(params.textDocument.uri);
-    if (!language) return null;
+    if (!language) {
+      logger.warn({ uri: params.textDocument.uri }, 'onDocumentSymbol: no language');
+      return null;
+    }
 
     const provider = getEnabledProvider(ctx, 'documentSymbol', language);
-    if (!provider?.provide) return null;
+    if (!provider?.provide) {
+      logger.warn({ uri: params.textDocument.uri }, 'onDocumentSymbol: no provider');
+      return null;
+    }
 
-    return provider.provide(context, params);
+    const result = await provider.provide(context, params);
+    logger.info({
+      uri: params.textDocument.uri,
+      resultCount: Array.isArray(result) ? result.length : (result ? 'non-array' : 'null'),
+    }, 'onDocumentSymbol result');
+    return result;
   });
 
   connection.onDocumentHighlight(async (params: DocumentHighlightParams, token) => {

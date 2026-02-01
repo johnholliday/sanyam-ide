@@ -34,10 +34,12 @@ export const defaultDocumentSymbolProvider = {
 
     // Check for built-in document symbol provider first
     const symbolProvider = services.lsp.DocumentSymbolProvider;
+    logger.info({ hasSymbolProvider: !!symbolProvider }, 'documentSymbol: checking Langium provider');
     if (symbolProvider) {
       try {
         const result = await symbolProvider.getSymbols(document, params, token);
-        if (result) {
+        logger.info({ resultLength: result?.length ?? 'null' }, 'documentSymbol: Langium provider result');
+        if (result && result.length > 0) {
           return result;
         }
       } catch (error) {
@@ -48,11 +50,15 @@ export const defaultDocumentSymbolProvider = {
     // Fall back to our implementation
     const rootNode = document.parseResult?.value;
     if (!rootNode) {
+      logger.warn('documentSymbol: no root node');
       return null;
     }
 
+    logger.info({ rootType: rootNode.$type }, 'documentSymbol: building symbols from AST');
+
     // Build hierarchical document symbols
     const symbols = buildDocumentSymbols(rootNode, document);
+    logger.info({ symbolCount: symbols.length }, 'documentSymbol: built symbols');
 
     return symbols;
   },

@@ -13,7 +13,7 @@ Content Draft "Draft Document" "Initial document submission"
 Content FinalDoc "Final Document" "Approved final version"
 
 // Activity with tasks and content flow
-Activity [Reviewer] ReviewProcess "Review Process" "Complete review cycle" {
+Activity [Author] ReviewProcess "Review Process" "Complete review cycle" {
     Task CheckFormat "Check Formatting" "Verify document formatting"
     Task ValidateContent "Validate Content" "Review content accuracy"
     dueDate: date "Review deadline"

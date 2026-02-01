@@ -1,4 +1,5 @@
 // Basic Example: Defining Content
 // Content represents documents, files, or data artifacts
 
-Content Report "Monthly Report" "Financial summary for the month"
+Content Report "Daily Report" "Financial summary for the month"
+Content AnotherReport "Another Report" "Just Testing"

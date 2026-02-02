@@ -50,6 +50,7 @@ Content [format=PDF] SignedContract "Signed Contract" "Fully executed contract" 
 
 Content [format=XLSX, type=Excel] FinancialSummary "Financial Summary" "Cost breakdown analysis" << DraftContract >> SignedContract
 
+Content [type=PDF] AnotherDocument
 // =============================================================================
 // ACTIVITIES - Major workflow stages
 // =============================================================================
@@ -62,7 +63,7 @@ Activity [Requester] SubmitContract "Submit Contract" "Initial contract submissi
     }
 }
 
-Activity [LegalReviewer] LegalReview "Legal Review" "Review legal terms" {
+Activity [LegalReviewer] LegalReview "Legal Review Two" "Review legal terms" {
     Task CheckTerms "Check Terms" "Verify all terms are acceptable"
     Task IdentifyRisks "Identify Risks" "Document potential legal risks"
     reviewStatus: choice(Pending, InProgress, Complete)
@@ -73,7 +74,7 @@ Activity [FinanceApprover] FinanceReview "Finance Review" "Review financial impa
     Task CalculateROI "Calculate ROI" "Assess return on investment"
 }
 
-Activity [ExecutiveSigner] FinalApproval "Final Approval" "Executive sign-off" >> SignedContract
+Activity [ExecutiveSigner] FinalApproval "Final Approval Stage" "Executive sign-off" >> SignedContract
 
 // =============================================================================
 // WORKFLOW - Orchestrate the activities

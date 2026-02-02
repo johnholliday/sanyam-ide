@@ -12,11 +12,16 @@ The grammar-specific diagram styling must support 'ports' for certain entity typ
 
 - change/update the toolbar icons
 
-----
+---->>
 Synchronization between the text and diagram views is not working.  The diagram model seems to be cached, even between sessions - open a file, change the text and save the file (diagram not updated), reload the browser, open the file (changed text does persist) => diagram still contains the original labels.  The user must be able to open a grammar file, make changes in any view, save the file and then immediately see the changes reflected in all other attached views that are visible.
+
+Editing in the text or diagram editors must be reflected in the outline view.
 
 ----
 Move the toolbar from the composite editor window to the diagram view itself so that the diagramming tools appear at the top of the diagram editor (closer to the diagram)
+
+----
+Node shapes should expand to accommodate their word-wrapped labels, which should not include double quotes.
 
 ----
 The IDE should remember the most recent composite editor layout automatically without prompting the user.  Later, we can have a preferences option whether to save the layout automatically or not.  The layout must include the diagram zoom level and the current state of all of the toggles.
@@ -33,4 +38,11 @@ The diagram edges are of two types.  Entity<->Entity and Entity->Child.  Entity<
 Add a Supabase Authentication package (packages/theia-extensions/supabase-auth) that allows the user to login to the application using supabase credentials.  The credentials are stored securely and can be used to validate permissions for access to licensed modules.
 
 ----
-Create a separate tool that generates a custom REST API for a given grammar.  The REST API includes CRUD operations for models + custom operations depending on the target domain.  Create Claude commands for generating the API, the API documentation, and identifying and implementing the CRUD operations.  The operations are declared in a separate {grammar}.api.json file (using Claude to generate it).  If present, this file is used to expose the API and to generate the OpenAPI UI. We also want the ability to publish the API on a target host environment (i.e., Supabase).  If an API is generated, then the
+Create a separate tool that generates a custom REST API for a given grammar.  The REST API includes CRUD operations for models + custom operations depending on the target domain.  Create Claude commands for generating the API, the API documentation, and identifying and implementing the CRUD operations.  
+
+The operations are declared in a separate {grammar}.api.json file (using Claude to generate it).  If present, this file is used to expose the API and to generate the OpenAPI UI. We also want the ability to publish the API locally via Docker, or on a target host environment (i.e., Supabase).
+
+Modify the frontend with appropriate command contributions matching the generated API.
+
+---
+Modify the documentation generator to output into the docs/ folder of the grammar package directly.  Add a docs:dev command to the grammar package.json to publish locally via Docker. Modify the frontend documentation URL to point to a grammar-specific URL in Docker. [ need a strategy for CI/CD in production ]

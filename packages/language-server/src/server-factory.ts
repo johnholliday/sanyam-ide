@@ -11,16 +11,16 @@
 import {
   createConnection,
   ProposedFeatures,
-  TextDocuments,
   InitializeParams,
   InitializeResult,
   TextDocumentSyncKind,
   type Connection,
 } from 'vscode-languageserver/node.js';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import type { TextDocument } from 'vscode-languageserver-textdocument';
 import { CancellationToken } from 'vscode-languageserver';
-import { URI } from 'langium';
+import { URI, DocumentState } from 'langium';
 import { NodeFileSystem } from 'langium/node';
+import { addDocumentUpdateHandler, type LangiumSharedServices } from 'langium/lsp';
 import type {
   LspFeatureProviders,
   GlspFeatureProviders,
@@ -75,7 +75,7 @@ export interface LanguageServerInstance {
   /**
    * Document manager for text documents.
    */
-  documents: TextDocuments<TextDocument>;
+  documents: LangiumSharedServices['workspace']['TextDocuments'];
 
   /**
    * Start the server and begin listening for requests.
@@ -139,12 +139,13 @@ export async function createLanguageServer(
   options: CreateServerOptions
 ): Promise<LanguageServerInstance> {
   const connection = options.connection ?? createConnection(ProposedFeatures.all);
-  const documents = new TextDocuments(TextDocument);
   const registry = new LanguageRegistry();
+  let documents: LangiumSharedServices['workspace']['TextDocuments'];
 
   let glspServer: GlspServer | null = null;
   let astServer: AstServer | null = null;
   let initialized = false;
+  let sharedServicesRef: import('langium/lsp').LangiumSharedServices | null = null;
 
   /**
    * Initialize the GLSP server.
@@ -209,25 +210,25 @@ export async function createLanguageServer(
 
       logger.info({ languages: Array.from(registry.getAllLanguageIds()), count: loadResult.loadedCount }, 'Languages loaded');
 
-      // Initialize GLSP server with Langium services
-      try {
-        const langiumServices = {
-          shared: {
-            workspace: {
-              LangiumDocuments: {
-                getDocument: (uri: string | import('langium').URI) => {
-                  const uriStr = typeof uri === 'string' ? uri : uri.toString();
-                  const contribution = registry.getByUri(uriStr);
-                  const parsedUri = typeof uri === 'string' ? URI.parse(uri) : uri;
-                  return contribution?.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(parsedUri);
-                },
-                all: [] as any[],
-              },
-            },
-          },
-        };
+      // Use Langium's shared TextDocuments so it receives LSP didChange events
+      const sharedServices = loadResult.sharedServices;
+      sharedServicesRef = sharedServices;
+      documents = sharedServices.workspace.TextDocuments;
 
-        initializeGlspServer(langiumServices);
+      // Initialize Langium's WorkspaceManager with the client params so that
+      // its `ready` promise can resolve (required by DocumentUpdateHandler)
+      sharedServices.workspace.WorkspaceManager.initialize(params);
+
+      // Wire Langium's DocumentUpdateHandler so DocumentBuilder.update() is
+      // called automatically on content changes (triggers reparse)
+      addDocumentUpdateHandler(connection, sharedServices);
+
+      // Register our own GLSP/AST change handlers on Langium's TextDocuments
+      registerDocumentChangeHandlers(documents);
+
+      // Initialize GLSP server with real Langium shared services
+      try {
+        initializeGlspServer(sharedServices as any);
 
         // Register all loaded languages with GLSP server
         for (const langId of registry.getAllLanguageIds()) {
@@ -242,20 +243,7 @@ export async function createLanguageServer(
 
       // Initialize AST Server (Model API)
       try {
-        const langiumSharedServices = {
-          workspace: {
-            LangiumDocuments: {
-              getDocument: (uri: any) => {
-                const uriStr = typeof uri === 'string' ? uri : uri?.toString?.() ?? '';
-                const contribution = registry.getByUri(uriStr);
-                return contribution?.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(uri);
-              },
-              all: [] as any[],
-            },
-          },
-        };
-
-        initializeAstServer(langiumSharedServices);
+        initializeAstServer(sharedServices as any);
       } catch (astError) {
         logger.error({ err: astError }, 'Failed to initialize AST Server');
       }
@@ -266,7 +254,11 @@ export async function createLanguageServer(
       // Only advertise capabilities that have registered handlers
       return {
         capabilities: {
-          textDocumentSync: TextDocumentSyncKind.Incremental,
+          textDocumentSync: {
+            openClose: true,
+            change: TextDocumentSyncKind.Incremental,
+            save: { includeText: false },
+          },
           completionProvider: {
             resolveProvider: true,
             triggerCharacters: ['.', ':', '<', '"', "'", '/'],
@@ -304,8 +296,17 @@ export async function createLanguageServer(
     }
   });
 
-  connection.onInitialized(() => {
+  connection.onInitialized(async (params) => {
     logger.info('Sanyam Language Server initialized');
+    // Complete Langium's workspace initialization so WorkspaceManager.ready resolves.
+    // This unblocks DocumentUpdateHandler.fireDocumentUpdate() which gates on ready.
+    if (sharedServicesRef) {
+      try {
+        await sharedServicesRef.workspace.WorkspaceManager.initialized(params);
+      } catch (err) {
+        logger.error({ err }, 'Error during workspace initialization');
+      }
+    }
   });
 
   connection.onShutdown(() => {
@@ -391,7 +392,7 @@ export async function createLanguageServer(
       if (!contribution) {
         return { success: false, error: `No language registered for URI: ${params.uri}` };
       }
-      const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
+      const langiumDoc = registry.sharedServices.workspace.LangiumDocuments.getDocument(URI.parse(params.uri));
       if (!langiumDoc) {
         return { success: false, error: `Document not found: ${params.uri}` };
       }
@@ -423,7 +424,7 @@ export async function createLanguageServer(
       if (!contribution) {
         return { success: false, error: `No language registered for URI: ${params.uri}` };
       }
-      const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
+      const langiumDoc = registry.sharedServices.workspace.LangiumDocuments.getDocument(URI.parse(params.uri));
       if (!langiumDoc) {
         return { success: false, error: `Document not found: ${params.uri}` };
       }
@@ -444,7 +445,7 @@ export async function createLanguageServer(
       if (!contribution) {
         return { markers: [], isValid: false, errorCount: 1, warningCount: 0, error: 'No language registered' };
       }
-      const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
+      const langiumDoc = registry.sharedServices.workspace.LangiumDocuments.getDocument(URI.parse(params.uri));
       if (!langiumDoc) {
         return { markers: [], isValid: false, errorCount: 1, warningCount: 0, error: 'Document not found' };
       }
@@ -465,7 +466,7 @@ export async function createLanguageServer(
       if (!contribution) {
         return { positions: {}, bounds: { width: 0, height: 0 }, error: 'No language registered' };
       }
-      const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
+      const langiumDoc = registry.sharedServices.workspace.LangiumDocuments.getDocument(URI.parse(params.uri));
       if (!langiumDoc) {
         return { positions: {}, bounds: { width: 0, height: 0 }, error: 'Document not found' };
       }
@@ -491,7 +492,7 @@ export async function createLanguageServer(
       if (!contribution) {
         return { groups: [], error: 'No language registered' };
       }
-      const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
+      const langiumDoc = registry.sharedServices.workspace.LangiumDocuments.getDocument(URI.parse(params.uri));
       if (!langiumDoc) {
         return { groups: [], error: 'Document not found' };
       }
@@ -512,7 +513,7 @@ export async function createLanguageServer(
       if (!contribution) {
         return { items: [], error: 'No language registered' };
       }
-      const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
+      const langiumDoc = registry.sharedServices.workspace.LangiumDocuments.getDocument(URI.parse(params.uri));
       if (!langiumDoc) {
         return { items: [], error: 'Document not found' };
       }
@@ -533,7 +534,7 @@ export async function createLanguageServer(
       if (!contribution) {
         return { success: false, error: 'No language registered' };
       }
-      const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(params.uri));
+      const langiumDoc = registry.sharedServices.workspace.LangiumDocuments.getDocument(URI.parse(params.uri));
       if (!langiumDoc) {
         return { success: false, error: 'Document not found' };
       }
@@ -618,32 +619,50 @@ export async function createLanguageServer(
   const diagramUpdateTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const DIAGRAM_UPDATE_DEBOUNCE_MS = 300;
 
-  // Document change handlers for GLSP and Model API synchronization
-  documents.onDidChangeContent((change) => {
-    if (!initialized) return;
-    const contribution = registry.getByUri(change.document.uri);
-    if (!contribution) return;
-    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(change.document.uri));
-    if (langiumDoc) {
+  /**
+   * Register GLSP/AST document change handlers.
+   * Called after loadContributions() so we use Langium's shared services.
+   *
+   * Instead of reacting to raw TextDocument changes (which arrive before Langium
+   * reparses), we hook into Langium's DocumentBuilder.onDocumentPhase to get
+   * notified AFTER a document has been reparsed. This guarantees the AST is fresh.
+   */
+  function registerDocumentChangeHandlers(docs: LangiumSharedServices['workspace']['TextDocuments']): void {
+    const shared = registry.sharedServices;
+
+    // React to Langium completing a reparse (DocumentState.Parsed = 1).
+    // This fires after DocumentBuilder.update() finishes parsing the document,
+    // guaranteeing we always read a fresh AST.
+    shared.workspace.DocumentBuilder.onDocumentPhase(DocumentState.Parsed, (langiumDoc) => {
+      if (!initialized) return;
+
+      const uriStr = langiumDoc.uri.toString();
+      const contribution = registry.getByUri(uriStr);
+      if (!contribution) return;
+
       if (glspServer) {
         glspServer.onDocumentChanged(langiumDoc);
 
         // Debounce diagram model updates
-        const existingTimer = diagramUpdateTimers.get(change.document.uri);
+        const existingTimer = diagramUpdateTimers.get(uriStr);
         if (existingTimer) {
           clearTimeout(existingTimer);
         }
 
         const timer = setTimeout(async () => {
-          diagramUpdateTimers.delete(change.document.uri);
+          diagramUpdateTimers.delete(uriStr);
           if (!glspServer) return;
           try {
+            // Re-read the document in case further changes occurred during debounce
+            const freshDoc = shared.workspace.LangiumDocuments.getDocument(langiumDoc.uri);
+            if (!freshDoc) return;
+
             // Reload the diagram model and send notification
-            const context = await glspServer.loadModel(langiumDoc, CancellationToken.None);
+            const context = await glspServer.loadModel(freshDoc, CancellationToken.None);
             if (context.gModel) {
               const updateIdRegistryData = (context as any).idRegistryData;
               connection.sendNotification('glsp/modelUpdated', {
-                uri: change.document.uri,
+                uri: uriStr,
                 gModel: context.gModel,
                 metadata: {
                   positions: context.metadata?.positions ? Object.fromEntries(context.metadata.positions) : {},
@@ -659,41 +678,44 @@ export async function createLanguageServer(
           }
         }, DIAGRAM_UPDATE_DEBOUNCE_MS);
 
-        diagramUpdateTimers.set(change.document.uri, timer);
+        diagramUpdateTimers.set(uriStr, timer);
       }
       if (astServer) {
         astServer.onDocumentChanged(langiumDoc);
       }
-    }
-  });
+    });
 
-  documents.onDidSave?.((event) => {
-    if (!initialized) return;
-    const contribution = registry.getByUri(event.document.uri);
-    if (!contribution) return;
-    const langiumDoc = contribution.services?.shared?.workspace?.LangiumDocuments?.getDocument?.(URI.parse(event.document.uri));
-    if (langiumDoc && astServer) {
-      astServer.onDocumentSaved(langiumDoc);
-    }
-  });
+    docs.onDidSave?.((event) => {
+      if (!initialized) return;
+      const contribution = registry.getByUri(event.document.uri);
+      if (!contribution) return;
+      const uri = URI.parse(event.document.uri);
+      const langiumDoc = shared.workspace.LangiumDocuments.getDocument(uri);
+      if (!langiumDoc) return;
 
-  documents.onDidClose((event) => {
-    if (!initialized) return;
-    if (glspServer) {
-      glspServer.onDocumentClosed(event.document.uri);
-    }
-    if (astServer) {
-      astServer.onDocumentClosed(event.document.uri);
-    }
-  });
+      if (astServer) {
+        astServer.onDocumentSaved(langiumDoc);
+      }
+    });
 
-  // Listen for document events
-  documents.listen(connection);
+    docs.onDidClose((event) => {
+      if (!initialized) return;
+      if (glspServer) {
+        glspServer.onDocumentClosed(event.document.uri);
+      }
+      if (astServer) {
+        astServer.onDocumentClosed(event.document.uri);
+      }
+    });
+
+    // Listen for document events on the connection
+    docs.listen(connection);
+  }
 
   return {
     registry,
     connection,
-    documents,
+    get documents() { return documents; },
     get glspServer() { return glspServer; },
     get astServer() { return astServer; },
     start: () => {

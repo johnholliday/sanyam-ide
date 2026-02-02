@@ -442,6 +442,15 @@ export class CompositeEditorWidget extends BaseWidget
         }
     }
 
+    /**
+     * Reload the diagram model after the text file has been saved.
+     * The backend service will re-read the file from disk.
+     */
+    protected async reloadDiagramModelAfterSave(): Promise<void> {
+        this.logger.debug('Text file saved, reloading diagram model');
+        await this.loadDiagramModel();
+    }
+
     protected async createTextEditor(): Promise<void> {
         try {
             const editor = await this.editorManager.getOrCreateByUri(this.uri);
@@ -454,7 +463,14 @@ export class CompositeEditorWidget extends BaseWidget
                 this.textEditor.title.closable = false;
 
                 this.toDispose.push(this.textEditor.saveable.onDirtyChanged(() => {
-                    this.setDirty(this.textEditor?.saveable.dirty ?? false);
+                    const isDirty = this.textEditor?.saveable.dirty ?? false;
+                    this.setDirty(isDirty);
+
+                    // When dirty transitions to false, the file was saved.
+                    // Reload the diagram model so it reflects the new text content.
+                    if (!isDirty && this.diagramModelLoaded) {
+                        this.reloadDiagramModelAfterSave();
+                    }
                 }));
 
                 this.toDispose.push({

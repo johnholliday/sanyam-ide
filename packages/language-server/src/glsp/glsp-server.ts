@@ -224,13 +224,18 @@ export class GlspServer {
     document: LangiumDocument,
     token: CancellationToken
   ): Promise<GlspContext> {
+    // Update the cached model state with the fresh document before creating context,
+    // otherwise createContext returns stale cached AST data
+    this.contextFactory.updateModelState(document);
+
     // Create context
     const context = this.createContext(document, token);
     const contribution = this.getContribution(document);
 
-    // Load from storage
+    // Load from storage, always forcing reload so we use the freshly-parsed document
     await this.sourceModelStorage.load(document.uri.toString(), {
       loadMetadata: true,
+      forceReload: true,
     });
 
     // Wire the element ID registry into the context for the converter

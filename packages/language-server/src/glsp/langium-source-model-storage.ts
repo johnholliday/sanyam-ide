@@ -223,7 +223,8 @@ export class LangiumSourceModelStorage {
     if (existingState) {
       // Create new state preserving metadata
       const newState = createLangiumModelState(document, existingState.metadata);
-      // Copy over element mappings if possible
+      // Preserve id registry data across reparses so element IDs remain stable
+      newState.idRegistry.loadFromLayoutData(existingState.idRegistry.exportToLayoutData());
       this.modelStates.set(uri, newState);
     }
   }

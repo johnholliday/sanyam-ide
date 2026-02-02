@@ -544,17 +544,11 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
             const langiumDocuments = (this.sharedServices as any).workspace.LangiumDocuments;
 
             // If forceReload, invalidate the cached document so we re-read from disk
-            if (forceReload) {
-                const hasDoc = typeof langiumDocuments.hasDocument === 'function' ? langiumDocuments.hasDocument(parsedUri) : false;
-                console.log(`[DIAG] forceReload=true, hasDocument=${hasDoc}, hasDeleteDocument=${typeof langiumDocuments.deleteDocument}`);
-                if (hasDoc && typeof langiumDocuments.deleteDocument === 'function') {
-                    langiumDocuments.deleteDocument(parsedUri);
-                    console.log(`[DIAG] Deleted cached document`);
-                }
+            if (forceReload && langiumDocuments.hasDocument?.(parsedUri)) {
+                langiumDocuments.deleteDocument?.(parsedUri);
             }
 
             let document = langiumDocuments.getDocument(parsedUri);
-            console.log(`[DIAG] After delete, getDocument returned: ${!!document}`);
 
             // If document not loaded, create and build it through Langium's full pipeline
             // (parse → index → link → validate) so cross-references are resolved.
@@ -564,8 +558,7 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
                 const content = await fileSystemProvider.readFile(parsedUri);
                 const textContent = typeof content === 'string' ? content : new TextDecoder().decode(content);
 
-                console.log(`[DIAG] File content (first 200 chars): ${textContent.substring(0, 200)}`);
-                console.log(`[DIAG] Building document via DocumentBuilder...`);
+                this.log(`[SanyamGlspBackendService] Building document via DocumentBuilder...`);
 
                 // Create a TextDocument for Langium
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -697,7 +690,6 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
      * T019: Includes debug logging for model load operations.
      */
     async loadModel(uri: string): Promise<LoadModelResponse> {
-        console.log(`[DIAG] ===== loadModel called for: ${uri} =====`);
         return this.ensureInitialized(async () => {
             this.log(`[SanyamGlspBackendService] loadModel called for: ${uri}`);
             const startTime = Date.now();

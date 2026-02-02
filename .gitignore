@@ -5,6 +5,7 @@
 **/dist
 **/lib
 **/src-gen
+**/_site
 **/gen-webpack.config.js
 **/gen-webpack.node.config.js
 **/plugins

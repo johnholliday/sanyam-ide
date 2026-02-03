@@ -51,7 +51,7 @@ export class SanyamPortImpl extends SPortImpl {
 @injectable()
 export class SanyamPortView implements IView {
   /** Default port size */
-  static readonly DEFAULT_SIZE = 10;
+  static readonly DEFAULT_SIZE = 15;
 
   render(port: Readonly<SanyamPortImpl>, context: RenderingContext): VNode {
     const size = port.bounds?.width ?? SanyamPortView.DEFAULT_SIZE;

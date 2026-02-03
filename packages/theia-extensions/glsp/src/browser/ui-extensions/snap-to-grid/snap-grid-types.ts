@@ -52,10 +52,10 @@ export interface SnapGridConfig {
  */
 export const DEFAULT_SNAP_GRID_CONFIG: SnapGridConfig = {
   enabled: false,
-  gridSize: 10,
+  gridSize: 15,
   showGrid: false,
   gridColor: 'rgba(128, 128, 128, 0.2)',
-  snapThreshold: 5,
+  snapThreshold: 8,
 };
 
 // =============================================================================

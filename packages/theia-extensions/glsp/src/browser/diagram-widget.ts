@@ -34,7 +34,7 @@ import { DiagramPreferences, DiagramBackgroundStyle } from './diagram-preference
 import { EdgeRoutingService } from './layout';
 
 // Layout storage
-import { DiagramLayoutStorageService, type ElementLayout, type DiagramLayout } from './layout-storage-service';
+import { DiagramLayoutStorageService, type ElementLayout, type DiagramLayout, type DiagramViewState } from './layout-storage-service';
 
 /**
  * Factory ID for diagram widgets.
@@ -182,6 +182,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
     /** Tool palette element */
     protected toolPalette: HTMLDivElement | undefined;
+
+    /** Embedded diagram toolbar element */
+    protected diagramToolbar: HTMLDivElement | undefined;
 
     /** Flag indicating if Sprotty has been initialized */
     protected sprottyInitialized = false;
@@ -458,6 +461,104 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
+     * Create a toolbar button element.
+     */
+    protected createToolbarButton(icon: string, tooltip: string, onClick: () => void): HTMLButtonElement {
+        const btn = document.createElement('button');
+        btn.className = 'sanyam-diagram-toolbar-button';
+        btn.title = tooltip;
+        btn.innerHTML = `<span class="${icon}"></span>`;
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            onClick();
+        });
+        return btn;
+    }
+
+    /**
+     * Create a toolbar separator element.
+     */
+    protected createToolbarSeparator(): HTMLDivElement {
+        const sep = document.createElement('div');
+        sep.className = 'sanyam-diagram-toolbar-separator';
+        return sep;
+    }
+
+    /**
+     * Create the embedded diagram toolbar (FR-006).
+     * Toolbar is rendered at the top of the diagram view panel.
+     */
+    protected createEmbeddedToolbar(): HTMLDivElement {
+        const toolbar = document.createElement('div');
+        toolbar.className = 'sanyam-diagram-embedded-toolbar';
+
+        // Zoom group
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-zoom-in', 'Zoom In', () => this.zoomIn()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-zoom-out', 'Zoom Out', () => this.zoomOut()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-screen-full', 'Fit to Screen', () => this.zoomToFit()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-target', 'Center View', () => this.center()));
+
+        toolbar.appendChild(this.createToolbarSeparator());
+
+        // Layout
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-layout', 'Auto-Layout', () => {
+            this.sprottyManager?.requestLayout();
+        }));
+
+        toolbar.appendChild(this.createToolbarSeparator());
+
+        // Toggles
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-layout-sidebar-right', 'Toggle Snap to Grid', () => {
+            this.dispatchAction({ kind: 'toggleSnapToGrid' });
+        }));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-map', 'Toggle Minimap', () => {
+            this.dispatchAction({ kind: 'toggleMinimap' });
+        }));
+
+        toolbar.appendChild(this.createToolbarSeparator());
+
+        // Edge routing
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-type-hierarchy', 'Orthogonal Routing', () => {
+            this.edgeRoutingService?.setMode('orthogonal');
+            this.sprottyManager?.requestLayout();
+        }));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-arrow-right', 'Straight Routing', () => {
+            this.edgeRoutingService?.setMode('straight');
+            this.sprottyManager?.requestLayout();
+        }));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-debug-disconnect', 'Bezier Routing', () => {
+            this.edgeRoutingService?.setMode('bezier');
+            this.sprottyManager?.requestLayout();
+        }));
+
+        toolbar.appendChild(this.createToolbarSeparator());
+
+        // Edge decorations
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-triangle-right', 'Toggle Arrowheads', () => {
+            if (this.edgeRoutingService) {
+                this.edgeRoutingService.setArrowheadsVisible(!this.edgeRoutingService.arrowheadsVisible);
+                this.sprottyManager?.requestLayout();
+            }
+        }));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-git-compare', 'Toggle Edge Jumps', () => {
+            if (this.edgeRoutingService) {
+                this.edgeRoutingService.setEdgeJumpsEnabled(!this.edgeRoutingService.edgeJumpsEnabled);
+                this.sprottyManager?.requestLayout();
+            }
+        }));
+
+        toolbar.appendChild(this.createToolbarSeparator());
+
+        // Actions
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-refresh', 'Refresh Diagram', () => this.refresh()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-file-media', 'Export as SVG', () => {
+            this.dispatchAction({ kind: 'requestExportSvg' });
+        }));
+
+        return toolbar;
+    }
+
+    /**
      * Create the diagram container elements.
      */
     protected createDiagramContainer(): void {
@@ -469,6 +570,10 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         this.toolPalette = document.createElement('div');
         this.toolPalette.className = 'sanyam-diagram-tool-palette';
         container.appendChild(this.toolPalette);
+
+        // Create embedded diagram toolbar (FR-006)
+        this.diagramToolbar = this.createEmbeddedToolbar();
+        container.appendChild(this.diagramToolbar);
 
         // Create SVG container for Sprotty
         this.svgContainer = document.createElement('div');
@@ -834,10 +939,20 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 if (hasSavedLayout) {
                     // Skip auto-layout - we have saved positions
                     this.logger.debug('[DiagramWidget] Skipping auto-layout - using saved positions');
-                    // Fit to screen with the saved positions
-                    await this.sprottyManager.fitToScreen();
                     this.initialLayoutDone = true;
-                    // T015: Reveal diagram after fitToScreen completes
+
+                    // Restore saved viewport and toggle state if available (FR-002, FR-003, FR-004)
+                    const savedViewState = this.savedLayout && 'viewState' in this.savedLayout
+                        ? this.savedLayout.viewState
+                        : undefined;
+                    if (savedViewState?.zoom !== undefined) {
+                        await this.restoreViewState(savedViewState);
+                    } else {
+                        // No saved viewport — fit to screen as fallback
+                        await this.sprottyManager.fitToScreen();
+                    }
+
+                    // Reveal diagram after restore completes
                     this.revealDiagramAfterLayout();
                     // Update minimap
                     this.updateMinimapAfterLayout();
@@ -868,14 +983,15 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             if (!this.initialLayoutDone) {
                 // First layout: fit to screen BEFORE revealing (while still hidden)
                 this.initialLayoutDone = true;
-                this.sprottyManager?.fitToScreen().then(() => {
+                const applyInitialView = this.sprottyManager?.fitToScreen();
+                (applyInitialView ?? Promise.resolve()).then(() => {
                     // Now reveal the diagram with smooth transition
                     this.revealDiagramAfterLayout();
                     // Update minimap after reveal
                     this.updateMinimapAfterLayout();
                 }).catch(err => {
-                    this.logger.warn({ err }, 'Failed to fit to screen');
-                    // Still reveal even if fit fails
+                    this.logger.warn({ err }, 'Failed to apply initial view');
+                    // Still reveal even if it fails
                     this.revealDiagramAfterLayout();
                 });
             } else {
@@ -943,8 +1059,91 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
+     * Collect current view state (zoom, toggles) for persistence.
+     */
+    protected collectViewState(): DiagramViewState {
+        const viewState: DiagramViewState = {
+            zoom: this.state.viewport.zoom,
+            scroll: { ...this.state.viewport.scroll },
+        };
+
+        // Collect toggle states from UI extensions
+        const registry = this.sprottyManager?.getUIExtensionRegistry();
+        if (registry) {
+            const snapGridTool = registry.get('sanyam-snap-grid-tool');
+            if (snapGridTool && 'getConfig' in snapGridTool) {
+                viewState.snapToGrid = (snapGridTool as any).getConfig().enabled ?? false;
+            }
+            const minimap = registry.get('sanyam-minimap');
+            if (minimap && 'isVisible' in minimap) {
+                viewState.minimapVisible = (minimap as any).isVisible();
+            }
+        }
+
+        // Collect edge routing state
+        if (this.edgeRoutingService) {
+            viewState.arrowheadsVisible = this.edgeRoutingService.arrowheadsVisible;
+            viewState.edgeJumpsEnabled = this.edgeRoutingService.edgeJumpsEnabled;
+            viewState.edgeRoutingMode = this.edgeRoutingService.currentMode;
+        }
+
+        return viewState;
+    }
+
+    /**
+     * Restore view state (zoom, toggles) from saved layout.
+     */
+    protected async restoreViewState(viewState: DiagramViewState): Promise<void> {
+        // Restore zoom and scroll
+        if (viewState.zoom !== undefined) {
+            const zoom = Math.max(0.1, Math.min(5, viewState.zoom));
+            this.state.viewport.zoom = zoom;
+            const scroll = viewState.scroll ?? { x: 0, y: 0 };
+            this.state.viewport.scroll = scroll;
+            await this.sprottyManager?.setViewport(scroll, zoom, false);
+        }
+
+        // Restore toggle states
+        if (viewState.snapToGrid !== undefined) {
+            const registry = this.sprottyManager?.getUIExtensionRegistry();
+            if (registry) {
+                const snapGridTool = registry.get('sanyam-snap-grid-tool');
+                if (snapGridTool && 'getConfig' in snapGridTool && 'setEnabled' in snapGridTool) {
+                    const currentEnabled = (snapGridTool as any).getConfig().enabled ?? false;
+                    if (currentEnabled !== viewState.snapToGrid) {
+                        (snapGridTool as any).setEnabled(viewState.snapToGrid);
+                    }
+                }
+            }
+        }
+
+        if (viewState.minimapVisible !== undefined) {
+            const registry = this.sprottyManager?.getUIExtensionRegistry();
+            if (registry) {
+                const minimap = registry.get('sanyam-minimap');
+                if (minimap && 'setVisible' in minimap) {
+                    (minimap as any).setVisible(viewState.minimapVisible);
+                }
+            }
+        }
+
+        // Restore edge routing state
+        if (this.edgeRoutingService) {
+            if (viewState.arrowheadsVisible !== undefined) {
+                this.edgeRoutingService.setArrowheadsVisible(viewState.arrowheadsVisible);
+            }
+            if (viewState.edgeJumpsEnabled !== undefined) {
+                this.edgeRoutingService.setEdgeJumpsEnabled(viewState.edgeJumpsEnabled);
+            }
+            if (viewState.edgeRoutingMode !== undefined) {
+                this.edgeRoutingService.setMode(viewState.edgeRoutingMode as any);
+            }
+        }
+    }
+
+    /**
      * Save layout to storage (debounced).
-     * Collects all element positions and sizes and saves them.
+     * Collects all element positions, sizes, and view state.
      */
     protected saveLayoutDebounced(): void {
         if (!this.layoutStorageService) {
@@ -961,9 +1160,11 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             };
         }
 
-        // Use debounced save, including UUID registry data
+        const viewState = this.collectViewState();
+
+        // Use debounced save, including UUID registry data and view state
         this.layoutStorageService.saveLayoutDebounced(
-            this.uri, elements, this.state.idMap, this.state.fingerprints
+            this.uri, elements, this.state.idMap, this.state.fingerprints, viewState
         );
     }
 
@@ -985,8 +1186,10 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             };
         }
 
+        const viewState = this.collectViewState();
+
         await this.layoutStorageService.saveLayout(
-            this.uri, elements, this.state.idMap, this.state.fingerprints
+            this.uri, elements, this.state.idMap, this.state.fingerprints, viewState
         );
     }
 
@@ -1153,27 +1356,71 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
-     * Zoom in by a factor.
+     * Zoom in by a factor, keeping the viewport center fixed.
      */
     async zoomIn(factor: number = 1.2): Promise<void> {
         if (this.sprottyManager) {
             const currentZoom = this.state.viewport.zoom;
             const newZoom = Math.min(currentZoom * factor, 5); // Max zoom 5x
+
+            // Calculate scroll to keep viewport center fixed
+            const newScroll = this.calculateCenteredScroll(
+                this.state.viewport.scroll, currentZoom, newZoom
+            );
+
             this.state.viewport.zoom = newZoom;
-            await this.sprottyManager.setViewport(this.state.viewport.scroll, newZoom, true);
+            this.state.viewport.scroll = newScroll;
+            await this.sprottyManager.setViewport(newScroll, newZoom, true);
+            this.saveLayoutDebounced();
         }
     }
 
     /**
-     * Zoom out by a factor.
+     * Zoom out by a factor, keeping the viewport center fixed.
      */
     async zoomOut(factor: number = 1.2): Promise<void> {
         if (this.sprottyManager) {
             const currentZoom = this.state.viewport.zoom;
             const newZoom = Math.max(currentZoom / factor, 0.1); // Min zoom 0.1x
+
+            // Calculate scroll to keep viewport center fixed
+            const newScroll = this.calculateCenteredScroll(
+                this.state.viewport.scroll, currentZoom, newZoom
+            );
+
             this.state.viewport.zoom = newZoom;
-            await this.sprottyManager.setViewport(this.state.viewport.scroll, newZoom, true);
+            this.state.viewport.scroll = newScroll;
+            await this.sprottyManager.setViewport(newScroll, newZoom, true);
+            this.saveLayoutDebounced();
         }
+    }
+
+    /**
+     * Calculate scroll position to keep viewport center fixed after zoom change.
+     *
+     * @param oldScroll - Current scroll position
+     * @param oldZoom - Current zoom level
+     * @param newZoom - New zoom level
+     * @returns New scroll position that keeps the same model point at center
+     */
+    protected calculateCenteredScroll(
+        oldScroll: { x: number; y: number },
+        oldZoom: number,
+        newZoom: number
+    ): { x: number; y: number } {
+        // Get viewport dimensions from the SVG container
+        const width = this.svgContainer?.clientWidth ?? 800;
+        const height = this.svgContainer?.clientHeight ?? 600;
+
+        // Calculate center point in model coordinates (before zoom)
+        const centerX = width / (2 * oldZoom) + oldScroll.x;
+        const centerY = height / (2 * oldZoom) + oldScroll.y;
+
+        // Calculate new scroll to keep same model point at center after zoom
+        return {
+            x: centerX - width / (2 * newZoom),
+            y: centerY - height / (2 * newZoom),
+        };
     }
 
     /**

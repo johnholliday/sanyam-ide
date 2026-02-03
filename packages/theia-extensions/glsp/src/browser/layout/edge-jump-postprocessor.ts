@@ -27,7 +27,7 @@ import type { Point } from 'sprotty-protocol';
 import { EdgeRoutingService, EdgeRoutingServiceSymbol } from './edge-routing-service';
 
 /** Radius of the semicircular jump arc in pixels. */
-const JUMP_RADIUS = 6;
+const JUMP_RADIUS = 9;
 
 /** Minimum distance between two crossings on the same segment to insert both arcs. */
 const MIN_CROSSING_DISTANCE = JUMP_RADIUS * 3;

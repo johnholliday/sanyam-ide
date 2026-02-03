@@ -458,7 +458,34 @@ Modify `packages/theia-extensions/product/src/browser/sanyam-ide-about-dialog.ts
 cd docs && pnpm install
 ```
 
-## Step 10: Generate Environment Variable Instructions
+## Step 10: Build and Run Docker Container
+
+After generating all files and installing dependencies, build and run the Docker container:
+
+```bash
+cd docs && pnpm run docker:build
+```
+
+If the build succeeds, start the container:
+
+```bash
+cd docs && pnpm run docker:run
+```
+
+Verify the documentation site is running by checking:
+- Container status: `docker ps | grep {appNameNormalized}-docs`
+- Site accessibility: The site should be available at http://localhost:4000
+
+If a container with the same name already exists, stop and remove it first:
+
+```bash
+docker stop {appNameNormalized}-docs 2>/dev/null || true
+docker rm {appNameNormalized}-docs 2>/dev/null || true
+```
+
+Then retry the docker:run command.
+
+## Step 11: Generate Environment Variable Instructions
 
 After generating all files, output the following instructions to the user:
 

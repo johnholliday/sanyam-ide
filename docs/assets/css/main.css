@@ -370,7 +370,7 @@ body {
 .home-layout {
   display: flex;
   flex-direction: row;
-  max-width: calc(var(--content-max-width) + 220px);
+  max-width: calc(var(--content-max-width) + 300px);
   margin: 0 auto;
   padding: var(--space-10) var(--space-6);
 }
@@ -385,13 +385,13 @@ body {
 /* Home Logo Column */
 .home-logo-column {
   flex-shrink: 0;
-  width: 200px;
+  width: 280px;
   padding-top: var(--space-4);
-  padding-right: var(--space-6);
+  padding-right: var(--space-8);
 }
 
 .home-logo-img {
-  max-width: 180px;
+  max-width: 260px;
   height: auto;
 }
 

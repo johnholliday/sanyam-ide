@@ -16,6 +16,7 @@ import { inject, injectable, optional } from '@theia/core/shared/inversify';
 import {
     renderDocumentation, renderDownloads, renderExtendingCustomizing, /*renderSourceCode,*/ renderSupport, renderTickets, renderWhatIs, renderCollaboration
 } from './branding-util';
+import { DocsUrls } from './docs-config';
 
 import { GettingStartedWidget } from '@theia/getting-started/lib/browser/getting-started-widget';
 import { VSXEnvironment } from '@theia/vsx-registry/lib/common/vsx-environment';
@@ -172,6 +173,45 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
         return null;
     }
 
+    /**
+     * Override renderHelp to use the documentation URL from DocsUrls config.
+     */
+    protected renderHelp(): React.ReactNode {
+        return <div className='gs-section'>
+            <h3 className='gs-section-header'>
+                <i className={codicon('question')}></i>
+                Help
+            </h3>
+            <div className='gs-action-container'>
+                <a
+                    role='button'
+                    tabIndex={0}
+                    onClick={() => this.windowService.openNewWindow(DocsUrls.gettingStarted(), { external: true })}
+                    onKeyDown={(e: React.KeyboardEvent) => this.isEnterKey(e) && this.windowService.openNewWindow(DocsUrls.gettingStarted(), { external: true })}>
+                    Documentation
+                </a>
+            </div>
+            <div className='gs-action-container'>
+                <a
+                    role='button'
+                    tabIndex={0}
+                    onClick={() => this.commandRegistry.executeCommand('workbench.action.showCommands')}
+                    onKeyDown={(e: React.KeyboardEvent) => this.isEnterKey(e) && this.commandRegistry.executeCommand('workbench.action.showCommands')}>
+                    Show All Commands
+                </a>
+            </div>
+            <div className='gs-action-container'>
+                <a
+                    role='button'
+                    tabIndex={0}
+                    onClick={() => this.commandRegistry.executeCommand('workbench.action.openGlobalKeybindings')}
+                    onKeyDown={(e: React.KeyboardEvent) => this.isEnterKey(e) && this.commandRegistry.executeCommand('workbench.action.openGlobalKeybindings')}>
+                    Keyboard Shortcuts
+                </a>
+            </div>
+        </div>;
+    }
+
     protected renderHeader(): React.ReactNode {
         const appData = getApplicationMetadata();
         const effectiveLogo = this.resolveEffectiveLogo();
@@ -255,13 +295,18 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
     }
 
     protected renderApplicationLink(link: ApplicationLink, index: number): React.ReactNode {
+        // Use DocsUrls for Documentation links instead of the static URL from config
+        const effectiveUrl = link.label.toLowerCase() === 'documentation'
+            ? DocsUrls.home()
+            : link.url;
+
         return <a
             key={index}
-            href={link.url}
+            href={effectiveUrl}
             className='gs-link-item'
             onClick={e => {
                 e.preventDefault();
-                this.windowService.openNewWindow(link.url, { external: true });
+                this.windowService.openNewWindow(effectiveUrl, { external: true });
             }}
         >
             {link.icon && <i className={codicon(link.icon)}></i>}

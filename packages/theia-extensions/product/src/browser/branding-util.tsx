@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: MIT
  ********************************************************************************/
 import { getApplicationMetadata } from './application-config';
+import { DocsUrls } from './docs-config';
 import { WindowService } from '@theia/core/lib/browser/window/window-service';
 import * as React from 'react';
 
@@ -107,7 +108,7 @@ export function renderDocumentation(windowService: WindowService): React.ReactNo
             Documentation
         </h3>
         <div >
-            Please see the <BrowserLink text="documentation" url="https://sanyam-ide.org/docs/user_getting_started/"
+            Please see the <BrowserLink text="documentation" url={DocsUrls.gettingStarted()}
                 windowService={windowService} ></BrowserLink> on how to use the IDE.
         </div>
     </div>;

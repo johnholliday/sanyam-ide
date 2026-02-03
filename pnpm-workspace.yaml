@@ -2,5 +2,5 @@ packages:
   - 'packages/*'
   - 'packages/theia-extensions/*'
   - 'packages/grammar-definitions/*'
+  - 'packages/grammar-definitions/*/docs'
   - 'applications/*'
-  - 'docs/*'

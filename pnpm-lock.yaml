@@ -644,66 +644,6 @@ importers:
         specifier: 17.2.1
         version: 17.2.1
 
-  docs/ecml:
-    devDependencies:
-      '@11ty/eleventy':
-        specifier: ^3.0.0
-        version: 3.1.2
-      '@11ty/eleventy-navigation':
-        specifier: ^0.3.5
-        version: 0.3.5
-      '@11ty/eleventy-plugin-syntaxhighlight':
-        specifier: ^5.0.0
-        version: 5.0.2
-      rimraf:
-        specifier: ^5.0.0
-        version: 5.0.10
-
-  docs/garp:
-    devDependencies:
-      '@11ty/eleventy':
-        specifier: ^2.0.1
-        version: 2.0.1
-      '@11ty/eleventy-plugin-syntaxhighlight':
-        specifier: ^5.0.0
-        version: 5.0.2
-      markdown-it:
-        specifier: ^14.0.0
-        version: 14.1.0
-      markdown-it-anchor:
-        specifier: ^8.6.7
-        version: 8.6.7(@types/markdown-it@14.1.2)(markdown-it@14.1.0)
-
-  docs/nist-csf:
-    devDependencies:
-      '@11ty/eleventy':
-        specifier: ^3.0.0
-        version: 3.1.2
-      '@11ty/eleventy-navigation':
-        specifier: ^0.3.5
-        version: 0.3.5
-      '@11ty/eleventy-plugin-syntaxhighlight':
-        specifier: ^5.0.0
-        version: 5.0.2
-      rimraf:
-        specifier: ^5.0.0
-        version: 5.0.10
-
-  docs/spdevkit:
-    devDependencies:
-      '@11ty/eleventy':
-        specifier: ^3.0.0
-        version: 3.1.2
-      '@11ty/eleventy-navigation':
-        specifier: ^0.3.5
-        version: 0.3.5
-      '@11ty/eleventy-plugin-syntaxhighlight':
-        specifier: ^5.0.0
-        version: 5.0.2
-      rimraf:
-        specifier: ^5.0.0
-        version: 5.0.10
-
   packages/grammar-definitions/actone:
     dependencies:
       langium:
@@ -748,6 +688,21 @@ importers:
         specifier: ~5.6.3
         version: 5.6.3
 
+  packages/grammar-definitions/ecml/docs:
+    devDependencies:
+      '@11ty/eleventy':
+        specifier: ^3.0.0
+        version: 3.1.2
+      '@11ty/eleventy-navigation':
+        specifier: ^0.3.5
+        version: 0.3.5
+      '@11ty/eleventy-plugin-syntaxhighlight':
+        specifier: ^5.0.0
+        version: 5.0.2
+      rimraf:
+        specifier: ^5.0.0
+        version: 5.0.10
+
   packages/grammar-definitions/example-minimal:
     dependencies:
       langium:
@@ -785,6 +740,21 @@ importers:
       typescript:
         specifier: ~5.6.3
         version: 5.6.3
+
+  packages/grammar-definitions/garp/docs:
+    devDependencies:
+      '@11ty/eleventy':
+        specifier: ^2.0.1
+        version: 2.0.1
+      '@11ty/eleventy-plugin-syntaxhighlight':
+        specifier: ^5.0.0
+        version: 5.0.2
+      markdown-it:
+        specifier: ^14.0.0
+        version: 14.1.0
+      markdown-it-anchor:
+        specifier: ^8.6.7
+        version: 8.6.7(@types/markdown-it@14.1.2)(markdown-it@14.1.0)
 
   packages/grammar-definitions/igim:
     dependencies:
@@ -843,6 +813,21 @@ importers:
         specifier: ~5.6.3
         version: 5.6.3
 
+  packages/grammar-definitions/nist-csf/docs:
+    devDependencies:
+      '@11ty/eleventy':
+        specifier: ^3.0.0
+        version: 3.1.2
+      '@11ty/eleventy-navigation':
+        specifier: ^0.3.5
+        version: 0.3.5
+      '@11ty/eleventy-plugin-syntaxhighlight':
+        specifier: ^5.0.0
+        version: 5.0.2
+      rimraf:
+        specifier: ^5.0.0
+        version: 5.0.10
+
   packages/grammar-definitions/spdevkit:
     dependencies:
       inversify:
@@ -867,6 +852,21 @@ importers:
       typescript:
         specifier: ~5.6.3
         version: 5.6.3
+
+  packages/grammar-definitions/spdevkit/docs:
+    devDependencies:
+      '@11ty/eleventy':
+        specifier: ^3.0.0
+        version: 3.1.2
+      '@11ty/eleventy-navigation':
+        specifier: ^0.3.5
+        version: 0.3.5
+      '@11ty/eleventy-plugin-syntaxhighlight':
+        specifier: ^5.0.0
+        version: 5.0.2
+      rimraf:
+        specifier: ^5.0.0
+        version: 5.0.10
 
   packages/grammar-scanner:
     dependencies:

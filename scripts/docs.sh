@@ -2,6 +2,7 @@
 # Documentation build/serve script for grammar packages
 # Usage: ./scripts/docs.sh <command> <grammar-name>
 # Commands: build, start, clean
+# Docs location: packages/grammar-definitions/<grammar-name>/docs/
 
 set -e
 
@@ -15,7 +16,7 @@ if [ -z "$COMMAND" ] || [ -z "$GRAMMAR" ]; then
     exit 1
 fi
 
-DOCS_DIR="docs/$GRAMMAR"
+DOCS_DIR="packages/grammar-definitions/$GRAMMAR/docs"
 
 if [ ! -d "$DOCS_DIR" ]; then
     echo "Error: Documentation directory '$DOCS_DIR' does not exist."

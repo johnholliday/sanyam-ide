@@ -30,6 +30,28 @@ Set variables:
 - `primaryGrammar` = applicationGrammar value
 - `envVarName` = `{appNameNormalized}_DOCS_URL` (e.g., "ECML_DOCS_URL")
 
+### 1.1 Resolve Application Logo
+
+Resolve the effective logo using the same priority as the getting-started-widget:
+
+1. **First priority**: Check if the grammar manifest has an explicit `logo` field
+   - Read `packages/grammar-definitions/{primaryGrammar}/src/manifest.ts` and look for `logo:` property
+
+2. **Second priority**: Check for conventional grammar logo path
+   - Look for `packages/grammar-definitions/{primaryGrammar}/assets/logos/{primaryGrammar}.svg`
+
+3. **Third priority**: Check applicationData logo from package.json
+   - Use `theia.frontend.config.applicationData.logo` value (e.g., "resources/sanyam-banner.svg")
+   - Resolve relative to `applications/browser/`
+
+4. **Fallback**: Use default logo
+   - `applications/browser/resources/sanyam-banner.svg`
+
+Set variable:
+- `effectiveLogo` = the resolved logo path (absolute path to the source file)
+
+Copy the resolved logo to `docs/images/logo.svg`.
+
 ## Step 2: Validate Grammar Documentation Exists
 
 **CRITICAL**: Check if grammar documentation exists before proceeding.
@@ -233,7 +255,7 @@ _site/
 
 ### 3.6 Create `docs/_data/site.json`
 
-Replace placeholders with actual values:
+Replace placeholders with actual values. Include `logo` field only if a logo was resolved in Step 1.1:
 
 ```json
 {
@@ -242,9 +264,12 @@ Replace placeholders with actual values:
   "language": "en",
   "applicationName": "{appName}",
   "grammarId": "{primaryGrammar}",
-  "docsUrl": "${envVarName}"
+  "docsUrl": "${envVarName}",
+  "logo": "/images/logo.svg"
 }
 ```
+
+**Note**: The `logo` field should only be included if `effectiveLogo` was successfully resolved and copied to `docs/images/logo.svg`.
 
 ### 3.7 Create `docs/_data/navigation.json`
 
@@ -274,7 +299,24 @@ Copy the doc layout from `/grammar.docs`.
 
 ### 4.3 Create `docs/_includes/layouts/home.njk`
 
-Copy the home layout from `/grammar.docs`.
+Create a two-column layout with optional logo on the left:
+
+```njk
+{% extends "layouts/base.njk" %}
+
+{% block main %}
+<div class="home-layout">
+  {% if site.logo %}
+  <div class="home-logo-column">
+    <img src="{{ site.logo }}" alt="{{ site.applicationName }}" class="home-logo-img" />
+  </div>
+  {% endif %}
+  <div class="home-content prose">
+    {{ content | safe }}
+  </div>
+</div>
+{% endblock %}
+```
 
 ## Step 5: Create User-Facing Content Pages
 
@@ -383,6 +425,49 @@ Copy example pages from grammar docs `examples/` directory.
 Copy the CSS files from the grammar docs or create new ones at:
 - `docs/assets/css/main.css`
 - `docs/assets/css/prism-theme.css`
+
+**Important**: Ensure the `main.css` includes the two-column home layout styles:
+
+```css
+/* Home Layout - two column with optional logo */
+.home-layout {
+  display: flex;
+  flex-direction: row;
+  max-width: calc(var(--content-max-width) + 220px);
+  margin: 0 auto;
+  padding: var(--space-10) var(--space-6);
+}
+
+/* Home Logo Column */
+.home-logo-column {
+  flex-shrink: 0;
+  width: 200px;
+  padding-top: var(--space-4);
+  padding-right: var(--space-6);
+}
+
+.home-logo-img {
+  max-width: 180px;
+  height: auto;
+}
+
+@media (max-width: 768px) {
+  .home-layout {
+    flex-direction: column;
+  }
+
+  .home-logo-column {
+    width: 100%;
+    padding-right: 0;
+    padding-bottom: var(--space-4);
+    text-align: center;
+  }
+
+  .home-logo-img {
+    max-width: 150px;
+  }
+}
+```
 
 ## Step 8: Update IDE Integration
 

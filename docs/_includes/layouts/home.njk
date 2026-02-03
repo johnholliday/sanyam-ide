@@ -2,12 +2,12 @@
 
 {% block main %}
 <div class="home-layout">
+  {% if site.logo %}
+  <div class="home-logo-column">
+    <img src="{{ site.logo }}" alt="{{ site.applicationName }}" class="home-logo-img" />
+  </div>
+  {% endif %}
   <div class="home-content prose">
-    {% if site.logo %}
-    <div class="home-logo">
-      <img src="{{ site.logo }}" alt="{{ site.applicationName }}" class="home-logo-img" />
-    </div>
-    {% endif %}
     {{ content | safe }}
   </div>
 </div>

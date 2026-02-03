@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 500 235" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(1,0,0,1,24.427,1.44988)">
+        <g transform="matrix(24,0,0,24,326.47,208.445)">
+        </g>
+        <text x="126.208px" y="208.445px" style="font-family:'SegoeUI-Semilight', 'Segoe UI', sans-serif;font-weight:350;font-size:24px;">Semantic AI Agents</text>
+    </g>
+    <g transform="matrix(1,0,0,1,23.427,0.449876)">
+        <g transform="matrix(24,0,0,24,326.47,208.445)">
+        </g>
+        <text x="126.208px" y="208.445px" style="font-family:'SegoeUI-Semilight', 'Segoe UI', sans-serif;font-weight:350;font-size:24px;fill:white;">Semantic AI Agents</text>
+    </g>
+    <g transform="matrix(0.133483,0,0,0.133483,123.598,125.03)">
+        <g transform="matrix(1,0,0,0.750511,43.9556,310.52)">
+            <g>
+                <text x="0px" y="0px" style="font-family:'IncompleetaLight', 'Incompleeta';font-size:558.038px;">SA<tspan x="621.655px 923.558px 1167.42px 1457.04px " y="0px 0px 0px 0px ">NYAM</tspan></text>
+            </g>
+        </g>
+        <g transform="matrix(1,0,0,0.750511,37.7056,304.27)">
+            <g>
+                <text x="0px" y="0px" style="font-family:'IncompleetaLight', 'Incompleeta';font-size:558.038px;fill:white;">SA<tspan x="621.655px 923.558px 1167.42px 1457.04px " y="0px 0px 0px 0px ">NYAM</tspan></text>
+            </g>
+        </g>
+    </g>
+    <g transform="matrix(0.0699846,0,0,0.0699846,250,82.0147)">
+        <g transform="matrix(1,0,0,1,-1166,-1166)">
+            <clipPath id="_clip1">
+                <rect x="0" y="0" width="2332" height="2332"/>
+            </clipPath>
+            <g clip-path="url(#_clip1)">
+                <path d="M154.353,1109.62C398.188,850.373 656.572,639.617 990.225,679.742L842.022,421.358C607.606,367.642 324.022,522.424 -0.447,850.602L154.353,1109.62Z"/>
+                <path d="M245.7,1267.11L400.497,1526.13C1094.41,1648.86 1373.88,574.285 2075.08,659.985L1928.44,408.407C1299.86,228.86 932.305,1362.91 245.697,1267.11L245.7,1267.11Z" style="fill:rgb(128,0,0);"/>
+                <path d="M2176.9,823.933C1933.06,1083.18 1674.68,1293.94 1341.03,1253.81L1489.23,1512.19C1723.65,1565.91 2007.23,1411.13 2331.7,1082.95L2176.9,823.933Z"/>
+            </g>
+        </g>
+    </g>
+    <g id="_-Group-" serif:id="&lt;Group&gt;">
+    </g>
+</svg>

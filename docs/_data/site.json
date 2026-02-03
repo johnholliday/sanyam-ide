@@ -4,5 +4,6 @@
   "language": "en",
   "applicationName": "E C M L",
   "grammarId": "ecml",
-  "docsUrl": "ECML_DOCS_URL"
+  "docsUrl": "ECML_DOCS_URL",
+  "logo": "/images/logo.svg"
 }

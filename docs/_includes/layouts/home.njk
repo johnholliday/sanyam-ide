@@ -3,6 +3,11 @@
 {% block main %}
 <div class="home-layout">
   <div class="home-content prose">
+    {% if site.logo %}
+    <div class="home-logo">
+      <img src="{{ site.logo }}" alt="{{ site.applicationName }}" class="home-logo-img" />
+    </div>
+    {% endif %}
     {{ content | safe }}
   </div>
 </div>

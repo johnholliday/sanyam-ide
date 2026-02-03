@@ -380,6 +380,19 @@ body {
   margin-bottom: var(--space-6);
 }
 
+/* Home Logo */
+.home-logo {
+  float: left;
+  margin-right: var(--space-6);
+  margin-bottom: var(--space-4);
+  margin-top: var(--space-8);
+}
+
+.home-logo-img {
+  max-width: 180px;
+  height: auto;
+}
+
 /* --------------------------------------------------------------------------
    Prose Content
    -------------------------------------------------------------------------- */

@@ -125,6 +125,15 @@ export const defaultAstToGModelProvider = {
       return undefined;
     }
 
+    // Only types with explicit diagramNode config in the manifest become diagram nodes
+    const manifest = (context as any).manifest as GrammarManifest | undefined;
+    if (manifest?.rootTypes) {
+      const rootType = manifest.rootTypes.find(rt => rt.astType === astNode.$type);
+      if (!rootType?.diagramNode) {
+        return undefined;
+      }
+    }
+
     const id = this.getNodeId(astNode, context);
     const type = this.getNodeType(context, astNode);
     const position = this.getPosition(context, astNode);

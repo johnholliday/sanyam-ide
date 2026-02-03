@@ -10,6 +10,7 @@
 // CSS imports - must be in the frontend module for webpack to bundle them
 import './style/index.css';
 import './style/sprotty.css';
+import './style/properties-panel.css';
 
 import { ContainerModule, interfaces, injectable, inject } from 'inversify';
 import { WidgetFactory, FrontendApplicationContribution, KeybindingContribution, OpenHandler } from '@theia/core/lib/browser';
@@ -51,9 +52,16 @@ import { DiagramLayoutStorageService } from './layout-storage-service';
 // Toolbar contribution
 import { GlspDiagramToolbarContribution } from './glsp-toolbar-contribution';
 
-// T037: Properties panel imports
-import { PROPERTIES_PANEL_ID, SanyamGlspService as SanyamGlspServiceSymbol } from '@sanyam/types';
-import { PropertiesPanelWidget, PropertiesPanelContribution, PropertiesPanelFactory } from './properties';
+// T037: Properties panel imports (using Theia's built-in property view)
+import { SanyamGlspService as SanyamGlspServiceSymbol } from '@sanyam/types';
+import { PropertyDataService } from '@theia/property-view/lib/browser/property-data-service';
+import { PropertyViewWidgetProvider } from '@theia/property-view/lib/browser/property-view-widget-provider';
+import {
+  ElementPropertyDataService,
+  ElementPropertyViewFormWidget,
+  ElementPropertyViewWidgetProvider,
+  PropertySelectionBridge,
+} from './properties';
 
 // T045: Outline sync imports
 import { OutlineSyncServiceSymbol, OutlineSyncServiceImpl, ElementSymbolMapper, DiagramOutlineContribution } from './outline';
@@ -231,26 +239,33 @@ export default new ContainerModule((bind: interfaces.Bind, _unbind, _isBound, re
   // T037: Properties Panel
   // ═══════════════════════════════════════════════════════════════════════════════
 
-  // Bind GLSP service for properties panel (uses the proxy)
+  // Bind GLSP service for properties (uses the proxy)
   bind(SanyamGlspServiceSymbol).toDynamicValue(({ container }) =>
     container.get(GLSP_FRONTEND_TYPES.GlspServiceProxy)
   ).inSingletonScope();
 
-  // Bind properties panel widget
-  bind(PropertiesPanelWidget).toSelf().inSingletonScope();
+  // Property data service (provides property data for element selections)
+  // Use .to() pattern matching Theia's contribution convention (not .toService())
+  // so ContributionProvider.getContributions() discovers it via getAll()
+  bind(ElementPropertyDataService).toSelf().inSingletonScope();
+  bind(PropertyDataService).toDynamicValue(({ container }) =>
+    container.get(ElementPropertyDataService)
+  ).inSingletonScope();
 
-  // Bind properties panel factory
-  bind(PropertiesPanelFactory).toSelf().inSingletonScope();
-  bind(WidgetFactory).toDynamicValue((ctx) => ({
-    id: PROPERTIES_PANEL_ID,
-    createWidget: () => ctx.container.get(PropertiesPanelWidget),
-  })).inSingletonScope();
+  // Property view form widget (renders property fields)
+  bind(ElementPropertyViewFormWidget).toSelf().inSingletonScope();
 
-  // Bind properties panel contribution
-  bind(PropertiesPanelContribution).toSelf().inSingletonScope();
-  bind(FrontendApplicationContribution).toService(PropertiesPanelContribution);
-  bind(CommandContribution).toService(PropertiesPanelContribution);
-  bind(MenuContribution).toService(PropertiesPanelContribution);
+  // Property view widget provider (connects selection to form widget)
+  // Use .toDynamicValue() with singleton scope instead of .toService() which
+  // explicitly prevents caching in Inversify 6 and may cause issues with getAll()
+  bind(ElementPropertyViewWidgetProvider).toSelf().inSingletonScope();
+  bind(PropertyViewWidgetProvider).toDynamicValue(({ container }) =>
+    container.get(ElementPropertyViewWidgetProvider)
+  ).inSingletonScope();
+
+  // Property selection bridge (publishes outline/diagram events to SelectionService)
+  bind(PropertySelectionBridge).toSelf().inSingletonScope();
+  bind(FrontendApplicationContribution).toService(PropertySelectionBridge);
 
   // ═══════════════════════════════════════════════════════════════════════════════
   // T045: Outline Sync Service

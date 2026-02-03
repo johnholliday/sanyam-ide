@@ -152,6 +152,16 @@ export class ElementIdRegistry {
   }
 
   /**
+   * Get the AST node assigned to a UUID.
+   *
+   * @param uuid - The UUID string
+   * @returns The AST node, or undefined if not found
+   */
+  getAstNode(uuid: string): AstNode | undefined {
+    return this.uuidToAstNode.get(uuid);
+  }
+
+  /**
    * Reconcile freshly-parsed AST nodes against stored fingerprints.
    *
    * This is the core algorithm that assigns stable UUIDs to AST nodes.

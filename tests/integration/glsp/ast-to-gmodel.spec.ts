@@ -13,7 +13,6 @@ import type { TextDocument } from 'vscode-languageserver-textdocument';
 import type { Position } from 'vscode-languageserver';
 
 // TODO: Import actual implementations when available
-// import { ManifestDrivenGModelFactory } from '../../../packages/language-server/src/glsp/manifest-converter';
 // import { defaultAstToGModelProvider } from '../../../packages/language-server/src/glsp/providers/ast-to-gmodel-provider';
 
 /**
@@ -136,7 +135,7 @@ function createMockEntityAst(): AstNode {
 describe('AST to GModel Conversion', () => {
   describe('Basic Entity Conversion', () => {
     it('should convert entity AST to GNode', () => {
-      // TODO: Implement when ManifestDrivenGModelFactory is available
+      // TODO: Implement with defaultAstToGModelProvider
       const ast = createMockEntityAst();
 
       // Mock conversion result

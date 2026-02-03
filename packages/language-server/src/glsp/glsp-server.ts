@@ -16,7 +16,6 @@ import type { GlspContext, LanguageContribution, GlspFeatureProviders } from '@s
 import { GlspContextFactory, createGlspContextFactory } from './glsp-context-factory.js';
 import { LangiumSourceModelStorage, createLangiumSourceModelStorage } from './langium-source-model-storage.js';
 import type { IdRegistryLayoutData } from './element-id-registry.js';
-import { ManifestDrivenGModelFactory, createManifestDrivenGModelFactory } from './manifest-converter.js';
 import {
   OperationHandlerRegistry,
   ProviderRegistry,
@@ -91,7 +90,6 @@ export interface GlspServerConfig {
 export class GlspServer {
   private contextFactory: GlspContextFactory;
   private sourceModelStorage: LangiumSourceModelStorage;
-  private gModelFactory: ManifestDrivenGModelFactory;
   private handlerRegistry: OperationHandlerRegistry;
   private providerRegistry: ProviderRegistry;
   private providerResolver: GlspProviderResolver;
@@ -107,8 +105,6 @@ export class GlspServer {
     // Cast to LangiumServices - the GLSP context factory uses a subset of services
     this.contextFactory = createGlspContextFactory(services as any);
     this.sourceModelStorage = createLangiumSourceModelStorage(services);
-    this.gModelFactory = createManifestDrivenGModelFactory();
-
     // Initialize registries
     this.handlerRegistry = new OperationHandlerRegistry();
     this.providerRegistry = new ProviderRegistry();
@@ -182,10 +178,6 @@ export class GlspServer {
   registerLanguage(contribution: LanguageContribution): void {
     this.languageContributions.set(contribution.languageId, contribution);
 
-    // Configure GModel factory from manifest
-    if (contribution.manifest) {
-      this.gModelFactory.configure(contribution);
-    }
   }
 
   /**
@@ -212,6 +204,12 @@ export class GlspServer {
     const contribution = this.getContribution(document);
     if (contribution) {
       (context as any).manifest = contribution.manifest;
+    }
+
+    // Wire the element ID registry into every context for UUID→AST lookups
+    const modelState = this.sourceModelStorage.getModelState(document.uri.toString());
+    if (modelState) {
+      (context as any).idRegistry = modelState.idRegistry;
     }
 
     return context;

@@ -310,6 +310,156 @@ export const defaultGModelToAstProvider = {
   },
 
   /**
+   * Update a property value on an AST node, generating text edits.
+   *
+   * Uses the CST node tree to locate the property assignment in source text
+   * and generates a TextEdit to replace the old value with the new one.
+   *
+   * @param context - GLSP context
+   * @param elementId - Element ID to update
+   * @param propertyName - Property name to update
+   * @param value - New value
+   * @returns ApplyResult with text edits
+   */
+  updateProperty(
+    context: GlspContext,
+    elementId: string,
+    propertyName: string,
+    value: unknown
+  ): ApplyResult {
+    const astNode = this.findAstNode(context, elementId);
+    if (!astNode) {
+      return {
+        success: false,
+        error: `Element not found: ${elementId}`,
+      };
+    }
+
+    const cstNode = astNode.$cstNode;
+    if (!cstNode) {
+      return {
+        success: false,
+        error: 'Cannot find CST node for element',
+      };
+    }
+
+    const document = context.document;
+    const text = document.textDocument.getText();
+
+    // Find the property's CST node by iterating CST children.
+    // In Langium's CST, property assignments appear as child nodes
+    // whose grammarSource feature matches the property name.
+    const propertyCstNode = this.findPropertyCstNode(cstNode, propertyName);
+
+    if (propertyCstNode) {
+      // Replace the existing property value in source text
+      const formattedValue = this.formatPropertyValueForSource(value, propertyName, astNode);
+      const startPos = document.textDocument.positionAt(propertyCstNode.offset);
+      const endPos = document.textDocument.positionAt(propertyCstNode.offset + propertyCstNode.length);
+
+      return {
+        success: true,
+        astNode,
+        textEdits: [{
+          range: { start: startPos, end: endPos },
+          newText: formattedValue,
+        }],
+      };
+    }
+
+    // Property exists in AST but not yet in source text (default value).
+    // Insert a new property assignment before the closing brace.
+    const formattedValue = this.formatPropertyValueForSource(value, propertyName, astNode);
+    const insertText = `  ${propertyName}: ${formattedValue}\n`;
+    const insertPosition = this.findPropertyInsertPosition(context, astNode);
+
+    return {
+      success: true,
+      astNode,
+      textEdits: [{
+        range: { start: insertPosition, end: insertPosition },
+        newText: insertText,
+      }],
+    };
+  },
+
+  /**
+   * Find the CST node for a specific property value within a parent CST node.
+   *
+   * Searches through CST children for nodes whose grammar source indicates
+   * they are assignments to the given property name. Returns the value node
+   * (not the entire assignment), so text edits replace only the value portion.
+   */
+  findPropertyCstNode(
+    parentCst: import('langium').CstNode,
+    propertyName: string
+  ): import('langium').CstNode | undefined {
+    // Walk the CST tree looking for nodes assigned to this property
+    const content = 'content' in parentCst ? (parentCst as any).content : undefined;
+    if (!Array.isArray(content)) {
+      return undefined;
+    }
+
+    for (const child of content) {
+      // In Langium 4.x, CST nodes carry grammarSource with a 'feature' property
+      // that indicates which AST property the node corresponds to
+      const grammarSource = child.grammarSource;
+      if (grammarSource && 'name' in grammarSource && grammarSource.name === propertyName) {
+        // For compound assignments (keyword + value), return just the value part
+        if ('content' in child && Array.isArray(child.content)) {
+          // Return the last content child (typically the value token)
+          const valueNode = child.content[child.content.length - 1];
+          if (valueNode) {
+            return valueNode;
+          }
+        }
+        return child;
+      }
+
+      // Also check direct feature assignment on leaf nodes
+      if (child.feature === propertyName || (child.grammarSource?.feature === propertyName)) {
+        return child;
+      }
+    }
+
+    return undefined;
+  },
+
+  /**
+   * Format a value for insertion into source text.
+   *
+   * @param value - The value to format
+   * @param propertyName - Property name (for context)
+   * @param astNode - The AST node (for type inference)
+   * @returns Formatted source text
+   */
+  formatPropertyValueForSource(
+    value: unknown,
+    propertyName: string,
+    astNode: AstNode
+  ): string {
+    if (typeof value === 'string') {
+      // Check if the current value in AST looks like a reference (has $ref or $refText)
+      const currentValue = (astNode as any)[propertyName];
+      if (currentValue && typeof currentValue === 'object' &&
+          ('$ref' in currentValue || '$refText' in currentValue)) {
+        // Reference — use bare identifier (no quotes)
+        return String(value);
+      }
+      // Regular string — quote it
+      return `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+    }
+    if (typeof value === 'boolean') {
+      return value ? 'true' : 'false';
+    }
+    if (typeof value === 'number') {
+      return String(value);
+    }
+    // Default: treat as bare identifier (enum values, etc.)
+    return String(value);
+  },
+
+  /**
    * Find the AST node corresponding to an element ID.
    */
   findAstNode(context: GlspContext, elementId: string): AstNode | undefined {

@@ -21,7 +21,9 @@ export type PropertyType =
   | 'number'
   | 'boolean'
   | 'enum'
-  | 'reference';
+  | 'reference'
+  | 'array'
+  | 'object';
 
 /**
  * Validation rules for a property.
@@ -185,7 +187,7 @@ export function classifyFieldValue(value: unknown): FieldClassification {
   }
 
   if (Array.isArray(value)) {
-    return 'child';
+    return 'property';
   }
 
   if (type === 'object') {
@@ -194,7 +196,8 @@ export function classifyFieldValue(value: unknown): FieldClassification {
     if ('$ref' in obj || '$refText' in obj) {
       return 'property';
     }
-    return 'child';
+    // Non-reference objects (nested AST nodes) are now properties by default
+    return 'property';
   }
 
   return 'property';

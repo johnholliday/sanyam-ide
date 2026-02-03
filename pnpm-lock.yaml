@@ -1014,6 +1014,9 @@ importers:
       '@theia/outline-view':
         specifier: 1.67.0
         version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
+      '@theia/property-view':
+        specifier: 1.67.0
+        version: 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3)
       elkjs:
         specifier: ^0.11.0
         version: 0.11.0
@@ -1038,6 +1041,12 @@ importers:
       sprotty-protocol:
         specifier: ^1.4.0
         version: 1.4.0
+      survey-core:
+        specifier: ^2.3.5
+        version: 2.5.8
+      survey-react-ui:
+        specifier: ^2.3.5
+        version: 2.5.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(survey-core@2.5.8)
       vscode-languageserver:
         specifier: ^9.0.1
         version: 9.0.1
@@ -8371,6 +8380,16 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
+  survey-core@2.5.8:
+    resolution: {integrity: sha512-ISl55KbECAK04uRcH19xvF85oJHXUFEIc4PG4GdcMSTgEtzizd6czMxj5a5eAtF0IZ6kiJ1fWXXtfZDjTyYCHw==}
+
+  survey-react-ui@2.5.8:
+    resolution: {integrity: sha512-ypPkKpIVjOfi9pH1P0cJzfWx+rjsEc5rqakzwHg+z0ok+4Y+Vxji/DjbhGxiOuU3tkjhhdlAIqQj+WuNbLnLNg==}
+    peerDependencies:
+      react: ^16.5.0 || ^17.0.1 || ^18.1.0 || ^19.0.0
+      react-dom: ^16.5.0 || ^17.0.1 || ^18.1.0 || ^19.0.0
+      survey-core: 2.5.8
+
   swr@2.3.8:
     resolution: {integrity: sha512-gaCPRVoMq8WGDcWj9p4YWzCMPHzE0WNl6W8ADIx9c3JBEIdMkJGMzW+uzXvxHMltwcYACr9jP+32H8/hgwMR7w==}
     peerDependencies:
@@ -13005,6 +13024,22 @@ snapshots:
       - bufferutil
       - debug
       - supports-color
+      - utf-8-validate
+
+  '@theia/property-view@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3)':
+    dependencies:
+      '@theia/core': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))
+      '@theia/filesystem': 1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.6.3)
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react-native-b4a
+      - supports-color
+      - typescript
       - utf-8-validate
 
   '@theia/property-view@1.67.0(@theia/electron@1.67.0(electron@38.4.0))(typescript@5.9.3)':
@@ -20414,6 +20449,14 @@ snapshots:
       has-flag: 4.0.0
 
   supports-preserve-symlinks-flag@1.0.0: {}
+
+  survey-core@2.5.8: {}
+
+  survey-react-ui@2.5.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(survey-core@2.5.8):
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      survey-core: 2.5.8
 
   swr@2.3.8(react@18.3.1):
     dependencies:

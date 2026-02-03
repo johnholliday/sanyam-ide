@@ -222,7 +222,7 @@ export interface GlspValidationMarker {
 /**
  * Type of a property value for form control selection.
  */
-export type GlspPropertyType = 'string' | 'number' | 'boolean' | 'enum' | 'reference';
+export type GlspPropertyType = 'string' | 'number' | 'boolean' | 'enum' | 'reference' | 'array' | 'object';
 
 /**
  * Descriptor for a property displayed in the properties panel.
@@ -244,6 +244,10 @@ export interface GlspPropertyDescriptor {
     readOnly?: boolean;
     /** Help text / description */
     description?: string;
+    /** For array/object types: descriptors for nested fields (template for array elements, fields for objects) */
+    children?: GlspPropertyDescriptor[];
+    /** For array type: AST $type of array elements (only set when all elements share the same type) */
+    elementType?: string;
 }
 
 /**

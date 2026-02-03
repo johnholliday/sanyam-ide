@@ -1,0 +1,406 @@
+/**
+ * Properties Panel — SurveyJS / Theia CSS Overrides
+ *
+ * Maps SurveyJS survey elements to Theia's design system via CSS variables.
+ * Works with both light and dark themes automatically.
+ */
+
+/* ═══════════════════════════════════════════════════════
+   Container & Root
+   ═══════════════════════════════════════════════════════ */
+
+.sanyam-survey-root {
+  background: var(--theia-sideBar-background);
+  color: var(--theia-foreground);
+  font-family: var(--theia-ui-font-family);
+  font-size: var(--theia-ui-font-size1);
+  padding: 0;
+  margin: 0;
+}
+
+.sanyam-survey-container {
+  background: transparent;
+}
+
+.sanyam-survey-body {
+  padding: 4px 8px;
+}
+
+.sanyam-survey-body--empty {
+  padding: 12px;
+  color: var(--theia-descriptionForeground);
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Header
+   ═══════════════════════════════════════════════════════ */
+
+.sanyam-survey-header {
+  display: none; /* Survey header not needed; widget provides its own */
+}
+
+.sanyam-survey-footer {
+  display: none; /* No navigation buttons needed */
+}
+
+/* ═══════════════════════════════════════════════════════
+   Panels (Property Groups)
+   ═══════════════════════════════════════════════════════ */
+
+.sanyam-survey-panel-container {
+  border: none;
+  background: transparent;
+  margin: 0;
+  padding: 0;
+}
+
+.sanyam-survey-panel-title {
+  font-size: var(--theia-ui-font-size1);
+  font-weight: 600;
+  color: var(--theia-foreground);
+  padding: 6px 0 4px;
+  margin: 0;
+  border-bottom: 1px solid var(--theia-sideBarSectionHeader-border, var(--theia-panel-border));
+}
+
+.sanyam-survey-panel-content {
+  padding: 4px 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Questions (Property Fields)
+   ═══════════════════════════════════════════════════════ */
+
+.sanyam-survey-question {
+  margin: 0;
+  padding: 4px 0;
+}
+
+.sanyam-survey-question-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.sanyam-survey-question-title {
+  font-size: var(--theia-ui-font-size1);
+  font-weight: 400;
+  color: var(--theia-foreground);
+  padding: 0;
+  margin: 0;
+}
+
+.sanyam-survey-question-description {
+  font-size: calc(var(--theia-ui-font-size1) - 1px);
+  color: var(--theia-descriptionForeground);
+  margin: 0 0 2px;
+}
+
+.sanyam-survey-question--error {
+  border-left: 2px solid var(--theia-inputValidation-errorBorder);
+  padding-left: 6px;
+}
+
+.sanyam-survey-question--disabled {
+  opacity: 0.6;
+}
+
+.sanyam-survey-question-content {
+  padding: 0;
+}
+
+.sanyam-survey-question-required {
+  color: var(--theia-inputValidation-errorBorder);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Text Inputs
+   ═══════════════════════════════════════════════════════ */
+
+.sanyam-survey-text {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 3px 6px;
+  background: var(--theia-input-background);
+  color: var(--theia-input-foreground);
+  border: 1px solid var(--theia-input-border, transparent);
+  border-radius: 2px;
+  font-family: var(--theia-ui-font-family);
+  font-size: var(--theia-ui-font-size1);
+  outline: none;
+}
+
+.sanyam-survey-text:focus {
+  border-color: var(--theia-focusBorder);
+}
+
+.sanyam-survey-text--error {
+  border-color: var(--theia-inputValidation-errorBorder);
+}
+
+.sanyam-survey-text::placeholder {
+  color: var(--theia-input-placeholderForeground);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Dropdowns
+   ═══════════════════════════════════════════════════════ */
+
+.sanyam-survey-dropdown {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sanyam-survey-dropdown-control,
+.sanyam-survey-dropdown select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 3px 6px;
+  background: var(--theia-input-background);
+  color: var(--theia-input-foreground);
+  border: 1px solid var(--theia-input-border, transparent);
+  border-radius: 2px;
+  font-family: var(--theia-ui-font-family);
+  font-size: var(--theia-ui-font-size1);
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.sanyam-survey-dropdown-control:focus,
+.sanyam-survey-dropdown select:focus {
+  border-color: var(--theia-focusBorder);
+}
+
+.sanyam-survey-dropdown--error {
+  border-color: var(--theia-inputValidation-errorBorder);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Boolean / Toggle
+   ═══════════════════════════════════════════════════════ */
+
+.sanyam-survey-boolean {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.sanyam-survey-boolean-control {
+  appearance: auto;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--theia-focusBorder);
+}
+
+.sanyam-survey-boolean-label {
+  font-size: var(--theia-ui-font-size1);
+  color: var(--theia-foreground);
+  cursor: pointer;
+}
+
+.sanyam-survey-boolean-label--disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.sanyam-survey-boolean-item--disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Checkboxes (multi-select)
+   ═══════════════════════════════════════════════════════ */
+
+.sanyam-survey-checkbox {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sanyam-survey-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sanyam-survey-checkbox-control {
+  appearance: auto;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--theia-focusBorder);
+}
+
+.sanyam-survey-checkbox-label {
+  font-size: var(--theia-ui-font-size1);
+  color: var(--theia-foreground);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Errors
+   ═══════════════════════════════════════════════════════ */
+
+.sanyam-survey-error {
+  color: var(--theia-inputValidation-errorForeground, var(--theia-errorForeground));
+  background: var(--theia-inputValidation-errorBackground, transparent);
+  border: 1px solid var(--theia-inputValidation-errorBorder);
+  border-radius: 2px;
+  padding: 2px 6px;
+  font-size: calc(var(--theia-ui-font-size1) - 1px);
+  margin-top: 2px;
+}
+
+.sanyam-survey-error-item {
+  margin: 2px 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Properties Panel Container
+   ═══════════════════════════════════════════════════════ */
+
+.sanyam-properties-panel {
+  height: 100%;
+  overflow: auto;
+}
+
+.sanyam-properties-header {
+  padding: 6px 8px;
+  font-weight: 600;
+  font-size: var(--theia-ui-font-size1);
+  color: var(--theia-foreground);
+  background: var(--theia-sideBarSectionHeader-background);
+  border-bottom: 1px solid var(--theia-sideBarSectionHeader-border, var(--theia-panel-border));
+}
+
+.sanyam-properties-loading,
+.sanyam-properties-empty {
+  padding: 12px 8px;
+  color: var(--theia-descriptionForeground);
+  font-style: italic;
+  font-size: var(--theia-ui-font-size1);
+}
+
+.sanyam-properties-error {
+  padding: 12px 8px;
+  color: var(--theia-errorForeground);
+  font-size: var(--theia-ui-font-size1);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Paneldynamic (Array Properties)
+   ═══════════════════════════════════════════════════════ */
+
+.sanyam-survey-root .sd-paneldynamic {
+  margin: 4px 0;
+}
+
+.sanyam-survey-root .sd-paneldynamic__panel-wrapper {
+  border: 1px solid var(--theia-panel-border, var(--theia-sideBarSectionHeader-border));
+  border-radius: 3px;
+  margin: 4px 0;
+  padding: 6px 8px;
+  background: var(--theia-editor-background, var(--theia-sideBar-background));
+}
+
+.sanyam-survey-root .sd-paneldynamic__panel-wrapper + .sd-paneldynamic__panel-wrapper {
+  margin-top: 4px;
+}
+
+.sanyam-survey-root .sd-paneldynamic__header {
+  font-size: var(--theia-ui-font-size1);
+  font-weight: 600;
+  color: var(--theia-foreground);
+  padding: 4px 0;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--theia-sideBarSectionHeader-border, var(--theia-panel-border));
+}
+
+/* Nested panels within paneldynamic rows */
+.sanyam-survey-root .sd-paneldynamic .sd-panel {
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 2px solid var(--theia-sideBarSectionHeader-border, var(--theia-panel-border));
+}
+
+/* Add/Remove buttons for paneldynamic */
+.sanyam-survey-root .sd-paneldynamic__add-btn,
+.sanyam-survey-root .sd-paneldynamic__remove-btn {
+  background: var(--theia-button-background, #0e639c);
+  color: var(--theia-button-foreground, #ffffff);
+  border: none;
+  border-radius: 2px;
+  padding: 3px 8px;
+  font-size: calc(var(--theia-ui-font-size1) - 1px);
+  cursor: pointer;
+  margin: 2px 4px 2px 0;
+}
+
+.sanyam-survey-root .sd-paneldynamic__add-btn:hover,
+.sanyam-survey-root .sd-paneldynamic__remove-btn:hover {
+  background: var(--theia-button-hoverBackground, #1177bb);
+}
+
+.sanyam-survey-root .sd-paneldynamic__remove-btn {
+  background: transparent;
+  color: var(--theia-errorForeground, #f48771);
+  border: 1px solid var(--theia-errorForeground, #f48771);
+}
+
+.sanyam-survey-root .sd-paneldynamic__remove-btn:hover {
+  background: var(--theia-inputValidation-errorBackground, rgba(244, 135, 113, 0.1));
+}
+
+/* ═══════════════════════════════════════════════════════
+   Nested Object Panels
+   ═══════════════════════════════════════════════════════ */
+
+.sanyam-survey-root .sd-panel--nested {
+  margin: 4px 0 4px 8px;
+  padding-left: 8px;
+  border-left: 2px solid var(--theia-sideBarSectionHeader-border, var(--theia-panel-border));
+}
+
+.sanyam-survey-root .sd-panel--nested .sd-panel__title {
+  font-size: var(--theia-ui-font-size1);
+  font-weight: 600;
+  color: var(--theia-foreground);
+  padding: 4px 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Collapse/Expand indicators
+   ═══════════════════════════════════════════════════════ */
+
+.sanyam-survey-root .sd-panel__title::before {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: 4px;
+  border-left: 5px solid var(--theia-foreground);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 0.15s ease;
+  vertical-align: middle;
+}
+
+.sanyam-survey-root .sd-panel--collapsed .sd-panel__title::before {
+  transform: rotate(0deg);
+}
+
+.sanyam-survey-root .sd-panel--expanded .sd-panel__title::before {
+  transform: rotate(90deg);
+}
+
+/* Hide SurveyJS branding / powered-by links */
+.sv-footer__complete-btn,
+.sv_completed_page,
+.sv-action-bar,
+.sv_nav {
+  display: none !important;
+}

@@ -27,7 +27,6 @@ import { createEdgeHandler, createCreateEdgeHandler } from './handlers/create-ed
 // Import core components
 import { GlspContextFactory, createGlspContextFactory } from './glsp-context-factory.js';
 import { LangiumSourceModelStorage, createLangiumSourceModelStorage } from './langium-source-model-storage.js';
-import { ManifestDrivenGModelFactory, createManifestDrivenGModelFactory } from './manifest-converter.js';
 
 /**
  * Service identifiers for GLSP services.
@@ -36,8 +35,6 @@ export const GLSP_TYPES = {
   // Core services
   ContextFactory: Symbol.for('GlspContextFactory'),
   SourceModelStorage: Symbol.for('LangiumSourceModelStorage'),
-  GModelFactory: Symbol.for('ManifestDrivenGModelFactory'),
-
   // Providers
   AstToGModelProvider: Symbol.for('AstToGModelProvider'),
   GModelToAstProvider: Symbol.for('GModelToAstProvider'),

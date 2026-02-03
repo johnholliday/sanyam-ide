@@ -1246,10 +1246,25 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
 
                 const context = this.glspServer.createContext(result.document, CancellationToken.None);
 
-                // TODO: Phase 6 (US4) - Implement actual property update
-                // For now, return stub response
                 if (this.glspServer.updateProperty) {
                     const updateResult = this.glspServer.updateProperty(context, elementIds, property, value);
+
+                    // Apply text edits to the Langium document so Theia's
+                    // document sync propagates changes to the Monaco editor.
+                    if (updateResult.edits && updateResult.edits.length > 0) {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const langiumDoc = result.document as any;
+                        const textDoc = langiumDoc.textDocument;
+                        if (textDoc && typeof textDoc.update === 'function') {
+                            // TextDocument.update expects VersionedTextDocumentIdentifier changes
+                            const changes = updateResult.edits.map((edit: { range: { start: { line: number; character: number }; end: { line: number; character: number } }; newText: string }) => ({
+                                range: edit.range,
+                                text: edit.newText,
+                            }));
+                            textDoc.update(changes, textDoc.version + 1);
+                        }
+                    }
+
                     return {
                         success: true,
                         ...updateResult,

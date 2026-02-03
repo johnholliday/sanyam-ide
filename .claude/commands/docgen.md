@@ -37,14 +37,17 @@ Resolve the effective logo using the same priority as the getting-started-widget
 1. **First priority**: Check if the grammar manifest has an explicit `logo` field
    - Read `packages/grammar-definitions/{primaryGrammar}/src/manifest.ts` and look for `logo:` property
 
-2. **Second priority**: Check for conventional grammar logo path
+2. **Second priority**: Check for grammar logo in .source directory
+   - Look for `packages/grammar-definitions/.source/{primaryGrammar}.svg`
+
+3. **Third priority**: Check for conventional grammar logo path in package assets
    - Look for `packages/grammar-definitions/{primaryGrammar}/assets/logos/{primaryGrammar}.svg`
 
-3. **Third priority**: Check applicationData logo from package.json
+4. **Fourth priority**: Check applicationData logo from package.json
    - Use `theia.frontend.config.applicationData.logo` value (e.g., "resources/sanyam-banner.svg")
    - Resolve relative to `applications/browser/`
 
-4. **Fallback**: Use default logo
+5. **Fallback**: Use default logo
    - `applications/browser/resources/sanyam-banner.svg`
 
 Set variable:

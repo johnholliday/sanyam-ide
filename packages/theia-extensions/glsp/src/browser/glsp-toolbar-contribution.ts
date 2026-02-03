@@ -20,7 +20,6 @@ import { TabBarToolbarContribution, TabBarToolbarRegistry } from '@theia/core/li
 import { Widget } from '@theia/core/lib/browser';
 import { CommandRegistry } from '@theia/core/lib/common';
 import { DiagramWidget } from './diagram-widget';
-import { CompositeEditorWidget } from './composite-editor-widget';
 import { DiagramCommands } from './glsp-commands';
 
 /**
@@ -181,16 +180,17 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
     }
 
     /**
-     * Check if the widget is a diagram widget or a composite editor showing diagram view.
+     * Check if the widget is a standalone diagram widget (not embedded in composite editor).
+     * FR-007: Toolbar items are removed from the composite editor's tab bar area
+     * since the diagram now has its own embedded toolbar.
      */
     protected isDiagramWidgetOrComposite(widget: Widget | undefined): boolean {
         if (widget instanceof DiagramWidget) {
+            // Only show tab bar toolbar for standalone diagram widgets
             return true;
         }
-        if (widget instanceof CompositeEditorWidget) {
-            // Show toolbar when composite editor is showing diagram view
-            return widget.activeView === 'diagram';
-        }
+        // FR-007: Do NOT show tab bar toolbar for composite editors —
+        // the embedded toolbar within the diagram view handles these controls.
         return false;
     }
 }

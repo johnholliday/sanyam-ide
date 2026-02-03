@@ -27,7 +27,6 @@ import {
     SNodeImpl,
     SEdgeImpl,
     SLabelImpl,
-    SLabelView,
     SCompartmentImpl,
     SCompartmentView,
     SRoutingHandleView,
@@ -41,7 +40,7 @@ import {
 } from 'sprotty';
 import { SRoutingHandleImpl } from 'sprotty/lib/features/routing/model';
 import { Action } from 'sprotty-protocol';
-import { SanyamNodeImpl, SanyamNodeView, SanyamLabelImpl } from './sanyam-node-view';
+import { SanyamNodeImpl, SanyamNodeView, SanyamLabelImpl, SanyamLabelView } from './sanyam-node-view';
 import { SanyamModelFactory, SanyamEdgeImpl, SanyamCompartmentImpl } from './sanyam-model-factory';
 import { SanyamPortImpl, SanyamPortView } from '../ports';
 import { SanyamEdgeView } from './sanyam-edge-view';
@@ -316,11 +315,11 @@ function createSanyamDiagramModule(): ContainerModule {
         configureModelElement(context, SanyamModelTypes.EDGE_COMPOSITION, SanyamEdgeImpl, SanyamEdgeView);
         configureModelElement(context, SanyamModelTypes.EDGE_AGGREGATION, SanyamEdgeImpl, SanyamEdgeView);
 
-        // Labels - register all backend label types
-        configureModelElement(context, SanyamModelTypes.LABEL, SanyamLabelImpl, SLabelView);
-        configureModelElement(context, SanyamModelTypes.LABEL_HEADING, SanyamLabelImpl, SLabelView);
-        configureModelElement(context, SanyamModelTypes.LABEL_TEXT, SanyamLabelImpl, SLabelView);
-        configureModelElement(context, SanyamModelTypes.LABEL_ICON, SanyamLabelImpl, SLabelView);
+        // Labels - register with custom SanyamLabelView for quote stripping and word-wrap (FR-008, FR-009)
+        configureModelElement(context, SanyamModelTypes.LABEL, SanyamLabelImpl, SanyamLabelView);
+        configureModelElement(context, SanyamModelTypes.LABEL_HEADING, SanyamLabelImpl, SanyamLabelView);
+        configureModelElement(context, SanyamModelTypes.LABEL_TEXT, SanyamLabelImpl, SanyamLabelView);
+        configureModelElement(context, SanyamModelTypes.LABEL_ICON, SanyamLabelImpl, SanyamLabelView);
 
         // Compartments - register all backend compartment types
         configureModelElement(context, SanyamModelTypes.COMPARTMENT, SanyamCompartmentImpl, SCompartmentView);

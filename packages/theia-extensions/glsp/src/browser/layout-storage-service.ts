@@ -63,9 +63,49 @@ export interface DiagramLayoutV2 {
 }
 
 /**
+ * Persisted toggle/viewport state for a diagram view.
+ */
+export interface DiagramViewState {
+    /** Viewport zoom level */
+    zoom?: number;
+    /** Viewport scroll position */
+    scroll?: { x: number; y: number };
+    /** Snap-to-grid enabled */
+    snapToGrid?: boolean;
+    /** Minimap visible */
+    minimapVisible?: boolean;
+    /** Arrowheads visible */
+    arrowheadsVisible?: boolean;
+    /** Edge jumps enabled */
+    edgeJumpsEnabled?: boolean;
+    /** Edge routing mode */
+    edgeRoutingMode?: string;
+}
+
+/**
+ * V3 layout data (adds viewport and toggle state persistence).
+ */
+export interface DiagramLayoutV3 {
+    /** Version marker */
+    version: 3;
+    /** File URI this layout is for */
+    uri: string;
+    /** Timestamp when layout was saved */
+    timestamp: number;
+    /** Element positions keyed by UUID */
+    elements: Record<string, ElementLayout>;
+    /** Fast exact-match lookup: fingerprintKey → UUID */
+    idMap?: Record<string, string>;
+    /** Structural fingerprints for fuzzy reconciliation: UUID → fingerprint */
+    fingerprints?: Record<string, unknown>;
+    /** Persisted viewport and toggle state */
+    viewState?: DiagramViewState;
+}
+
+/**
  * Saved layout data for a diagram (union of all versions).
  */
-export type DiagramLayout = DiagramLayoutV1 | DiagramLayoutV2;
+export type DiagramLayout = DiagramLayoutV1 | DiagramLayoutV2 | DiagramLayoutV3;
 
 /**
  * Storage key prefix for diagram layouts.
@@ -76,7 +116,7 @@ const LAYOUT_STORAGE_PREFIX = 'sanyam.diagram.layout:';
  * Current layout schema version.
  * Increment when making breaking changes to the layout format.
  */
-const CURRENT_LAYOUT_VERSION = 2;
+const CURRENT_LAYOUT_VERSION = 3;
 
 /**
  * Service for persisting diagram layout positions.
@@ -166,17 +206,27 @@ export class DiagramLayoutStorageService {
      * @returns Migrated layout or undefined if migration not possible
      */
     protected migrateLayout(layout: DiagramLayout): DiagramLayout | undefined {
-        // v1 → v2: Preserve element positions as-is; they will be rekeyed
-        // from path-based IDs to UUIDs when the server provides the first
-        // model update with idMap/fingerprints. Until then the old keys are
-        // kept so that any matching element IDs still work.
+        // v1 → v2: Preserve element positions as-is
         if (layout.version === 1) {
-            const migrated: DiagramLayoutV2 = {
+            const v2: DiagramLayoutV2 = {
                 version: 2,
                 uri: layout.uri,
                 timestamp: layout.timestamp,
                 elements: layout.elements,
-                // idMap and fingerprints will be populated by the server
+            };
+            return this.migrateLayout(v2);
+        }
+
+        // v2 → v3: Add empty viewState
+        if (layout.version === 2) {
+            const migrated: DiagramLayoutV3 = {
+                version: 3,
+                uri: layout.uri,
+                timestamp: layout.timestamp,
+                elements: layout.elements,
+                idMap: (layout as DiagramLayoutV2).idMap,
+                fingerprints: (layout as DiagramLayoutV2).fingerprints,
+                viewState: undefined,
             };
             return migrated;
         }
@@ -206,16 +256,18 @@ export class DiagramLayoutStorageService {
         uri: string,
         elements: Record<string, ElementLayout>,
         idMap?: Record<string, string>,
-        fingerprints?: Record<string, unknown>
+        fingerprints?: Record<string, unknown>,
+        viewState?: DiagramViewState
     ): Promise<void> {
         const key = this.getStorageKey(uri);
-        const layout: DiagramLayoutV2 = {
-            version: 2,
+        const layout: DiagramLayoutV3 = {
+            version: 3,
             uri,
             timestamp: Date.now(),
             elements,
             idMap,
             fingerprints,
+            viewState,
         };
 
         try {
@@ -237,7 +289,8 @@ export class DiagramLayoutStorageService {
         uri: string,
         elements: Record<string, ElementLayout>,
         idMap?: Record<string, string>,
-        fingerprints?: Record<string, unknown>
+        fingerprints?: Record<string, unknown>,
+        viewState?: DiagramViewState
     ): void {
         // Cancel any pending save for this URI
         const existingTimer = this.saveTimers.get(uri);
@@ -248,7 +301,7 @@ export class DiagramLayoutStorageService {
         // Schedule a new save
         const timer = setTimeout(() => {
             this.saveTimers.delete(uri);
-            this.saveLayout(uri, elements, idMap, fingerprints).catch(error => {
+            this.saveLayout(uri, elements, idMap, fingerprints, viewState).catch(error => {
                 this.logger.error({ err: error }, 'Debounced save failed');
             });
         }, this.SAVE_DEBOUNCE_MS);

@@ -12,27 +12,8 @@ The grammar-specific diagram styling must support 'ports' for certain entity typ
 
 - change/update the toolbar icons
 
----->>
-Synchronization between the text and diagram views is not working.  The diagram model seems to be cached, even between sessions - open a file, change the text and save the file (diagram not updated), reload the browser, open the file (changed text does persist) => diagram still contains the original labels.  The user must be able to open a grammar file, make changes in any view, save the file and then immediately see the changes reflected in all other attached views that are visible.
-
-Editing in the text or diagram editors must be reflected in the outline view.
-
 ----
-Move the toolbar from the composite editor window to the diagram view itself so that the diagramming tools appear at the top of the diagram editor (closer to the diagram)
-
-----
-Node shapes should expand to accommodate their word-wrapped labels, which should not include double quotes.
-
-----
-The IDE should remember the most recent composite editor layout automatically without prompting the user.  Later, we can have a preferences option whether to save the layout automatically or not.  The layout must include the diagram zoom level and the current state of all of the toggles.
-
-----
-Must distinguish between node properties and child nodes.  This is grammar-dependent since some grammars may represent properties in different ways.  Node properties are not rendered as entities on the diagram canvas, but are instead displayed in a shared properties panel that displays a form allowing the user to edit the properties of the currently selected item within the current context.  The properties panel operates similarly to the Theia Outline panel, responding to context switches.  The selection could be an element in the current diagram, the currently selected element in the text editor, or other objects within the IDE, such as selected files or folders in the Theia IDE explorer.  The properties panel must be a standard dockable Theia panel with a contained properties view that is a form editor widget. Initial implementation using built-in Theia-provided form editor widget.
-
-The user must be able to select an item in the text editor, or click a node in the diagram and see a properties pane where they can view/edit metadata associated with the currently selected item.  Changes to property values are automatically reflected in the model and propagated to all views.
-
-----
-The diagram edges are of two types.  Entity<->Entity and Entity->Child.  Entity<->Entity relationships are rendered as edges.  Entity->Child relationships are rendered by default as containers with the child nodes inside.  Containers can be expanded or collapsed.
+The diagram edges are of two types.  Entity<->Entity and Entity->Child.  Entity<->Entity relationships are rendered as edges.  Entity->Child relationships are rendered by default as containers with the child nodes inside, but can also be rendered as edges (based on a user preference setting).  Containers can be expanded/collapsed to show/hide child nodes.
 
 ----
 Add a Supabase Authentication package (packages/theia-extensions/supabase-auth) that allows the user to login to the application using supabase credentials.  The credentials are stored securely and can be used to validate permissions for access to licensed modules.
@@ -45,4 +26,7 @@ The operations are declared in a separate {grammar}.api.json file (using Claude 
 Modify the frontend with appropriate command contributions matching the generated API.
 
 ---
-Modify the documentation generator to output into the docs/ folder of the grammar package directly.  Add a docs:dev command to the grammar package.json to publish locally via Docker. Modify the frontend documentation URL to point to a grammar-specific URL in Docker. [ need a strategy for CI/CD in production ]
+Modify the /grammar.docs command to generate into the docs/ folder of the grammar package directly instead of into the /docs/{grammar} folder.  This documentation targets the grammar user, not the grammar or IDE developer, and must also include detailed examples as currently specified in the /grammar.examples command.
+
+---
+Add a /docgen command that generates an Eleventy documentation site into the /docs folder, and can be published locally via Docker and then referenced from within the IDE using a standardized URL that includes the ApplicationName from the browser package.json.  The generated documentation targets the IDE user (not the IDE developer) and must include any previously generated documentation content for the primary grammar (from grammar-definitions/{primary_grammar}/docs).  If no previously generated documentation content exists for the primary grammar, then the /docgen command must terminate immediately with an error message explaining the situation.  The /docgen command must generate a unique documentation URL that is read at runtime from the {applicationName}_DOCUMENTATION_URL environment variable, emitting the generated environment variable with instructions for the developer to properly configure the environment.  It must also modify the getting-started-widget and about-dialog to retrieve the corresponding URLS from the generated environment variable.

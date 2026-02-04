@@ -551,6 +551,226 @@ export interface RootTypeConfig {
 }
 
 // =============================================================================
+// Grammar Operation Types
+// =============================================================================
+
+/**
+ * JSON Schema for validation (simplified for operation schemas).
+ */
+export interface JSONSchema {
+  readonly type?: string;
+  readonly properties?: Record<string, JSONSchema>;
+  readonly required?: readonly string[];
+  readonly items?: JSONSchema;
+  readonly enum?: readonly unknown[];
+  readonly description?: string;
+  readonly [key: string]: unknown;
+}
+
+/**
+ * Field definition for operation input dialogs.
+ */
+export interface OperationDialogField {
+  /** Unique field identifier */
+  readonly id: string;
+
+  /** Display label */
+  readonly label: string;
+
+  /** Field type for rendering */
+  readonly type: 'string' | 'number' | 'boolean' | 'select' | 'textarea';
+
+  /** Whether the field is required */
+  readonly required?: boolean;
+
+  /** Default value */
+  readonly default?: string | number | boolean;
+
+  /** Options for 'select' type */
+  readonly options?: readonly { readonly label: string; readonly value: string }[];
+
+  /** Placeholder text */
+  readonly placeholder?: string;
+
+  /** Help text shown below the field */
+  readonly helpText?: string;
+}
+
+/**
+ * Licensing and authentication requirements for an operation.
+ */
+export interface OperationLicensing {
+  /** Whether authentication is required to invoke this operation */
+  readonly requiresAuth?: boolean;
+
+  /** Licensing tier required (e.g., 'free', 'pro', 'enterprise') */
+  readonly tier?: string;
+
+  /** Licensing group for feature bundling */
+  readonly group?: string;
+}
+
+/**
+ * Execution configuration for an operation.
+ */
+export interface OperationExecution {
+  /** Whether the operation runs asynchronously (returns job ID) */
+  readonly async?: boolean;
+
+  /** Expected duration hint for UI feedback */
+  readonly durationHint?: 'fast' | 'medium' | 'slow';
+
+  /** Whether to show progress indicator during execution */
+  readonly showProgress?: boolean;
+}
+
+/**
+ * Endpoint configuration for REST gateway.
+ */
+export interface OperationEndpoint {
+  /** HTTP method */
+  readonly method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+
+  /** Path relative to /api/v1/{languageId}/operations/ */
+  readonly path: string;
+
+  /** JSON Schema for request validation */
+  readonly requestSchema?: JSONSchema;
+
+  /** JSON Schema for response documentation */
+  readonly responseSchema?: JSONSchema;
+}
+
+/**
+ * UI context configuration for operation visibility.
+ */
+export interface OperationContexts {
+  /** Show in file explorer context menu */
+  readonly fileExplorer?: boolean;
+
+  /** Show in diagram element context menu */
+  readonly diagramElement?: boolean;
+
+  /** Show in composite editor toolbar */
+  readonly compositeToolbar?: boolean;
+
+  /** Show in main menu */
+  readonly mainMenu?: boolean;
+}
+
+/**
+ * Input gathering configuration for an operation.
+ */
+export interface OperationInput {
+  /** How input is gathered before execution */
+  readonly type: 'none' | 'selection' | 'dialog';
+
+  /** Dialog field definitions (required if type is 'dialog') */
+  readonly dialogFields?: readonly OperationDialogField[];
+}
+
+/**
+ * Declaration of a custom API operation for a grammar.
+ *
+ * Operations are declared in the GrammarManifest and implemented
+ * in the grammar package's src/operations/ directory.
+ *
+ * @example
+ * ```typescript
+ * const generatePowerShell: GrammarOperation = {
+ *   id: 'generate-powershell',
+ *   displayName: 'Generate PowerShell Script',
+ *   description: 'Generate a PowerShell script for deploying this content model',
+ *   targetTypes: ['ContentModel'],
+ *   icon: 'terminal-powershell',
+ *   category: 'Generate',
+ *   contexts: {
+ *     fileExplorer: true,
+ *     diagramElement: true,
+ *     compositeToolbar: true,
+ *   },
+ *   endpoint: {
+ *     method: 'POST',
+ *     path: '/generate/powershell',
+ *   },
+ *   input: { type: 'selection' },
+ *   licensing: { requiresAuth: false, tier: 'free', group: 'generators' },
+ *   execution: { async: false, durationHint: 'fast' }
+ * };
+ * ```
+ */
+export interface GrammarOperation {
+  /**
+   * Unique operation identifier (kebab-case).
+   * Used in command registration and REST endpoints.
+   *
+   * @example 'generate-powershell', 'ai-analyze-compliance'
+   */
+  readonly id: string;
+
+  /**
+   * Human-readable name for UI display.
+   *
+   * @example 'Generate PowerShell Script'
+   */
+  readonly displayName: string;
+
+  /**
+   * Description for tooltips and help text.
+   *
+   * @example 'Generate a PowerShell script for deploying this content model'
+   */
+  readonly description: string;
+
+  /**
+   * AST types this operation applies to.
+   * Use ['*'] for operations that apply to any type.
+   *
+   * @example ['ContentModel'], ['Actor', 'Content'], ['*']
+   */
+  readonly targetTypes: readonly string[];
+
+  /**
+   * VS Code Codicon name for the operation icon.
+   *
+   * @example 'terminal-powershell', 'shield', 'file-code'
+   */
+  readonly icon?: string;
+
+  /**
+   * Menu grouping category.
+   *
+   * @example 'Generate', 'Analyze', 'Export'
+   */
+  readonly category?: string;
+
+  /**
+   * Where to surface this operation in the IDE.
+   */
+  readonly contexts: OperationContexts;
+
+  /**
+   * REST endpoint configuration.
+   */
+  readonly endpoint: OperationEndpoint;
+
+  /**
+   * Input gathering mode.
+   */
+  readonly input?: OperationInput;
+
+  /**
+   * Licensing and authentication requirements.
+   */
+  readonly licensing?: OperationLicensing;
+
+  /**
+   * Execution mode configuration.
+   */
+  readonly execution?: OperationExecution;
+}
+
+// =============================================================================
 // Grammar Manifest
 // =============================================================================
 
@@ -678,6 +898,32 @@ export interface GrammarManifest {
    * @example 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0i...'
    */
   readonly logo?: string;
+
+  /**
+   * Custom API operations for this grammar.
+   *
+   * Operations are exposed via both LSP (workspace/executeCommand)
+   * and REST gateway endpoints. Each operation is implemented in
+   * the grammar package's src/operations/ directory.
+   *
+   * @example
+   * ```typescript
+   * operations: [
+   *   {
+   *     id: 'generate-powershell',
+   *     displayName: 'Generate PowerShell Script',
+   *     description: 'Generate a PowerShell script for provisioning',
+   *     targetTypes: ['ContentModel'],
+   *     icon: 'terminal-powershell',
+   *     category: 'Generate',
+   *     contexts: { fileExplorer: true, compositeToolbar: true },
+   *     endpoint: { method: 'POST', path: '/generate/powershell' },
+   *     execution: { async: false, durationHint: 'fast' }
+   *   }
+   * ]
+   * ```
+   */
+  readonly operations?: readonly GrammarOperation[];
 }
 
 // =============================================================================

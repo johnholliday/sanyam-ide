@@ -73,6 +73,20 @@ import { GridSnapper, SnapGridTool, bindSnapGridPreferences, SnapGridServiceSymb
 // Edge routing service
 import { EdgeRoutingService } from './layout';
 
+// Grammar Operations imports
+import {
+  GrammarOperationService,
+  GrammarOperationServiceImpl,
+  GrammarOperationCommandContribution,
+  GrammarOperationMenuContribution,
+  GrammarOperationToolbarContribution,
+  GrammarOperationToolbarContributionImpl,
+  GrammarOperationOutput,
+  GrammarOperationOutputServiceImpl,
+  GrammarOperationInitializer,
+  GrammarOperationInitializerImpl,
+} from './grammar-operations';
+
 // Note: Sprotty types are re-exported from di/sprotty-di-config via index.ts
 
 /**
@@ -308,6 +322,36 @@ export default new ContainerModule((bind: interfaces.Bind, _unbind, _isBound, re
 
   bind(DiagramColorContribution).toSelf().inSingletonScope();
   bind(ColorContribution).toService(DiagramColorContribution);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Grammar Operations
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Bind grammar operation service
+  bind(GrammarOperationServiceImpl).toSelf().inSingletonScope();
+  bind(GrammarOperationService).toService(GrammarOperationServiceImpl);
+
+  // Bind grammar operation output service
+  bind(GrammarOperationOutputServiceImpl).toSelf().inSingletonScope();
+  bind(GrammarOperationOutput).toService(GrammarOperationOutputServiceImpl);
+
+  // Bind grammar operation command contribution
+  bind(GrammarOperationCommandContribution).toSelf().inSingletonScope();
+  bind(CommandContribution).toService(GrammarOperationCommandContribution);
+
+  // Bind grammar operation menu contribution
+  bind(GrammarOperationMenuContribution).toSelf().inSingletonScope();
+  bind(MenuContribution).toService(GrammarOperationMenuContribution);
+
+  // Bind grammar operation toolbar contribution
+  bind(GrammarOperationToolbarContributionImpl).toSelf().inSingletonScope();
+  bind(GrammarOperationToolbarContribution).toService(GrammarOperationToolbarContributionImpl);
+  bind(TabBarToolbarContribution).toService(GrammarOperationToolbarContributionImpl);
+
+  // Bind grammar operation initializer (discovers grammars and registers operations on app start)
+  bind(GrammarOperationInitializerImpl).toSelf().inSingletonScope();
+  bind(GrammarOperationInitializer).toService(GrammarOperationInitializerImpl);
+  bind(FrontendApplicationContribution).toService(GrammarOperationInitializerImpl);
 });
 
 /**

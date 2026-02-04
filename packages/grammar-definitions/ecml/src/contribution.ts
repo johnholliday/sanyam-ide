@@ -22,6 +22,7 @@ import {
 } from './generated/module.js';
 import { ecmlDiagramModule } from './diagram/index.js';
 import { EcmlDocumentSymbolProvider } from './document-symbol-provider.js';
+import { operationHandlers } from './operations/index.js';
 
 /**
  * Custom LSP providers for ECML.
@@ -82,6 +83,7 @@ export const contribution: LanguageContribution = {
   lspProviders,
   glspProviders,
   diagramModule: ecmlDiagramModule as ContainerModule,
+  operationHandlers,
 };
 
 export default contribution;

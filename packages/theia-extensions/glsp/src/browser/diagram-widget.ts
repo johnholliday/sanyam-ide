@@ -9,12 +9,19 @@
 
 import { injectable, postConstruct, inject } from 'inversify';
 import { createLogger } from '@sanyam/logger';
-import { Widget, BaseWidget, Message } from '@theia/core/lib/browser';
+import { Widget, BaseWidget, Message, ContextMenuRenderer } from '@theia/core/lib/browser';
 import { Emitter, Event, DisposableCollection, Disposable } from '@theia/core/lib/common';
+import { MenuPath } from '@theia/core/lib/common/menu';
 import { PreferenceService, PreferenceChange } from '@theia/core/lib/common/preferences/preference-service';
 import URI from '@theia/core/lib/common/uri';
 import { DIAGRAM_WIDGET_FACTORY_ID_STRING } from '@sanyam/types';
 import type { GModelRoot as GModelRootType, GModelElement as GModelElementType } from '@sanyam/types';
+
+/**
+ * Menu path for diagram element context menu.
+ * Defined here to avoid circular dependency with glsp-menus.ts.
+ */
+const DIAGRAM_ELEMENT_CONTEXT_MENU: MenuPath = ['diagram-element-context-menu'];
 
 // Import diagram language client for server communication
 import { DiagramLanguageClient, DiagramModelUpdate } from './diagram-language-client';
@@ -216,6 +223,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     /** Edge routing service for dynamic edge routing mode */
     protected edgeRoutingService: EdgeRoutingService | undefined;
 
+    /** Context menu renderer for showing Theia context menus */
+    protected contextMenuRenderer: ContextMenuRenderer | undefined;
+
     constructor(
         protected readonly options: DiagramWidget.Options
     ) {
@@ -293,6 +303,13 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      */
     setEdgeRoutingService(service: EdgeRoutingService): void {
         this.edgeRoutingService = service;
+    }
+
+    /**
+     * Set context menu renderer for showing Theia context menus on right-click.
+     */
+    setContextMenuRenderer(renderer: ContextMenuRenderer): void {
+        this.contextMenuRenderer = renderer;
     }
 
     /**
@@ -522,11 +539,11 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             this.edgeRoutingService?.setMode('orthogonal');
             this.sprottyManager?.requestLayout();
         }));
-        toolbar.appendChild(this.createToolbarButton('codicon codicon-arrow-right', 'Straight Routing', () => {
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-type-hierarchy-sub', 'Straight Routing', () => {
             this.edgeRoutingService?.setMode('straight');
             this.sprottyManager?.requestLayout();
         }));
-        toolbar.appendChild(this.createToolbarButton('codicon codicon-debug-disconnect', 'Bezier Routing', () => {
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-git-compare', 'Bezier Routing', () => {
             this.edgeRoutingService?.setMode('bezier');
             this.sprottyManager?.requestLayout();
         }));
@@ -534,13 +551,13 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         toolbar.appendChild(this.createToolbarSeparator());
 
         // Edge decorations
-        toolbar.appendChild(this.createToolbarButton('codicon codicon-triangle-right', 'Toggle Arrowheads', () => {
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-arrow-both', 'Toggle Arrowheads', () => {
             if (this.edgeRoutingService) {
                 this.edgeRoutingService.setArrowheadsVisible(!this.edgeRoutingService.arrowheadsVisible);
                 this.sprottyManager?.requestLayout();
             }
         }));
-        toolbar.appendChild(this.createToolbarButton('codicon codicon-git-compare', 'Toggle Edge Jumps', () => {
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-loading', 'Toggle Edge Jumps', () => {
             if (this.edgeRoutingService) {
                 this.edgeRoutingService.setEdgeJumpsEnabled(!this.edgeRoutingService.edgeJumpsEnabled);
                 this.sprottyManager?.requestLayout();
@@ -597,6 +614,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         // T022: Add mousedown listener for marquee selection on Ctrl+click empty space
         this.svgContainer.addEventListener('mousedown', this.handleCanvasMouseDown);
 
+        // Add context menu listener for right-click on diagram
+        this.svgContainer.addEventListener('contextmenu', this.handleContextMenu);
+
         // Show placeholder initially
         this.showPlaceholder();
     }
@@ -625,6 +645,30 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 this.logger.debug('[DiagramWidget] Marquee selection mode enabled via Ctrl+click');
             }
         }
+    };
+
+    /**
+     * Handle right-click context menu on the diagram canvas.
+     * Shows Theia's context menu for diagram elements.
+     */
+    protected handleContextMenu = (event: MouseEvent): void => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!this.contextMenuRenderer || !this.svgContainer) {
+            this.logger.warn('[DiagramWidget] Context menu renderer or container not available');
+            return;
+        }
+
+        // Render the diagram element context menu at the click position
+        this.contextMenuRenderer.render({
+            menuPath: DIAGRAM_ELEMENT_CONTEXT_MENU,
+            anchor: { x: event.clientX, y: event.clientY },
+            args: [this.uri, this.state.selection.selectedIds],
+            context: this.svgContainer,
+        });
+
+        this.logger.debug({ position: { x: event.clientX, y: event.clientY } }, '[DiagramWidget] Context menu shown');
     };
 
     /**
@@ -1493,9 +1537,10 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             this.logger.warn({ err: error }, 'Failed to save layout on dispose');
         });
 
-        // Remove marquee mousedown listener
+        // Remove event listeners
         if (this.svgContainer) {
             this.svgContainer.removeEventListener('mousedown', this.handleCanvasMouseDown);
+            this.svgContainer.removeEventListener('contextmenu', this.handleContextMenu);
         }
 
         if (this.sprottyManager) {
@@ -1525,6 +1570,9 @@ export class DiagramWidgetFactory {
     @inject(EdgeRoutingService)
     protected readonly edgeRoutingService: EdgeRoutingService;
 
+    @inject(ContextMenuRenderer)
+    protected readonly contextMenuRenderer: ContextMenuRenderer;
+
     /**
      * Create a diagram widget.
      */
@@ -1534,6 +1582,7 @@ export class DiagramWidgetFactory {
         widget.setDiagramLanguageClient(this.diagramLanguageClient);
         widget.setLayoutStorageService(this.layoutStorageService);
         widget.setEdgeRoutingService(this.edgeRoutingService);
+        widget.setContextMenuRenderer(this.contextMenuRenderer);
         return widget;
     }
 }

@@ -115,6 +115,7 @@
       "@theia/ffmpeg",
       "@vscode/ripgrep",
       "@vscode/windows-ca-certs",
+      "better-sqlite3",
       "chromedriver",
       "cpu-features",
       "drivelist",

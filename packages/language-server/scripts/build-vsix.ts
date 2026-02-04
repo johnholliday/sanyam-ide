@@ -146,11 +146,16 @@ function generateTextMateGrammar(
         fs.readFileSync(pkg.langiumConfigPath, 'utf-8')
       );
 
-      // Ensure textMate output is configured
-      if (!langiumConfig.textMate) {
-        langiumConfig.textMate = {
-          out: path.relative(packageDir, outputDir),
-        };
+      // Langium 4.x: textMate config goes inside each language entry, not at root level
+      const textMateOutDir = path.relative(packageDir, outputDir);
+      if (langiumConfig.languages && Array.isArray(langiumConfig.languages)) {
+        for (const lang of langiumConfig.languages) {
+          if (!lang.textMate) {
+            lang.textMate = {
+              out: textMateOutDir,
+            };
+          }
+        }
       }
 
       // Write temporary config
@@ -162,9 +167,10 @@ function generateTextMateGrammar(
       );
 
       try {
-        // Run langium generate with textmate output
+        // Run langium generate - TextMate output is configured in the config file
+        // Langium 4.x uses -f/--file instead of -c for config file
         execSync(
-          `npx langium generate --textmate -c ${tempConfigPath}`,
+          `npx langium generate -f ${tempConfigPath}`,
           {
             cwd: packageDir,
             stdio: ['pipe', 'pipe', 'pipe'],
@@ -173,9 +179,11 @@ function generateTextMateGrammar(
         );
 
         // Check if the grammar was generated
+        // In Langium 4.x, textMate config is per-language
+        const langEntry = langiumConfig.languages?.find((l: { id: string }) => l.id === pkg.languageId);
         const generatedPath = path.join(
           packageDir,
-          langiumConfig.textMate?.out || 'syntaxes',
+          langEntry?.textMate?.out || 'syntaxes',
           `${pkg.languageId}.tmLanguage.json`
         );
 

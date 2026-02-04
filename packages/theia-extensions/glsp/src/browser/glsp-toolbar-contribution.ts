@@ -143,7 +143,7 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
             id: 'sanyam.diagram.toolbar.edgeRouteStraight',
             command: DiagramCommands.EDGE_ROUTING_STRAIGHT.id,
             tooltip: 'Straight Edge Routing',
-            icon: 'codicon codicon-arrow-right',
+            icon: 'codicon codicon-type-hierarchy-sub',
             priority: 117,
             isVisible,
         });
@@ -153,7 +153,7 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
             id: 'sanyam.diagram.toolbar.edgeRouteBezier',
             command: DiagramCommands.EDGE_ROUTING_BEZIER.id,
             tooltip: 'Bezier Edge Routing',
-            icon: 'codicon codicon-debug-disconnect',
+            icon: 'codicon codicon-git-compare',
             priority: 118,
             isVisible,
         });
@@ -163,7 +163,7 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
             id: 'sanyam.diagram.toolbar.toggleArrowheads',
             command: DiagramCommands.TOGGLE_ARROWHEADS.id,
             tooltip: 'Toggle Arrowheads',
-            icon: 'codicon codicon-triangle-right',
+            icon: 'codicon codicon-arrow-both',
             priority: 119,
             isVisible,
         });
@@ -173,7 +173,7 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
             id: 'sanyam.diagram.toolbar.toggleEdgeJumps',
             command: DiagramCommands.TOGGLE_EDGE_JUMPS.id,
             tooltip: 'Toggle Edge Jumps',
-            icon: 'codicon codicon-git-compare',
+            icon: 'codicon codicon-loading',
             priority: 120,
             isVisible,
         });

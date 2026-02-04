@@ -395,7 +395,7 @@ body {
 .home-logo-img {
   max-width: 260px;
   height: auto;
-  padding-right: 50px;
+  padding-right: var(--space-16);
 }
 
 @media (max-width: 768px) {

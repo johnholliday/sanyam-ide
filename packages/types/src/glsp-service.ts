@@ -597,6 +597,18 @@ export interface SanyamGlspService {
         property: string,
         value: unknown
     ): Promise<UpdatePropertyResponse>;
+
+    /**
+     * Execute a workspace command.
+     *
+     * Routes `sanyam.operation.{languageId}.{operationId}` commands to
+     * the appropriate operation handler registered in the grammar contribution.
+     *
+     * @param command - Full command name (e.g., 'sanyam.operation.ecml.generate-powershell')
+     * @param args - Command arguments array
+     * @returns Command execution result
+     */
+    executeCommand(command: string, args: unknown[]): Promise<unknown>;
 }
 
 /**

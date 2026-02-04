@@ -176,6 +176,15 @@ export class SanyamLanguageClientProvider implements LanguageClientProvider {
                 return result as R;
             }
 
+            case 'workspace/executeCommand': {
+                const { command, arguments: cmdArgs } = params as {
+                    command: string;
+                    arguments: unknown[];
+                };
+                const result = await glspService.executeCommand(command, cmdArgs ?? []);
+                return result as R;
+            }
+
             default:
                 throw new Error(`Unknown GLSP method: ${method}`);
         }

@@ -1284,6 +1284,85 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
         });
     }
 
+    // =========================================================================
+    // Workspace Command Execution
+    // =========================================================================
+
+    /**
+     * Execute a workspace command.
+     *
+     * Routes `sanyam.operation.{languageId}.{operationId}` commands to
+     * the appropriate operation handler registered in the grammar contribution.
+     *
+     * @param command - Full command name (e.g., 'sanyam.operation.ecml.generate-powershell')
+     * @param args - Command arguments array
+     * @returns Command execution result
+     */
+    async executeCommand(command: string, args: unknown[]): Promise<unknown> {
+        return this.ensureInitialized(async () => {
+            this.log(`[SanyamGlspBackendService] executeCommand: ${command}`);
+
+            // Parse command: sanyam.operation.{languageId}.{operationId}
+            const match = command.match(/^sanyam\.operation\.([^.]+)\.(.+)$/);
+            if (!match) {
+                return { success: false, error: `Unknown command: ${command}` };
+            }
+
+            const [, languageId, operationId] = match;
+            const contribution = this.contributions.get(languageId);
+
+            if (!contribution) {
+                return { success: false, error: `Unknown language: ${languageId}` };
+            }
+
+            const handler = contribution.operationHandlers?.[operationId];
+            if (!handler) {
+                return { success: false, error: `Unknown operation: ${operationId}` };
+            }
+
+            // Parse arguments
+            const cmdArgs = (args[0] ?? {}) as {
+                uri?: string;
+                selectedIds?: string[];
+                input?: Record<string, unknown>;
+            };
+
+            if (!cmdArgs.uri) {
+                return { success: false, error: 'Missing uri argument' };
+            }
+
+            // Get Langium document
+            const langium = await this.dynamicImport('langium') as { URI: { parse: (uri: string) => unknown } };
+            const docUri = langium.URI.parse(cmdArgs.uri);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const document = (this.sharedServices as any)?.workspace?.LangiumDocuments?.getDocument(docUri);
+
+            if (!document) {
+                return { success: false, error: `Document not found: ${cmdArgs.uri}` };
+            }
+
+            // Build operation context
+            const context: import('@sanyam/types').OperationContext = {
+                document,
+                selectedIds: cmdArgs.selectedIds,
+                input: cmdArgs.input,
+                correlationId: `cmd-${Date.now()}`,
+                languageId,
+                documentUri: cmdArgs.uri,
+            };
+
+            // Execute handler
+            try {
+                const result = await handler(context);
+                return { success: true, result };
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                this.logError(`[SanyamGlspBackendService] executeCommand error:`, error);
+                return { success: false, error: message };
+            }
+        });
+    }
+
     /**
      * Check if the service is ready.
      */

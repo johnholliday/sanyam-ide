@@ -51,6 +51,14 @@ export class GridSnapper implements ISnapper {
     // Get current config from service if available
     const config = this.snapGridService?.getConfig() ?? this.config;
 
+    console.log('[GridSnapper] snap called', {
+      position,
+      enabled: config.enabled,
+      gridSize: config.gridSize,
+      hasService: !!this.snapGridService,
+      serviceConfig: this.snapGridService?.getConfig()
+    });
+
     if (!config.enabled) {
       return position;
     }
@@ -58,6 +66,7 @@ export class GridSnapper implements ISnapper {
     const snappedX = this.snapValue(position.x, config);
     const snappedY = this.snapValue(position.y, config);
 
+    console.log('[GridSnapper] snapped to', { x: snappedX, y: snappedY });
     return { x: snappedX, y: snappedY };
   }
 

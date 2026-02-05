@@ -22,6 +22,8 @@ export namespace DiagramMenus {
   export const DIAGRAM_LAYOUT: MenuPath = [...DIAGRAM, '3_layout'];
   export const DIAGRAM_ALIGN: MenuPath = [...DIAGRAM, '4_align'];
   export const DIAGRAM_EXPORT: MenuPath = [...DIAGRAM, '5_export'];
+  /** Grammar operations submenu in Diagram menu */
+  export const DIAGRAM_OPERATIONS: MenuPath = [...DIAGRAM, '8_operations'];
 }
 
 /**
@@ -34,6 +36,24 @@ export namespace DiagramContextMenus {
   export const DIAGRAM_ELEMENT_NAVIGATION: MenuPath = [...DIAGRAM_ELEMENT, '3_navigation'];
 }
 
+/** Symbol key for global registration guard (survives module duplication by bundler) */
+const DIAGRAM_MENU_REGISTERED_KEY = '__sanyam_diagram_menu_registered__';
+
+/**
+ * Check if diagram menu is already registered using global marker.
+ * This works even when webpack creates multiple module instances.
+ */
+function isDiagramMenuRegistered(): boolean {
+  return (window as any)[DIAGRAM_MENU_REGISTERED_KEY] === true;
+}
+
+/**
+ * Mark diagram menu as registered using global marker.
+ */
+function markDiagramMenuRegistered(): void {
+  (window as any)[DIAGRAM_MENU_REGISTERED_KEY] = true;
+}
+
 /**
  * Menu contributions for diagram operations.
  */
@@ -43,6 +63,13 @@ export class GlspDiagramMenus implements MenuContribution {
    * Register menus.
    */
   registerMenus(registry: MenuModelRegistry): void {
+    // Prevent duplicate registration (can happen due to module being loaded twice by bundler)
+    if (isDiagramMenuRegistered()) {
+      console.warn('[GlspDiagramMenus] Diagram menu already registered (global check), skipping');
+      return;
+    }
+    markDiagramMenuRegistered();
+
     // Main menu bar
     this.registerMainMenu(registry);
 

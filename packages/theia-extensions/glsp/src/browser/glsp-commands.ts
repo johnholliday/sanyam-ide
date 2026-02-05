@@ -6,9 +6,10 @@
  * @packageDocumentation
  */
 
-import { injectable, inject } from 'inversify';
+import { injectable, inject, postConstruct } from 'inversify';
 import { Command, CommandContribution, CommandRegistry } from '@theia/core/lib/common';
 import { ApplicationShell } from '@theia/core/lib/browser';
+import { ContextKeyService, ContextKey } from '@theia/core/lib/browser/context-key-service';
 import URI from '@theia/core/lib/common/uri';
 import { SelectAllAction } from 'sprotty-protocol';
 import { createLogger } from '@sanyam/logger';
@@ -24,6 +25,7 @@ import {
   FitDiagramAction,
   CenterDiagramAction,
 } from './ui-extensions/tool-palette';
+import { SnapGridServiceSymbol, type SnapGridService } from './ui-extensions/snap-to-grid';
 
 /**
  * Command IDs for diagram operations.
@@ -208,6 +210,15 @@ export class GlspDiagramCommands implements CommandContribution {
   @inject(EdgeRoutingService)
   protected readonly edgeRoutingService: EdgeRoutingService;
 
+  @inject(SnapGridServiceSymbol)
+  protected readonly snapGridService: SnapGridService;
+
+  @inject(ContextKeyService)
+  protected readonly contextKeyService: ContextKeyService;
+
+  /** Context key for snap-to-grid state - triggers toolbar refresh when changed */
+  protected snapToGridContextKey: ContextKey<boolean> | undefined;
+
   /**
    * Cache of the last known diagram widget.
    * Used as fallback when shell.activeWidget is undefined (e.g., during toolbar clicks).
@@ -219,6 +230,12 @@ export class GlspDiagramCommands implements CommandContribution {
    * Used as fallback when shell.activeWidget is undefined.
    */
   protected lastKnownCompositeWidget: CompositeEditorWidget | undefined;
+
+  @postConstruct()
+  protected init(): void {
+    // Create context key for snap-to-grid state
+    this.snapToGridContextKey = this.contextKeyService.createKey<boolean>('sanyam.diagram.snapToGridEnabled', false);
+  }
 
   /**
    * Register commands.
@@ -320,8 +337,16 @@ export class GlspDiagramCommands implements CommandContribution {
     // Toggle snap-to-grid
     registry.registerCommand(DiagramCommands.TOGGLE_SNAP_TO_GRID, {
       execute: (...args: unknown[]) => this.toggleSnapToGrid(this.extractWidgetFromArgs(args)),
-      isEnabled: () => this.hasDiagramFocus(),
-      isToggled: () => this.isSnapToGridEnabled(),
+      isEnabled: () => {
+        const hasFocus = this.hasDiagramFocus();
+        console.log('[GlspDiagramCommands] snap isEnabled called, hasDiagramFocus:', hasFocus);
+        return hasFocus;
+      },
+      isToggled: () => {
+        const toggled = this.isSnapToGridEnabled();
+        console.log('[GlspDiagramCommands] snap isToggled called, returning:', toggled);
+        return toggled;
+      },
     });
 
     // Edge routing mode commands
@@ -386,11 +411,15 @@ export class GlspDiagramCommands implements CommandContribution {
   }
 
   /**
-   * Check if snap-to-grid is enabled in the active diagram.
+   * Check if snap-to-grid is enabled.
+   * Reads directly from global window state to ensure consistency across all webpack chunks.
    */
   protected isSnapToGridEnabled(): boolean {
-    const diagram = this.getActiveDiagram();
-    return diagram?.isSnapToGridEnabled() ?? false;
+    // Read directly from global state to bypass any instance issues
+    const globalConfig = (window as any)['__sanyam_snap_grid_config__'];
+    const enabled = globalConfig?.enabled ?? false;
+    console.log('[GlspDiagramCommands] isSnapToGridEnabled called, returning:', enabled, 'globalConfig:', globalConfig);
+    return enabled;
   }
 
   /**
@@ -794,16 +823,13 @@ export class GlspDiagramCommands implements CommandContribution {
     }
   }
 
-  protected toggleSnapToGrid(widgetHint?: unknown): void {
-    this.logger.debug('[GlspDiagramCommands] toggleSnapToGrid called');
-    const diagram = this.getActiveDiagram(widgetHint);
-    if (diagram) {
-      this.logger.debug('[GlspDiagramCommands] Dispatching toggleSnapToGrid action');
-      diagram.dispatchAction({ kind: 'toggleSnapToGrid' }).catch(err => {
-        this.logger.error({ err }, 'toggleSnapToGrid failed');
-      });
-    } else {
-      this.logger.debug('[GlspDiagramCommands] No diagram for toggleSnapToGrid');
-    }
+  protected toggleSnapToGrid(_widgetHint?: unknown): void {
+    console.log('[GlspDiagramCommands] toggleSnapToGrid called, service config before:', this.snapGridService.getConfig());
+    // Toggle the snap-to-grid state directly via the service
+    const newState = this.snapGridService.toggle();
+    console.log('[GlspDiagramCommands] Snap-to-grid toggled to:', newState);
+
+    // Update context key to trigger toolbar refresh
+    this.snapToGridContextKey?.set(newState);
   }
 }

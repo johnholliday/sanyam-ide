@@ -191,6 +191,8 @@ export interface UIExtensionsModuleOptions {
     enablePopup?: boolean;
     /** Enable minimap (default: true) */
     enableMinimap?: boolean;
+    /** Existing SnapGridTool instance from parent container (to avoid creating duplicate) */
+    snapGridTool?: SnapGridTool;
 }
 
 /**
@@ -318,7 +320,12 @@ export function createUIExtensionsModule(options: UIExtensionsModuleOptions): Co
         configureActionHandler(context, RequestExportSvgAction.KIND, ExportSvgActionHandler);
 
         // Snap to Grid (always enabled)
-        bind(SnapGridTool).toSelf().inSingletonScope();
+        // Use existing instance from parent container if provided, otherwise create new
+        if (options.snapGridTool) {
+            bind(SnapGridTool).toConstantValue(options.snapGridTool);
+        } else {
+            bind(SnapGridTool).toSelf().inSingletonScope();
+        }
         bind(SnapGridActionHandler).toSelf().inSingletonScope();
         configureActionHandler(context, ToggleSnapToGridActionKind, SnapGridActionHandler);
         configureActionHandler(context, UpdateSnapGridConfigActionKind, SnapGridActionHandler);

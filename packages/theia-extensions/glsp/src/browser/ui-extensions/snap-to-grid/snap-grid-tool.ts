@@ -34,6 +34,45 @@ import {
 export const SNAP_GRID_TOOL_ID = 'sanyam-snap-grid-tool';
 
 /**
+ * Global key for shared snap grid config state.
+ * Using window object ensures state survives webpack loading module from different chunks.
+ */
+const SNAP_GRID_CONFIG_KEY = '__sanyam_snap_grid_config__';
+const SNAP_GRID_EMITTER_KEY = '__sanyam_snap_grid_emitter__';
+
+/**
+ * Get the global shared config (creates it if it doesn't exist).
+ * This ensures all instances share the same config, even across webpack chunks.
+ */
+function getSharedConfig(): SnapGridConfig {
+  if (!(window as any)[SNAP_GRID_CONFIG_KEY]) {
+    (window as any)[SNAP_GRID_CONFIG_KEY] = { ...DEFAULT_SNAP_GRID_CONFIG };
+  }
+  return (window as any)[SNAP_GRID_CONFIG_KEY];
+}
+
+/**
+ * Get or create the global shared emitter.
+ * This ensures all instances fire/listen on the same emitter.
+ */
+function getSharedEmitter(): Emitter<SnapGridConfig> {
+  if (!(window as any)[SNAP_GRID_EMITTER_KEY]) {
+    (window as any)[SNAP_GRID_EMITTER_KEY] = new Emitter<SnapGridConfig>();
+  }
+  return (window as any)[SNAP_GRID_EMITTER_KEY];
+}
+
+/**
+ * Update the global shared config and fire the global emitter.
+ */
+function setSharedConfig(config: Partial<SnapGridConfig>): void {
+  const current = getSharedConfig();
+  Object.assign(current, config);
+  // Fire the global emitter so all listeners (across all instances) are notified
+  getSharedEmitter().fire({ ...current });
+}
+
+/**
  * Snap Grid Tool Extension.
  *
  * Provides:
@@ -41,9 +80,15 @@ export const SNAP_GRID_TOOL_ID = 'sanyam-snap-grid-tool';
  * - Snap-to-grid service implementation
  * - Preference persistence (T054)
  */
+/** Counter for instance tracking */
+let snapGridToolInstanceCounter = 0;
+
 @injectable()
 export class SnapGridTool extends AbstractUIExtension implements SnapGridService {
   protected readonly logger = createLogger({ name: 'SnapGridTool' });
+
+  /** Unique instance ID for debugging */
+  public readonly instanceId = ++snapGridToolInstanceCounter;
 
   @inject(DIAGRAM_CONTAINER_ID) @optional()
   protected diagramContainerId: string | undefined;
@@ -53,6 +98,11 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
 
   /** Current configuration */
   protected config: SnapGridConfig = { ...DEFAULT_SNAP_GRID_CONFIG };
+
+  constructor() {
+    super();
+    console.log(`[SnapGridTool] Created instance #${this.instanceId}`);
+  }
 
   /** Grid visible state */
   protected gridVisible: boolean = false;
@@ -123,12 +173,12 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
 
     try {
       const enabled = this.preferenceService.get<boolean>(SNAP_TO_GRID_PREFERENCE_ID, false);
-      const gridSize = this.preferenceService.get<number>(GRID_SIZE_PREFERENCE_ID, 10);
+      const gridSize = this.preferenceService.get<number>(GRID_SIZE_PREFERENCE_ID, DEFAULT_SNAP_GRID_CONFIG.gridSize);
 
       this.config = {
         ...this.config,
         enabled: enabled ?? false,
-        gridSize: gridSize ?? 10,
+        gridSize: gridSize ?? DEFAULT_SNAP_GRID_CONFIG.gridSize,
       };
 
       this.logger.info({ enabled, gridSize }, 'Loaded preferences');
@@ -163,24 +213,29 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
    */
   getState(): SnapGridState {
     return {
-      config: { ...this.config },
+      config: { ...getSharedConfig() },
       gridVisible: this.gridVisible,
     };
   }
 
   /**
    * Get current configuration.
+   * Uses global shared config to ensure consistency across all instances and webpack chunks.
    */
   getConfig(): SnapGridConfig {
-    return { ...this.config };
+    const shared = getSharedConfig();
+    console.log(`[SnapGridTool #${this.instanceId}] getConfig() called, enabled: ${shared.enabled}`);
+    return { ...shared };
   }
 
   /**
    * Update configuration.
+   * Updates both instance config and global shared config.
    */
   setConfig(config: Partial<SnapGridConfig>): void {
     this.config = { ...this.config, ...config };
-    this.onConfigChangedEmitter.fire(this.config);
+    // Update global shared config and fire global emitter (notifies ALL listeners across all instances)
+    setSharedConfig(config);
 
     // Update grid overlay if visibility changed
     if ('showGrid' in config) {
@@ -195,9 +250,11 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
    * Toggle snap-to-grid enabled state.
    */
   toggle(): boolean {
-    const newEnabled = !this.config.enabled;
+    // Read current state from global config to ensure consistency
+    const currentEnabled = getSharedConfig().enabled;
+    const newEnabled = !currentEnabled;
     this.setConfig({ enabled: newEnabled });
-    this.logger.info(`Snap-to-grid ${newEnabled ? 'enabled' : 'disabled'}`);
+    console.log(`[SnapGridTool #${this.instanceId}] toggle() called, was: ${currentEnabled}, now: ${newEnabled}`);
     return newEnabled;
   }
 
@@ -239,9 +296,10 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
 
   /**
    * Subscribe to configuration changes.
+   * Uses the global emitter so listeners are notified regardless of which instance triggers the change.
    */
   onConfigChanged(callback: (config: SnapGridConfig) => void): { dispose(): void } {
-    return this.onConfigChangedEmitter.event(callback);
+    return getSharedEmitter().event(callback);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════

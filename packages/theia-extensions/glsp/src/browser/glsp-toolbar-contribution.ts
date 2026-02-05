@@ -119,6 +119,7 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
         });
 
         // Toggle Snap to Grid
+        // The 'when' clause with a context key causes the toolbar to refresh when the key changes
         registry.registerItem({
             id: 'sanyam.diagram.toolbar.snapToGrid',
             command: DiagramCommands.TOGGLE_SNAP_TO_GRID.id,
@@ -126,6 +127,7 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
             icon: 'codicon codicon-layout-sidebar-right',
             priority: 115,
             isVisible,
+            when: 'sanyam.diagram.snapToGridEnabled || !sanyam.diagram.snapToGridEnabled',
         });
 
         // Edge Routing: Orthogonal

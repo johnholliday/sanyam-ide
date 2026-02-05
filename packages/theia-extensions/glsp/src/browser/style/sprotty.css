@@ -172,10 +172,10 @@
     --diagram-bg-color: var(--theia-sanyam-diagram-background, var(--theia-editor-background, #1e1e1e));
     --diagram-pattern-opacity: 0.3;
     --diagram-dots-color: var(--theia-sanyam-diagram-gridColor, rgba(128, 128, 128, 0.3));
-    --diagram-dots-size: 2px;
-    --diagram-dots-spacing: 30px;
+    --diagram-dots-size: 1px;
+    --diagram-dots-spacing: 20px;
     --diagram-grid-color: var(--theia-sanyam-diagram-gridColor, rgba(128, 128, 128, 0.3));
-    --diagram-grid-size: 30px;
+    --diagram-grid-size: 20px;
 }
 
 /* No background pattern - solid color */

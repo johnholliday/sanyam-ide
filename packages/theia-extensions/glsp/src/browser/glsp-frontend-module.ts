@@ -73,6 +73,9 @@ import { GridSnapper, SnapGridTool, bindSnapGridPreferences, SnapGridServiceSymb
 // Edge routing service
 import { EdgeRoutingService } from './layout';
 
+// GLSP theia-integration menu contribution (we unbind this to avoid duplicate Diagram menu)
+import { GLSPDiagramMenuContribution } from '@eclipse-glsp/theia-integration/lib/browser/diagram/glsp-diagram-commands';
+
 // Grammar Operations imports
 import {
   GrammarOperationService,
@@ -134,7 +137,26 @@ class CompositeAwareMonacoOutlineContribution extends MonacoOutlineContribution 
     }
 }
 
-export default new ContainerModule((bind: interfaces.Bind, _unbind, _isBound, rebind) => {
+/**
+ * Override GLSP's menu contribution to prevent duplicate "Diagram" menu.
+ * We use our own GlspDiagramMenus instead.
+ */
+@injectable()
+class DisabledGLSPDiagramMenuContribution extends GLSPDiagramMenuContribution {
+  override registerMenus(): void {
+    // No-op - we use our own GlspDiagramMenus
+    console.log('[DisabledGLSPDiagramMenuContribution] Skipping GLSP Diagram menu registration');
+  }
+}
+
+export default new ContainerModule((bind: interfaces.Bind, _unbind, isBound, rebind) => {
+  // Rebind GLSP's menu contribution to our disabled version to avoid duplicate "Diagram" menu
+  // The @eclipse-glsp/theia-integration package auto-registers GLSPDiagramMenuContribution
+  // which creates its own Diagram menu. We use our own GlspDiagramMenus instead.
+  if (isBound(GLSPDiagramMenuContribution)) {
+    rebind(GLSPDiagramMenuContribution).to(DisabledGLSPDiagramMenuContribution).inSingletonScope();
+    console.log('[GlspFrontendModule] Rebound GLSPDiagramMenuContribution to disabled version');
+  }
   // Override MonacoOutlineContribution to avoid opening new tabs for composite editor symbols
   rebind(MonacoOutlineContribution).to(CompositeAwareMonacoOutlineContribution).inSingletonScope();
   // ═══════════════════════════════════════════════════════════════════════════════

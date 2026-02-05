@@ -12,7 +12,7 @@ import { MenuContribution, MenuModelRegistry, MenuPath } from '@theia/core';
 import { CommonMenus } from '@theia/core/lib/browser';
 import type { GrammarOperation } from '@sanyam/types';
 import { GrammarOperationCommands } from './grammar-operation-commands';
-import { DiagramContextMenus } from '../glsp-menus';
+import { DiagramContextMenus, DiagramMenus } from '../glsp-menus';
 
 /**
  * Menu paths for grammar operations.
@@ -24,8 +24,11 @@ export namespace GrammarOperationMenus {
   /** Editor context menu path */
   export const EDITOR_CONTEXT: MenuPath = ['editor-context-menu', 'grammar-operations'];
 
-  /** Main menu operations path */
+  /** Main menu operations path (Edit menu) */
   export const MAIN_MENU: MenuPath = [...CommonMenus.EDIT, 'grammar-operations'];
+
+  /** Diagram menu operations path */
+  export const DIAGRAM_MENU: MenuPath = [...DiagramMenus.DIAGRAM_OPERATIONS];
 
   /** Diagram element context menu path */
   export const DIAGRAM_ELEMENT: MenuPath = [...DiagramContextMenus.DIAGRAM_ELEMENT, '4_grammar-operations'];
@@ -70,6 +73,13 @@ export class GrammarOperationMenuContribution implements MenuContribution {
       GrammarOperationMenus.DIAGRAM_ELEMENT,
       'Grammar Operations',
       { sortString: '4' }
+    );
+
+    // Register submenu group for grammar operations in Diagram menu
+    menus.registerSubmenu(
+      GrammarOperationMenus.DIAGRAM_MENU,
+      'Grammar Operations',
+      { sortString: '8' }
     );
   }
 
@@ -140,7 +150,7 @@ export class GrammarOperationMenuContribution implements MenuContribution {
       }
     }
 
-    // Main menu
+    // Main menu (Edit > Grammar Operations)
     if (operation.contexts.mainMenu) {
       const menuPath: MenuPath = [...GrammarOperationMenus.MAIN_MENU, category];
       if (!registered.has('main')) {
@@ -151,6 +161,18 @@ export class GrammarOperationMenuContribution implements MenuContribution {
           order: this.getOrderForOperation(operation),
         });
         registered.add('main');
+      }
+
+      // Also register in Diagram menu (Diagram > Grammar Operations)
+      const diagramMenuPath: MenuPath = [...GrammarOperationMenus.DIAGRAM_MENU, category];
+      if (!registered.has('diagramMenu')) {
+        menus.registerMenuAction(diagramMenuPath, {
+          commandId,
+          label: operation.displayName,
+          icon: operation.icon ? `codicon codicon-${operation.icon}` : undefined,
+          order: this.getOrderForOperation(operation),
+        });
+        registered.add('diagramMenu');
       }
     }
 

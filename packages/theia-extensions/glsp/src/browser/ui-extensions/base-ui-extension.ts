@@ -17,7 +17,7 @@
  */
 
 import { createLogger } from '@sanyam/logger';
-import { injectable, inject } from 'inversify';
+import { injectable, inject, optional } from 'inversify';
 import { TYPES, IActionDispatcher, SModelRootImpl } from 'sprotty';
 import { Action } from 'sprotty-protocol';
 
@@ -84,8 +84,8 @@ export namespace SetUIExtensionVisibilityAction {
 export abstract class AbstractUIExtension {
     protected readonly logger = createLogger({ name: 'BaseUiExtension' });
 
-    @inject(TYPES.IActionDispatcher)
-    protected actionDispatcher: IActionDispatcher;
+    @inject(TYPES.IActionDispatcher) @optional()
+    protected actionDispatcher: IActionDispatcher | undefined;
 
     protected containerElement: HTMLElement | undefined;
     protected state: UIExtensionState = UIExtensionState.HIDDEN;

@@ -68,6 +68,7 @@ import {
 } from '../ui-extensions';
 
 import { createElkLayoutModule, LayoutCompleteAction, EdgeRoutingService, EdgeJumpPostprocessor } from '../layout';
+import { GridSnapper, SnapGridServiceSymbol, SnapGridTool, type SnapGridService } from '../ui-extensions/snap-to-grid';
 
 /**
  * Service identifier for the diagram ID.
@@ -361,6 +362,8 @@ export interface CreateDiagramContainerOptions {
     onLayoutComplete?: LayoutCompleteCallback;
     /** Edge routing service for dynamic edge routing mode */
     edgeRoutingService?: EdgeRoutingService;
+    /** Snap grid service for snap-to-grid functionality */
+    snapGridService?: SnapGridService;
 }
 
 /**
@@ -431,9 +434,23 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
         enableResizeHandles: options.uiExtensions?.enableResizeHandles ?? true,
         enablePopup: options.uiExtensions?.enablePopup ?? true,
         enableMinimap: options.uiExtensions?.enableMinimap ?? true,
+        // Pass existing SnapGridTool from Theia container to avoid creating duplicate instance
+        snapGridTool: options.snapGridService as SnapGridTool | undefined,
     };
 
     container.load(createUIExtensionsModule(uiExtensionsOptions));
+
+    // Bind snap-to-grid snapper for Sprotty's ISnapper interface
+    // This enables snapping during drag operations
+    if (options.snapGridService) {
+        console.log('[SprottyDiConfig] Binding SnapGridService from options');
+        container.bind(SnapGridServiceSymbol).toConstantValue(options.snapGridService);
+    } else {
+        console.log('[SprottyDiConfig] No SnapGridService provided in options');
+    }
+    console.log('[SprottyDiConfig] Binding GridSnapper to TYPES.ISnapper');
+    container.bind(GridSnapper).toSelf().inSingletonScope();
+    container.bind(TYPES.ISnapper).toService(GridSnapper);
 
     return container;
 }

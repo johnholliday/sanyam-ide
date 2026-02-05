@@ -936,9 +936,6 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 await this.setModel(response.gModel);
                 this.logger.debug(`[DiagramWidget] Model loaded successfully for: ${this.uri}`);
             } else {
-                // Log the raw error for debugging
-                this.logger.error({ rawError: response.error, errorType: typeof response.error }, '[DiagramWidget] Model load failed');
-
                 // Convert error to string - handle object errors (e.g., JSON-RPC errors)
                 let errorMsg: string;
                 if (response.error === undefined || response.error === null) {
@@ -953,7 +950,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     errorMsg = String(response.error);
                 }
 
-                this.logger.error(`[DiagramWidget] Failed to load model: ${errorMsg}`);
+                this.logger.error({ errorMsg }, '[DiagramWidget] Failed to load model');
                 this.showError(errorMsg);
             }
         } catch (error) {

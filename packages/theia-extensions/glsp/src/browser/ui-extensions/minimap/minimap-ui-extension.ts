@@ -1118,6 +1118,9 @@ export class MinimapUIExtension extends AbstractUIExtension {
 
         // Wait a bit for DOM to be ready, then update
         setTimeout(() => {
+            // Re-establish the viewport observer in case the SVG was recreated
+            // This is needed because setModel may replace the graph group element
+            this.startObservingViewport();
             this.doUpdateMinimap();
             this.logger.debug('Force update completed');
         }, 150);

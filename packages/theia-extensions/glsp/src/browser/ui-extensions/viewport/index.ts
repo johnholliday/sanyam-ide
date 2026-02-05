@@ -8,16 +8,11 @@
  ********************************************************************************/
 
 /**
- * Tool Palette Module
+ * Viewport Module
  *
- * Exports tool palette UI extension and related components.
+ * Exports viewport action handler and related actions.
  *
  * @packageDocumentation
  */
 
-export * from './tool-palette-actions';
-export * from './tool-palette-ui-extension';
-export * from './tool-palette-action-handler';
-export * from './create-element-action-handler';
-export * from './creation-tool-mouse-listener';
 export * from './viewport-action-handler';

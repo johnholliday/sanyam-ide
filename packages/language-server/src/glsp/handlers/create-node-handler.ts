@@ -274,22 +274,39 @@ export const createNodeHandler = {
    * Get supported element types.
    */
   getSupportedTypes(context: GlspContext): string[] {
-    const types = [
+    const types = new Set<string>([
       ElementTypes.NODE_ENTITY,
       ElementTypes.NODE_PROPERTY,
       ElementTypes.NODE_PACKAGE,
       ElementTypes.NODE_GENERIC,
-    ];
+      // Include base type for fallback
+      ElementTypes.NODE,
+    ]);
 
-    // Add types from manifest
+    // Add types from manifest rootTypes
     const manifest = (context as any).manifest;
-    if (manifest?.diagram?.nodeTypes) {
-      for (const config of Object.values(manifest.diagram.nodeTypes)) {
-        types.push((config as any).type);
+    if (manifest?.rootTypes) {
+      for (const rootType of manifest.rootTypes) {
+        if (rootType.diagramNode?.glspType) {
+          types.add(rootType.diagramNode.glspType);
+        }
       }
     }
 
-    return types;
+    // Add types from manifest diagramTypes
+    if (manifest?.diagramTypes) {
+      for (const diagramType of manifest.diagramTypes) {
+        if (diagramType.nodeTypes) {
+          for (const nodeType of diagramType.nodeTypes) {
+            if (nodeType.glspType) {
+              types.add(nodeType.glspType);
+            }
+          }
+        }
+      }
+    }
+
+    return [...types];
   },
 
   /**

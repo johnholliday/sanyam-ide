@@ -433,7 +433,20 @@ export class CompositeEditorWidget extends BaseWidget
                 // Initialize drop handler for sidebar element palette
                 this.initializeCanvasDropHandler();
             } else {
-                this.diagramWidget.showError?.(response.error || 'Failed to load diagram model');
+                // Handle error - response.error might be an object (JSON-RPC error format)
+                let errorMsg: string;
+                if (response.error === undefined || response.error === null) {
+                    errorMsg = 'Failed to load diagram model';
+                } else if (typeof response.error === 'string') {
+                    errorMsg = response.error;
+                } else if (typeof response.error === 'object') {
+                    const errObj = response.error as { message?: string; code?: number };
+                    errorMsg = errObj.message || JSON.stringify(response.error);
+                } else {
+                    errorMsg = String(response.error);
+                }
+                this.logger.error({ rawError: response.error, errorType: typeof response.error }, 'Model load failed');
+                this.diagramWidget.showError?.(errorMsg);
             }
         } catch (error) {
             this.logger.error({ err: error }, 'Error loading diagram model');
@@ -646,12 +659,16 @@ export class CompositeEditorWidgetFactory {
     @inject(DiagramLanguageClient)
     protected readonly diagramLanguageClient: DiagramLanguageClient;
 
+    @inject(CanvasDropHandlerSymbol)
+    protected readonly canvasDropHandler: CanvasDropHandler;
+
     createWidget(options: CompositeEditorWidget.Options): CompositeEditorWidget {
         const widget = new CompositeEditorWidget(options);
         (widget as any).editorManager = this.editorManager;
         (widget as any).widgetManager = this.widgetManager;
         (widget as any).shell = this.shell;
         (widget as any).diagramLanguageClient = this.diagramLanguageClient;
+        (widget as any).canvasDropHandler = this.canvasDropHandler;
         widget['init']();
         return widget;
     }

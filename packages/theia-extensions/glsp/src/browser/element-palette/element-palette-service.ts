@@ -28,7 +28,19 @@ import {
     ElementPaletteServiceSymbol,
 } from './element-palette-types';
 import { DiagramLanguageClient } from '../diagram-language-client';
-import { CompositeEditorWidget } from '../composite-editor-widget';
+
+/**
+ * Type guard for diagram editor widgets.
+ * Uses duck-typing to avoid circular dependency with CompositeEditorWidget.
+ */
+function isDiagramEditorWidget(widget: unknown): widget is { uri?: { toString(): string } } {
+    if (!widget || typeof widget !== 'object') {
+        return false;
+    }
+    // Check for CompositeEditorWidget by constructor name to avoid circular import
+    const constructorName = (widget as { constructor?: { name?: string } }).constructor?.name;
+    return constructorName === 'CompositeEditorWidget';
+}
 
 export { ElementPaletteServiceSymbol };
 
@@ -81,7 +93,7 @@ export class ElementPaletteService implements IElementPaletteService {
         // Track active widget changes to refresh palette
         this.shell.onDidChangeCurrentWidget(event => {
             const widget = event.newValue;
-            if (widget instanceof CompositeEditorWidget) {
+            if (isDiagramEditorWidget(widget)) {
                 const uri = widget.uri?.toString();
                 if (uri && uri !== this._state.activeDiagramUri) {
                     this.updateActiveDiagram(uri);
@@ -91,7 +103,7 @@ export class ElementPaletteService implements IElementPaletteService {
 
         // Check if there's already an active diagram widget
         const currentWidget = this.shell.currentWidget;
-        if (currentWidget instanceof CompositeEditorWidget) {
+        if (isDiagramEditorWidget(currentWidget)) {
             const uri = currentWidget.uri?.toString();
             if (uri) {
                 this.updateActiveDiagram(uri);

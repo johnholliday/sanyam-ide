@@ -22,7 +22,7 @@ import { Action } from 'sprotty-protocol';
 import { MarqueeSelectionTool, MARQUEE_SELECTION_ID } from './marquee-selection-tool';
 import { UI_EXTENSION_REGISTRY, UIExtensionRegistry } from '../base-ui-extension';
 import { SanyamScrollMouseListener } from '../../di/sanyam-scroll-mouse-listener';
-import { FitDiagramAction } from '../tool-palette/viewport-action-handler';
+import { FitDiagramAction } from '../viewport/viewport-action-handler';
 
 /**
  * Mouse listener that enables marquee selection when Ctrl+drag is detected on the canvas.

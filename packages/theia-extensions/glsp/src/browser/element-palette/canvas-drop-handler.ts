@@ -52,6 +52,7 @@ export class CanvasDropHandler {
      */
     initialize(container: HTMLElement, documentUri: string): void {
         if (this.isInitialized && this.svgContainer === container && this.currentDocumentUri === documentUri) {
+            this.logger.debug('Canvas drop handler already initialized for this container');
             return;
         }
 
@@ -66,7 +67,15 @@ export class CanvasDropHandler {
         container.addEventListener('drop', this.handleDrop);
 
         this.isInitialized = true;
-        this.logger.info({ documentUri }, 'Canvas drop handler initialized');
+
+        // Log container details for debugging
+        const svgElement = container.querySelector('svg.sprotty-graph');
+        this.logger.info({
+            documentUri,
+            containerId: container.id,
+            containerClass: container.className,
+            hasSvgElement: !!svgElement,
+        }, 'Canvas drop handler initialized');
     }
 
     /**
@@ -123,16 +132,22 @@ export class CanvasDropHandler {
         event.preventDefault();
         this.svgContainer?.classList.remove('drag-over');
 
+        this.logger.debug({
+            types: event.dataTransfer?.types,
+            clientX: event.clientX,
+            clientY: event.clientY,
+        }, 'Drop event received');
+
         // Get drag data
         const dataStr = event.dataTransfer?.getData(ELEMENT_PALETTE_DRAG_MIME_TYPE);
         if (!dataStr) {
-            this.logger.warn('Drop event without element palette data');
+            this.logger.warn({ types: event.dataTransfer?.types }, 'Drop event without element palette data');
             return;
         }
 
         const dragData = decodeDragData(dataStr);
         if (!dragData) {
-            this.logger.warn('Failed to decode drag data');
+            this.logger.warn({ dataStr }, 'Failed to decode drag data');
             return;
         }
 
@@ -144,7 +159,7 @@ export class CanvasDropHandler {
         // Convert screen coordinates to model coordinates
         const position = this.getModelPosition(event.clientX, event.clientY);
         if (!position) {
-            this.logger.warn('Failed to get model position');
+            this.logger.warn('Failed to get model position - SVG element may not be ready');
             return;
         }
 
@@ -152,7 +167,7 @@ export class CanvasDropHandler {
 
         // Execute create operation via language client
         try {
-            await this.diagramLanguageClient.executeOperation(
+            const result = await this.diagramLanguageClient.executeOperation(
                 this.currentDocumentUri,
                 {
                     kind: 'createNode',
@@ -160,6 +175,7 @@ export class CanvasDropHandler {
                     location: { x: position.x, y: position.y },
                 }
             );
+            this.logger.info({ result }, 'Create operation result');
         } catch (error) {
             this.logger.error({ error }, 'Failed to create element');
         }
@@ -173,10 +189,21 @@ export class CanvasDropHandler {
      * @returns Model coordinates or undefined if conversion fails
      */
     protected getModelPosition(clientX: number, clientY: number): Point | undefined {
-        // Find the SVG element
-        const svgElement = this.svgContainer?.querySelector('svg.sprotty-graph') as SVGSVGElement | null;
+        // Find the SVG element - try multiple selectors for compatibility
+        let svgElement = this.svgContainer?.querySelector('svg.sprotty-graph') as SVGSVGElement | null;
         if (!svgElement) {
-            this.logger.warn('SVG element not found');
+            // Fallback: look for any SVG with sprotty in the class
+            svgElement = this.svgContainer?.querySelector('svg[class*="sprotty"]') as SVGSVGElement | null;
+        }
+        if (!svgElement) {
+            // Fallback: just get the first SVG element
+            svgElement = this.svgContainer?.querySelector('svg') as SVGSVGElement | null;
+        }
+        if (!svgElement) {
+            this.logger.warn({
+                containerId: this.svgContainer?.id,
+                innerHTML: this.svgContainer?.innerHTML?.substring(0, 200),
+            }, 'SVG element not found in container');
             return undefined;
         }
 

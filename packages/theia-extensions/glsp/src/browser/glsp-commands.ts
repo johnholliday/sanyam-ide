@@ -24,7 +24,7 @@ import {
   ZoomOutAction,
   FitDiagramAction,
   CenterDiagramAction,
-} from './ui-extensions/tool-palette';
+} from './ui-extensions/viewport';
 import { SnapGridServiceSymbol, type SnapGridService } from './ui-extensions/snap-to-grid';
 
 /**

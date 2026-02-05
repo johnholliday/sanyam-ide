@@ -22,6 +22,7 @@ import { createLogger } from '@sanyam/logger';
 import { ElementPaletteService } from './element-palette-service';
 import { ElementPaletteState, ElementCategory } from './element-palette-types';
 import { ElementCategoryComponent } from './element-category';
+import { ElementItemComponent } from './element-item';
 
 /**
  * Element Palette Widget ID.
@@ -164,14 +165,25 @@ export class ElementPaletteWidget extends ReactWidget {
 
         return (
             <div className="sanyam-element-palette-content">
-                {groups.map(category => (
-                    <ElementCategoryComponent
-                        key={category.id}
-                        category={category}
-                        expanded={this.service.isCategoryExpanded(category.id)}
-                        onToggle={this.handleToggleCategory}
-                    />
-                ))}
+                {groups.map(category => {
+                    // Skip category header for single-item categories
+                    if (category.items.length === 1) {
+                        return (
+                            <ElementItemComponent
+                                key={category.items[0].id}
+                                item={category.items[0]}
+                            />
+                        );
+                    }
+                    return (
+                        <ElementCategoryComponent
+                            key={category.id}
+                            category={category}
+                            expanded={this.service.isCategoryExpanded(category.id)}
+                            onToggle={this.handleToggleCategory}
+                        />
+                    );
+                })}
             </div>
         );
     }

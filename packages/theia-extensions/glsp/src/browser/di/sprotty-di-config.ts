@@ -424,7 +424,8 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
     // Load UI Extensions module if any extensions are enabled
     const uiExtensionsOptions: UIExtensionsModuleOptions = {
         diagramContainerId: options.diagramId,
-        enableToolPalette: options.uiExtensions?.enableToolPalette ?? true,
+        // Floating tool palette disabled by default - use sidebar Element Palette instead
+        enableToolPalette: options.uiExtensions?.enableToolPalette ?? false,
         enableValidation: options.uiExtensions?.enableValidation ?? true,
         enableEditLabel: options.uiExtensions?.enableEditLabel ?? true,
         enableCommandPalette: options.uiExtensions?.enableCommandPalette ?? true,

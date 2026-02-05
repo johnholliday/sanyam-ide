@@ -6,7 +6,7 @@
  *
  * This module is imported by the product extension via webpack alias (@app/grammar-manifests).
  *
- * Generated at: 2026-02-05T13:39:17.801Z
+ * Generated at: 2026-02-05T21:39:54.750Z
  * Packages: 1
  */
 

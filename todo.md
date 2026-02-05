@@ -26,3 +26,13 @@ The diagram edges are of two types.  Entity<->Entity and Entity->Child.  Entity<
 
 ----
 Add a Supabase Authentication package (packages/theia-extensions/supabase-auth) that allows the user to login to the application using supabase credentials.  The credentials are stored securely and can be used to validate permissions for access to licensed operations.
+
+-----
+The diagram view must retain its current state when switching back and forth between the text and diagram views.  Currently, the diagram view resets each time it is shown.
+
+Dragging an item from the Element Palette onto the diagram canvas does not create a new item.  The drop handler does not accept the drop.
+
+-----
+Grammar operations should populate the ACTIONS section on the element palette
+Rename the element palette to Tools
+Users can drag elements either onto the diagram or into the text to create that element.

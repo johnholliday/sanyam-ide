@@ -158,15 +158,36 @@ export function createHttpServer(
     app,
 
     async start() {
-      return new Promise((resolve) => {
-        server = serve({
-          fetch: app.fetch,
-          port,
-          hostname: host,
-        }, () => {
-          logger.info({ port, host }, 'HTTP REST gateway started');
-          resolve();
-        });
+      return new Promise<void>((resolve) => {
+        try {
+          server = serve({
+            fetch: app.fetch,
+            port,
+            hostname: host,
+          }, () => {
+            logger.info({ port, host }, 'HTTP REST gateway started');
+            resolve();
+          });
+
+          // Handle server errors (EADDRINUSE, etc.)
+          server.on('error', (err: NodeJS.ErrnoException) => {
+            if (err.code === 'EADDRINUSE') {
+              logger.warn(
+                { port, host },
+                `Port ${port} already in use. REST API disabled. Kill the existing process or set SANYAM_API_PORT to use a different port.`
+              );
+              server = null;
+              resolve(); // Continue without REST API
+            } else {
+              logger.error({ err, port, host }, 'HTTP server error');
+              server = null;
+              resolve(); // Don't crash, just continue without REST API
+            }
+          });
+        } catch (err) {
+          logger.error({ err, port, host }, 'Failed to start HTTP server');
+          resolve(); // Continue without REST API
+        }
       });
     },
 

@@ -162,37 +162,50 @@ export class ElementPaletteService implements IElementPaletteService {
 
     /**
      * Convert tool palette groups to element categories.
+     * Server returns groups with 'children' array, not 'items'.
      */
     protected convertToCategories(groups: any[]): ElementCategory[] {
         return groups
-            .filter(g => g.items && g.items.length > 0)
+            .filter(g => (g.children && g.children.length > 0) || (g.items && g.items.length > 0))
             .map(group => ({
                 id: group.id,
                 label: group.label,
                 icon: group.icon,
                 sortString: group.sortString,
-                items: this.convertToItems(group.items || []),
+                items: this.convertToItems(group.children || group.items || []),
             }));
     }
 
     /**
      * Convert tool palette items to element type items.
+     * Server uses 'action' (not 'toolAction') with kinds like 'create-node' (hyphenated).
      */
     protected convertToItems(items: any[]): ElementTypeItem[] {
         return items
-            .filter(item => item.toolAction && (item.toolAction.kind === 'createNode' || item.toolAction.kind === 'createEdge'))
-            .map(item => ({
-                id: item.id,
-                label: item.label,
-                icon: item.icon,
-                description: item.description,
-                sortString: item.sortString,
-                action: {
-                    kind: item.toolAction.kind === 'createNode' ? 'createNode' : 'createEdge',
-                    elementTypeId: item.toolAction.elementTypeId || item.id,
-                    args: item.toolAction.args,
-                },
-            }));
+            .filter(item => {
+                const action = item.action || item.toolAction;
+                if (!action) return false;
+                const kind = action.kind;
+                // Support both hyphenated (server) and camelCase formats
+                return kind === 'create-node' || kind === 'create-edge' ||
+                       kind === 'createNode' || kind === 'createEdge';
+            })
+            .map(item => {
+                const action = item.action || item.toolAction;
+                const isNode = action.kind === 'create-node' || action.kind === 'createNode';
+                return {
+                    id: item.id,
+                    label: item.label,
+                    icon: item.icon,
+                    description: item.description,
+                    sortString: item.sortString,
+                    action: {
+                        kind: isNode ? 'createNode' : 'createEdge',
+                        elementTypeId: action.elementTypeId || item.id,
+                        args: action.args,
+                    },
+                };
+            });
     }
 
     /**

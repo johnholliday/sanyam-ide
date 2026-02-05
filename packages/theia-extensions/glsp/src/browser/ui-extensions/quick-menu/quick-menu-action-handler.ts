@@ -165,23 +165,27 @@ export class QuickMenuActionHandler implements IActionHandler {
 
     /**
      * Convert tool palette groups to quick menu items.
+     * Server uses 'children' (not 'items') and 'action' (not 'toolAction').
      */
     protected convertToQuickMenuItems(groups: any[]): QuickMenuItem[] {
         const items: QuickMenuItem[] = [];
 
         for (const group of groups) {
-            if (!group.items) {
+            const children = group.children || group.items;
+            if (!children) {
                 continue;
             }
 
-            for (const item of group.items) {
+            for (const item of children) {
+                const action = item.action || item.toolAction;
                 // Only include items that create nodes (not edges)
-                if (item.toolAction?.kind === 'createNode') {
+                // Support both hyphenated (server) and camelCase formats
+                if (action?.kind === 'create-node' || action?.kind === 'createNode') {
                     items.push({
                         id: item.id,
                         label: item.label,
                         icon: item.icon,
-                        elementTypeId: item.toolAction.elementTypeId || item.id,
+                        elementTypeId: action.elementTypeId || item.id,
                     });
                 }
             }

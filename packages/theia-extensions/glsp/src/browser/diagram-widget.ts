@@ -187,9 +187,6 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     /** SVG container element (used by Sprotty) */
     protected svgContainer: HTMLDivElement | undefined;
 
-    /** Tool palette element */
-    protected toolPalette: HTMLDivElement | undefined;
-
     /** Embedded diagram toolbar element */
     protected diagramToolbar: HTMLDivElement | undefined;
 
@@ -198,6 +195,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
     /** Flag indicating layout is in progress (used to hide diagram during initial layout) */
     protected layoutPending = false;
+
+    /** Flag to prevent concurrent setModel calls */
+    protected setModelInProgress = false;
 
     /** Flag indicating whether the initial layout+fitToScreen has been completed */
     protected initialLayoutDone = false;
@@ -583,11 +583,6 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         const container = document.createElement('div');
         container.className = 'sanyam-diagram-container';
 
-        // Create tool palette
-        this.toolPalette = document.createElement('div');
-        this.toolPalette.className = 'sanyam-diagram-tool-palette';
-        container.appendChild(this.toolPalette);
-
         // Create embedded diagram toolbar (FR-006)
         this.diagramToolbar = this.createEmbeddedToolbar();
         container.appendChild(this.diagramToolbar);
@@ -725,7 +720,6 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 needsMoveAction: true,
                 edgeRoutingService: this.edgeRoutingService,
                 uiExtensions: {
-                    enableToolPalette: true,
                     enableValidation: true,
                     enableEditLabel: true,
                     enableCommandPalette: true,
@@ -784,9 +778,6 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
             this.sprottyInitialized = true;
             this.logger.debug(`[DiagramWidget] Sprotty initialized for: ${this.uri}`);
-
-            // Request tool palette from server
-            await this.sprottyManager.requestToolPalette();
 
             // Load initial model
             await this.loadModel();
@@ -892,6 +883,15 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
             const response = await this.diagramLanguageClient.loadModel(this.uri);
 
+            // Debug log the full response structure
+            this.logger.debug({
+                success: response.success,
+                hasGModel: !!response.gModel,
+                hasError: response.error !== undefined,
+                errorType: typeof response.error,
+                errorValue: response.error,
+            }, '[DiagramWidget] loadModel response received');
+
             if (response.success && response.gModel) {
                 this.logger.debug(`[DiagramWidget] Response has gModel with ${response.gModel.children?.length ?? 0} children`);
                 // Update positions if available from server
@@ -936,7 +936,23 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 await this.setModel(response.gModel);
                 this.logger.debug(`[DiagramWidget] Model loaded successfully for: ${this.uri}`);
             } else {
-                const errorMsg = response.error || 'Unknown error loading diagram model';
+                // Log the raw error for debugging
+                this.logger.error({ rawError: response.error, errorType: typeof response.error }, '[DiagramWidget] Model load failed');
+
+                // Convert error to string - handle object errors (e.g., JSON-RPC errors)
+                let errorMsg: string;
+                if (response.error === undefined || response.error === null) {
+                    errorMsg = 'Unknown error loading diagram model';
+                } else if (typeof response.error === 'string') {
+                    errorMsg = response.error;
+                } else if (typeof response.error === 'object') {
+                    // Handle JSON-RPC error format { code, message, data }
+                    const errObj = response.error as { message?: string; code?: number };
+                    errorMsg = errObj.message || JSON.stringify(response.error);
+                } else {
+                    errorMsg = String(response.error);
+                }
+
                 this.logger.error(`[DiagramWidget] Failed to load model: ${errorMsg}`);
                 this.showError(errorMsg);
             }
@@ -954,6 +970,19 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      * the diagram during initial rendering (prevents visual repositioning).
      */
     async setModel(gModel: GModelRootType): Promise<void> {
+        // Skip if another setModel is already in progress (prevents race conditions)
+        if (this.setModelInProgress) {
+            return;
+        }
+
+        this.setModelInProgress = true;
+
+        this.logger.info({
+            sprottyInitialized: this.sprottyInitialized,
+            hasSprottyManager: !!this.sprottyManager,
+            childCount: gModel.children?.length ?? 0,
+        }, '[DiagramWidget] setModel called');
+
         this.state.gModel = gModel;
 
         // Clear placeholder content if present
@@ -969,7 +998,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             try {
                 // T011: Add layout-pending class IMMEDIATELY to hide diagram during rendering
                 // This prevents any visual jarring regardless of saved layout state
-                if (this.svgContainer) {
+                // BUT: Skip if we've already revealed (to avoid race condition with multiple setModel calls)
+                const shouldHide = !this.initialLayoutDone;
+                if (this.svgContainer && shouldHide) {
                     this.layoutPending = true;
                     this.svgContainer.classList.add('layout-pending');
                     this.logger.debug('[DiagramWidget] Layout pending - diagram hidden');
@@ -984,6 +1015,10 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     // Skip auto-layout - we have saved positions
                     this.logger.debug('[DiagramWidget] Skipping auto-layout - using saved positions');
                     this.initialLayoutDone = true;
+
+                    // Wait for Sprotty to actually render the SVG content
+                    // setModel() only dispatches the action, it doesn't wait for rendering
+                    await this.waitForSvgContent();
 
                     // Restore saved viewport and toggle state if available (FR-002, FR-003, FR-004)
                     const savedViewState = this.savedLayout && 'viewState' in this.savedLayout
@@ -1002,17 +1037,41 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     this.updateMinimapAfterLayout();
                 } else {
                     // Request automatic layout for fresh diagrams
+                    this.logger.debug('[DiagramWidget] Requesting layout for fresh diagram...');
                     await this.sprottyManager.requestLayout();
                     this.logger.debug('[DiagramWidget] Layout requested');
                     // Note: fitToScreen and revealDiagramAfterLayout are called in onLayoutComplete
+
+                    // Safety timeout: if layout doesn't complete within 5 seconds, reveal anyway
+                    // This prevents the diagram from being permanently hidden if layout fails silently
+                    setTimeout(() => {
+                        if (this.layoutPending) {
+                            this.logger.warn('[DiagramWidget] Layout timeout - revealing diagram anyway');
+                            this.initialLayoutDone = true;
+                            this.sprottyManager?.fitToScreen().then(() => {
+                                this.revealDiagramAfterLayout();
+                                this.updateMinimapAfterLayout();
+                            }).catch(() => {
+                                this.revealDiagramAfterLayout();
+                            });
+                        }
+                    }, 5000);
                 }
             } catch (error) {
                 this.logger.error({ err: error }, 'Failed to set model in Sprotty');
                 // Reveal diagram on error (so user sees error state, not blank)
                 this.revealDiagramAfterLayout();
+                this.setModelInProgress = false;
+                return;
             }
+        } else {
+            this.logger.warn({
+                sprottyInitialized: this.sprottyInitialized,
+                hasSprottyManager: !!this.sprottyManager,
+            }, '[DiagramWidget] setModel called but Sprotty not ready - model stored for later');
         }
 
+        this.setModelInProgress = false;
         this.onModelChangedEmitter.fire(gModel);
     }
 
@@ -1021,7 +1080,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      * Called when the ELK layout engine finishes positioning elements.
      */
     protected onLayoutComplete(success: boolean, error?: string): void {
-        this.logger.debug(`[DiagramWidget] Layout complete: success=${success}, initialLayoutDone=${this.initialLayoutDone}${error ? ', error=' + error : ''}`);
+        this.logger.info(`[DiagramWidget] onLayoutComplete called: success=${success}, initialLayoutDone=${this.initialLayoutDone}, layoutPending=${this.layoutPending}${error ? ', error=' + error : ''}`);
 
         if (success) {
             if (!this.initialLayoutDone) {
@@ -1083,6 +1142,36 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         });
 
         this.logger.debug('[DiagramWidget] Layout complete - revealing diagram');
+    }
+
+    /**
+     * Wait for SVG to have rendered content from Sprotty.
+     * Sprotty's setModel dispatches actions but doesn't wait for rendering.
+     * This polls until the SVG has at least one graph group (g.sprotty-graph).
+     */
+    protected waitForSvgContent(maxAttempts: number = 50, interval: number = 20): Promise<boolean> {
+        return new Promise((resolve) => {
+            let attempts = 0;
+            const check = () => {
+                attempts++;
+                const svg = this.svgContainer?.querySelector('svg');
+                // Check for sprotty-graph group (the main content group)
+                const graphGroup = svg?.querySelector('g.sprotty-graph');
+                // Also check if there are any child elements rendered
+                const hasContent = graphGroup && graphGroup.children.length > 0;
+
+                if (hasContent) {
+                    resolve(true);
+                } else if (attempts >= maxAttempts) {
+                    this.logger.warn('[DiagramWidget] waitForSvgContent timeout - no content after max attempts');
+                    resolve(false);
+                } else {
+                    requestAnimationFrame(check);
+                }
+            };
+            // Start checking after one animation frame
+            requestAnimationFrame(check);
+        });
     }
 
     /**

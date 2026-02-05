@@ -64,7 +64,6 @@ import {
     UIExtensionsModuleOptions,
     UIExtensionRegistry,
     UI_EXTENSION_REGISTRY,
-    RequestToolPaletteAction,
 } from '../ui-extensions';
 
 import { createElkLayoutModule, LayoutCompleteAction, EdgeRoutingService, EdgeJumpPostprocessor } from '../layout';
@@ -424,8 +423,6 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
     // Load UI Extensions module if any extensions are enabled
     const uiExtensionsOptions: UIExtensionsModuleOptions = {
         diagramContainerId: options.diagramId,
-        // Floating tool palette disabled by default - use sidebar Element Palette instead
-        enableToolPalette: options.uiExtensions?.enableToolPalette ?? false,
         enableValidation: options.uiExtensions?.enableValidation ?? true,
         enableEditLabel: options.uiExtensions?.enableEditLabel ?? true,
         enableCommandPalette: options.uiExtensions?.enableCommandPalette ?? true,
@@ -445,12 +442,8 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
     // Bind snap-to-grid snapper for Sprotty's ISnapper interface
     // This enables snapping during drag operations
     if (options.snapGridService) {
-        console.log('[SprottyDiConfig] Binding SnapGridService from options');
         container.bind(SnapGridServiceSymbol).toConstantValue(options.snapGridService);
-    } else {
-        console.log('[SprottyDiConfig] No SnapGridService provided in options');
     }
-    console.log('[SprottyDiConfig] Binding GridSnapper to TYPES.ISnapper');
     container.bind(GridSnapper).toSelf().inSingletonScope();
     container.bind(TYPES.ISnapper).toService(GridSnapper);
 
@@ -482,7 +475,6 @@ export class SprottyDiagramManager {
         // Store UI extensions options for later initialization
         this.uiExtensionsOptions = {
             diagramContainerId: options.diagramId,
-            enableToolPalette: options.uiExtensions?.enableToolPalette ?? true,
             enableValidation: options.uiExtensions?.enableValidation ?? true,
             enableEditLabel: options.uiExtensions?.enableEditLabel ?? true,
             enableCommandPalette: options.uiExtensions?.enableCommandPalette ?? true,
@@ -493,6 +485,27 @@ export class SprottyDiagramManager {
             enablePopup: options.uiExtensions?.enablePopup ?? true,
             enableMinimap: options.uiExtensions?.enableMinimap ?? true,
         };
+
+        // Initialize the viewer with an empty model to ensure SVG is created
+        // This is required because Sprotty's viewer is lazy-initialized
+        this.initializeViewer();
+    }
+
+    /**
+     * Initialize the Sprotty viewer by setting an empty model.
+     * This ensures the SVG container is created before the real model is set.
+     */
+    private async initializeViewer(): Promise<void> {
+        const emptyModel: SModelRoot = {
+            type: 'graph',
+            id: 'empty-init-model',
+            children: [],
+        };
+        try {
+            await this.modelSource.setModel(emptyModel);
+        } catch (error) {
+            this.logger.error({ err: error }, 'Failed to initialize viewer');
+        }
     }
 
     /**
@@ -539,16 +552,6 @@ export class SprottyDiagramManager {
      */
     async setModel(model: GModelRoot): Promise<void> {
         this.logger.debug({ id: model.id, type: model.type, childCount: model.children?.length ?? 0 }, 'setModel called');
-
-        // Log child types for debugging
-        if (model.children && model.children.length > 0) {
-            const typeCount = new Map<string, number>();
-            for (const child of model.children) {
-                const count = typeCount.get(child.type) ?? 0;
-                typeCount.set(child.type, count + 1);
-            }
-            this.logger.debug({ childTypes: Object.fromEntries(typeCount) }, 'Child types');
-        }
 
         this.currentRoot = model as unknown as SModelRootImpl;
         await this.modelSource.setModel(model);
@@ -674,16 +677,6 @@ export class SprottyDiagramManager {
     }
 
     /**
-     * Request the tool palette from the server.
-     * Dispatches a RequestToolPaletteAction to fetch palette items.
-     */
-    async requestToolPalette(): Promise<void> {
-        if (this.uiExtensionsOptions.enableToolPalette) {
-            await this.modelSource.actionDispatcher.dispatch(RequestToolPaletteAction.create());
-        }
-    }
-
-    /**
      * Request automatic layout of the diagram using ELK.
      * Dispatches a RequestLayoutAction to trigger the layout engine.
      */
@@ -691,7 +684,6 @@ export class SprottyDiagramManager {
         this.logger.debug('Requesting layout...');
         try {
             const { RequestLayoutAction } = await import('../layout');
-            this.logger.debug('RequestLayoutAction imported, dispatching...');
             await this.modelSource.actionDispatcher.dispatch(RequestLayoutAction.create());
             this.logger.debug('Layout action dispatched');
         } catch (error) {

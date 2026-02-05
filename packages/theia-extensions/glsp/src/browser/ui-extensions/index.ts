@@ -68,6 +68,9 @@ export * from './export';
 // Snap to Grid
 export * from './snap-to-grid';
 
+// Quick Menu
+export * from './quick-menu';
+
 // Import specific classes for DI binding
 import {
     UIExtensionRegistry,
@@ -165,6 +168,15 @@ import {
     ToggleGridVisibilityActionKind,
 } from './snap-to-grid';
 
+import {
+    QuickMenuUIExtension,
+    QuickMenuActionHandler,
+    CanvasDoubleClickTool,
+    ShowQuickMenuAction,
+    HideQuickMenuAction,
+    SelectQuickMenuItemAction,
+} from './quick-menu';
+
 /**
  * Options for creating the UI extensions module.
  */
@@ -191,6 +203,8 @@ export interface UIExtensionsModuleOptions {
     enablePopup?: boolean;
     /** Enable minimap (default: true) */
     enableMinimap?: boolean;
+    /** Enable quick menu (default: true) */
+    enableQuickMenu?: boolean;
     /** Existing SnapGridTool instance from parent container (to avoid creating duplicate) */
     snapGridTool?: SnapGridTool;
 }
@@ -330,6 +344,18 @@ export function createUIExtensionsModule(options: UIExtensionsModuleOptions): Co
         configureActionHandler(context, ToggleSnapToGridActionKind, SnapGridActionHandler);
         configureActionHandler(context, UpdateSnapGridConfigActionKind, SnapGridActionHandler);
         configureActionHandler(context, ToggleGridVisibilityActionKind, SnapGridActionHandler);
+
+        // Quick Menu
+        if (options.enableQuickMenu !== false) {
+            bind(QuickMenuUIExtension).toSelf().inSingletonScope();
+            bind(QuickMenuActionHandler).toSelf().inSingletonScope();
+            bind(CanvasDoubleClickTool).toSelf().inSingletonScope();
+            bind(TYPES.MouseListener).toService(CanvasDoubleClickTool);
+
+            configureActionHandler(context, ShowQuickMenuAction.KIND, QuickMenuActionHandler);
+            configureActionHandler(context, HideQuickMenuAction.KIND, QuickMenuActionHandler);
+            configureActionHandler(context, SelectQuickMenuItemAction.KIND, QuickMenuActionHandler);
+        }
     });
 }
 
@@ -394,6 +420,11 @@ export function initializeUIExtensions(
     if (container.isBound(SnapGridTool)) {
         registry.register(container.get(SnapGridTool));
     }
+
+    // Quick Menu
+    if (options.enableQuickMenu !== false && container.isBound(QuickMenuUIExtension)) {
+        registry.register(container.get(QuickMenuUIExtension));
+    }
 }
 
 /**
@@ -451,5 +482,10 @@ export function setUIExtensionsParentContainer(
     // Snap to Grid (always set parent)
     if (container.isBound(SnapGridTool)) {
         container.get(SnapGridTool).setParentContainer(parentElement);
+    }
+
+    // Quick Menu
+    if (options.enableQuickMenu !== false && container.isBound(QuickMenuUIExtension)) {
+        container.get(QuickMenuUIExtension).setParentContainer(parentElement);
     }
 }

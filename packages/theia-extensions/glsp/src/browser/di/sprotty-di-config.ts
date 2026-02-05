@@ -434,6 +434,7 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
         enableResizeHandles: options.uiExtensions?.enableResizeHandles ?? true,
         enablePopup: options.uiExtensions?.enablePopup ?? true,
         enableMinimap: options.uiExtensions?.enableMinimap ?? true,
+        enableQuickMenu: options.uiExtensions?.enableQuickMenu ?? true,
         // Pass existing SnapGridTool from Theia container to avoid creating duplicate instance
         snapGridTool: options.snapGridService as SnapGridTool | undefined,
     };

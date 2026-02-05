@@ -1308,6 +1308,13 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
+     * Get the SVG container element for external integrations (e.g., drop handling).
+     */
+    getSvgContainer(): HTMLElement | undefined {
+        return this.svgContainer;
+    }
+
+    /**
      * Select an element.
      */
     async selectElement(elementId: string, addToSelection: boolean = false): Promise<void> {

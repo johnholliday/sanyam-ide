@@ -32,6 +32,7 @@ import { COMPOSITE_EDITOR_WIDGET_FACTORY_ID_STRING } from '@sanyam/types';
 // Direct import from same package - no more symbol-based lookup needed
 import { DIAGRAM_WIDGET_FACTORY_ID } from './diagram-widget';
 import { DiagramLanguageClient } from './diagram-language-client';
+import { CanvasDropHandler, CanvasDropHandlerSymbol } from './element-palette';
 
 import './style/index.css';
 
@@ -84,6 +85,8 @@ export interface DiagramWidgetCapabilities extends Widget {
     getModel?(): unknown;
     /** Get source ranges for outline↔diagram mapping */
     getSourceRanges?(): ReadonlyMap<string, { start: { line: number; character: number }; end: { line: number; character: number } }> | undefined;
+    /** Get the SVG container element for drop handling */
+    getSvgContainer?(): HTMLElement | undefined;
 }
 
 export namespace CompositeEditorWidget {
@@ -117,6 +120,9 @@ export class CompositeEditorWidget extends BaseWidget
 
     @inject(DiagramLanguageClient)
     protected readonly diagramLanguageClient: DiagramLanguageClient;
+
+    @inject(CanvasDropHandlerSymbol)
+    protected readonly canvasDropHandler: CanvasDropHandler;
 
     readonly uri: URI;
     readonly manifest: GrammarManifest;
@@ -423,6 +429,9 @@ export class CompositeEditorWidget extends BaseWidget
 
                 // Set the model
                 this.diagramWidget.setModel(response.gModel);
+
+                // Initialize drop handler for sidebar element palette
+                this.initializeCanvasDropHandler();
             } else {
                 this.diagramWidget.showError?.(response.error || 'Failed to load diagram model');
             }
@@ -439,6 +448,24 @@ export class CompositeEditorWidget extends BaseWidget
         this.diagramModelLoaded = false;
         if (this._activeView === 'diagram') {
             await this.loadDiagramModel();
+        }
+    }
+
+    /**
+     * Initialize the canvas drop handler for sidebar element palette drag-and-drop.
+     */
+    protected initializeCanvasDropHandler(): void {
+        if (!this.diagramWidget) {
+            return;
+        }
+
+        // Get the SVG container from the diagram widget
+        const svgContainer = this.diagramWidget.getSvgContainer?.();
+        if (svgContainer) {
+            this.canvasDropHandler.initialize(svgContainer, this.uri.toString());
+            this.logger.debug('Canvas drop handler initialized');
+        } else {
+            this.logger.warn('SVG container not available for drop handler');
         }
     }
 

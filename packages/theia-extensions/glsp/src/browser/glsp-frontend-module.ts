@@ -11,6 +11,8 @@
 import './style/index.css';
 import './style/sprotty.css';
 import './style/properties-panel.css';
+import './style/element-palette.css';
+import './style/quick-menu.css';
 
 import { ContainerModule, interfaces, injectable, inject } from 'inversify';
 import { WidgetFactory, FrontendApplicationContribution, KeybindingContribution, OpenHandler } from '@theia/core/lib/browser';
@@ -89,6 +91,17 @@ import {
   GrammarOperationInitializer,
   GrammarOperationInitializerImpl,
 } from './grammar-operations';
+
+// Element Palette imports
+import {
+  ElementPaletteService,
+  ElementPaletteServiceSymbol,
+  ElementPaletteWidget,
+  ELEMENT_PALETTE_WIDGET_ID,
+  ElementPaletteViewContribution,
+  CanvasDropHandler,
+  CanvasDropHandlerSymbol,
+} from './element-palette';
 
 // Note: Sprotty types are re-exported from di/sprotty-di-config via index.ts
 
@@ -374,6 +387,33 @@ export default new ContainerModule((bind: interfaces.Bind, _unbind, isBound, reb
   bind(GrammarOperationInitializerImpl).toSelf().inSingletonScope();
   bind(GrammarOperationInitializer).toService(GrammarOperationInitializerImpl);
   bind(FrontendApplicationContribution).toService(GrammarOperationInitializerImpl);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Element Palette (Sidebar)
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Bind element palette service
+  bind(ElementPaletteService).toSelf().inSingletonScope();
+  bind(ElementPaletteServiceSymbol).toService(ElementPaletteService);
+
+  // Bind canvas drop handler
+  bind(CanvasDropHandler).toSelf().inSingletonScope();
+  bind(CanvasDropHandlerSymbol).toService(CanvasDropHandler);
+
+  // Bind element palette widget
+  bind(ElementPaletteWidget).toSelf();
+
+  // Register widget factory with Theia
+  bind(WidgetFactory).toDynamicValue((ctx) => ({
+    id: ELEMENT_PALETTE_WIDGET_ID,
+    createWidget: () => ctx.container.get(ElementPaletteWidget),
+  })).inSingletonScope();
+
+  // Bind view contribution (registers sidebar view)
+  bind(ElementPaletteViewContribution).toSelf().inSingletonScope();
+  bind(FrontendApplicationContribution).toService(ElementPaletteViewContribution);
+  bind(CommandContribution).toService(ElementPaletteViewContribution);
+  bind(MenuContribution).toService(ElementPaletteViewContribution);
 });
 
 /**

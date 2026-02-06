@@ -90,21 +90,30 @@ export const LAYOUT_COMPLETE_CALLBACK = Symbol.for('LayoutCompleteCallback');
 export type SelectionChangedCallback = (selectedIds: string[]) => void;
 
 /**
- * Service identifier for selection changed callback.
- */
-export const SELECTION_CHANGED_CALLBACK = Symbol.for('SelectionChangedCallback');
-
-/**
  * Action handler for selection changes.
  * Intercepts Sprotty's SelectAction and SelectAllAction to notify external listeners.
+ *
+ * NOTE: The callback is set imperatively via {@link setCallback} rather than via
+ * `@inject` because the `ActionHandlerRegistry` resolves all handler singletons
+ * eagerly during the first `setModel` dispatch (in `initializeViewer`), which
+ * runs before `SprottyDiagramManager.setCallbacks` has a chance to rebind the
+ * callback in the container.  Using a mutable setter avoids this race.
  */
 @injectable()
 export class SelectionChangeActionHandler implements IActionHandler {
-    @inject(SELECTION_CHANGED_CALLBACK)
-    protected callback: SelectionChangedCallback;
+    protected callback: SelectionChangedCallback = () => {};
 
     /** Track currently selected element IDs */
     private selectedIds: Set<string> = new Set();
+
+    /**
+     * Set the callback invoked when the selection changes.
+     *
+     * @param cb - Callback receiving the current set of selected element IDs
+     */
+    setCallback(cb: SelectionChangedCallback): void {
+        this.callback = cb;
+    }
 
     handle(action: Action): void {
         if (action.kind === 'elementSelected') {
@@ -411,10 +420,9 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
     container.bind(LayoutCompleteActionHandler).toSelf().inSingletonScope();
     configureActionHandler({ bind: container.bind.bind(container), isBound: container.isBound.bind(container) }, LayoutCompleteAction.KIND, LayoutCompleteActionHandler);
 
-    // Bind selection changed callback (default no-op, overridden via setCallbacks)
-    container.bind(SELECTION_CHANGED_CALLBACK).toConstantValue(() => {});
-
-    // Bind and configure selection change action handler
+    // Bind and configure selection change action handler.
+    // The callback is set imperatively via SelectionChangeActionHandler.setCallback()
+    // in SprottyDiagramManager.setCallbacks() to avoid a singleton timing race.
     container.bind(SelectionChangeActionHandler).toSelf().inSingletonScope();
     const actionHandlerCtx = { bind: container.bind.bind(container), isBound: container.isBound.bind(container) };
     configureActionHandler(actionHandlerCtx, 'elementSelected', SelectionChangeActionHandler);
@@ -539,11 +547,12 @@ export class SprottyDiagramManager {
     setCallbacks(callbacks: DiagramEventCallbacks): void {
         this.mouseListener.setCallbacks(callbacks);
 
-        // Wire selection changed callback into the Sprotty container
+        // Set selection callback directly on the handler instance.
+        // We must NOT use container.rebind() here because the handler singleton
+        // is already resolved during initializeViewer() with the initial binding.
         if (callbacks.onSelectionChanged) {
-            if (this.container.isBound(SELECTION_CHANGED_CALLBACK)) {
-                this.container.rebind(SELECTION_CHANGED_CALLBACK).toConstantValue(callbacks.onSelectionChanged);
-            }
+            const handler = this.container.get(SelectionChangeActionHandler);
+            handler.setCallback(callbacks.onSelectionChanged);
         }
     }
 

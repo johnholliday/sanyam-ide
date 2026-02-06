@@ -202,6 +202,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     /** Flag indicating whether the initial layout+fitToScreen has been completed */
     protected initialLayoutDone = false;
 
+    /** Whether to auto-load the model during initializeSprotty(). Embedded widgets set this to false. */
+    protected autoLoadModel = true;
+
     /** Preference service for reading diagram preferences */
     protected preferenceService: PreferenceService | undefined;
 
@@ -310,6 +313,15 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      */
     setContextMenuRenderer(renderer: ContextMenuRenderer): void {
         this.contextMenuRenderer = renderer;
+    }
+
+    /**
+     * Set whether the widget should auto-load the model during Sprotty initialization.
+     * Embedded widgets (inside CompositeEditorWidget) set this to false to avoid
+     * premature model loads before the language server is ready.
+     */
+    setAutoLoadModel(enabled: boolean): void {
+        this.autoLoadModel = enabled;
     }
 
     /**
@@ -466,7 +478,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      */
     protected onAfterShow(msg: Message): void {
         super.onAfterShow(msg);
-        this.refresh();
+        // Diagram retains its rendered state when hidden/re-shown.
+        // Model loading is managed by CompositeEditorWidget.
+        // The Refresh toolbar button still works for explicit refresh.
     }
 
     /**
@@ -779,8 +793,10 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             this.sprottyInitialized = true;
             this.logger.debug(`[DiagramWidget] Sprotty initialized for: ${this.uri}`);
 
-            // Load initial model
-            await this.loadModel();
+            // Load initial model (skip for embedded widgets where CompositeEditorWidget manages loading)
+            if (this.autoLoadModel) {
+                await this.loadModel();
+            }
         } catch (error) {
             this.logger.error({ err: error }, 'Failed to initialize Sprotty');
             this.showError('Failed to initialize diagram viewer');
@@ -1493,71 +1509,21 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
-     * Zoom in by a factor, keeping the viewport center fixed.
+     * Zoom in by a factor.
+     * Delegates to ViewportActionHandler which reads the live viewport from the DOM.
      */
     async zoomIn(factor: number = 1.2): Promise<void> {
-        if (this.sprottyManager) {
-            const currentZoom = this.state.viewport.zoom;
-            const newZoom = Math.min(currentZoom * factor, 5); // Max zoom 5x
-
-            // Calculate scroll to keep viewport center fixed
-            const newScroll = this.calculateCenteredScroll(
-                this.state.viewport.scroll, currentZoom, newZoom
-            );
-
-            this.state.viewport.zoom = newZoom;
-            this.state.viewport.scroll = newScroll;
-            await this.sprottyManager.setViewport(newScroll, newZoom, true);
-            this.saveLayoutDebounced();
-        }
+        await this.dispatchAction({ kind: 'zoomIn', factor } as Action);
+        this.saveLayoutDebounced();
     }
 
     /**
-     * Zoom out by a factor, keeping the viewport center fixed.
+     * Zoom out by a factor.
+     * Delegates to ViewportActionHandler which reads the live viewport from the DOM.
      */
     async zoomOut(factor: number = 1.2): Promise<void> {
-        if (this.sprottyManager) {
-            const currentZoom = this.state.viewport.zoom;
-            const newZoom = Math.max(currentZoom / factor, 0.1); // Min zoom 0.1x
-
-            // Calculate scroll to keep viewport center fixed
-            const newScroll = this.calculateCenteredScroll(
-                this.state.viewport.scroll, currentZoom, newZoom
-            );
-
-            this.state.viewport.zoom = newZoom;
-            this.state.viewport.scroll = newScroll;
-            await this.sprottyManager.setViewport(newScroll, newZoom, true);
-            this.saveLayoutDebounced();
-        }
-    }
-
-    /**
-     * Calculate scroll position to keep viewport center fixed after zoom change.
-     *
-     * @param oldScroll - Current scroll position
-     * @param oldZoom - Current zoom level
-     * @param newZoom - New zoom level
-     * @returns New scroll position that keeps the same model point at center
-     */
-    protected calculateCenteredScroll(
-        oldScroll: { x: number; y: number },
-        oldZoom: number,
-        newZoom: number
-    ): { x: number; y: number } {
-        // Get viewport dimensions from the SVG container
-        const width = this.svgContainer?.clientWidth ?? 800;
-        const height = this.svgContainer?.clientHeight ?? 600;
-
-        // Calculate center point in model coordinates (before zoom)
-        const centerX = width / (2 * oldZoom) + oldScroll.x;
-        const centerY = height / (2 * oldZoom) + oldScroll.y;
-
-        // Calculate new scroll to keep same model point at center after zoom
-        return {
-            x: centerX - width / (2 * newZoom),
-            y: centerY - height / (2 * newZoom),
-        };
+        await this.dispatchAction({ kind: 'zoomOut', factor } as Action);
+        this.saveLayoutDebounced();
     }
 
     /**

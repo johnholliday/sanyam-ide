@@ -25,6 +25,8 @@ import { ELEMENT_PALETTE_DRAG_MIME_TYPE, encodeDragData } from './drag-drop-acti
 export interface ElementItemProps {
     /** The element type item to render */
     item: ElementTypeItem;
+    /** Callback when an operation item is clicked */
+    onOperationClick?: (operationId: string, languageId: string) => void;
 }
 
 /**
@@ -61,22 +63,33 @@ export class ElementItemComponent extends React.Component<ElementItemProps, Elem
     }
 
     /**
+     * Whether this item supports drag-and-drop (only for element creation).
+     */
+    private get isDraggable(): boolean {
+        const kind = this.props.item.action.kind;
+        return kind === 'createNode' || kind === 'createEdge';
+    }
+
+    /**
      * Handle drag start - encode element data for DataTransfer.
+     * Only fires for createNode/createEdge items.
      */
     private handleDragStart = (event: React.DragEvent<HTMLDivElement>): void => {
+        if (!this.isDraggable) {
+            event.preventDefault();
+            return;
+        }
+
         const { item } = this.props;
 
         // Set drag data
         const dragData = encodeDragData({
-            elementTypeId: item.action.elementTypeId,
+            elementTypeId: item.action.elementTypeId!,
             label: item.label,
             icon: item.icon,
         });
         event.dataTransfer.setData(ELEMENT_PALETTE_DRAG_MIME_TYPE, dragData);
         event.dataTransfer.effectAllowed = 'copy';
-
-        // Set drag image if we have a custom one
-        // For now, use default browser drag image
 
         this.setState({ isDragging: true });
     };
@@ -86,6 +99,18 @@ export class ElementItemComponent extends React.Component<ElementItemProps, Elem
      */
     private handleDragEnd = (): void => {
         this.setState({ isDragging: false });
+    };
+
+    /**
+     * Handle click for operation/delete items.
+     */
+    private handleClick = (): void => {
+        const { item, onOperationClick } = this.props;
+        const { kind } = item.action;
+
+        if (kind === 'operation' && item.action.operationId && item.action.languageId && onOperationClick) {
+            onOperationClick(item.action.operationId, item.action.languageId);
+        }
     };
 
     /**
@@ -124,9 +149,11 @@ export class ElementItemComponent extends React.Component<ElementItemProps, Elem
         const { item } = this.props;
         const { isDragging, showTooltip, tooltipPosition } = this.state;
 
+        const isActionItem = item.action.kind === 'operation' || item.action.kind === 'delete';
         const className = [
             'sanyam-element-palette-item',
             isDragging ? 'dragging' : '',
+            isActionItem ? 'action-item' : '',
         ].filter(Boolean).join(' ');
 
         return (
@@ -134,9 +161,10 @@ export class ElementItemComponent extends React.Component<ElementItemProps, Elem
                 <div
                     ref={this.itemRef}
                     className={className}
-                    draggable={true}
+                    draggable={this.isDraggable}
                     onDragStart={this.handleDragStart}
                     onDragEnd={this.handleDragEnd}
+                    onClick={isActionItem ? this.handleClick : undefined}
                     onMouseEnter={this.handleMouseEnter}
                     onMouseLeave={this.handleMouseLeave}
                     title={item.description || item.label}

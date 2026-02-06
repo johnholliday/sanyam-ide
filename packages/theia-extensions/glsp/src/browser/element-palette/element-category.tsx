@@ -29,6 +29,8 @@ export interface ElementCategoryProps {
     expanded: boolean;
     /** Callback when expand/collapse is toggled */
     onToggle: (categoryId: string) => void;
+    /** Callback when an operation item is clicked */
+    onOperationClick?: (operationId: string, languageId: string) => void;
 }
 
 /**
@@ -92,7 +94,11 @@ export class ElementCategoryComponent extends React.Component<ElementCategoryPro
                     style={{ maxHeight: expanded ? `${itemCount * 36}px` : '0' }}
                 >
                     {category.items.map(item => (
-                        <ElementItemComponent key={item.id} item={item} />
+                        <ElementItemComponent
+                            key={item.id}
+                            item={item}
+                            onOperationClick={this.props.onOperationClick}
+                        />
                     ))}
                 </div>
             </div>

@@ -16,11 +16,13 @@
  * @packageDocumentation
  */
 
-import { injectable, inject, postConstruct } from 'inversify';
+import { injectable, inject, postConstruct, optional } from 'inversify';
 import { Emitter, Event } from '@theia/core/lib/common';
 import { ApplicationShell } from '@theia/core/lib/browser';
+import { MessageService } from '@theia/core';
 import { createLogger } from '@sanyam/logger';
 import {
+    ElementCreationAction,
     ElementPaletteState,
     ElementCategory,
     ElementTypeItem,
@@ -28,6 +30,11 @@ import {
     ElementPaletteServiceSymbol,
 } from './element-palette-types';
 import { DiagramLanguageClient } from '../diagram-language-client';
+import {
+    GrammarOperationService,
+    type GrammarOperationServiceInterface,
+    type OperationExecutionResult,
+} from '../grammar-operations/grammar-operation-service';
 
 /**
  * Type guard for diagram editor widgets.
@@ -62,6 +69,12 @@ export class ElementPaletteService implements IElementPaletteService {
 
     @inject(DiagramLanguageClient)
     protected readonly diagramLanguageClient: DiagramLanguageClient;
+
+    @inject(GrammarOperationService) @optional()
+    protected readonly operationService?: GrammarOperationServiceInterface;
+
+    @inject(MessageService)
+    protected readonly messageService: MessageService;
 
     protected readonly onStateChangedEmitter = new Emitter<ElementPaletteState>();
 
@@ -190,7 +203,9 @@ export class ElementPaletteService implements IElementPaletteService {
 
     /**
      * Convert tool palette items to element type items.
+     *
      * Server uses 'action' (not 'toolAction') with kinds like 'create-node' (hyphenated).
+     * Supports create-node, create-edge, delete, and custom (grammar operations).
      */
     protected convertToItems(items: any[]): ElementTypeItem[] {
         return items
@@ -198,26 +213,91 @@ export class ElementPaletteService implements IElementPaletteService {
                 const action = item.action || item.toolAction;
                 if (!action) return false;
                 const kind = action.kind;
-                // Support both hyphenated (server) and camelCase formats
+                // Support create, delete, and custom (operation) kinds
                 return kind === 'create-node' || kind === 'create-edge' ||
-                       kind === 'createNode' || kind === 'createEdge';
+                       kind === 'createNode' || kind === 'createEdge' ||
+                       kind === 'delete' || kind === 'custom';
             })
             .map(item => {
                 const action = item.action || item.toolAction;
-                const isNode = action.kind === 'create-node' || action.kind === 'createNode';
                 return {
                     id: item.id,
                     label: item.label,
                     icon: item.icon,
-                    description: item.description,
+                    description: action.args?.description || item.description,
                     sortString: item.sortString,
-                    action: {
-                        kind: isNode ? 'createNode' : 'createEdge',
-                        elementTypeId: action.elementTypeId || item.id,
-                        args: action.args,
-                    },
+                    action: this.mapServerAction(action, item.id),
                 };
             });
+    }
+
+    /**
+     * Map a server-side tool action to a client-side element action.
+     *
+     * @param action - Server action with hyphenated kinds
+     * @param itemId - Fallback element type ID
+     * @returns Client-side ElementCreationAction
+     */
+    protected mapServerAction(action: any, itemId: string): ElementCreationAction {
+        const kind = action.kind;
+
+        if (kind === 'delete') {
+            return { kind: 'delete' };
+        }
+
+        if (kind === 'custom') {
+            return {
+                kind: 'operation',
+                operationId: action.args?.operationId,
+                languageId: action.args?.languageId,
+                args: action.args,
+            };
+        }
+
+        const isNode = kind === 'create-node' || kind === 'createNode';
+        return {
+            kind: isNode ? 'createNode' : 'createEdge',
+            elementTypeId: action.elementTypeId || itemId,
+            args: action.args,
+        };
+    }
+
+    /**
+     * Execute a grammar operation from the palette.
+     *
+     * @param operationId - Operation identifier
+     * @param languageId - Language identifier
+     * @returns Result of the operation execution
+     */
+    async executeOperation(operationId: string, languageId: string): Promise<OperationExecutionResult | undefined> {
+        if (!this.operationService) {
+            this.logger.warn('Operation service not available');
+            return undefined;
+        }
+
+        const uri = this._state.activeDiagramUri;
+        if (!uri) {
+            this.messageService.warn('No active diagram. Open a diagram to execute operations.');
+            return undefined;
+        }
+
+        try {
+            const result = await this.operationService.executeOperation({
+                languageId,
+                operationId,
+                uri,
+            });
+            if (result.success) {
+                this.messageService.info('Operation completed successfully.');
+            } else {
+                this.messageService.error(`Operation failed: ${result.error || 'Unknown error'}`);
+            }
+            return result;
+        } catch (error) {
+            this.logger.error({ error }, 'Failed to execute operation');
+            this.messageService.error('Failed to execute operation.');
+            return undefined;
+        }
     }
 
     /**

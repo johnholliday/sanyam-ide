@@ -87,6 +87,8 @@ export interface DiagramWidgetCapabilities extends Widget {
     getSourceRanges?(): ReadonlyMap<string, { start: { line: number; character: number }; end: { line: number; character: number } }> | undefined;
     /** Get the SVG container element for drop handling */
     getSvgContainer?(): HTMLElement | undefined;
+    /** Set whether the widget should auto-load the model during initialization */
+    setAutoLoadModel?(enabled: boolean): void;
 }
 
 export namespace CompositeEditorWidget {
@@ -306,10 +308,16 @@ export class CompositeEditorWidget extends BaseWidget
             this._activeView = newActiveView;
             this.onActiveViewChangedEmitter.fire(newActiveView);
 
-            // Load diagram model on first activation via tab click
+            // Load diagram model on first activation via tab click.
+            // Deferred with requestAnimationFrame to avoid spurious loads during
+            // initializeViews() when addWidget fires layoutModified before activateWidget.
             if (newActiveView === 'diagram' && this.diagramWidget && !this.diagramModelLoaded) {
-                this.loadDiagramModel().catch(error => {
-                    this.logger.error({ err: error }, 'Failed to load diagram model on tab switch');
+                requestAnimationFrame(() => {
+                    if (this._activeView === 'diagram' && !this.diagramModelLoaded) {
+                        this.loadDiagramModel().catch(error => {
+                            this.logger.error({ err: error }, 'Failed to load diagram model on tab switch');
+                        });
+                    }
                 });
             }
             // Trigger Monaco resize when switching back to text
@@ -539,6 +547,8 @@ export class CompositeEditorWidget extends BaseWidget
 
             if (widget) {
                 this.diagramWidget = widget;
+                // Disable auto-load: CompositeEditorWidget manages when to load the model
+                this.diagramWidget.setAutoLoadModel?.(false);
                 this.diagramWidget.addClass('sanyam-composite-diagram');
                 this.diagramWidget.title.label = 'Diagram';
                 this.diagramWidget.title.iconClass = 'codicon codicon-type-hierarchy';

@@ -30,7 +30,7 @@ import { ElementPaletteWidget, ELEMENT_PALETTE_WIDGET_ID } from './element-palet
 export namespace ElementPaletteCommands {
     export const TOGGLE: Command = {
         id: 'elementPalette:toggle',
-        label: 'Element Palette',
+        label: 'Tools',
         category: 'View',
     };
 }

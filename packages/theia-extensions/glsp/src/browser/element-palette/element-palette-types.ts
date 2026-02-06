@@ -16,14 +16,20 @@
  */
 
 /**
- * Element creation action data.
+ * Action data for an element palette item.
+ *
+ * Supports element creation (drag-and-drop), delete, and grammar operations (click).
  */
 export interface ElementCreationAction {
     /** Action type */
-    kind: 'createNode' | 'createEdge';
-    /** GLSP element type ID */
-    elementTypeId: string;
-    /** Additional creation parameters */
+    kind: 'createNode' | 'createEdge' | 'delete' | 'operation';
+    /** GLSP element type ID (required for createNode/createEdge) */
+    elementTypeId?: string;
+    /** Grammar operation ID (required for operation kind) */
+    operationId?: string;
+    /** Language ID for operation execution */
+    languageId?: string;
+    /** Additional parameters */
     args?: Record<string, unknown>;
 }
 

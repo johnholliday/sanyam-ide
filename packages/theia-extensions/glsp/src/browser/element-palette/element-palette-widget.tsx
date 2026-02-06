@@ -38,7 +38,7 @@ export const ELEMENT_PALETTE_WIDGET_ID = 'element-palette';
 @injectable()
 export class ElementPaletteWidget extends ReactWidget {
     static readonly ID = ELEMENT_PALETTE_WIDGET_ID;
-    static readonly LABEL = 'Element Palette';
+    static readonly LABEL = 'Tools';
 
     protected readonly logger = createLogger({ name: 'ElementPaletteWidget' });
 
@@ -103,6 +103,15 @@ export class ElementPaletteWidget extends ReactWidget {
     };
 
     /**
+     * Handle click on an operation item in the palette.
+     *
+     * Delegates to the service for execution.
+     */
+    protected handleOperationClick = (operationId: string, languageId: string): void => {
+        this.service.executeOperation(operationId, languageId);
+    };
+
+    /**
      * Render the widget.
      */
     protected render(): React.ReactNode {
@@ -127,7 +136,7 @@ export class ElementPaletteWidget extends ReactWidget {
                         ref={this.searchInputRef}
                         type="text"
                         className="sanyam-element-palette-search-input"
-                        placeholder="Search elements..."
+                        placeholder="Search tools..."
                         value={this.state.searchQuery}
                         onChange={this.handleSearchChange}
                     />
@@ -172,6 +181,7 @@ export class ElementPaletteWidget extends ReactWidget {
                             <ElementItemComponent
                                 key={category.items[0].id}
                                 item={category.items[0]}
+                                onOperationClick={this.handleOperationClick}
                             />
                         );
                     }
@@ -181,6 +191,7 @@ export class ElementPaletteWidget extends ReactWidget {
                             category={category}
                             expanded={this.service.isCategoryExpanded(category.id)}
                             onToggle={this.handleToggleCategory}
+                            onOperationClick={this.handleOperationClick}
                         />
                     );
                 })}

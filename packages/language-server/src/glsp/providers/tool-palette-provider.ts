@@ -8,7 +8,7 @@
  * @packageDocumentation
  */
 
-import type { GlspContext, GrammarManifest, RootTypeConfig, DiagramTypeConfig, NodeTypeConfig, EdgeTypeConfig } from '@sanyam/types';
+import type { GlspContext, GrammarManifest, GrammarOperation, RootTypeConfig, DiagramTypeConfig, NodeTypeConfig, EdgeTypeConfig } from '@sanyam/types';
 import type { ToolPaletteProvider } from '../provider-types.js';
 import { createLogger } from '@sanyam/logger';
 
@@ -102,8 +102,12 @@ export const defaultToolPaletteProvider = {
 
   /**
    * Build palette from manifest configuration.
+   *
+   * Includes grammar operations in an Actions group even when explicit
+   * palette configuration is provided.
    */
   buildFromManifest(context: GlspContext, config: any): ToolPalette {
+    const manifest = (context as any).manifest as GrammarManifest | undefined;
     const groups: ToolGroup[] = [];
 
     for (const groupConfig of config.groups || []) {
@@ -133,6 +137,12 @@ export const defaultToolPaletteProvider = {
       }
 
       groups.push(group);
+    }
+
+    // Add Actions group with grammar operations if manifest has operations
+    if (manifest?.operations && manifest.operations.length > 0) {
+      const actionsGroup = this.buildActionsGroup(manifest);
+      groups.push(actionsGroup);
     }
 
     return {
@@ -177,22 +187,8 @@ export const defaultToolPaletteProvider = {
       groups.push(edgesGroup);
     }
 
-    // Add actions group
-    const actionsGroup: ToolGroup = {
-      id: 'actions',
-      label: 'Actions',
-      icon: 'tools',
-      children: [
-        {
-          id: 'delete',
-          label: 'Delete',
-          icon: 'trash',
-          action: {
-            kind: 'delete',
-          },
-        },
-      ],
-    };
+    // Add actions group with grammar operations
+    const actionsGroup = this.buildActionsGroup(manifest);
     groups.push(actionsGroup);
 
     // T060: Add fallback message when no node types defined
@@ -369,6 +365,84 @@ export const defaultToolPaletteProvider = {
       icon: 'symbol-structure',
       children: nodeTools.sort((a, b) => (a.sortString || '').localeCompare(b.sortString || '')),
     }];
+  },
+
+  /**
+   * Build the Actions group containing delete tool and grammar operations.
+   *
+   * Grammar operations are read from manifest.operations and grouped by
+   * their category (e.g., Generate, Export, Analyze, Validate).
+   *
+   * @param manifest - Grammar manifest with operations
+   * @returns Actions tool group
+   */
+  buildActionsGroup(manifest: GrammarManifest | undefined): ToolGroup {
+    const children: (ToolItem | ToolGroup)[] = [];
+
+    // Always include Delete tool
+    children.push({
+      id: 'delete',
+      label: 'Delete',
+      icon: 'trash',
+      action: {
+        kind: 'delete',
+      },
+    });
+
+    // Add grammar operations from manifest
+    const operationTools = this.buildOperationTools(manifest);
+    if (operationTools.length > 0) {
+      children.push(...operationTools);
+    }
+
+    return {
+      id: 'actions',
+      label: 'Actions',
+      icon: 'tools',
+      children,
+    };
+  },
+
+  /**
+   * Build tool items from grammar operations in the manifest.
+   *
+   * Each operation becomes a ToolItem with kind 'custom' and carries
+   * the operationId and languageId in its args for client-side execution.
+   *
+   * @param manifest - Grammar manifest with operations
+   * @returns Array of operation tool items
+   */
+  buildOperationTools(manifest: GrammarManifest | undefined): ToolItem[] {
+    if (!manifest?.operations || manifest.operations.length === 0) {
+      return [];
+    }
+
+    const languageId = manifest.languageId;
+
+    // Sort operations by category then by displayName for consistent ordering
+    const sortedOps = [...manifest.operations].sort((a, b) => {
+      const catCompare = (a.category || '').localeCompare(b.category || '');
+      if (catCompare !== 0) return catCompare;
+      return a.displayName.localeCompare(b.displayName);
+    });
+
+    return sortedOps.map((op: GrammarOperation) => ({
+      id: `operation-${op.id}`,
+      label: op.displayName,
+      icon: op.icon || 'play',
+      sortString: `${op.category || 'zzz'}-${op.displayName}`.toLowerCase(),
+      action: {
+        kind: 'custom' as const,
+        args: {
+          operationId: op.id,
+          languageId,
+          category: op.category,
+          description: op.description,
+          inputType: op.input?.type,
+          async: op.execution?.async,
+        },
+      },
+    }));
   },
 
   /**

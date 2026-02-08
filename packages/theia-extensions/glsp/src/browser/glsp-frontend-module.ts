@@ -101,6 +101,8 @@ import {
   ElementPaletteViewContribution,
   CanvasDropHandler,
   CanvasDropHandlerSymbol,
+  TextEditorDropHandler,
+  TextEditorDropHandlerSymbol,
 } from './element-palette';
 
 // Note: Sprotty types are re-exported from di/sprotty-di-config via index.ts
@@ -399,6 +401,10 @@ export default new ContainerModule((bind: interfaces.Bind, _unbind, isBound, reb
   // Bind canvas drop handler
   bind(CanvasDropHandler).toSelf().inSingletonScope();
   bind(CanvasDropHandlerSymbol).toService(CanvasDropHandler);
+
+  // Bind text editor drop handler
+  bind(TextEditorDropHandler).toSelf().inSingletonScope();
+  bind(TextEditorDropHandlerSymbol).toService(TextEditorDropHandler);
 
   // Bind element palette widget
   bind(ElementPaletteWidget).toSelf();

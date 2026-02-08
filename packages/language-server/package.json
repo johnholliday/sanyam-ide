@@ -104,7 +104,7 @@
     "url": "https://github.com/johnholliday/sanyam-ide/issues"
   },
   "activationEvents": [
-    "onStartupFinished"
+    "onLanguage:ecml"
   ],
   "contributes": {
     "languages": [

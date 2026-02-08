@@ -34,5 +34,6 @@ export * from './element-palette-contribution';
 export * from './element-item';
 export * from './element-category';
 
-// Drop Handler
+// Drop Handlers
 export * from './canvas-drop-handler';
+export * from './text-editor-drop-handler';

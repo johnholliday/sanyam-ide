@@ -33,10 +33,20 @@ export interface LoadModelResponse {
 /**
  * Response from glsp/executeOperation request.
  */
+export interface TextEdit {
+    range: {
+        start: { line: number; character: number };
+        end: { line: number; character: number };
+    };
+    newText: string;
+}
+
 export interface ExecuteOperationResponse {
     success: boolean;
     error?: string;
-    edits?: any[];
+    edits?: TextEdit[];
+    /** Updated GModel after the operation (when available from backend). */
+    updatedModel?: import('@sanyam/types').GModelRoot;
 }
 
 /**

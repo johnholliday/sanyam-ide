@@ -82,11 +82,14 @@ export class ElementItemComponent extends React.Component<ElementItemProps, Elem
 
         const { item } = this.props;
 
-        // Set drag data
+        // Set drag data (include kind so drop handlers can distinguish node vs edge)
         const dragData = encodeDragData({
             elementTypeId: item.action.elementTypeId!,
             label: item.label,
             icon: item.icon,
+            kind: item.action.kind === 'createNode' || item.action.kind === 'createEdge'
+                ? item.action.kind
+                : undefined,
         });
         event.dataTransfer.setData(ELEMENT_PALETTE_DRAG_MIME_TYPE, dragData);
         event.dataTransfer.effectAllowed = 'copy';

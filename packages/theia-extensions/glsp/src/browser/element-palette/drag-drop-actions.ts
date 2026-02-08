@@ -32,6 +32,8 @@ export interface ElementDragData {
     label: string;
     /** Optional icon for drag image */
     icon?: string;
+    /** Operation kind (createNode or createEdge) */
+    kind?: 'createNode' | 'createEdge';
 }
 
 /**

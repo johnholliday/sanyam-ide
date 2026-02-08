@@ -832,6 +832,14 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             return;
         }
 
+        // Once Sprotty has rendered into the container, we must not replace
+        // innerHTML — Snabbdom's internal VNode tree references the live DOM
+        // elements.  Destroying them causes subsequent setModel() calls to
+        // patch disconnected elements, leaving the container empty.
+        if (this.sprottyInitialized) {
+            return;
+        }
+
         this.svgContainer.innerHTML = `
             <div class="sanyam-diagram-placeholder">
                 <div class="sanyam-diagram-loading-spinner"></div>
@@ -1411,9 +1419,23 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
     /**
      * Get the SVG container element for external integrations (e.g., drop handling).
+     *
+     * Snabbdom's virtual DOM patching may replace the original DOM element with a
+     * new one (same ID, different reference) during the first render cycle.  To
+     * ensure callers always receive the **live** element that is actually in the
+     * DOM, we look it up by ID rather than returning the potentially stale private
+     * field directly.
      */
     getSvgContainer(): HTMLElement | undefined {
-        return this.svgContainer;
+        if (this.svgContainer) {
+            const live = document.getElementById(this.svgContainer.id);
+            if (live && live !== this.svgContainer) {
+                // Snabbdom replaced the element — update our reference.
+                this.svgContainer = live as HTMLDivElement;
+            }
+            return this.svgContainer;
+        }
+        return undefined;
     }
 
     /**

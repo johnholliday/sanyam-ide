@@ -171,7 +171,10 @@ export const defaultGModelToAstProvider = {
 
     // Generate text to insert
     const insertText = this.generateNodeText(context, astType, name, args);
-    const insertPosition = this.findInsertPosition(context, astType);
+    // Use explicit position from args (text editor drop) or fall back to end-of-document
+    const insertPosition = args?.insertAtPosition
+      ? { line: args.insertAtPosition.line as number, character: args.insertAtPosition.character as number }
+      : this.findInsertPosition(context, astType);
 
     return {
       success: true,
@@ -499,8 +502,18 @@ export const defaultGModelToAstProvider = {
    * Get AST type from GModel node type.
    */
   getAstTypeFromNodeType(context: GlspContext, nodeType: string): string | undefined {
-    // Check manifest for reverse mapping
     const manifest = (context as any).manifest;
+
+    // Check manifest rootTypes (primary source: rootType.diagramNode.glspType → astType)
+    if (manifest?.rootTypes) {
+      for (const rootType of manifest.rootTypes as Array<{ astType: string; diagramNode?: { glspType: string } }>) {
+        if (rootType.diagramNode?.glspType === nodeType) {
+          return rootType.astType;
+        }
+      }
+    }
+
+    // Check manifest diagram.nodeTypes (legacy field)
     if (manifest?.diagram?.nodeTypes) {
       for (const [astType, config] of Object.entries(manifest.diagram.nodeTypes)) {
         if ((config as any).type === nodeType) {
@@ -509,7 +522,7 @@ export const defaultGModelToAstProvider = {
       }
     }
 
-    // Default mapping
+    // Fallback string-based mapping
     if (nodeType.includes('entity')) return 'Entity';
     if (nodeType.includes('property')) return 'Property';
     if (nodeType.includes('package')) return 'Package';
@@ -571,8 +584,18 @@ export const defaultGModelToAstProvider = {
     name: string,
     args?: Record<string, any>
   ): string {
-    // Simple template-based generation
-    // A real implementation would use Langium's serializer
+    const manifest = (context as any).manifest;
+
+    // Check manifest rootTypes for a template
+    if (manifest?.rootTypes) {
+      for (const rootType of manifest.rootTypes as Array<{ astType: string; template?: string }>) {
+        if (rootType.astType === astType && rootType.template) {
+          return '\n' + rootType.template.replace(/\$\{name\}/g, name);
+        }
+      }
+    }
+
+    // Fallback template-based generation
     const lowerType = astType.toLowerCase();
 
     if (lowerType === 'entity' || lowerType === 'class') {

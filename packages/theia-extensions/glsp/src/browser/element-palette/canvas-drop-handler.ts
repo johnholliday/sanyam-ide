@@ -99,9 +99,14 @@ export class CanvasDropHandler {
      */
     protected handleDragOver = (event: DragEvent): void => {
         // Check if this is a valid element palette drag
-        if (event.dataTransfer?.types.includes(ELEMENT_PALETTE_DRAG_MIME_TYPE)) {
+        // Use Array.from() because DataTransfer.types may be a DOMStringList (no .includes)
+        const types = event.dataTransfer?.types;
+        if (types && Array.from(types).includes(ELEMENT_PALETTE_DRAG_MIME_TYPE)) {
             event.preventDefault();
-            event.dataTransfer.dropEffect = 'copy';
+            // Stop propagation to prevent Theia's ApplicationShell handler from
+            // overriding dropEffect to 'link' (incompatible with effectAllowed='copy')
+            event.stopPropagation();
+            event.dataTransfer!.dropEffect = 'copy';
         }
     };
 
@@ -109,8 +114,10 @@ export class CanvasDropHandler {
      * Handle dragenter for visual feedback.
      */
     protected handleDragEnter = (event: DragEvent): void => {
-        if (event.dataTransfer?.types.includes(ELEMENT_PALETTE_DRAG_MIME_TYPE)) {
+        const types = event.dataTransfer?.types;
+        if (types && Array.from(types).includes(ELEMENT_PALETTE_DRAG_MIME_TYPE)) {
             event.preventDefault();
+            event.stopPropagation();
             this.svgContainer?.classList.add('drag-over');
         }
     };
@@ -130,6 +137,7 @@ export class CanvasDropHandler {
      */
     protected handleDrop = async (event: DragEvent): Promise<void> => {
         event.preventDefault();
+        event.stopPropagation();
         this.svgContainer?.classList.remove('drag-over');
 
         this.logger.debug({

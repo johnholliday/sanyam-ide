@@ -850,7 +850,7 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
                 return {
                     success: opResult?.success ?? true,
                     error: opResult?.error,
-                    edits: opResult?.edits,
+                    edits: opResult?.textEdits,
                     updatedModel: context.gModel,
                 };
             } catch (error) {

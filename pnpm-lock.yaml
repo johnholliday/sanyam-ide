@@ -898,9 +898,6 @@ importers:
       '@hono/node-server':
         specifier: ^1.13.7
         version: 1.19.9(hono@4.11.4)
-      '@hono/swagger-ui':
-        specifier: ^0.5.0
-        version: 0.5.3(hono@4.11.4)
       '@sanyam/logger':
         specifier: workspace:*
         version: link:../logger
@@ -2465,11 +2462,6 @@ packages:
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
-
-  '@hono/swagger-ui@0.5.3':
-    resolution: {integrity: sha512-Hn90DOOJ62ICJQplQvCDVpi9Jcn6EhtRaiffyJIS53wA5RmRLtMCDQGVc0bor8vQD7JIwpkweWjs+3cycp+IvA==}
-    peerDependencies:
-      hono: '>=4.0.0'
 
   '@huggingface/inference@2.8.1':
     resolution: {integrity: sha512-EfsNtY9OR6JCNaUa5bZu2mrs48iqeTz0Gutwf+fU0Kypx33xFQB4DKMhp8u4Ee6qVbLbNWvTHuWwlppLQl4p4Q==}
@@ -11340,10 +11332,6 @@ snapshots:
       yargs: 17.7.2
 
   '@hono/node-server@1.19.9(hono@4.11.4)':
-    dependencies:
-      hono: 4.11.4
-
-  '@hono/swagger-ui@0.5.3(hono@4.11.4)':
     dependencies:
       hono: 4.11.4
 

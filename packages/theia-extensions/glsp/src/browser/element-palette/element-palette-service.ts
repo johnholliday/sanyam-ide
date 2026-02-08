@@ -229,25 +229,37 @@ export class ElementPaletteService implements IElementPaletteService {
         };
         groups.push(layoutCategory);
 
-        // Find existing ACTIONS category or create one, then append Export SVG
-        let actionsCategory = groups.find(g => g.label.toUpperCase() === 'ACTIONS');
-        if (!actionsCategory) {
-            actionsCategory = {
-                id: 'client:actions',
-                label: 'ACTIONS',
-                icon: 'codicon codicon-play',
-                sortString: 'z2_actions',
-                items: [],
-            };
-            groups.push(actionsCategory);
-        }
-        actionsCategory.items.push({
-            id: 'cmd:exportSvg',
-            label: 'Export as SVG',
-            icon: 'codicon codicon-file-media',
-            description: 'Export the diagram as an SVG file',
-            action: { kind: 'command', commandId: 'sanyam.diagram.exportSvg' },
-        });
+        // EXPORT section with all export commands
+        const exportCategory: ElementCategory = {
+            id: 'client:export',
+            label: 'EXPORT',
+            icon: 'codicon codicon-desktop-download',
+            sortString: 'z2_export',
+            items: [
+                {
+                    id: 'cmd:exportSvg',
+                    label: 'Export as SVG',
+                    icon: 'codicon codicon-file-media',
+                    description: 'Export the diagram as an SVG file',
+                    action: { kind: 'command', commandId: 'sanyam.diagram.exportSvg' },
+                },
+                {
+                    id: 'cmd:exportJson',
+                    label: 'Export as JSON',
+                    icon: 'codicon codicon-json',
+                    description: 'Export the diagram model as a JSON file',
+                    action: { kind: 'command', commandId: 'sanyam.diagram.exportJson' },
+                },
+                {
+                    id: 'cmd:exportMarkdown',
+                    label: 'Export as Markdown',
+                    icon: 'codicon codicon-markdown',
+                    description: 'Export a Markdown summary of diagram elements',
+                    action: { kind: 'command', commandId: 'sanyam.diagram.exportMarkdown' },
+                },
+            ],
+        };
+        groups.push(exportCategory);
     }
 
     /**

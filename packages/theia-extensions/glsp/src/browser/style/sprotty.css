@@ -143,19 +143,67 @@
    Layout Pending State (suppress initial jarring)
    ============================================ */
 
-/* Hide the entire SVG container content during layout to prevent any flash.
-   visibility: hidden prevents rendering; opacity: 0 catches any edge cases;
-   pointer-events: none prevents interaction with invisible content. */
-.sanyam-diagram-svg-container.layout-pending {
+/* During layout-pending, hide the SVG content but keep the container visible
+   so the canvas background pattern and progress bar remain visible. */
+.sanyam-diagram-svg-container.layout-pending > svg {
     visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
 }
 
-/* Also disable all animations/transitions within the diagram during layout */
-.sanyam-diagram-svg-container.layout-pending * {
+/* Also disable all animations/transitions within the SVG during layout */
+.sanyam-diagram-svg-container.layout-pending > svg * {
     transition: none !important;
     animation: none !important;
+}
+
+/* ============================================
+   Diagram Loading Progress Bar
+   ============================================ */
+
+.sanyam-diagram-progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    z-index: 100;
+    overflow: hidden;
+    background-color: transparent;
+}
+
+.sanyam-diagram-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 30%;
+    height: 100%;
+    background-color: var(--theia-focusBorder, #007fd4);
+    animation: sanyam-progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes sanyam-progress-indeterminate {
+    0% {
+        left: -30%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+.sanyam-diagram-progress-bar.hidden {
+    display: none;
+}
+
+/* Disable progress bar animation for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .sanyam-diagram-progress-bar::after {
+        animation: none;
+        left: 0;
+        width: 100%;
+        opacity: 0.5;
+    }
 }
 
 /* Smooth fade-in when layout completes */

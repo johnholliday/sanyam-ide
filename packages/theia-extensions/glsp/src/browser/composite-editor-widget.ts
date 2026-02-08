@@ -657,6 +657,9 @@ export class CompositeEditorWidget extends BaseWidget
                 this.suppressAutoReload = true;
                 try {
                     await this.textEditor?.saveable?.save();
+                    // Brief delay to let the backend re-parse the saved file
+                    // before requesting the updated model
+                    await new Promise(resolve => setTimeout(resolve, 200));
                     await this.loadDiagramModel();
                 } catch (reloadError) {
                     this.logger.error(`Failed to reload diagram after canvas drop: ${reloadError}`);

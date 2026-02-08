@@ -755,7 +755,7 @@ export async function createLanguageServer(
 
             // Reload the diagram model and send notification
             const context = await glspServer.loadModel(freshDoc, CancellationToken.None);
-            if (context.gModel && context.gModel.children && context.gModel.children.length > 0) {
+            if (context.gModel) {
               const updateIdRegistryData = (context as any).idRegistryData;
               connection.sendNotification('glsp/modelUpdated', {
                 uri: uriStr,

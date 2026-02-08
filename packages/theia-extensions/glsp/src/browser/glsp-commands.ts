@@ -181,6 +181,18 @@ export namespace DiagramCommands {
     category: 'Diagram',
   };
 
+  export const EXPORT_JSON: Command = {
+    id: 'sanyam.diagram.exportJson',
+    label: 'Export as JSON',
+    category: 'Diagram',
+  };
+
+  export const EXPORT_MARKDOWN: Command = {
+    id: 'sanyam.diagram.exportMarkdown',
+    label: 'Export as Markdown',
+    category: 'Diagram',
+  };
+
 }
 
 /**
@@ -294,6 +306,16 @@ export class GlspDiagramCommands implements CommandContribution {
 
     registry.registerCommand(DiagramCommands.EXPORT_PNG, {
       execute: (...args: unknown[]) => this.exportPng(this.extractWidgetFromArgs(args)),
+      isEnabled: () => this.hasDiagramFocus(),
+    });
+
+    registry.registerCommand(DiagramCommands.EXPORT_JSON, {
+      execute: (...args: unknown[]) => this.exportJson(this.extractWidgetFromArgs(args)),
+      isEnabled: () => this.hasDiagramFocus(),
+    });
+
+    registry.registerCommand(DiagramCommands.EXPORT_MARKDOWN, {
+      execute: (...args: unknown[]) => this.exportMarkdown(this.extractWidgetFromArgs(args)),
       isEnabled: () => this.hasDiagramFocus(),
     });
 
@@ -481,6 +503,20 @@ export class GlspDiagramCommands implements CommandContribution {
     }
     if (isComposite) {
       this.lastKnownCompositeWidget = widget as CompositeEditorWidget;
+    }
+
+    // If active widget is not a diagram (e.g., sidebar palette), fall back to cached widgets
+    if (!result) {
+      if (this.lastKnownDiagramWidget && !this.lastKnownDiagramWidget.isDisposed) {
+        this.logger.debug('[GlspDiagramCommands] hasDiagramFocus: true (fallback to cached DiagramWidget)');
+        return true;
+      }
+      if (this.lastKnownCompositeWidget && !this.lastKnownCompositeWidget.isDisposed) {
+        if (this.lastKnownCompositeWidget.activeView === 'diagram') {
+          this.logger.debug('[GlspDiagramCommands] hasDiagramFocus: true (fallback to cached CompositeEditorWidget)');
+          return true;
+        }
+      }
     }
 
     this.logger.debug({ result, activeWidget: widget?.constructor.name }, 'hasDiagramFocus');
@@ -711,6 +747,135 @@ export class GlspDiagramCommands implements CommandContribution {
   protected exportPng(_widgetHint?: unknown): void {
     // PNG export requires canvas rendering - not implemented yet
     this.logger.debug('[GlspDiagramCommands] Export PNG - not yet implemented');
+  }
+
+  protected exportJson(widgetHint?: unknown): void {
+    this.logger.debug('[GlspDiagramCommands] exportJson called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (!diagram) {
+      this.logger.debug('[GlspDiagramCommands] No diagram for exportJson');
+      return;
+    }
+    const gModel = diagram.getModel();
+    if (!gModel) {
+      this.logger.warn('[GlspDiagramCommands] No model available for JSON export');
+      return;
+    }
+    const jsonStr = JSON.stringify(gModel, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `diagram-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.logger.debug('[GlspDiagramCommands] JSON exported');
+  }
+
+  protected exportMarkdown(widgetHint?: unknown): void {
+    this.logger.debug('[GlspDiagramCommands] exportMarkdown called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (!diagram) {
+      this.logger.debug('[GlspDiagramCommands] No diagram for exportMarkdown');
+      return;
+    }
+    const gModel = diagram.getModel();
+    if (!gModel) {
+      this.logger.warn('[GlspDiagramCommands] No model available for Markdown export');
+      return;
+    }
+    const md = this.generateMarkdownSummary(gModel);
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `diagram-${Date.now()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.logger.debug('[GlspDiagramCommands] Markdown exported');
+  }
+
+  /**
+   * Generate a Markdown summary of the diagram model.
+   */
+  protected generateMarkdownSummary(gModel: unknown): string {
+    const root = gModel as { id?: string; type?: string; children?: unknown[] };
+    const nodes: { id: string; type: string; label?: string }[] = [];
+    const edges: { id: string; type: string; source?: string; target?: string; label?: string }[] = [];
+
+    const collectElements = (element: unknown): void => {
+      const el = element as { id?: string; type?: string; children?: unknown[]; sourceId?: string; targetId?: string; text?: string };
+      if (!el || !el.type) return;
+
+      if (el.type.includes('edge') || el.type.includes('Edge')) {
+        edges.push({
+          id: el.id ?? '',
+          type: el.type,
+          source: el.sourceId,
+          target: el.targetId,
+          label: el.text,
+        });
+      } else if (el.type.includes('node') || el.type.includes('Node')) {
+        const label = el.text ?? this.findLabelInChildren(el.children);
+        nodes.push({ id: el.id ?? '', type: el.type, label });
+      }
+
+      if (el.children) {
+        for (const child of el.children) {
+          collectElements(child);
+        }
+      }
+    };
+
+    if (root.children) {
+      for (const child of root.children) {
+        collectElements(child);
+      }
+    }
+
+    const lines: string[] = [
+      '# Diagram Summary',
+      '',
+      `**Root**: ${root.type ?? 'unknown'} (${root.id ?? 'no-id'})`,
+      '',
+    ];
+
+    if (nodes.length > 0) {
+      lines.push('## Nodes', '', '| ID | Type | Label |', '|---|------|-------|');
+      for (const n of nodes) {
+        lines.push(`| ${n.id} | ${n.type} | ${n.label ?? ''} |`);
+      }
+      lines.push('');
+    }
+
+    if (edges.length > 0) {
+      lines.push('## Edges', '', '| ID | Type | Source | Target | Label |', '|---|------|--------|--------|-------|');
+      for (const e of edges) {
+        lines.push(`| ${e.id} | ${e.type} | ${e.source ?? ''} | ${e.target ?? ''} | ${e.label ?? ''} |`);
+      }
+      lines.push('');
+    }
+
+    lines.push(`*Exported at ${new Date().toISOString()}*`);
+    return lines.join('\n');
+  }
+
+  /**
+   * Find a label text in child elements.
+   */
+  protected findLabelInChildren(children?: unknown[]): string | undefined {
+    if (!children) return undefined;
+    for (const child of children) {
+      const el = child as { type?: string; text?: string; children?: unknown[] };
+      if (el.type?.includes('label') || el.type?.includes('Label')) {
+        return el.text;
+      }
+      if (el.children) {
+        const found = this.findLabelInChildren(el.children);
+        if (found) return found;
+      }
+    }
+    return undefined;
   }
 
   protected centerView(widgetHint?: unknown): void {

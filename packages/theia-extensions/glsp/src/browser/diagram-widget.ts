@@ -193,6 +193,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     /** Floating mini-toolbar element */
     protected floatingToolbar: HTMLDivElement | undefined;
 
+    /** Loading progress bar element */
+    protected progressBar: HTMLDivElement | undefined;
+
     /** Flag indicating if Sprotty has been initialized */
     protected sprottyInitialized = false;
 
@@ -201,6 +204,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
     /** Flag to prevent concurrent setModel calls */
     protected setModelInProgress = false;
+
+    /** Queued model to process after current setModel completes (queue-latest pattern) */
+    protected pendingModel: GModelRootType | undefined;
 
     /** Flag indicating whether the initial layout+fitToScreen has been completed */
     protected initialLayoutDone = false;
@@ -656,6 +662,12 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         this.svgContainer.className = 'sanyam-diagram-svg-container bg-dots layout-pending';
         this.svgContainer.id = `sprotty-${this.id.replace(/[^a-zA-Z0-9]/g, '-')}`;
         this.layoutPending = true;
+
+        // Create progress bar as first child of SVG container
+        this.progressBar = document.createElement('div');
+        this.progressBar.className = 'sanyam-diagram-progress-bar';
+        this.svgContainer.appendChild(this.progressBar);
+
         container.appendChild(this.svgContainer);
 
         // Create floating mini-toolbar - visible by default per preference
@@ -889,6 +901,11 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             return;
         }
 
+        // Show the progress bar
+        if (this.progressBar) {
+            this.progressBar.classList.remove('hidden');
+        }
+
         // Once Sprotty has rendered into the container, we must not replace
         // innerHTML — Snabbdom's internal VNode tree references the live DOM
         // elements.  Destroying them causes subsequent setModel() calls to
@@ -897,14 +914,12 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             return;
         }
 
-        this.svgContainer.innerHTML = `
-            <div class="sanyam-diagram-placeholder">
-                <div class="sanyam-diagram-loading-spinner"></div>
-                <div class="sanyam-diagram-placeholder-text">
-                    <p>Loading diagram...</p>
-                </div>
-            </div>
-        `;
+        // Show a centered placeholder only for the very first load
+        // (before Sprotty is initialized)
+        this.svgContainer.innerHTML = '';
+        if (this.progressBar) {
+            this.svgContainer.appendChild(this.progressBar);
+        }
     }
 
     /**
@@ -913,6 +928,11 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     showError(message: string): void {
         if (!this.svgContainer) {
             return;
+        }
+
+        // Hide progress bar on error
+        if (this.progressBar) {
+            this.progressBar.classList.add('hidden');
         }
 
         this.svgContainer.innerHTML = `
@@ -1048,8 +1068,11 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      * the diagram during initial rendering (prevents visual repositioning).
      */
     async setModel(gModel: GModelRootType): Promise<void> {
-        // Skip if another setModel is already in progress (prevents race conditions)
+        // Queue-latest pattern: if another setModel is in progress, store
+        // the most recent model and process it when the current call finishes.
         if (this.setModelInProgress) {
+            this.pendingModel = gModel;
+            this.logger.debug('[DiagramWidget] setModel queued (in-progress)');
             return;
         }
 
@@ -1150,6 +1173,18 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         }
 
         this.setModelInProgress = false;
+
+        // Process queued model if one arrived while we were busy
+        const queued = this.pendingModel;
+        if (queued) {
+            this.pendingModel = undefined;
+            this.logger.debug('[DiagramWidget] Processing queued model');
+            // Don't await — let it run asynchronously to avoid deep recursion
+            this.setModel(queued).catch(err => {
+                this.logger.error({ err }, 'Failed to process queued model');
+            });
+        }
+
         this.onModelChangedEmitter.fire(gModel);
     }
 
@@ -1195,6 +1230,11 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         }
 
         this.layoutPending = false;
+
+        // Hide the progress bar
+        if (this.progressBar) {
+            this.progressBar.classList.add('hidden');
+        }
 
         // Remove layout-pending (which had visibility: hidden)
         this.svgContainer.classList.remove('layout-pending');

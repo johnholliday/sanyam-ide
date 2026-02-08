@@ -109,8 +109,13 @@ export class LangiumSourceModelStorage {
         metadata = await this.loadMetadata(uri);
       }
 
-      // Create model state
+      // Create model state, preserving id registry fingerprints from existing state
+      // (mirrors onDocumentChanged() logic at line 227)
+      const existingState = this.modelStates.get(uri);
       const modelState = createLangiumModelState(document, metadata);
+      if (existingState) {
+        modelState.idRegistry.loadFromLayoutData(existingState.idRegistry.exportToLayoutData());
+      }
       this.modelStates.set(uri, modelState);
 
       return {

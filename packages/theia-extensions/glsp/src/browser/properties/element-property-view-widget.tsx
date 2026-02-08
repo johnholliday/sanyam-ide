@@ -121,7 +121,7 @@ export class ElementPropertyViewFormWidget extends ReactWidget implements Proper
 
       this.logger.debug({ success: response?.success, propertyCount: response?.properties?.length, typeLabel: response?.typeLabel, error: response?.error }, 'loadProperties response');
 
-      if (response && response.success) {
+      if (response && response.success && !response.error) {
         this.properties = response.properties;
         this.typeLabel = response.typeLabel;
         this.error = undefined;

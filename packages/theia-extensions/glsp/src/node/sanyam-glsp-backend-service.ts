@@ -1178,12 +1178,17 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
 
                 const context = this.glspServer.createContext(result.document, CancellationToken.None);
 
-                // TODO: Phase 6 (US4) - Implement actual property extraction
-                // For now, return stub response
+                this.log(`[SanyamGlspBackendService] getProperties context: root=$type=${context.root?.$type}, hasIdRegistry=${!!(context as any).idRegistry}, elementIds=${JSON.stringify(elementIds)}`);
+
                 if (this.glspServer.getProperties) {
-                    const propsResult = this.glspServer.getProperties(context, elementIds);
+                    const propsResult = this.glspServer.getProperties(context, elementIds, result.contribution);
+
+                    this.log(`[SanyamGlspBackendService] getProperties result: typeLabel=${propsResult.typeLabel}, propertyCount=${propsResult.properties?.length}, error=${propsResult.error ?? 'none'}`);
+
+                    // Propagate error from property extraction as failure
+                    const success = !propsResult.error;
                     return {
-                        success: true,
+                        success,
                         ...propsResult,
                     };
                 }

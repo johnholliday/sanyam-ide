@@ -22,13 +22,15 @@
  */
 export interface ElementCreationAction {
     /** Action type */
-    kind: 'createNode' | 'createEdge' | 'delete' | 'operation';
+    kind: 'createNode' | 'createEdge' | 'delete' | 'operation' | 'command';
     /** GLSP element type ID (required for createNode/createEdge) */
     elementTypeId?: string;
     /** Grammar operation ID (required for operation kind) */
     operationId?: string;
     /** Language ID for operation execution */
     languageId?: string;
+    /** Command ID to execute (required for command kind) */
+    commandId?: string;
     /** Additional parameters */
     args?: Record<string, unknown>;
 }
@@ -113,6 +115,9 @@ export interface IElementPaletteService {
 
     /** Refresh palette data for current diagram */
     refresh(): Promise<void>;
+
+    /** Execute a command from a palette item */
+    executeCommand?(commandId: string): Promise<void>;
 
     /** Subscribe to state changes */
     onStateChanged(callback: (state: ElementPaletteState) => void): { dispose(): void };

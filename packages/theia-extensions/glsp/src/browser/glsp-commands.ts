@@ -181,17 +181,6 @@ export namespace DiagramCommands {
     category: 'Diagram',
   };
 
-  export const TOGGLE_EDGE_JUMPS: Command = {
-    id: 'sanyam.diagram.toggleEdgeJumps',
-    label: 'Toggle Edge Jumps',
-    category: 'Diagram',
-  };
-
-  export const TOGGLE_ARROWHEADS: Command = {
-    id: 'sanyam.diagram.toggleArrowheads',
-    label: 'Toggle Arrowheads',
-    category: 'Diagram',
-  };
 }
 
 /**
@@ -337,16 +326,8 @@ export class GlspDiagramCommands implements CommandContribution {
     // Toggle snap-to-grid
     registry.registerCommand(DiagramCommands.TOGGLE_SNAP_TO_GRID, {
       execute: (...args: unknown[]) => this.toggleSnapToGrid(this.extractWidgetFromArgs(args)),
-      isEnabled: () => {
-        const hasFocus = this.hasDiagramFocus();
-        console.log('[GlspDiagramCommands] snap isEnabled called, hasDiagramFocus:', hasFocus);
-        return hasFocus;
-      },
-      isToggled: () => {
-        const toggled = this.isSnapToGridEnabled();
-        console.log('[GlspDiagramCommands] snap isToggled called, returning:', toggled);
-        return toggled;
-      },
+      isEnabled: () => this.hasDiagramFocus(),
+      isToggled: () => this.isSnapToGridEnabled(),
     });
 
     // Edge routing mode commands
@@ -354,40 +335,6 @@ export class GlspDiagramCommands implements CommandContribution {
     this.registerEdgeRoutingCommand(registry, DiagramCommands.EDGE_ROUTING_STRAIGHT, 'straight');
     this.registerEdgeRoutingCommand(registry, DiagramCommands.EDGE_ROUTING_BEZIER, 'bezier');
 
-    // Toggle arrowheads visibility
-    registry.registerCommand(DiagramCommands.TOGGLE_ARROWHEADS, {
-      execute: (...args: unknown[]) => {
-        const visible = !this.edgeRoutingService.arrowheadsVisible;
-        this.edgeRoutingService.setArrowheadsVisible(visible);
-        // Trigger re-render so the edge view adds/removes arrowhead polygons
-        const diagram = this.getActiveDiagram(this.extractWidgetFromArgs(args));
-        if (diagram) {
-          diagram.dispatchAction(RequestLayoutAction.create()).catch(err => {
-            this.logger.error({ err }, 'Toggle arrowheads re-render failed');
-          });
-        }
-      },
-      isEnabled: () => this.hasDiagramFocus(),
-      isToggled: () => !this.edgeRoutingService.arrowheadsVisible,
-    });
-
-    // Toggle edge jumps (line bridges)
-    registry.registerCommand(DiagramCommands.TOGGLE_EDGE_JUMPS, {
-      execute: (...args: unknown[]) => {
-        const enabled = !this.edgeRoutingService.edgeJumpsEnabled;
-        this.edgeRoutingService.setEdgeJumpsEnabled(enabled);
-        // Trigger re-render by requesting layout
-        const diagram = this.getActiveDiagram(this.extractWidgetFromArgs(args));
-        if (diagram) {
-          const action = RequestLayoutAction.create();
-          diagram.dispatchAction(action).catch(err => {
-            this.logger.error({ err }, 'Toggle edge jumps layout failed');
-          });
-        }
-      },
-      isEnabled: () => this.hasDiagramFocus(),
-      isToggled: () => this.edgeRoutingService.edgeJumpsEnabled,
-    });
   }
 
   /**
@@ -417,9 +364,7 @@ export class GlspDiagramCommands implements CommandContribution {
   protected isSnapToGridEnabled(): boolean {
     // Read directly from global state to bypass any instance issues
     const globalConfig = (window as any)['__sanyam_snap_grid_config__'];
-    const enabled = globalConfig?.enabled ?? false;
-    console.log('[GlspDiagramCommands] isSnapToGridEnabled called, returning:', enabled, 'globalConfig:', globalConfig);
-    return enabled;
+    return globalConfig?.enabled ?? false;
   }
 
   /**
@@ -824,10 +769,8 @@ export class GlspDiagramCommands implements CommandContribution {
   }
 
   protected toggleSnapToGrid(_widgetHint?: unknown): void {
-    console.log('[GlspDiagramCommands] toggleSnapToGrid called, service config before:', this.snapGridService.getConfig());
     // Toggle the snap-to-grid state directly via the service
     const newState = this.snapGridService.toggle();
-    console.log('[GlspDiagramCommands] Snap-to-grid toggled to:', newState);
 
     // Update context key to trigger toolbar refresh
     this.snapToGridContextKey?.set(newState);

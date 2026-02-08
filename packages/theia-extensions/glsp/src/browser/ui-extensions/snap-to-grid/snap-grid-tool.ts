@@ -101,7 +101,6 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
 
   constructor() {
     super();
-    console.log(`[SnapGridTool] Created instance #${this.instanceId}`);
   }
 
   /** Grid visible state */
@@ -224,7 +223,6 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
    */
   getConfig(): SnapGridConfig {
     const shared = getSharedConfig();
-    console.log(`[SnapGridTool #${this.instanceId}] getConfig() called, enabled: ${shared.enabled}`);
     return { ...shared };
   }
 
@@ -254,7 +252,6 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
     const currentEnabled = getSharedConfig().enabled;
     const newEnabled = !currentEnabled;
     this.setConfig({ enabled: newEnabled });
-    console.log(`[SnapGridTool #${this.instanceId}] toggle() called, was: ${currentEnabled}, now: ${newEnabled}`);
     return newEnabled;
   }
 

@@ -27,6 +27,8 @@ export interface ElementItemProps {
     item: ElementTypeItem;
     /** Callback when an operation item is clicked */
     onOperationClick?: (operationId: string, languageId: string) => void;
+    /** Callback when a command item is clicked */
+    onCommandClick?: (commandId: string) => void;
 }
 
 /**
@@ -105,14 +107,16 @@ export class ElementItemComponent extends React.Component<ElementItemProps, Elem
     };
 
     /**
-     * Handle click for operation/delete items.
+     * Handle click for operation/delete/command items.
      */
     private handleClick = (): void => {
-        const { item, onOperationClick } = this.props;
+        const { item, onOperationClick, onCommandClick } = this.props;
         const { kind } = item.action;
 
         if (kind === 'operation' && item.action.operationId && item.action.languageId && onOperationClick) {
             onOperationClick(item.action.operationId, item.action.languageId);
+        } else if (kind === 'command' && item.action.commandId && onCommandClick) {
+            onCommandClick(item.action.commandId);
         }
     };
 
@@ -152,7 +156,7 @@ export class ElementItemComponent extends React.Component<ElementItemProps, Elem
         const { item } = this.props;
         const { isDragging, showTooltip, tooltipPosition } = this.state;
 
-        const isActionItem = item.action.kind === 'operation' || item.action.kind === 'delete';
+        const isActionItem = item.action.kind === 'operation' || item.action.kind === 'delete' || item.action.kind === 'command';
         const className = [
             'sanyam-element-palette-item',
             isDragging ? 'dragging' : '',

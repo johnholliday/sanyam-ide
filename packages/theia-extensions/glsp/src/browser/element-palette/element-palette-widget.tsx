@@ -112,6 +112,15 @@ export class ElementPaletteWidget extends ReactWidget {
     };
 
     /**
+     * Handle click on a command item in the palette.
+     *
+     * Delegates to the service for command execution.
+     */
+    protected handleCommandClick = (commandId: string): void => {
+        this.service.executeCommand(commandId);
+    };
+
+    /**
      * Render the widget.
      */
     protected render(): React.ReactNode {
@@ -182,6 +191,7 @@ export class ElementPaletteWidget extends ReactWidget {
                                 key={category.items[0].id}
                                 item={category.items[0]}
                                 onOperationClick={this.handleOperationClick}
+                                onCommandClick={this.handleCommandClick}
                             />
                         );
                     }
@@ -192,6 +202,7 @@ export class ElementPaletteWidget extends ReactWidget {
                             expanded={this.service.isCategoryExpanded(category.id)}
                             onToggle={this.handleToggleCategory}
                             onOperationClick={this.handleOperationClick}
+                            onCommandClick={this.handleCommandClick}
                         />
                     );
                 })}

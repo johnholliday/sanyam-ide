@@ -160,7 +160,6 @@ class CompositeAwareMonacoOutlineContribution extends MonacoOutlineContribution 
 class DisabledGLSPDiagramMenuContribution extends GLSPDiagramMenuContribution {
   override registerMenus(): void {
     // No-op - we use our own GlspDiagramMenus
-    console.log('[DisabledGLSPDiagramMenuContribution] Skipping GLSP Diagram menu registration');
   }
 }
 
@@ -170,7 +169,6 @@ export default new ContainerModule((bind: interfaces.Bind, _unbind, isBound, reb
   // which creates its own Diagram menu. We use our own GlspDiagramMenus instead.
   if (isBound(GLSPDiagramMenuContribution)) {
     rebind(GLSPDiagramMenuContribution).to(DisabledGLSPDiagramMenuContribution).inSingletonScope();
-    console.log('[GlspFrontendModule] Rebound GLSPDiagramMenuContribution to disabled version');
   }
   // Override MonacoOutlineContribution to avoid opening new tabs for composite editor symbols
   rebind(MonacoOutlineContribution).to(CompositeAwareMonacoOutlineContribution).inSingletonScope();
@@ -253,11 +251,12 @@ export default new ContainerModule((bind: interfaces.Bind, _unbind, isBound, reb
   bind(CompositeEditorOpenHandler).toSelf().inSingletonScope();
   bind(OpenHandler).toService(CompositeEditorOpenHandler);
 
-  // Bind composite editor contribution (commands, keybindings, menus)
+  // Bind composite editor contribution (commands, keybindings, menus, startup)
   bind(CompositeEditorContribution).toSelf().inSingletonScope();
   bind(CommandContribution).toService(CompositeEditorContribution);
   bind(KeybindingContribution).toService(CompositeEditorContribution);
   bind(MenuContribution).toService(CompositeEditorContribution);
+  bind(FrontendApplicationContribution).toService(CompositeEditorContribution);
 
   // Bind context key service for composite editor
   bind(CompositeEditorContextKeyService).toSelf().inSingletonScope();

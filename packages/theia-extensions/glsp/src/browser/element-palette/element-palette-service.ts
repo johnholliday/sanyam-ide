@@ -18,6 +18,7 @@
 
 import { injectable, inject, postConstruct, optional } from 'inversify';
 import { Emitter, Event } from '@theia/core/lib/common';
+import { CommandService } from '@theia/core/lib/common';
 import { ApplicationShell } from '@theia/core/lib/browser';
 import { MessageService } from '@theia/core';
 import { createLogger } from '@sanyam/logger';
@@ -75,6 +76,9 @@ export class ElementPaletteService implements IElementPaletteService {
 
     @inject(MessageService)
     protected readonly messageService: MessageService;
+
+    @inject(CommandService)
+    protected readonly commandService: CommandService;
 
     protected readonly onStateChangedEmitter = new Emitter<ElementPaletteState>();
 
@@ -162,6 +166,9 @@ export class ElementPaletteService implements IElementPaletteService {
             const palette = await this.diagramLanguageClient.getToolPalette(uri);
             const groups = this.convertToCategories(palette.groups);
 
+            // Append client-side categories (layout commands, export actions)
+            this.appendClientCategories(groups);
+
             // Expand all categories by default
             const expandedCategories = new Set<string>(groups.map(g => g.id));
 
@@ -182,6 +189,78 @@ export class ElementPaletteService implements IElementPaletteService {
                 errorMessage: 'Failed to load element types',
             };
             this.onStateChangedEmitter.fire(this._state);
+        }
+    }
+
+    /**
+     * Append client-side categories for layout commands and export actions.
+     * These are not provided by the server but are useful diagram commands.
+     */
+    protected appendClientCategories(groups: ElementCategory[]): void {
+        // LAYOUT section with edge routing commands
+        const layoutCategory: ElementCategory = {
+            id: 'client:layout',
+            label: 'LAYOUT',
+            icon: 'codicon codicon-layout',
+            sortString: 'z1_layout',
+            items: [
+                {
+                    id: 'cmd:edgeRouting.orthogonal',
+                    label: 'Orthogonal Routing',
+                    icon: 'codicon codicon-type-hierarchy',
+                    description: 'Route edges with right-angle bends',
+                    action: { kind: 'command', commandId: 'sanyam.diagram.edgeRouting.orthogonal' },
+                },
+                {
+                    id: 'cmd:edgeRouting.straight',
+                    label: 'Straight Routing',
+                    icon: 'codicon codicon-type-hierarchy-sub',
+                    description: 'Route edges as direct straight lines',
+                    action: { kind: 'command', commandId: 'sanyam.diagram.edgeRouting.straight' },
+                },
+                {
+                    id: 'cmd:edgeRouting.bezier',
+                    label: 'Bezier Routing',
+                    icon: 'codicon codicon-git-compare',
+                    description: 'Route edges as smooth bezier curves',
+                    action: { kind: 'command', commandId: 'sanyam.diagram.edgeRouting.bezier' },
+                },
+            ],
+        };
+        groups.push(layoutCategory);
+
+        // Find existing ACTIONS category or create one, then append Export SVG
+        let actionsCategory = groups.find(g => g.label.toUpperCase() === 'ACTIONS');
+        if (!actionsCategory) {
+            actionsCategory = {
+                id: 'client:actions',
+                label: 'ACTIONS',
+                icon: 'codicon codicon-play',
+                sortString: 'z2_actions',
+                items: [],
+            };
+            groups.push(actionsCategory);
+        }
+        actionsCategory.items.push({
+            id: 'cmd:exportSvg',
+            label: 'Export as SVG',
+            icon: 'codicon codicon-file-media',
+            description: 'Export the diagram as an SVG file',
+            action: { kind: 'command', commandId: 'sanyam.diagram.exportSvg' },
+        });
+    }
+
+    /**
+     * Execute a command from a palette item with 'command' kind.
+     *
+     * @param commandId - The command ID to execute
+     */
+    async executeCommand(commandId: string): Promise<void> {
+        try {
+            await this.commandService.executeCommand(commandId);
+        } catch (error) {
+            this.logger.error({ error, commandId }, 'Failed to execute command from palette');
+            this.messageService.error(`Failed to execute command: ${commandId}`);
         }
     }
 

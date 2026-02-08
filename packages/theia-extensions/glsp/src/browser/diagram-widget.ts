@@ -190,6 +190,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     /** Embedded diagram toolbar element */
     protected diagramToolbar: HTMLDivElement | undefined;
 
+    /** Floating mini-toolbar element */
+    protected floatingToolbar: HTMLDivElement | undefined;
+
     /** Flag indicating if Sprotty has been initialized */
     protected sprottyInitialized = false;
 
@@ -263,11 +266,32 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         // Apply initial background style
         this.applyBackgroundPreferences();
 
+        // Apply initial edge jumps preference
+        this.applyEdgeJumpsPreference();
+
+        // Apply initial toolbar visibility preference
+        this.applyToolbarVisibilityPreference();
+
+        // Apply initial floating toolbar visibility preference
+        this.applyFloatingToolbarVisibilityPreference();
+
         // Subscribe to preference changes
         this.toDispose.push(
             preferenceService.onPreferenceChanged((event: PreferenceChange) => {
-                if (event.preferenceName.startsWith('diagram.')) {
+                if (event.preferenceName.startsWith('diagram.background.') ||
+                    event.preferenceName.startsWith('diagram.pattern.') ||
+                    event.preferenceName.startsWith('diagram.grid.') ||
+                    event.preferenceName.startsWith('diagram.dots.')) {
                     this.applyBackgroundPreferences();
+                }
+                if (event.preferenceName === DiagramPreferences.EDGE_JUMPS_ENABLED) {
+                    this.applyEdgeJumpsPreference();
+                }
+                if (event.preferenceName === DiagramPreferences.TOOLBAR_VISIBLE) {
+                    this.applyToolbarVisibilityPreference();
+                }
+                if (event.preferenceName === DiagramPreferences.FLOATING_TOOLBAR_VISIBLE) {
+                    this.applyFloatingToolbarVisibilityPreference();
                 }
             })
         );
@@ -457,6 +481,43 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
+     * Apply edge jumps preference to the edge routing service.
+     */
+    protected applyEdgeJumpsPreference(): void {
+        if (!this.preferenceService || !this.edgeRoutingService) {
+            return;
+        }
+        const enabled = this.preferenceService.get<boolean>(DiagramPreferences.EDGE_JUMPS_ENABLED, false);
+        this.edgeRoutingService.setEdgeJumpsEnabled(enabled);
+        // Re-render if Sprotty is initialized
+        if (this.sprottyInitialized) {
+            this.sprottyManager?.requestLayout();
+        }
+    }
+
+    /**
+     * Apply toolbar visibility preference.
+     */
+    protected applyToolbarVisibilityPreference(): void {
+        if (!this.diagramToolbar || !this.preferenceService) {
+            return;
+        }
+        const visible = this.preferenceService.get<boolean>(DiagramPreferences.TOOLBAR_VISIBLE, false);
+        this.diagramToolbar.style.display = visible ? '' : 'none';
+    }
+
+    /**
+     * Apply floating toolbar visibility preference.
+     */
+    protected applyFloatingToolbarVisibilityPreference(): void {
+        if (!this.floatingToolbar || !this.preferenceService) {
+            return;
+        }
+        const visible = this.preferenceService.get<boolean>(DiagramPreferences.FLOATING_TOOLBAR_VISIBLE, true);
+        this.floatingToolbar.style.display = visible ? '' : 'none';
+    }
+
+    /**
      * Get default label from URI.
      */
     protected getDefaultLabel(): string {
@@ -516,6 +577,27 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
+     * Create the floating mini-toolbar anchored to the bottom-left corner.
+     * Contains zoom, fit, layout, and minimap controls.
+     */
+    protected createFloatingToolbar(): HTMLDivElement {
+        const toolbar = document.createElement('div');
+        toolbar.className = 'sanyam-diagram-floating-toolbar';
+
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-zoom-in', 'Zoom In', () => this.zoomIn()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-zoom-out', 'Zoom Out', () => this.zoomOut()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-screen-full', 'Fit to Screen', () => this.zoomToFit()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-layout', 'Auto-Layout', () => {
+            this.sprottyManager?.requestLayout();
+        }));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-map', 'Toggle Minimap', () => {
+            this.dispatchAction({ kind: 'toggleMinimap' });
+        }));
+
+        return toolbar;
+    }
+
+    /**
      * Create the embedded diagram toolbar (FR-006).
      * Toolbar is rendered at the top of the diagram view panel.
      */
@@ -539,43 +621,8 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         toolbar.appendChild(this.createToolbarSeparator());
 
         // Toggles
-        toolbar.appendChild(this.createToolbarButton('codicon codicon-layout-sidebar-right', 'Toggle Snap to Grid', () => {
-            this.dispatchAction({ kind: 'toggleSnapToGrid' });
-        }));
         toolbar.appendChild(this.createToolbarButton('codicon codicon-map', 'Toggle Minimap', () => {
             this.dispatchAction({ kind: 'toggleMinimap' });
-        }));
-
-        toolbar.appendChild(this.createToolbarSeparator());
-
-        // Edge routing
-        toolbar.appendChild(this.createToolbarButton('codicon codicon-type-hierarchy', 'Orthogonal Routing', () => {
-            this.edgeRoutingService?.setMode('orthogonal');
-            this.sprottyManager?.requestLayout();
-        }));
-        toolbar.appendChild(this.createToolbarButton('codicon codicon-type-hierarchy-sub', 'Straight Routing', () => {
-            this.edgeRoutingService?.setMode('straight');
-            this.sprottyManager?.requestLayout();
-        }));
-        toolbar.appendChild(this.createToolbarButton('codicon codicon-git-compare', 'Bezier Routing', () => {
-            this.edgeRoutingService?.setMode('bezier');
-            this.sprottyManager?.requestLayout();
-        }));
-
-        toolbar.appendChild(this.createToolbarSeparator());
-
-        // Edge decorations
-        toolbar.appendChild(this.createToolbarButton('codicon codicon-arrow-both', 'Toggle Arrowheads', () => {
-            if (this.edgeRoutingService) {
-                this.edgeRoutingService.setArrowheadsVisible(!this.edgeRoutingService.arrowheadsVisible);
-                this.sprottyManager?.requestLayout();
-            }
-        }));
-        toolbar.appendChild(this.createToolbarButton('codicon codicon-loading', 'Toggle Edge Jumps', () => {
-            if (this.edgeRoutingService) {
-                this.edgeRoutingService.setEdgeJumpsEnabled(!this.edgeRoutingService.edgeJumpsEnabled);
-                this.sprottyManager?.requestLayout();
-            }
         }));
 
         toolbar.appendChild(this.createToolbarSeparator());
@@ -597,15 +644,25 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         const container = document.createElement('div');
         container.className = 'sanyam-diagram-container';
 
-        // Create embedded diagram toolbar (FR-006)
+        // Create embedded diagram toolbar (FR-006) - hidden by default per preference
         this.diagramToolbar = this.createEmbeddedToolbar();
+        const toolbarVisible = this.preferenceService?.get<boolean>(DiagramPreferences.TOOLBAR_VISIBLE, false) ?? false;
+        this.diagramToolbar.style.display = toolbarVisible ? '' : 'none';
         container.appendChild(this.diagramToolbar);
 
         // Create SVG container for Sprotty
+        // T011: Add layout-pending class from the very start to prevent any flash
         this.svgContainer = document.createElement('div');
-        this.svgContainer.className = 'sanyam-diagram-svg-container bg-dots'; // Default to dots pattern
+        this.svgContainer.className = 'sanyam-diagram-svg-container bg-dots layout-pending';
         this.svgContainer.id = `sprotty-${this.id.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        this.layoutPending = true;
         container.appendChild(this.svgContainer);
+
+        // Create floating mini-toolbar - visible by default per preference
+        this.floatingToolbar = this.createFloatingToolbar();
+        const floatingVisible = this.preferenceService?.get<boolean>(DiagramPreferences.FLOATING_TOOLBAR_VISIBLE, true) ?? true;
+        this.floatingToolbar.style.display = floatingVisible ? '' : 'none';
+        container.appendChild(this.floatingToolbar);
 
         // Apply background preferences if preference service is available
         if (this.preferenceService) {

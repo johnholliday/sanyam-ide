@@ -28,6 +28,9 @@ export namespace DiagramPreferences {
     export const GRID_SIZE = 'diagram.grid.size';
     export const DOTS_SIZE = 'diagram.dots.size';
     export const DOTS_SPACING = 'diagram.dots.spacing';
+    export const TOOLBAR_VISIBLE = 'diagram.toolbar.visible';
+    export const FLOATING_TOOLBAR_VISIBLE = 'diagram.floatingToolbar.visible';
+    export const EDGE_JUMPS_ENABLED = 'diagram.edgeJumps.enabled';
 }
 
 /**
@@ -86,6 +89,21 @@ export const diagramPreferenceSchema: PreferenceSchema = {
             maximum: 150,
             default: 20,
             description: 'Spacing between dots in pixels.',
+        },
+        [DiagramPreferences.TOOLBAR_VISIBLE]: {
+            type: 'boolean',
+            default: false,
+            description: 'Show the embedded toolbar at the top of the diagram view.',
+        },
+        [DiagramPreferences.FLOATING_TOOLBAR_VISIBLE]: {
+            type: 'boolean',
+            default: true,
+            description: 'Show the floating mini-toolbar in the bottom-left corner of the diagram canvas.',
+        },
+        [DiagramPreferences.EDGE_JUMPS_ENABLED]: {
+            type: 'boolean',
+            default: false,
+            description: 'Enable edge jumps (line bridges) at edge crossing points.',
         },
     },
 };

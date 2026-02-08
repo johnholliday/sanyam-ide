@@ -31,6 +31,8 @@ export interface ElementCategoryProps {
     onToggle: (categoryId: string) => void;
     /** Callback when an operation item is clicked */
     onOperationClick?: (operationId: string, languageId: string) => void;
+    /** Callback when a command item is clicked */
+    onCommandClick?: (commandId: string) => void;
 }
 
 /**
@@ -98,6 +100,7 @@ export class ElementCategoryComponent extends React.Component<ElementCategoryPro
                             key={item.id}
                             item={item}
                             onOperationClick={this.props.onOperationClick}
+                            onCommandClick={this.props.onCommandClick}
                         />
                     ))}
                 </div>

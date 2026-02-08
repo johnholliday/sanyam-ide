@@ -118,18 +118,6 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
             isVisible,
         });
 
-        // Toggle Snap to Grid
-        // The 'when' clause with a context key causes the toolbar to refresh when the key changes
-        registry.registerItem({
-            id: 'sanyam.diagram.toolbar.snapToGrid',
-            command: DiagramCommands.TOGGLE_SNAP_TO_GRID.id,
-            tooltip: 'Toggle Snap to Grid',
-            icon: 'codicon codicon-layout-sidebar-right',
-            priority: 115,
-            isVisible,
-            when: 'sanyam.diagram.snapToGridEnabled || !sanyam.diagram.snapToGridEnabled',
-        });
-
         // Edge Routing: Orthogonal
         registry.registerItem({
             id: 'sanyam.diagram.toolbar.edgeRouteOrthogonal',
@@ -160,25 +148,6 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
             isVisible,
         });
 
-        // Toggle Arrowheads
-        registry.registerItem({
-            id: 'sanyam.diagram.toolbar.toggleArrowheads',
-            command: DiagramCommands.TOGGLE_ARROWHEADS.id,
-            tooltip: 'Toggle Arrowheads',
-            icon: 'codicon codicon-arrow-both',
-            priority: 119,
-            isVisible,
-        });
-
-        // Toggle Edge Jumps (line bridges)
-        registry.registerItem({
-            id: 'sanyam.diagram.toolbar.toggleEdgeJumps',
-            command: DiagramCommands.TOGGLE_EDGE_JUMPS.id,
-            tooltip: 'Toggle Edge Jumps',
-            icon: 'codicon codicon-loading',
-            priority: 120,
-            isVisible,
-        });
     }
 
     /**

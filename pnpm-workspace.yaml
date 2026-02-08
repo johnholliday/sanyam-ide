@@ -4,3 +4,4 @@ packages:
   - 'packages/grammar-definitions/*'
   - 'packages/grammar-definitions/*/docs'
   - 'applications/*'
+  - 'tests/*'

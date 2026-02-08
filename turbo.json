@@ -140,6 +140,12 @@
       ],
       "cache": true
     },
+    "test:e2e": {
+      "dependsOn": [
+        "sanyam-browser#build"
+      ],
+      "cache": false
+    },
     "clean": {
       "cache": false
     },

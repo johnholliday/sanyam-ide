@@ -134,7 +134,7 @@ export const createNodeHandler = {
    * Generate a unique element ID.
    */
   generateElementId(context: GlspContext, operation: CreateNodeOperation): string {
-    const baseName = operation.args?.name ?? this.getDefaultName(operation.elementTypeId);
+    const baseName = operation.args?.name ?? this.getDefaultName(context, operation.elementTypeId);
     let name = baseName;
     let counter = 1;
 
@@ -149,8 +149,23 @@ export const createNodeHandler = {
 
   /**
    * Get default name for element type.
+   *
+   * Looks up the manifest's rootTypes to find the AST type name matching
+   * the given GLSP element type. Falls back to hardcoded defaults when
+   * the manifest lookup fails.
    */
-  getDefaultName(elementTypeId: string): string {
+  getDefaultName(context: GlspContext, elementTypeId: string): string {
+    // Look up manifest rootTypes for a matching diagramNode.glspType
+    const manifest = context.manifest;
+    if (manifest?.rootTypes) {
+      for (const rootType of manifest.rootTypes) {
+        if (rootType.diagramNode?.glspType === elementTypeId) {
+          return rootType.astType;
+        }
+      }
+    }
+
+    // Fallback to hardcoded defaults
     if (elementTypeId.includes('entity')) return 'Entity';
     if (elementTypeId.includes('property')) return 'property';
     if (elementTypeId.includes('package')) return 'Package';
@@ -188,7 +203,7 @@ export const createNodeHandler = {
     elementId: string
   ): GModelNode {
     const position = operation.location ?? { x: 100, y: 100 };
-    const size = this.getDefaultSize(operation.elementTypeId);
+    const size = this.getDefaultSize(context, operation.elementTypeId);
 
     const node = createNode(elementId, operation.elementTypeId, position, size);
 
@@ -211,8 +226,26 @@ export const createNodeHandler = {
 
   /**
    * Get default size for element type.
+   *
+   * Looks up the manifest's rootTypes to find the default size for the
+   * matching GLSP element type. Falls back to hardcoded sizes when the
+   * manifest lookup fails.
    */
-  getDefaultSize(elementTypeId: string): Dimension {
+  getDefaultSize(context: GlspContext, elementTypeId: string): Dimension {
+    // Look up manifest rootTypes for a matching diagramNode.glspType
+    const manifest = context.manifest;
+    if (manifest?.rootTypes) {
+      for (const rootType of manifest.rootTypes) {
+        if (rootType.diagramNode?.glspType === elementTypeId && rootType.diagramNode.defaultSize) {
+          return {
+            width: rootType.diagramNode.defaultSize.width,
+            height: rootType.diagramNode.defaultSize.height,
+          };
+        }
+      }
+    }
+
+    // Fallback to hardcoded defaults
     if (elementTypeId.includes('entity')) {
       return { width: 150, height: 80 };
     }

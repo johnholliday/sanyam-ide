@@ -9,7 +9,7 @@
 import type { AstNode } from 'langium';
 import { AstUtils } from 'langium';
 import { createLogger } from '@sanyam/logger';
-import type { ElementIdRegistry } from '../element-id-registry.js';
+import { ElementIdRegistry } from '../element-id-registry.js';
 
 // Langium 4.x exports these via AstUtils namespace
 const { streamAllContents } = AstUtils;
@@ -53,8 +53,14 @@ export const defaultAstToGModelProvider = {
       context.metadata.sourceRanges = new Map();
     }
 
-    // Reconcile element IDs using the registry if available
-    const idRegistry: ElementIdRegistry | undefined = (context as any).idRegistry;
+    // Ensure a UUID registry is always available so every node gets a unique ID.
+    // When the persistent registry hasn't been loaded yet (e.g. first parse before
+    // model state is initialised), create a fresh one on the context.
+    let idRegistry: ElementIdRegistry | undefined = (context as any).idRegistry;
+    if (!idRegistry && root) {
+      idRegistry = new ElementIdRegistry();
+      (context as any).idRegistry = idRegistry;
+    }
     if (idRegistry && root) {
       idRegistry.reconcile(root, context.document);
     }

@@ -181,17 +181,20 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
         });
 
         if (this.outlineViewService) {
-            // Handle outline select (single-click) — navigate / sync
+            // Handle outline select (single-click) — navigate / sync.
+            // Theia's tree widget may reconstruct nodes on re-render,
+            // losing custom properties (uri, range, symbolPath). We
+            // accept any node and resolve via cachedRoots in the handler.
             this.outlineViewService.onDidSelect(node => {
-                if (this.currentComposite && this.isOutlineNodeWithRange(node)) {
-                    this.handleOutlineSelect(node as OutlineNodeWithRange);
+                if (this.currentComposite) {
+                    this.handleOutlineSelect(node);
                 }
             });
 
             // Handle outline open (double-click) — open in text editor
             this.outlineViewService.onDidOpen(node => {
-                if (this.currentComposite && this.isOutlineNodeWithRange(node)) {
-                    this.handleOutlineOpen(node as OutlineNodeWithRange);
+                if (this.currentComposite) {
+                    this.handleOutlineOpen(node);
                 }
             });
         } else {
@@ -403,6 +406,14 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
             this.toDisposeOnWidget.push(
                 impl.onDiagramSelectionRequest(event => {
                     const selectElementFn = diagramWidget.selectElement;
+                    this.logger.info({
+                        event: 'outline:diagram-select-request',
+                        eventUri: event.uri,
+                        expectedUri: uri,
+                        uriMatch: event.uri === uri,
+                        elementIds: event.elementIds,
+                        hasSelectElement: !!selectElementFn,
+                    }, 'onDiagramSelectionRequest received');
                     if (event.uri === uri && selectElementFn) {
                         this.suppressDiagramSync = true;
                         // Clear existing selection first, then select and center
@@ -428,7 +439,9 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
                                 this.suppressDiagramSync = false;
                             }
                         };
-                        doSelect();
+                        doSelect().catch(err => {
+                            this.logger.error({ err }, 'Failed to select diagram element from outline');
+                        });
                     }
                 })
             );
@@ -475,15 +488,18 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
             return;
         }
         if (!this.cachedRoots) {
+            this.logger.debug('rebuildMappings: no cachedRoots yet');
             return;
         }
 
         const diagramWidget = composite.getDiagramWidget();
         if (!diagramWidget) {
+            this.logger.debug('rebuildMappings: no diagram widget');
             return;
         }
         const gModel = diagramWidget.getModel?.() as { id: string; children?: unknown[] } | undefined;
         if (!gModel) {
+            this.logger.debug('rebuildMappings: diagram has no model loaded');
             return;
         }
 
@@ -498,12 +514,31 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
 
         if (sourceRanges && sourceRanges.size > 0) {
             mappings = this.symbolMapper.buildMappingsFromRanges(symbols, sourceRanges);
-            this.logger.debug({ mappingCount: mappings.length, method: 'sourceRanges' }, 'rebuildMappings complete');
+            this.logger.debug({
+                event: 'outline:rebuild-mappings',
+                uri,
+                cachedRootsCount: this.cachedRoots?.length ?? 0,
+                sourceRangesAvailable: true,
+                sourceRangesSize: sourceRanges.size,
+                method: 'sourceRanges',
+                mappingCount: mappings.length,
+                symbolCount: symbols.length,
+            }, 'rebuildMappings result');
         } else {
             // Fallback: name-based matching
             const elementIds = this.collectElementIds(gModel);
             mappings = this.symbolMapper.buildMappingsFromSymbols(symbols, elementIds);
-            this.logger.debug({ mappingCount: mappings.length, method: 'nameBased' }, 'rebuildMappings complete');
+            this.logger.debug({
+                event: 'outline:rebuild-mappings',
+                uri,
+                cachedRootsCount: this.cachedRoots?.length ?? 0,
+                sourceRangesAvailable: !!sourceRanges,
+                sourceRangesSize: sourceRanges?.size ?? 0,
+                method: 'nameBased',
+                mappingCount: mappings.length,
+                elementIdCount: elementIds.length,
+                symbolCount: symbols.length,
+            }, 'rebuildMappings result (fallback)');
         }
 
         this.outlineSyncService.registerMappings(uri, mappings);
@@ -827,16 +862,47 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
     /**
      * Resolve a DiagramOutlineNode from an outline tree node.
      * Theia's tree widget may reconstruct nodes on re-render, losing our custom
-     * properties (uri, range, symbolPath). Fall back to looking up by name
-     * in cachedRoots (Theia preserves the `name` property but may regenerate IDs).
+     * properties (uri, range, symbolPath). Fall back to looking up by ID or
+     * name in cachedRoots.
      */
     protected resolveDiagramOutlineNode(node: unknown): DiagramOutlineNode | undefined {
         if (DiagramOutlineNode.is(node)) {
             return node;
         }
-        // Fall back to cachedRoots lookup by name
-        if (this.cachedRoots && node && typeof node === 'object' && 'name' in node) {
+        if (!this.cachedRoots || !node || typeof node !== 'object') {
+            return undefined;
+        }
+        // Prefer ID-based lookup (IDs are unique, names may collide)
+        if ('id' in node && typeof (node as { id: unknown }).id === 'string') {
+            const byId = this.findNodeById(this.cachedRoots, (node as { id: string }).id);
+            if (byId) {
+                return byId;
+            }
+        }
+        // Fall back to name-based lookup
+        if ('name' in node && typeof (node as { name: unknown }).name === 'string') {
             return this.findNodeByName(this.cachedRoots, (node as { name: string }).name);
+        }
+        return undefined;
+    }
+
+    /**
+     * Find a DiagramOutlineNode by its ID in the cached tree.
+     */
+    protected findNodeById(
+        nodes: DiagramOutlineNode[],
+        id: string,
+    ): DiagramOutlineNode | undefined {
+        for (const node of nodes) {
+            if (node.id === id) {
+                return node;
+            }
+            if (node.children.length > 0) {
+                const found = this.findNodeById(node.children, id);
+                if (found) {
+                    return found;
+                }
+            }
         }
         return undefined;
     }
@@ -872,32 +938,104 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
             && 'range' in node;
     }
 
-    protected async handleOutlineSelect(node: OutlineNodeWithRange): Promise<void> {
+    protected async handleOutlineSelect(node: unknown): Promise<void> {
         if (!this.currentComposite) {
             return;
         }
 
         // Resolve the DiagramOutlineNode — either the node itself has our
-        // custom properties, or we look it up from cachedRoots by node ID
+        // custom properties, or we look it up from cachedRoots by name
         // (Theia's tree widget may reconstruct nodes and lose custom props).
         const diagramNode = this.resolveDiagramOutlineNode(node);
+        if (!diagramNode) {
+            this.logger.debug({ nodeType: typeof node, hasId: node && typeof node === 'object' && 'id' in node }, 'Failed to resolve outline node');
+            return;
+        }
 
         // Sync to diagram via OutlineSyncService (if available)
-        if (this.outlineSyncService && diagramNode) {
+        if (this.outlineSyncService) {
             const uri = diagramNode.uri.toString();
-            const elementId = this.outlineSyncService.lookupElement(uri, diagramNode.symbolPath);
+            let elementId = this.outlineSyncService.lookupElement(uri, diagramNode.symbolPath);
+
+            // If lookup failed, mappings may not have been built yet (race condition
+            // with model loading). Attempt a synchronous rebuild and retry.
+            if (!elementId && this.currentComposite) {
+                this.logger.debug({ symbolPath: diagramNode.symbolPath }, 'lookupElement miss — attempting synchronous rebuildMappings');
+                this.rebuildMappings(this.currentComposite);
+                elementId = this.outlineSyncService.lookupElement(uri, diagramNode.symbolPath);
+            }
+
+            // Direct sourceRange fallback — doesn't need pre-built mappings.
+            // When sourceRanges are available but mapping failed (e.g., timing),
+            // scan sourceRanges directly to find the element whose range contains
+            // the outline node's start position.
+            if (!elementId && this.currentComposite) {
+                const dw = this.currentComposite.getDiagramWidget();
+                const sr = dw?.getSourceRanges?.();
+                if (sr && sr.size > 0) {
+                    const targetLine = diagramNode.fullRange.start.line;
+                    const targetChar = diagramNode.fullRange.start.character;
+                    let bestId: string | undefined;
+                    let bestSize = Infinity;
+                    for (const [eid, range] of sr) {
+                        if (this.rangeContainsPosition(range, targetLine, targetChar)) {
+                            const size = (range.end.line - range.start.line) * 1000 + (range.end.character - range.start.character);
+                            if (size < bestSize) {
+                                bestSize = size;
+                                bestId = eid;
+                            }
+                        }
+                    }
+                    if (bestId) {
+                        elementId = bestId;
+                        this.logger.debug({ symbolPath: diagramNode.symbolPath, elementId, method: 'sourceRangeFallback' }, 'Found element via direct sourceRange scan');
+                    }
+                }
+            }
+
+            this.logger.info({
+                event: 'outline:select',
+                symbolPath: diagramNode.symbolPath,
+                uri: diagramNode.uri.toString(),
+                lookupResult: elementId ?? 'NOT_FOUND',
+            }, 'Outline node selected');
+
             if (elementId) {
                 this.outlineSyncService.handleSelectionChange(uri, [elementId], 'outline');
+            } else {
+                this.logger.debug({ symbolPath: diagramNode.symbolPath }, 'No element mapping found for outline node');
             }
         }
 
         // Reveal in the embedded text editor within the composite widget
-        this.revealInEmbeddedEditor(diagramNode ?? node, false);
+        this.revealInEmbeddedEditor(diagramNode, false);
     }
 
-    protected async handleOutlineOpen(node: OutlineNodeWithRange): Promise<void> {
+    protected async handleOutlineOpen(node: unknown): Promise<void> {
         const diagramNode = this.resolveDiagramOutlineNode(node);
-        this.revealInEmbeddedEditor(diagramNode ?? node, true);
+        if (diagramNode) {
+            this.revealInEmbeddedEditor(diagramNode, true);
+        }
+    }
+
+    /**
+     * Check if a range contains a position.
+     */
+    protected rangeContainsPosition(
+        range: { start: { line: number; character: number }; end: { line: number; character: number } },
+        line: number,
+        character: number,
+    ): boolean {
+        if (line < range.start.line || line > range.end.line) {
+            return false;
+        }
+        if (line === range.start.line && character < range.start.character) {
+            return false;
+        }
+        if (line === range.end.line && character > range.end.character) {
+            return false;
+        }
+        return true;
     }
 
     /**

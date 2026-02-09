@@ -41,7 +41,7 @@ import { DiagramPreferences, DiagramBackgroundStyle } from './diagram-preference
 import { EdgeRoutingService } from './layout';
 
 // Layout storage
-import { DiagramLayoutStorageService, type ElementLayout, type DiagramLayout, type DiagramViewState } from './layout-storage-service';
+import { DiagramLayoutStorageService, type ElementLayout, type DiagramLayout, type DiagramLayoutV3, type DiagramViewState } from './layout-storage-service';
 
 /**
  * Factory ID for diagram widgets.
@@ -982,7 +982,22 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 }
             }
 
-            const response = await this.diagramLanguageClient.loadModel(this.uri);
+            // Pass saved UUID registry data to the server so it can seed the
+            // element ID registry before reconciliation, producing stable UUIDs.
+            const savedRegistry = this.savedLayout ? {
+                idMap: (this.savedLayout as DiagramLayoutV3).idMap,
+                fingerprints: (this.savedLayout as DiagramLayoutV3).fingerprints,
+            } : undefined;
+
+            this.logger.info({
+                event: 'uuid:layout-load',
+                uri: this.uri,
+                hasSavedLayout: !!this.savedLayout,
+                savedIdMapSize: Object.keys(savedRegistry?.idMap ?? {}).length,
+                savedFingerprintCount: Object.keys(savedRegistry?.fingerprints ?? {}).length,
+            }, 'UUID registry loaded from browser storage');
+
+            const response = await this.diagramLanguageClient.loadModel(this.uri, savedRegistry);
 
             // Debug log the full response structure
             this.logger.debug({
@@ -1015,22 +1030,25 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     this.state.fingerprints = response.metadata.fingerprints;
                 }
 
-                // T075a: Override with saved layout positions if available (with performance logging)
+                this.logger.info({
+                    event: 'uuid:rpc-receive',
+                    uri: this.uri,
+                    idMapSize: Object.keys(this.state.idMap ?? {}).length,
+                    fingerprintCount: Object.keys(this.state.fingerprints ?? {}).length,
+                    sourceRangeCount: this.state.sourceRanges?.size ?? 0,
+                }, 'Stored UUID registry and sourceRanges from server response');
+
+                // Apply saved layout positions directly.
+                // Server-side UUID seeding (via savedRegistry above) ensures
+                // element IDs are stable, so saved positions match current IDs.
                 if (this.savedLayout) {
-                    const applyStartTime = performance.now();
                     for (const [id, layout] of Object.entries(this.savedLayout.elements)) {
                         this.state.positions.set(id, layout.position);
                         if (layout.size) {
                             this.state.sizes.set(id, layout.size);
                         }
                     }
-                    const applyDuration = performance.now() - applyStartTime;
-                    const elementCount = Object.keys(this.savedLayout.elements).length;
-                    if (applyDuration > 100) {
-                        this.logger.warn(`[DiagramWidget] Layout apply took ${applyDuration.toFixed(2)}ms for ${elementCount} elements (target: <100ms)`);
-                    } else {
-                        this.logger.debug(`[DiagramWidget] Applied ${elementCount} saved positions in ${applyDuration.toFixed(2)}ms`);
-                    }
+                    this.logger.debug(`[DiagramWidget] Applied ${Object.keys(this.savedLayout.elements).length} saved positions directly`);
                 }
 
                 // Set the model
@@ -1413,6 +1431,14 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
         const viewState = this.collectViewState();
 
+        this.logger.info({
+            event: 'uuid:layout-save',
+            uri: this.uri,
+            idMapSize: Object.keys(this.state.idMap ?? {}).length,
+            fingerprintCount: Object.keys(this.state.fingerprints ?? {}).length,
+            elementCount: Object.keys(elements).length,
+        }, 'UUID registry saved to browser storage');
+
         // Use debounced save, including UUID registry data and view state
         this.layoutStorageService.saveLayoutDebounced(
             this.uri, elements, this.state.idMap, this.state.fingerprints, viewState
@@ -1479,16 +1505,20 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     protected addPositionsToModel(element: GModelElementType): any {
         const result: any = { ...element };
 
-        // Add position if available
+        // Add position if available and valid (guards against NaN/Infinity)
         const position = this.state.positions.get(element.id);
-        if (position) {
+        if (position && Number.isFinite(position.x) && Number.isFinite(position.y)) {
             result.position = position;
+        } else if (position) {
+            this.logger.warn({ elementId: element.id, position }, 'Skipping invalid position (non-finite values)');
         }
 
-        // Add size if available
+        // Add size if available and valid
         const size = this.state.sizes.get(element.id);
-        if (size) {
+        if (size && Number.isFinite(size.width) && Number.isFinite(size.height)) {
             result.size = size;
+        } else if (size) {
+            this.logger.warn({ elementId: element.id, size }, 'Skipping invalid size (non-finite values)');
         }
 
         // Process children recursively
@@ -1497,6 +1527,18 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         }
 
         return result;
+    }
+
+    /**
+     * Collect all element IDs from a GModel tree.
+     */
+    protected collectElementIds(element: GModelElementType, ids: Set<string>): void {
+        ids.add(element.id);
+        if (element.children) {
+            for (const child of element.children) {
+                this.collectElementIds(child, ids);
+            }
+        }
     }
 
     /**
@@ -1588,27 +1630,37 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
-     * Update positions from metadata.
+     * Update positions in state (without triggering a re-render).
+     * Callers should follow with setModel() to render the updated positions.
      */
     updatePositions(positions: Map<string, Point>): void {
         this.state.positions = new Map(positions);
-
-        // Re-render with new positions
-        if (this.state.gModel) {
-            this.updateModel(this.state.gModel);
-        }
     }
 
     /**
-     * Update sizes from metadata.
+     * Update sizes in state (without triggering a re-render).
+     * Callers should follow with setModel() to render the updated sizes.
      */
     updateSizes(sizes: Map<string, Dimension>): void {
         this.state.sizes = new Map(sizes);
+    }
 
-        // Re-render with new sizes
-        if (this.state.gModel) {
-            this.updateModel(this.state.gModel);
-        }
+    /**
+     * Update source ranges in state (for outline↔diagram mapping).
+     * Maps element IDs to their source code ranges (LSP line/character positions).
+     */
+    updateSourceRanges(sourceRanges: Map<string, { start: { line: number; character: number }; end: { line: number; character: number } }>): void {
+        this.state.sourceRanges = new Map(sourceRanges);
+    }
+
+    /**
+     * Update UUID registry data (idMap and fingerprints) for layout persistence.
+     * Called by CompositeEditorWidget after loadModel to ensure layout saves
+     * include the registry data needed for UUID stability across restarts.
+     */
+    updateIdRegistry(idMap: Record<string, string>, fingerprints: Record<string, unknown>): void {
+        this.state.idMap = idMap;
+        this.state.fingerprints = fingerprints;
     }
 
     /**

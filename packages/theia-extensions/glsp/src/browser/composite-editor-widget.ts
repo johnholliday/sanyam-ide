@@ -32,6 +32,7 @@ import { COMPOSITE_EDITOR_WIDGET_FACTORY_ID_STRING } from '@sanyam/types';
 // Direct import from same package - no more symbol-based lookup needed
 import { DIAGRAM_WIDGET_FACTORY_ID } from './diagram-widget';
 import { DiagramLanguageClient, TextEdit } from './diagram-language-client';
+import { DiagramLayoutStorageService, type DiagramLayoutV3 } from './layout-storage-service';
 import { CanvasDropHandler, CanvasDropHandlerSymbol, TextEditorDropHandler, TextEditorDropHandlerSymbol, ELEMENT_PALETTE_DRAG_MIME_TYPE, decodeDragData } from './element-palette';
 
 import './style/index.css';
@@ -53,6 +54,8 @@ export interface DiagramWidgetCapabilities extends Widget {
     updatePositions?(positions: Map<string, { x: number; y: number }>): void;
     /** Update element sizes */
     updateSizes?(sizes: Map<string, { width: number; height: number }>): void;
+    /** Update source ranges for outline↔diagram mapping */
+    updateSourceRanges?(sourceRanges: Map<string, { start: { line: number; character: number }; end: { line: number; character: number } }>): void;
     /** Show loading state */
     showLoading?(): void;
     /** Show error state */
@@ -89,6 +92,8 @@ export interface DiagramWidgetCapabilities extends Widget {
     getSvgContainer?(): HTMLElement | undefined;
     /** Set whether the widget should auto-load the model during initialization */
     setAutoLoadModel?(enabled: boolean): void;
+    /** Update UUID registry data (idMap and fingerprints) for layout persistence */
+    updateIdRegistry?(idMap: Record<string, string>, fingerprints: Record<string, unknown>): void;
 }
 
 export namespace CompositeEditorWidget {
@@ -123,6 +128,9 @@ export class CompositeEditorWidget extends BaseWidget
     @inject(DiagramLanguageClient)
     protected readonly diagramLanguageClient: DiagramLanguageClient;
 
+    @inject(DiagramLayoutStorageService)
+    protected readonly layoutStorageService: DiagramLayoutStorageService;
+
     @inject(CanvasDropHandlerSymbol)
     protected readonly canvasDropHandler: CanvasDropHandler;
 
@@ -136,6 +144,9 @@ export class CompositeEditorWidget extends BaseWidget
 
     /** Suppresses the onDirtyChanged diagram reload when an explicit reload is already in progress. */
     protected suppressAutoReload = false;
+
+    /** Set when restoreDockLayout is pending/running so initializeViews defers to it. */
+    protected restoringDockLayout: Promise<void> | undefined;
 
     protected textEditor: EditorWidget | undefined;
     protected diagramWidget: DiagramWidgetCapabilities | undefined;
@@ -251,23 +262,18 @@ export class CompositeEditorWidget extends BaseWidget
 
     /**
      * Subscribe to diagram model changes from the language server.
+     *
+     * Only sets flags and initializes drop handlers here.
+     * Model rendering is handled by DiagramWidget's own subscription
+     * (via setDiagramLanguageClient → subscribeToChanges → handleModelUpdate).
      */
     protected setupModelChangeSubscription(): void {
-        // Subscribe to model updates
         const subscription = this.diagramLanguageClient.onModelUpdated((update) => {
             if (update.uri === this.uri.toString() && this.diagramWidget) {
-                // Update positions and sizes if available
-                if (update.metadata?.positions) {
-                    this.diagramWidget.updatePositions?.(update.metadata.positions);
-                }
-                if (update.metadata?.sizes) {
-                    this.diagramWidget.updateSizes?.(update.metadata.sizes);
-                }
-                // Update the model
-                this.diagramWidget.setModel(update.gModel);
                 this.diagramModelLoaded = true;
 
-                // Initialize drop handler — model arrived via push, so loadDiagramModel() was skipped
+                // Initialize drop handlers — model arrived via push,
+                // so loadDiagramModel() was skipped
                 this.initializeCanvasDropHandler();
                 this.initializeTextEditorDropHandler();
             }
@@ -315,27 +321,40 @@ export class CompositeEditorWidget extends BaseWidget
     }
 
     restoreState(state: CompositeEditorWidget.State): void {
-        if (state.activeView && state.activeView !== this._activeView) {
-            this.switchView(state.activeView);
-        }
         if (state.dockLayout) {
-            // Layout restore requires widgets to exist; kick off async restore
-            this.restoreDockLayout(state.dockLayout).catch(error => {
+            // Layout restore requires widgets to exist; kick off async restore.
+            // Store the promise so initializeViews can await it instead of racing.
+            this.restoringDockLayout = this.restoreDockLayout(state.dockLayout).catch(error => {
                 this.logger.error({ err: error }, 'Failed to restore dock layout');
             });
+        }
+        if (state.activeView && state.activeView !== this._activeView) {
+            this._activeView = state.activeView;
         }
     }
 
     /**
      * Asynchronously create widgets and restore a saved dock layout.
+     *
+     * Widgets must be added to the DockPanel before `restoreLayout` is called,
+     * because Lumino matches saved layout entries to widgets by their `id`.
      */
     protected async restoreDockLayout(config: DockPanel.ILayoutConfig): Promise<void> {
-        // Eagerly create both widgets so restoreLayout can find them
+        // Create both widgets
         if (!this.textEditor) {
             await this.createTextEditor();
         }
         if (this.manifest.diagrammingEnabled && !this.diagramWidget) {
             await this.createDiagramWidget();
+        }
+        // Add to dock so restoreLayout can locate them by widget ID.
+        // createTextEditor() closes any shell-attached editor first, so the
+        // widget returned by getOrCreateByUri() should be unattached here.
+        if (this.textEditor && !this.textEditor.isAttached) {
+            this.dockPanel.addWidget(this.textEditor);
+        }
+        if (this.diagramWidget && !this.diagramWidget.isAttached) {
+            this.dockPanel.addWidget(this.diagramWidget);
         }
         this.dockPanel.restoreLayout(config);
     }
@@ -497,8 +516,29 @@ export class CompositeEditorWidget extends BaseWidget
         }
 
         try {
-            this.logger.debug('Calling diagramLanguageClient.loadModel...');
-            const response = await this.diagramLanguageClient.loadModel(this.uri.toString());
+            // Load saved layout to extract UUID registry data for server seeding
+            let savedRegistry: { idMap?: Record<string, string>; fingerprints?: Record<string, unknown> } | undefined;
+            try {
+                const savedLayout = await this.layoutStorageService.loadLayout(this.uri.toString());
+                if (savedLayout) {
+                    const v3Layout = savedLayout as DiagramLayoutV3;
+                    savedRegistry = {
+                        idMap: v3Layout.idMap,
+                        fingerprints: v3Layout.fingerprints,
+                    };
+                }
+            } catch (layoutError) {
+                this.logger.debug({ err: layoutError }, 'Failed to load saved layout for registry seeding');
+            }
+
+            this.logger.info({
+                event: 'uuid:layout-load',
+                uri: this.uri.toString(),
+                hasSavedLayout: !!savedRegistry,
+                savedIdMapSize: Object.keys(savedRegistry?.idMap ?? {}).length,
+                savedFingerprintCount: Object.keys(savedRegistry?.fingerprints ?? {}).length,
+            }, 'UUID registry loaded from browser storage');
+            const response = await this.diagramLanguageClient.loadModel(this.uri.toString(), savedRegistry);
             this.logger.debug({
                 success: response.success,
                 hasGModel: !!response.gModel,
@@ -518,6 +558,30 @@ export class CompositeEditorWidget extends BaseWidget
                     const sizesMap = new Map(Object.entries(response.metadata.sizes));
                     this.diagramWidget.updateSizes?.(sizesMap);
                 }
+                // Update source ranges for outline↔diagram mapping
+                if (response.metadata?.sourceRanges) {
+                    const sourceRangesMap = new Map(
+                        Object.entries(response.metadata.sourceRanges)
+                    ) as Map<string, { start: { line: number; character: number }; end: { line: number; character: number } }>;
+                    this.diagramWidget.updateSourceRanges?.(sourceRangesMap);
+                }
+
+                // Store UUID registry data on the diagram widget so layout saves
+                // include the registry needed for UUID stability across restarts.
+                if (response.metadata?.idMap && response.metadata?.fingerprints) {
+                    this.diagramWidget.updateIdRegistry?.(
+                        response.metadata.idMap,
+                        response.metadata.fingerprints,
+                    );
+                }
+
+                this.logger.info({
+                    event: 'uuid:client-store',
+                    uri: this.uri.toString(),
+                    idMapSize: Object.keys(response.metadata?.idMap ?? {}).length,
+                    fingerprintCount: Object.keys(response.metadata?.fingerprints ?? {}).length,
+                    sourceRangeCount: Object.keys(response.metadata?.sourceRanges ?? {}).length,
+                }, 'Stored UUID registry and sourceRanges from server response');
 
                 // Set the model
                 this.diagramWidget.setModel(response.gModel);
@@ -643,6 +707,16 @@ export class CompositeEditorWidget extends BaseWidget
         }
         const svgPoint = point.matrixTransform(ctm.inverse());
 
+        // Snapshot existing element IDs so we can identify the new one after reload
+        const existingIds = new Set<string>();
+        const currentModel = this.diagramWidget?.getModel?.() as
+            { children?: Array<{ id: string; type: string }> } | undefined;
+        if (currentModel?.children) {
+            for (const child of currentModel.children) {
+                existingIds.add(child.id);
+            }
+        }
+
         this.logger.info({ elementTypeId, x: svgPoint.x, y: svgPoint.y }, 'Canvas drop: creating element');
         this.diagramLanguageClient.executeOperation(this.uri.toString(), {
             kind: 'createNode',
@@ -661,6 +735,9 @@ export class CompositeEditorWidget extends BaseWidget
                     // before requesting the updated model
                     await new Promise(resolve => setTimeout(resolve, 200));
                     await this.loadDiagramModel();
+
+                    // Center on the newly created element without changing zoom
+                    this.centerOnNewElements(existingIds);
                 } catch (reloadError) {
                     this.logger.error(`Failed to reload diagram after canvas drop: ${reloadError}`);
                 } finally {
@@ -672,6 +749,37 @@ export class CompositeEditorWidget extends BaseWidget
         }).catch(error => {
             this.logger.error(`Failed to create element from canvas drop: ${error}`);
         });
+    }
+
+    /**
+     * Center the diagram on elements that are new (not in the provided set of existing IDs).
+     * Uses retainZoom to keep the current zoom level.
+     */
+    protected centerOnNewElements(existingIds: Set<string>): void {
+        if (!this.diagramWidget) {
+            return;
+        }
+
+        const newModel = this.diagramWidget.getModel?.() as
+            { children?: Array<{ id: string; type: string }> } | undefined;
+        if (!newModel?.children) {
+            return;
+        }
+
+        // Find newly added nodes (exclude edges)
+        const newNodeIds = newModel.children
+            .filter(child => !existingIds.has(child.id) && child.type.startsWith('node:'))
+            .map(child => child.id);
+
+        if (newNodeIds.length > 0) {
+            this.logger.debug({ newNodeIds }, 'Centering on newly created element(s)');
+            this.diagramWidget.dispatchAction?.({
+                kind: 'center',
+                elementIds: newNodeIds,
+                animate: true,
+                retainZoom: true,
+            });
+        }
     }
 
     /**
@@ -804,7 +912,53 @@ export class CompositeEditorWidget extends BaseWidget
 
     protected async createTextEditor(): Promise<void> {
         try {
-            const editor = await this.editorManager.getOrCreateByUri(this.uri);
+            this.logger.debug({ uri: this.uri.toString() }, 'createTextEditor: starting');
+
+            // Close any standalone editor for this URI that Theia may have restored
+            // to the shell during layout initialization. editorManager.getOrCreateByUri()
+            // reuses cached WidgetManager widgets, and a shell-attached editor cannot
+            // be reparented into our internal DockPanel without triggering Monaco model
+            // detachment (setModel(null) → WordHighlighter.dispose → Canceled error).
+            // Closing disposes the widget (removing it from WidgetManager cache),
+            // so getOrCreateByUri() then creates a fresh, unattached widget.
+            const toClose: Widget[] = [];
+            for (const widget of this.shell.widgets) {
+                if (widget instanceof EditorWidget
+                    && !(widget instanceof CompositeEditorWidget)
+                    && !widget.hasClass('sanyam-composite-text-editor')
+                    && widget.getResourceUri()?.toString() === this.uri.toString()) {
+                    toClose.push(widget);
+                }
+            }
+            if (toClose.length > 0) {
+                this.logger.debug({ closingCount: toClose.length }, 'createTextEditor: closing standalone editors');
+            }
+            for (const widget of toClose) {
+                widget.close();
+            }
+
+            // Retry loop: editorManager.getOrCreateByUri may fail during early
+            // layout restoration when Theia's editor infrastructure isn't ready.
+            let editor: EditorWidget | undefined;
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    editor = await this.editorManager.getOrCreateByUri(this.uri);
+                    if (editor) {
+                        break;
+                    }
+                } catch (retryError) {
+                    this.logger.debug({ attempt, err: retryError }, 'createTextEditor: getOrCreateByUri failed, retrying');
+                }
+                if (attempt < 2) {
+                    await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+                }
+            }
+
+            this.logger.debug({
+                hasEditor: !!editor,
+                isAttached: editor?.isAttached ?? false,
+                editorId: editor?.id,
+            }, 'createTextEditor: editor resolved');
 
             if (editor) {
                 this.textEditor = editor;
@@ -896,9 +1050,13 @@ export class CompositeEditorWidget extends BaseWidget
     protected onActivateRequest(msg: Message): void {
         super.onActivateRequest(msg);
 
-        if (this._activeView === 'text' && this.textEditor) {
+        // Guard: during shell layout restoration, onActivateRequest may fire
+        // before restoreDockLayout has added child widgets to the internal
+        // DockPanel. Calling activateWidget on a widget not yet in the panel
+        // throws "Widget is not contained in the dock panel."
+        if (this._activeView === 'text' && this.textEditor && this.textEditor.isAttached) {
             this.dockPanel.activateWidget(this.textEditor);
-        } else if (this._activeView === 'diagram' && this.diagramWidget) {
+        } else if (this._activeView === 'diagram' && this.diagramWidget && this.diagramWidget.isAttached) {
             this.dockPanel.activateWidget(this.diagramWidget);
         }
     }
@@ -934,18 +1092,40 @@ export class CompositeEditorWidget extends BaseWidget
      * Eagerly create and add both widgets to the DockPanel so both tabs appear.
      */
     protected async initializeViews(): Promise<void> {
-        await this.showTextView();
-        if (this.manifest.diagrammingEnabled) {
-            if (!this.diagramWidget) {
-                await this.createDiagramWidget();
+        // If a dock layout restore is in progress (from restoreState), await
+        // it so we don't race with restoreLayout replacing the dock contents.
+        if (this.restoringDockLayout) {
+            await this.restoringDockLayout;
+            this.restoringDockLayout = undefined;
+        }
+
+        // Ensure both widgets exist (may already be created by restoreDockLayout)
+        if (!this.textEditor) {
+            await this.createTextEditor();
+        }
+        if (this.manifest.diagrammingEnabled && !this.diagramWidget) {
+            await this.createDiagramWidget();
+        }
+
+        // Ensure both widgets are in the dock panel.
+        // createTextEditor() closes shell-attached editors first, ensuring the
+        // widget is unattached by this point.
+        if (this.textEditor && !this.textEditor.isAttached) {
+            this.dockPanel.addWidget(this.textEditor);
+        }
+        if (this.diagramWidget && !this.diagramWidget.isAttached) {
+            this.dockPanel.addWidget(this.diagramWidget);
+        }
+
+        // Activate the correct view (respects restored activeView)
+        if (this._activeView === 'diagram' && this.diagramWidget) {
+            this.dockPanel.activateWidget(this.diagramWidget);
+            if (!this.diagramModelLoaded) {
+                this.loadDiagramModel();
             }
-            if (this.diagramWidget && !this.diagramWidget.isAttached) {
-                this.dockPanel.addWidget(this.diagramWidget);
-            }
-            // Ensure the text editor is the active tab
-            if (this.textEditor) {
-                this.dockPanel.activateWidget(this.textEditor);
-            }
+        } else if (this.textEditor) {
+            this.dockPanel.activateWidget(this.textEditor);
+            this.triggerEditorResize();
         }
     }
 
@@ -992,6 +1172,9 @@ export class CompositeEditorWidgetFactory {
     @inject(DiagramLanguageClient)
     protected readonly diagramLanguageClient: DiagramLanguageClient;
 
+    @inject(DiagramLayoutStorageService)
+    protected readonly layoutStorageService: DiagramLayoutStorageService;
+
     @inject(CanvasDropHandlerSymbol)
     protected readonly canvasDropHandler: CanvasDropHandler;
 
@@ -1004,6 +1187,7 @@ export class CompositeEditorWidgetFactory {
         (widget as any).widgetManager = this.widgetManager;
         (widget as any).shell = this.shell;
         (widget as any).diagramLanguageClient = this.diagramLanguageClient;
+        (widget as any).layoutStorageService = this.layoutStorageService;
         (widget as any).canvasDropHandler = this.canvasDropHandler;
         (widget as any).textEditorDropHandler = this.textEditorDropHandler;
         widget['init']();

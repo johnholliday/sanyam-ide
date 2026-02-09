@@ -218,8 +218,16 @@ export class DiagramLanguageClient implements Disposable {
 
     /**
      * Load the diagram model for a document.
+     *
+     * @param uri - Document URI
+     * @param savedRegistry - Optional saved UUID registry data from browser storage.
+     *   When provided, the server seeds the element ID registry before reconciliation,
+     *   ensuring UUIDs are stable across server restarts.
      */
-    async loadModel(uri: string): Promise<LoadModelResponse> {
+    async loadModel(
+        uri: string,
+        savedRegistry?: { idMap?: Record<string, string>; fingerprints?: Record<string, unknown> }
+    ): Promise<LoadModelResponse> {
         // Check for pending request
         const pending = this.pendingRequests.get(uri);
         if (pending) {
@@ -229,7 +237,7 @@ export class DiagramLanguageClient implements Disposable {
         // Emit loading state
         this.onModelLoadingEmitter.fire({ uri, loading: true });
 
-        const requestPromise = this.doLoadModel(uri);
+        const requestPromise = this.doLoadModel(uri, savedRegistry);
         this.pendingRequests.set(uri, requestPromise);
 
         try {
@@ -244,17 +252,33 @@ export class DiagramLanguageClient implements Disposable {
     /**
      * Internal method to load the model via language server.
      */
-    protected async doLoadModel(uri: string): Promise<LoadModelResponse> {
+    protected async doLoadModel(
+        uri: string,
+        savedRegistry?: { idMap?: Record<string, string>; fingerprints?: Record<string, unknown> }
+    ): Promise<LoadModelResponse> {
         this.logger.debug({ uri }, 'doLoadModel called');
         this.logger.debug({ available: !!this.languageClientProvider }, 'languageClientProvider');
 
         try {
             // If language client provider is available, use it directly
             if (this.languageClientProvider) {
-                this.logger.debug('[DiagramLanguageClient] Sending glsp/loadModel request...');
+                this.logger.info({
+                    event: 'uuid:rpc-send',
+                    uri,
+                    hasIdMap: !!savedRegistry?.idMap,
+                    hasFingerprintSet: !!savedRegistry?.fingerprints,
+                    idMapSize: Object.keys(savedRegistry?.idMap ?? {}).length,
+                }, 'Sending saved UUID registry to server');
+                const params: Record<string, unknown> = { uri };
+                if (savedRegistry?.idMap) {
+                    params.savedIdMap = savedRegistry.idMap;
+                }
+                if (savedRegistry?.fingerprints) {
+                    params.savedFingerprints = savedRegistry.fingerprints;
+                }
                 const response = await this.languageClientProvider.sendRequest<LoadModelResponse>(
                     'glsp/loadModel',
-                    { uri }
+                    params
                 );
                 this.logger.debug({
                     success: response.success,
@@ -265,17 +289,10 @@ export class DiagramLanguageClient implements Disposable {
 
                 if (response.success && response.gModel) {
                     this.cachedModels.set(uri, response.gModel);
-                    this.onModelUpdatedEmitter.fire({
-                        uri,
-                        gModel: response.gModel,
-                        metadata: response.metadata ? {
-                            positions: new Map(Object.entries(response.metadata.positions || {})),
-                            sizes: new Map(Object.entries(response.metadata.sizes || {})),
-                            sourceRanges: response.metadata.sourceRanges ? new Map(Object.entries(response.metadata.sourceRanges)) : undefined,
-                            idMap: response.metadata.idMap,
-                            fingerprints: response.metadata.fingerprints,
-                        } : undefined,
-                    });
+                    // NOTE: Do NOT fire onModelUpdatedEmitter here.
+                    // The caller (e.g., loadDiagramModel) handles the response directly.
+                    // The emitter should only fire for server push notifications
+                    // (handled by handleModelUpdateNotification).
                 }
 
                 return response;
@@ -291,17 +308,6 @@ export class DiagramLanguageClient implements Disposable {
 
                 if (response && response.success && response.gModel) {
                     this.cachedModels.set(uri, response.gModel);
-                    this.onModelUpdatedEmitter.fire({
-                        uri,
-                        gModel: response.gModel,
-                        metadata: response.metadata ? {
-                            positions: new Map(Object.entries(response.metadata.positions || {})),
-                            sizes: new Map(Object.entries(response.metadata.sizes || {})),
-                            sourceRanges: response.metadata.sourceRanges ? new Map(Object.entries(response.metadata.sourceRanges)) : undefined,
-                            idMap: response.metadata.idMap,
-                            fingerprints: response.metadata.fingerprints,
-                        } : undefined,
-                    });
                     return response;
                 }
 
@@ -388,16 +394,6 @@ export class DiagramLanguageClient implements Disposable {
 
         // Cache the model
         this.cachedModels.set(uri, mockModel);
-
-        // Emit update event
-        this.onModelUpdatedEmitter.fire({
-            uri,
-            gModel: mockModel,
-            metadata: {
-                positions: new Map(Object.entries(positions)),
-                sizes: new Map(Object.entries(sizes)),
-            },
-        });
 
         return {
             success: true,

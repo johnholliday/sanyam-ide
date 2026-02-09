@@ -65,6 +65,12 @@ export interface LoadModelResponse {
         positions: Record<string, GlspPoint>;
         sizes: Record<string, GlspDimension>;
         routingPoints?: Record<string, GlspPoint[]>;
+        /** Source ranges for outline↔diagram mapping (element ID → LSP range) */
+        sourceRanges?: Record<string, { start: { line: number; character: number }; end: { line: number; character: number } }>;
+        /** UUID registry exact-match index: fingerprintKey → UUID */
+        idMap?: Record<string, string>;
+        /** UUID registry fingerprints: UUID → StructuralFingerprint */
+        fingerprints?: Record<string, unknown>;
     };
     /** Error message (present on failure) */
     error?: string;
@@ -482,9 +488,11 @@ export interface SanyamGlspService {
      * Converts AST to GModel and returns with layout metadata.
      *
      * @param uri - File URI (file://)
-     * @returns GModel root with positions and sizes
+     * @param savedIdMap - Optional saved UUID registry idMap for persistence
+     * @param savedFingerprints - Optional saved UUID registry fingerprints
+     * @returns GModel root with positions, sizes, sourceRanges, and UUID registry
      */
-    loadModel(uri: string): Promise<LoadModelResponse>;
+    loadModel(uri: string, savedIdMap?: Record<string, string>, savedFingerprints?: Record<string, unknown>): Promise<LoadModelResponse>;
 
     /**
      * Save the current model state.

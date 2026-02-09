@@ -110,8 +110,12 @@ export class SanyamLanguageClientProvider implements LanguageClientProvider {
         // Route to the appropriate service method based on the request method
         switch (method) {
             case 'glsp/loadModel': {
-                const { uri } = params as { uri: string };
-                const result = await glspService.loadModel(uri);
+                const { uri, savedIdMap, savedFingerprints } = params as {
+                    uri: string;
+                    savedIdMap?: Record<string, string>;
+                    savedFingerprints?: Record<string, unknown>;
+                };
+                const result = await glspService.loadModel(uri, savedIdMap, savedFingerprints);
                 return result as R;
             }
 

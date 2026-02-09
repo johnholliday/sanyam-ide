@@ -13,6 +13,9 @@
 import type { LangiumCoreServices, LangiumDocument } from 'langium';
 import type { CancellationToken } from 'vscode-languageserver';
 import type { GlspContext, LanguageContribution, GlspFeatureProviders } from '@sanyam/types';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'GlspServer' });
 import { GlspContextFactory, createGlspContextFactory } from './glsp-context-factory.js';
 import { LangiumSourceModelStorage, createLangiumSourceModelStorage } from './langium-source-model-storage.js';
 import type { IdRegistryLayoutData, ElementIdRegistry } from './element-id-registry.js';
@@ -230,10 +233,15 @@ export class GlspServer {
 
   /**
    * Load a diagram model for a document.
+   *
+   * @param document - The Langium document
+   * @param token - Cancellation token
+   * @param options - Optional saved registry data from the client for UUID persistence
    */
   async loadModel(
     document: LangiumDocument,
-    token: CancellationToken
+    token: CancellationToken,
+    options?: { savedIdMap?: Record<string, string>; savedFingerprints?: Record<string, unknown> }
   ): Promise<GlspContext> {
     // Update the cached model state with the fresh document before creating context,
     // otherwise createContext returns stale cached AST data
@@ -253,6 +261,25 @@ export class GlspServer {
     const modelState = this.sourceModelStorage.getModelState(document.uri.toString());
     if (modelState) {
       (context as any).idRegistry = modelState.idRegistry;
+    }
+
+    // Seed the element ID registry from client's saved data BEFORE reconcile.
+    // This ensures UUIDs are stable across server restarts by reusing the
+    // fingerprints and idMap that the client persisted in browser storage.
+    if (options?.savedIdMap || options?.savedFingerprints) {
+      const idRegistry: ElementIdRegistry | undefined = (context as any).idRegistry;
+      if (idRegistry) {
+        logger.info({
+          event: 'uuid:registry-seed',
+          uri: document.uri.toString(),
+          idMapSize: Object.keys(options.savedIdMap ?? {}).length,
+          fingerprintCount: Object.keys(options.savedFingerprints ?? {}).length,
+        }, 'Seeding element ID registry from client data');
+        idRegistry.loadFromLayoutData({
+          idMap: (options.savedIdMap ?? {}) as Record<string, string>,
+          fingerprints: (options.savedFingerprints ?? {}) as Record<string, import('./element-id-registry.js').StructuralFingerprint>,
+        });
+      }
     }
 
     // Convert AST to GModel using resolver if contribution exists

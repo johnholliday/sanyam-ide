@@ -137,6 +137,19 @@ export class ElementSymbolMapper {
       }
     }
 
+    // Diagnostic: if we have sourceRanges but produced zero mappings,
+    // log a sample to help debug range-matching issues.
+    if (mappings.length === 0 && sourceRanges.size > 0) {
+      const sampleRange = sourceRanges.entries().next().value;
+      const sampleSymbol = flatSymbols[0];
+      console.warn('[ElementSymbolMapper] buildMappingsFromRanges produced 0 mappings', {
+        sourceRangeCount: sourceRanges.size,
+        symbolCount: flatSymbols.length,
+        sampleSourceRange: sampleRange,
+        sampleSymbol: sampleSymbol ? { name: sampleSymbol.symbol.name, range: sampleSymbol.symbol.range } : undefined,
+      });
+    }
+
     return mappings;
   }
 
@@ -172,6 +185,15 @@ export class ElementSymbolMapper {
   ): ElementSymbolMapping[] {
     const mappings: ElementSymbolMapping[] = [];
     const elementIdSet = new Set(elementIds);
+
+    // Detect if all element IDs appear to be UUIDs — name-based matching
+    // is impossible for random UUIDs. Return empty so the caller falls
+    // through to sourceRange-based matching.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (elementIds.length > 0 && elementIds.every(id => UUID_RE.test(id))) {
+      console.warn('[ElementSymbolMapper] All element IDs are UUIDs — name-based matching skipped. Caller should use buildMappingsFromRanges instead.');
+      return [];
+    }
 
     // Build lookups from element names to element IDs.
     // We index by exact lowercase name AND by normalized name (no spaces/special chars)

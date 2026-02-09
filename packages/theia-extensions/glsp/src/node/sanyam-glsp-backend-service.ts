@@ -689,7 +689,7 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
      * T012: Implements AST-to-GModel conversion using the GLSP server.
      * T019: Includes debug logging for model load operations.
      */
-    async loadModel(uri: string): Promise<LoadModelResponse> {
+    async loadModel(uri: string, savedIdMap?: Record<string, string>, savedFingerprints?: Record<string, unknown>): Promise<LoadModelResponse> {
         return this.ensureInitialized(async () => {
             this.log(`[SanyamGlspBackendService] loadModel called for: ${uri}`);
             const startTime = Date.now();
@@ -730,7 +730,10 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
 
                 // Load model using GLSP server
                 this.log(`[SanyamGlspBackendService] Calling glspServer.loadModel...`);
-                const context = await this.glspServer.loadModel(document, CancellationToken.None);
+                const context = await this.glspServer.loadModel(document, CancellationToken.None, {
+                    savedIdMap,
+                    savedFingerprints,
+                });
                 this.log(`[SanyamGlspBackendService] glspServer.loadModel returned`);
                 this.log(`  - context.root type: ${context.root?.$type ?? 'none'}`);
                 this.log(`  - context.gModel exists: ${!!context.gModel}`);
@@ -746,6 +749,10 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
                 this.log(`  - Children count: ${childCount}`);
                 this.log(`[SanyamGlspBackendService] GModel child count: ${context.gModel?.children?.length ?? 0}`);
 
+                // Export id registry data for client consumption
+                const idRegistryData = (context as any).idRegistryData as
+                    { idMap: Record<string, string>; fingerprints: Record<string, unknown> } | undefined;
+
                 return {
                     success: true,
                     gModel: context.gModel,
@@ -759,6 +766,11 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
                         routingPoints: context.metadata?.routingPoints
                             ? Object.fromEntries(context.metadata.routingPoints)
                             : undefined,
+                        sourceRanges: context.metadata?.sourceRanges
+                            ? Object.fromEntries(context.metadata.sourceRanges)
+                            : {},
+                        idMap: idRegistryData?.idMap,
+                        fingerprints: idRegistryData?.fingerprints,
                     },
                 };
             } catch (error) {

@@ -479,7 +479,10 @@ export async function createLanguageServer(
   interface GlspLayoutRequest extends GlspDiagramRequest { options?: { algorithm?: 'grid' | 'tree' | 'force-directed'; spacing?: number; }; }
   interface GlspContextMenuRequest extends GlspDiagramRequest { selectedIds: string[]; position?: { x: number; y: number }; }
 
-  connection.onRequest('glsp/loadModel', async (params: GlspDiagramRequest) => {
+  connection.onRequest('glsp/loadModel', async (params: GlspDiagramRequest & {
+    savedIdMap?: Record<string, string>;
+    savedFingerprints?: Record<string, unknown>;
+  }) => {
     if (!initialized || !glspServer) {
       return { success: false, error: 'Server not initialized' };
     }
@@ -492,8 +495,24 @@ export async function createLanguageServer(
       if (!langiumDoc) {
         return { success: false, error: `Document not found: ${params.uri}` };
       }
-      const context = await glspServer.loadModel(langiumDoc, CancellationToken.None);
+      logger.info({
+        event: 'uuid:rpc-receive',
+        uri: params.uri,
+        savedIdMapSize: Object.keys(params.savedIdMap ?? {}).length,
+        savedFingerprintCount: Object.keys(params.savedFingerprints ?? {}).length,
+      }, 'Received saved UUID registry from client');
+      const context = await glspServer.loadModel(langiumDoc, CancellationToken.None, {
+        savedIdMap: params.savedIdMap,
+        savedFingerprints: params.savedFingerprints,
+      });
       const idRegistryData = (context as any).idRegistryData;
+      logger.info({
+        event: 'uuid:rpc-respond',
+        uri: params.uri,
+        idMapSize: Object.keys(idRegistryData?.idMap ?? {}).length,
+        fingerprintCount: Object.keys(idRegistryData?.fingerprints ?? {}).length,
+        sourceRangeCount: context.metadata?.sourceRanges?.size ?? 0,
+      }, 'Sending UUID registry and sourceRanges to client');
       return {
         success: true,
         gModel: context.gModel,

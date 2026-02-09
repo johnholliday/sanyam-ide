@@ -6,6 +6,7 @@
  * @packageDocumentation
  */
 
+import { randomUUID } from 'node:crypto';
 import type { AstNode } from 'langium';
 import { AstUtils } from 'langium';
 import { createLogger } from '@sanyam/logger';
@@ -112,7 +113,12 @@ export const defaultAstToGModelProvider = {
       edges.push(...nodeEdges);
     }
 
-    logger.info({ nodeCount: nodes.length, edgeCount: edges.length }, 'Conversion complete');
+    logger.info({
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+      sourceRangeCount: context.metadata?.sourceRanges?.size ?? 0,
+      hasMetadata: !!context.metadata,
+    }, 'Conversion complete');
 
     return {
       id: `root_${context.document.uri.toString()}`,
@@ -351,7 +357,8 @@ export const defaultAstToGModelProvider = {
       }
     }
 
-    // Fallback: legacy path-based ID
+    // Fallback: legacy path-based ID (idRegistry should always be available during normal conversion)
+    logger.warn({ astType: astNode.$type }, 'Using legacy path-based ID — idRegistry unavailable');
     return computeLegacyPathId(astNode);
   },
 
@@ -609,7 +616,7 @@ export function computeLegacyPathId(astNode: AstNode): string {
     return `${astNode.$type}_${cstNode.offset}`;
   }
 
-  return `${astNode.$type}_${Math.random().toString(36).substr(2, 9)}`;
+  return `${astNode.$type}_${randomUUID()}`;
 }
 
 /**

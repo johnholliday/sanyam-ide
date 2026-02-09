@@ -6,11 +6,13 @@
  * @packageDocumentation
  */
 
+import { randomUUID } from 'node:crypto';
 import type { GlspContext } from '@sanyam/types';
 import type { GModelNode, Point, Dimension } from '../conversion-types.js';
 import { ElementTypes, createNode, createLabel } from '../conversion-types.js';
 import type { ApplyResult } from '../providers/gmodel-to-ast-provider.js';
 import { defaultGModelToAstProvider } from '../providers/gmodel-to-ast-provider.js';
+import type { ElementIdRegistry, StructuralFingerprint } from '../element-id-registry.js';
 
 /**
  * Create node operation.
@@ -81,20 +83,23 @@ export const createNodeHandler = {
     }
 
     try {
-      // Generate unique ID
+      // Generate UUID-based element ID
       const elementId = this.generateElementId(context, operation);
 
-      // Create GModel node
-      const node = this.createGModelNode(context, operation, elementId);
+      // Generate a human-readable name for the AST source text (decoupled from the UUID)
+      const uniqueName = this.generateUniqueName(context, operation);
 
-      // Create corresponding AST node
+      // Create GModel node (uses UUID as element ID, human-readable name for label)
+      const node = this.createGModelNode(context, operation, elementId, uniqueName);
+
+      // Create corresponding AST node (uses human-readable name, not UUID)
       const applyResult = defaultGModelToAstProvider.createNode(
         context,
         operation.elementTypeId,
         operation.location ?? { x: 0, y: 0 },
         {
           ...operation.args,
-          name: elementId,
+          name: uniqueName,
         }
       );
 
@@ -116,6 +121,20 @@ export const createNodeHandler = {
         context.metadata.sizes.set(elementId, node.size!);
       }
 
+      // Register UUID in idRegistry so reconciliation can match after reparse
+      const idRegistry: ElementIdRegistry | undefined = (context as any).idRegistry;
+      if (idRegistry) {
+        const astType = defaultGModelToAstProvider.getAstTypeFromNodeType(context, operation.elementTypeId) ?? operation.elementTypeId;
+        const fingerprint: StructuralFingerprint = {
+          astType,
+          containmentProperty: '',
+          siblingIndex: 0,
+          parentUuid: 'root',
+          name: uniqueName,
+        };
+        idRegistry.registerNewUuid(elementId, fingerprint);
+      }
+
       return {
         success: true,
         elementId,
@@ -131,16 +150,27 @@ export const createNodeHandler = {
   },
 
   /**
-   * Generate a unique element ID.
+   * Generate a unique element ID (UUID-based).
    */
-  generateElementId(context: GlspContext, operation: CreateNodeOperation): string {
+  generateElementId(_context: GlspContext, _operation: CreateNodeOperation): string {
+    return randomUUID();
+  },
+
+  /**
+   * Generate a unique human-readable name for the AST source text.
+   *
+   * This is decoupled from the element ID (UUID) — the name appears in
+   * grammar source text (e.g., `Actor MyActor "Title"`), while the UUID
+   * is used for GModel element identity and position tracking.
+   */
+  generateUniqueName(context: GlspContext, operation: CreateNodeOperation): string {
     const baseName = operation.args?.name ?? this.getDefaultName(context, operation.elementTypeId);
     let name = baseName;
     let counter = 1;
 
-    // Ensure uniqueness
-    const existingIds = this.getExistingIds(context);
-    while (existingIds.has(name)) {
+    // Ensure uniqueness against existing AST node names
+    const existingNames = this.getExistingNames(context);
+    while (existingNames.has(name)) {
       name = `${baseName}${counter++}`;
     }
 
@@ -173,7 +203,7 @@ export const createNodeHandler = {
   },
 
   /**
-   * Get existing element IDs.
+   * Get existing element IDs from the GModel.
    */
   getExistingIds(context: GlspContext): Set<string> {
     const ids = new Set<string>();
@@ -195,20 +225,60 @@ export const createNodeHandler = {
   },
 
   /**
+   * Get existing AST node names for name uniqueness checking.
+   *
+   * Walks the AST tree collecting `node.name` strings, which is distinct
+   * from GModel element IDs (UUIDs).
+   */
+  getExistingNames(context: GlspContext): Set<string> {
+    const names = new Set<string>();
+
+    const collectNames = (node: any): void => {
+      if (node.name && typeof node.name === 'string') {
+        names.add(node.name);
+      }
+      for (const [key, value] of Object.entries(node)) {
+        if (key.startsWith('$')) continue;
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            if (item && typeof item === 'object' && '$type' in item) {
+              collectNames(item);
+            }
+          }
+        } else if (value && typeof value === 'object' && '$type' in value) {
+          collectNames(value);
+        }
+      }
+    };
+
+    if (context.root) {
+      collectNames(context.root);
+    }
+
+    return names;
+  },
+
+  /**
    * Create GModel node.
+   *
+   * @param context - GLSP context
+   * @param operation - Create node operation
+   * @param elementId - UUID-based element ID
+   * @param displayName - Human-readable name for the label (decoupled from UUID)
    */
   createGModelNode(
     context: GlspContext,
     operation: CreateNodeOperation,
-    elementId: string
+    elementId: string,
+    displayName?: string
   ): GModelNode {
     const position = operation.location ?? { x: 100, y: 100 };
     const size = this.getDefaultSize(context, operation.elementTypeId);
 
     const node = createNode(elementId, operation.elementTypeId, position, size);
 
-    // Add label
-    const labelText = operation.args?.name ?? elementId;
+    // Add label — use displayName (human-readable) rather than UUID
+    const labelText = operation.args?.name ?? displayName ?? elementId;
     node.children = [createLabel(`${elementId}_label`, labelText)];
 
     // Add type-specific children

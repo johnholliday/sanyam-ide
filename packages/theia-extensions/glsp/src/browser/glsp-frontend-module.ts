@@ -19,6 +19,8 @@ import { WidgetFactory, FrontendApplicationContribution, KeybindingContribution,
 import { ColorContribution } from '@theia/core/lib/browser/color-application-contribution';
 import { TabBarToolbarContribution } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { CommandContribution, MenuContribution, PreferenceContribution } from '@theia/core/lib/common';
+import URI from '@theia/core/lib/common/uri';
+import { GrammarRegistry } from '@sanyam-ide/product/lib/browser/grammar-registry';
 
 // Diagram color contribution
 import { DiagramColorContribution } from './diagram-color-contribution';
@@ -31,7 +33,6 @@ import { GlspDiagramMenus } from './glsp-menus';
 
 // Composite editor imports
 import {
-    CompositeEditorWidget,
     CompositeEditorWidgetFactory,
     COMPOSITE_EDITOR_WIDGET_FACTORY_ID,
 } from './composite-editor-widget';
@@ -238,12 +239,21 @@ export default new ContainerModule((bind: interfaces.Bind, _unbind, isBound, reb
   bind(CompositeEditorWidgetFactory).toSelf().inSingletonScope();
   bind(GLSP_FRONTEND_TYPES.CompositeEditorWidgetFactory).toService(CompositeEditorWidgetFactory);
 
-  // Register widget factory with Theia
+  // Register widget factory with Theia.
+  // During layout restoration, WidgetManager passes the serialized URI string
+  // (from CompositeEditorOpenHandler.createWidgetOptions) back to createWidget.
+  // We reconstruct the full options (including the manifest) from GrammarRegistry.
   bind(WidgetFactory).toDynamicValue((ctx) => ({
     id: COMPOSITE_EDITOR_WIDGET_FACTORY_ID,
-    createWidget: (options: CompositeEditorWidget.Options) => {
+    createWidget: (uriString: string) => {
       const factory = ctx.container.get(CompositeEditorWidgetFactory);
-      return factory.createWidget(options);
+      const grammarRegistry = ctx.container.get(GrammarRegistry);
+      const uri = new URI(uriString);
+      const manifest = grammarRegistry.getManifestByFilePath(uri.path.toString());
+      if (!manifest) {
+        throw new Error(`No grammar manifest found for ${uri.toString()}`);
+      }
+      return factory.createWidget({ uri, manifest });
     },
   })).inSingletonScope();
 

@@ -70,25 +70,56 @@ export class CompositeEditorContribution
     protected readonly openHandler: CompositeEditorOpenHandler;
 
     /**
-     * On application start, check if any grammar files were restored as plain
-     * text editors (because the GrammarRegistry was not yet initialized during
-     * widget restoration). If so, close them and reopen via the composite editor.
+     * After layout restoration, check if any grammar files were restored as plain
+     * text editors (e.g. due to a missing WidgetManager description from an older
+     * session). If so, close them and reopen via the composite editor.
+     *
+     * This runs in `onDidInitializeLayout` (after `initializeLayout`) rather than
+     * `onStart` (which runs before layout restoration, making it too early to see
+     * restored widgets).
      */
-    async onStart(): Promise<void> {
-        // Wait a short delay to ensure all widget restoration is complete
-        await new Promise(resolve => setTimeout(resolve, 500));
-
+    async onDidInitializeLayout(): Promise<void> {
         const allWidgets = this.shell.widgets;
+
+        // Collect URIs already managed by composite editors so we don't
+        // close-and-reopen files that are already handled.
+        const compositeUris = new Set<string>();
+        for (const widget of allWidgets) {
+            if (widget instanceof CompositeEditorWidget) {
+                const uri = widget.getResourceUri();
+                if (uri) {
+                    compositeUris.add(uri.toString());
+                }
+            }
+        }
+
         for (const widget of allWidgets) {
             if (!(widget instanceof EditorWidget)) {
                 continue;
             }
-            // Skip if already a composite editor (embedded text editor has a different class)
+            // Skip if already a composite editor
             if (widget instanceof CompositeEditorWidget) {
+                continue;
+            }
+            // Skip if this editor is embedded inside a composite editor's
+            // internal DockPanel (identified by the CSS class set in
+            // CompositeEditorWidget.createTextEditor).  Closing it would
+            // destroy the composite editor's text tab.
+            if (widget.hasClass('sanyam-composite-text-editor')) {
                 continue;
             }
             const uri = widget.getResourceUri();
             if (!uri) {
+                continue;
+            }
+            // If a composite editor already manages this URI, close the
+            // standalone editor. The composite editor's createTextEditor()
+            // will create a fresh editor for embedding. Closing here ensures
+            // the WidgetManager cache is clean regardless of timing (the
+            // composite editor's restoreDockLayout is async).
+            if (compositeUris.has(uri.toString())) {
+                this.logger.debug({ uri: uri.toString() }, 'Closing standalone editor (composite editor manages this URI)');
+                widget.close();
                 continue;
             }
             // Check if the composite editor can handle this URI

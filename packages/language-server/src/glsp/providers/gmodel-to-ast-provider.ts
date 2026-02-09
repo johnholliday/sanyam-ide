@@ -464,15 +464,28 @@ export const defaultGModelToAstProvider = {
 
   /**
    * Find the AST node corresponding to an element ID.
+   *
+   * Lookup chain:
+   *   1. Model state mapping (primary)
+   *   2. ElementIdRegistry UUID→AST reverse lookup
+   *   3. Name-based search (backward compatibility only)
    */
   findAstNode(context: GlspContext, elementId: string): AstNode | undefined {
-    // Check model state mapping
+    // Primary: model state mapping
     const modelState = (context as any).modelState;
     if (modelState?.getAstNode) {
-      return modelState.getAstNode(elementId);
+      const node = modelState.getAstNode(elementId);
+      if (node) return node;
     }
 
-    // Fallback: search by name
+    // Secondary: idRegistry UUID→AST reverse lookup
+    const idRegistry = (context as any).idRegistry;
+    if (idRegistry?.getAstNode) {
+      const node = idRegistry.getAstNode(elementId);
+      if (node) return node;
+    }
+
+    // Last resort: search by name (backward compat only)
     const root = context.root;
     const search = (node: any): AstNode | undefined => {
       if (node.name === elementId) {

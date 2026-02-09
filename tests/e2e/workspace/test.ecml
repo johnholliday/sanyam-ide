@@ -15,3 +15,5 @@ Actor Element "Element" "Description of Element"
 Activity Activity "Activity" "Description of Activity"
 
 Permission Permission "Permission" "Description of Permission"
+
+Actor Actor "Actor" "Description of Actor"

@@ -57,6 +57,31 @@ Statement:
 // -----------------------------------------------------------------------------
 //  Core building blocks (re-usable fragments)
 // -----------------------------------------------------------------------------
+
+// Identifier allows keywords to be used as names (e.g., Activity Activity "...")
+Identifier returns string:
+    ID
+    // Statement-level type keywords
+    | 'Actor' | 'Activity' | 'Task' | 'Content'
+    | 'SecurityGroup' | 'Permission' | 'RetentionLabel' | 'SensitivityLabel' | 'Workflow'
+    // Workflow keywords
+    | 'Do' | 'Repeat' | 'Until' | 'If'
+    // Data type keywords
+    | 'text' | 'integer' | 'decimal' | 'date' | 'boolean' | 'currency' | 'memo' | 'termset' | 'choice'
+    // Attribute keywords
+    | 'template' | 'format' | 'type' | 'schema'
+    // Content format keywords
+    | 'TXT' | 'DOCX' | 'CSV' | 'XLSX' | 'PDF' | 'MD' | 'JSON' | 'XML'
+    // Content type keywords
+    | 'Text' | 'Csv' | 'Excel' | 'Word' | 'PowerPoint' | 'Markdown' | 'Pdf'
+    | 'Script' | 'Image' | 'Diagram' | 'Flowchart' | 'OrgChart' | 'Survey'
+    // Boolean / status keywords
+    | 'true' | 'false'
+    | 'pending' | 'started' | 'approved' | 'rejected' | 'complete' | 'suspended' | 'aborted'
+    // Misc
+    | 'this' | 'status'
+;
+
 DataType:
     PrimitiveDataType
     | ChoiceDataType
@@ -67,7 +92,7 @@ PrimitiveDataType returns string:
 ;
 
 ChoiceDataType:
-    'choice' '(' choices+=ID (',' choices+=ID)* ')'
+    'choice' '(' choices+=Identifier (',' choices+=Identifier)* ')'
 ;
 
 PropertyDeclaration:
@@ -75,11 +100,11 @@ PropertyDeclaration:
 ;
 
 PropertyInitializer returns string:
-    '=' (TEXT | ID | BooleanLiteral)
+    '=' (TEXT | Identifier | BooleanLiteral)
 ;
 
 PropertyName:
-    name=ID
+    name=Identifier
 ;
 
 Annotation:
@@ -87,38 +112,38 @@ Annotation:
 ;
 
 QualifiedName returns string:
-    ID ('.' ID)*;
+    Identifier ('.' Identifier)*;
 
 //---------------------------------------------------------------------------------------------
 // Information Security and Compliance
 //---------------------------------------------------------------------------------------------
 SecurityGroup:
-    'SecurityGroup' (members=MemberAssignment)? name=ID title=TEXT (description=TEXT)? 
+    'SecurityGroup' (members=MemberAssignment)? name=Identifier title=TEXT (description=TEXT)?
     (permAssign=PermissionAssignment)?
 ;
 
 Permission:
-    'Permission' name=ID title=TEXT description=TEXT (notes=TEXT)?
+    'Permission' name=Identifier title=TEXT description=TEXT (notes=TEXT)?
 ;
 
 RetentionLabel:
-    'RetentionLabel' name=ID title=TEXT description=TEXT (notes=TEXT)?
+    'RetentionLabel' name=Identifier title=TEXT description=TEXT (notes=TEXT)?
 ;
 
 SensitivityLabel:
-    'SensitivityLabel' name=ID title=TEXT description=TEXT (notes=TEXT)?
+    'SensitivityLabel' name=Identifier title=TEXT description=TEXT (notes=TEXT)?
 ;
 
 MemberAssignment:
-    '[' members+=[Actor:ID] (',' members+=[Actor:ID])* ']'
+    '[' members+=[Actor:Identifier] (',' members+=[Actor:Identifier])* ']'
 ;
 
 RoleAssignment:
-    '[' roles+=[Actor:ID] (',' roles+=[Actor:ID])* ']'
+    '[' roles+=[Actor:Identifier] (',' roles+=[Actor:Identifier])* ']'
 ;
 
 PermissionAssignment:
-    '=' '[' permissions+=[Actor:ID] (',' permissions+=[Actor:ID])* ']'
+    '=' '[' permissions+=[Actor:Identifier] (',' permissions+=[Actor:Identifier])* ']'
 ;
 
 LabelAssignment:
@@ -131,11 +156,11 @@ LabelAssignmentContent:
 ;
 
 RetentionWithOptionalSensitivity:
-    retention=[RetentionLabel:ID] ('(' sensitivity=[SensitivityLabel:ID] ')')?
+    retention=[RetentionLabel:Identifier] ('(' sensitivity=[SensitivityLabel:Identifier] ')')?
 ;
 
 SensitivityOnly:
-    '(' sensitivity=[SensitivityLabel:ID] ')'
+    '(' sensitivity=[SensitivityLabel:Identifier] ')'
 ;
 
 //---------------------------------------------------------------------------------------------
@@ -143,12 +168,12 @@ SensitivityOnly:
 //---------------------------------------------------------------------------------------------
 
 Activity:
-    'Activity' (roles=RoleAssignment)? name=ID title=TEXT (description=TEXT)? (notes=TEXT)? 
+    'Activity' (roles=RoleAssignment)? name=Identifier title=TEXT (description=TEXT)? (notes=TEXT)?
      (tasks=TaskBlock)? (flow=ContentFlow)?
 ;
 
 Task:
-    'Task' (roles=RoleAssignment)? name=ID title=TEXT (description=TEXT)? (notes=TEXT)?
+    'Task' (roles=RoleAssignment)? name=Identifier title=TEXT (description=TEXT)? (notes=TEXT)?
     (tasks=TaskBlock)? (flow=ContentFlow)?
 ;
 
@@ -164,7 +189,7 @@ TaskBlockElement:
 // Actors
 //---------------------------------------------------------------------------------------------
 Actor:
-    'Actor' name=ID title=TEXT (description=TEXT)? (notes=TEXT)? (properties=ActorBlock)?
+    'Actor' name=Identifier title=TEXT (description=TEXT)? (notes=TEXT)? (properties=ActorBlock)?
 ;
 
 ActorBlock:
@@ -179,7 +204,7 @@ ActorBlockElement:
 // Content Controls
 //---------------------------------------------------------------------------------------------
 Content:
-    'Content' attributes=ContentAttributes? name=ID title=TEXT (description=TEXT)? (notes=TEXT)? 
+    'Content' attributes=ContentAttributes? name=Identifier title=TEXT (description=TEXT)? (notes=TEXT)?
     (labels=LabelAssignment)? (flow=ContentFlow)? (properties=ContentBlock)?
 ;
 
@@ -230,11 +255,11 @@ OutputOnlyFlow:
 ;
 
 InputFlow:
-    '<<' sources+=[Content:ID] (',' sources+=[Content:ID])*
+    '<<' sources+=[Content:Identifier] (',' sources+=[Content:Identifier])*
 ;
 
 OutputFlow:
-    '>>' targets+=[Content:ID] (',' targets+=[Content:ID])*
+    '>>' targets+=[Content:Identifier] (',' targets+=[Content:Identifier])*
 ;
 
 // -----------------------------------------------------------------------------
@@ -242,7 +267,7 @@ OutputFlow:
 // -----------------------------------------------------------------------------
 
 Workflow:
-    'Workflow' name=ID title=TEXT (description=TEXT)? (notes=TEXT)?
+    'Workflow' name=Identifier title=TEXT (description=TEXT)? (notes=TEXT)?
     '{' elements+=WorkflowElement* '}'
 ;
 
@@ -271,11 +296,11 @@ WorkflowTarget:
 ;
 
 SingleActivityTarget:
-    activity=[Activity:ID]
+    activity=[Activity:Identifier]
 ;
 
 ActivitySequenceTarget:
-    '[' activities+=[Activity:ID] (',' activities+=[Activity:ID])* ']'
+    '[' activities+=[Activity:Identifier] (',' activities+=[Activity:Identifier])* ']'
 ;
 
 Condition:
@@ -295,7 +320,7 @@ WorkflowCondition:
 ;
 
 WorkflowProperty returns string:
-    ID | 'status'
+    Identifier
 ;
 
 StatusValue returns string:
@@ -303,12 +328,12 @@ StatusValue returns string:
 ;
 
 QualifiedFieldReference:
-    object=[Activity:ID] '.' property=PropertyName  // Activity.property
-    | property=PropertyName                         // Workflow-level property
+    object=[Activity:Identifier] '.' property=PropertyName  // Activity.property
+    | property=PropertyName                                 // Workflow-level property
 ;
 
 ConditionValue returns string:
-    TEXT | ID | BooleanLiteral
+    TEXT | Identifier | BooleanLiteral
 ;
 
 BooleanLiteral returns string:

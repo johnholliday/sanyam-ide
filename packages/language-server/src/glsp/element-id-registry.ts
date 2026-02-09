@@ -162,6 +162,21 @@ export class ElementIdRegistry {
   }
 
   /**
+   * Pre-register a UUID with a structural fingerprint.
+   *
+   * Used by creation handlers to register a newly created element's UUID
+   * so the next reconciliation pass (after reparse) can match it via
+   * exact fingerprint lookup instead of assigning a new UUID.
+   *
+   * @param uuid - The UUID to register
+   * @param fingerprint - The structural fingerprint for the new element
+   */
+  registerNewUuid(uuid: string, fingerprint: StructuralFingerprint): void {
+    this.storedFingerprints.set(uuid, fingerprint);
+    this.exactIndex.set(fingerprintKey(fingerprint), uuid);
+  }
+
+  /**
    * Reconcile freshly-parsed AST nodes against stored fingerprints.
    *
    * This is the core algorithm that assigns stable UUIDs to AST nodes.
@@ -277,14 +292,16 @@ export class ElementIdRegistry {
       }
     }
 
-    logger.debug(
+    logger.info(
       {
+        event: 'uuid:reconcile',
         total: nodeFingerprints.length,
         exactMatched: nodeFingerprints.length - unmatchedAfterPass1.length,
         fuzzyMatched: unmatchedAfterPass1.length - unmatchedAfterPass2.length,
         newUuids: unmatchedAfterPass2.length,
+        registrySize: this.storedFingerprints.size,
       },
-      'Reconciliation complete'
+      'UUID reconciliation complete'
     );
   }
 

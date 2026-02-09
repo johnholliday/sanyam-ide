@@ -7,6 +7,7 @@
  * @packageDocumentation
  */
 
+import { randomUUID } from 'node:crypto';
 import type { GlspContext, GrammarManifest, ConnectionRule, DiagramTypeConfig } from '@sanyam/types';
 import type { GModelEdge, GModelNode, Point } from '../conversion-types.js';
 import { ElementTypes, createEdge, createLabel, isNode } from '../conversion-types.js';
@@ -138,20 +139,10 @@ export const createEdgeHandler = {
   },
 
   /**
-   * Generate a unique edge ID.
+   * Generate a unique edge ID (UUID-based).
    */
-  generateEdgeId(context: GlspContext, operation: CreateEdgeOperation): string {
-    const baseId = `${operation.sourceElementId}_to_${operation.targetElementId}`;
-    let id = baseId;
-    let counter = 1;
-
-    // Ensure uniqueness
-    const existingIds = this.getExistingIds(context);
-    while (existingIds.has(id)) {
-      id = `${baseId}_${counter++}`;
-    }
-
-    return id;
+  generateEdgeId(_context: GlspContext, _operation: CreateEdgeOperation): string {
+    return randomUUID();
   },
 
   /**

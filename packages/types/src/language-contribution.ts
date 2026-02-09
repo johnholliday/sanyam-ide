@@ -13,6 +13,7 @@ import type { ContainerModule } from 'inversify';
 import type { GrammarManifest } from './grammar-manifest.js';
 import type { LspFeatureProviders, LspFeatureName } from './lsp-providers.js';
 import type { GlspFeatureProviders, GlspFeatureName } from './glsp-providers.js';
+import type { OperationHandlers } from './grammar-operation-handler.js';
 
 /**
  * Symbol for dependency injection binding.
@@ -200,6 +201,30 @@ export interface LanguageContribution {
    * ```
    */
   readonly diagramModule?: ContainerModule;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // OPERATION HANDLERS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Operation handler implementations for this grammar.
+   *
+   * Maps operation IDs (from GrammarManifest.operations) to their
+   * handler implementations. Handlers are invoked via:
+   * - LSP: workspace/executeCommand
+   * - REST: /api/v1/{languageId}/operations/{operationId}
+   *
+   * @example
+   * ```typescript
+   * import { operationHandlers } from './operations/index.js';
+   *
+   * export const contribution: LanguageContribution = {
+   *   // ...
+   *   operationHandlers,
+   * };
+   * ```
+   */
+  readonly operationHandlers?: OperationHandlers;
 }
 
 /**

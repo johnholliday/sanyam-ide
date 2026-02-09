@@ -84,7 +84,7 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .sanyam-port-label {
-  font-size: 10px;
+  font-size: 15px;
   fill: var(--theia-editor-foreground, #333333);
   pointer-events: none;
   user-select: none;

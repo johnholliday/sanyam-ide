@@ -92,7 +92,7 @@ describe('CreateNodeHandler', () => {
       const result = createNodeHandler.execute(context, operation);
 
       expect(result.success).toBe(true);
-      expect(result.nodeId).toBeDefined();
+      expect(result.elementId).toBeDefined();
       expect(result.node).toBeDefined();
     });
 
@@ -107,7 +107,7 @@ describe('CreateNodeHandler', () => {
       const result = createNodeHandler.execute(context, operation);
 
       expect(context.gModel?.children).toContainEqual(
-        expect.objectContaining({ id: result.nodeId })
+        expect.objectContaining({ id: result.elementId })
       );
     });
 
@@ -115,14 +115,20 @@ describe('CreateNodeHandler', () => {
       const result1 = createNodeHandler.execute(context, operation);
       const result2 = createNodeHandler.execute(context, operation);
 
-      expect(result1.nodeId).not.toBe(result2.nodeId);
+      expect(result1.elementId).not.toBe(result2.elementId);
     });
 
-    it('should use provided node name in ID', () => {
+    it('should generate UUID element ID and use provided name in label', () => {
       operation.args = { name: 'Customer' };
       const result = createNodeHandler.execute(context, operation);
 
-      expect(result.nodeId).toContain('Customer');
+      // Element ID should be a UUID, not contain the name
+      expect(result.elementId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      );
+      // The label should contain the human-readable name
+      const labelChild = result.node?.children?.find((c: any) => c.type?.includes('label'));
+      expect((labelChild as any)?.text).toBe('Customer');
     });
 
     it('should set default size for new node', () => {
@@ -155,7 +161,7 @@ describe('CreateNodeHandler', () => {
 
       const container = context.gModel.children.find((c: any) => c.id === 'container1');
       expect(container?.children).toContainEqual(
-        expect.objectContaining({ id: result.nodeId })
+        expect.objectContaining({ id: result.elementId })
       );
     });
 
@@ -184,7 +190,7 @@ describe('CreateNodeHandler', () => {
     it('should store position in metadata', () => {
       const result = createNodeHandler.execute(context, operation);
 
-      expect(context.metadata?.positions?.get(result.nodeId!)).toEqual({ x: 100, y: 200 });
+      expect(context.metadata?.positions?.get(result.elementId!)).toEqual({ x: 100, y: 200 });
     });
   });
 
@@ -196,7 +202,7 @@ describe('CreateNodeHandler', () => {
       const undoResult = createNodeHandler.undo(context, createResult);
 
       expect(undoResult).toBe(true);
-      expect(context.gModel?.children.find((c: any) => c.id === createResult.nodeId)).toBeUndefined();
+      expect(context.gModel?.children.find((c: any) => c.id === createResult.elementId)).toBeUndefined();
     });
 
     it('should return false for failed creation result', () => {
@@ -212,7 +218,7 @@ describe('CreateNodeHandler', () => {
     it('should return false if node not found', () => {
       const result: CreateNodeResult = {
         success: true,
-        nodeId: 'nonexistent',
+        elementId: 'nonexistent',
       };
 
       const undoResult = createNodeHandler.undo(context, result);
@@ -223,7 +229,7 @@ describe('CreateNodeHandler', () => {
       const createResult = createNodeHandler.execute(context, operation);
       createNodeHandler.undo(context, createResult);
 
-      expect(context.metadata?.positions?.has(createResult.nodeId!)).toBe(false);
+      expect(context.metadata?.positions?.has(createResult.elementId!)).toBe(false);
     });
 
     it('should increment revision on undo', () => {
@@ -284,7 +290,7 @@ describe('CreateNodeHandler', () => {
     it('should allow custom execute implementation', () => {
       const customResult: CreateNodeResult = {
         success: true,
-        nodeId: 'custom-id',
+        elementId: 'custom-id',
       };
 
       const customHandler = createCreateNodeHandler({
@@ -292,7 +298,7 @@ describe('CreateNodeHandler', () => {
       });
 
       const result = customHandler.execute(context, operation);
-      expect(result.nodeId).toBe('custom-id');
+      expect(result.elementId).toBe('custom-id');
     });
   });
 
@@ -343,11 +349,13 @@ function createMockContext(): GlspContext {
         languageId: 'ecml',
         version: 1,
         getText: () => '',
+        positionAt: (offset: number) => ({ line: 0, character: offset }),
       },
       parseResult: {
-        value: { entities: [] },
+        value: { $type: 'Model', entities: [] },
       },
     } as any,
+    root: { $type: 'Model', entities: [] } as any,
     services: {} as any,
     token: {
       isCancellationRequested: false,

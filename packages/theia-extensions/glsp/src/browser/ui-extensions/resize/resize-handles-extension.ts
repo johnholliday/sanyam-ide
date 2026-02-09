@@ -144,7 +144,7 @@ export class ResizeHandlesExtension extends AbstractUIExtension {
     protected override actionDispatcher: IActionDispatcher;
 
     /** Minimum element size */
-    protected minSize: { width: number; height: number } = { width: 50, height: 30 };
+    protected minSize: { width: number; height: number } = { width: 75, height: 45 };
 
     /** Grid snap size (0 = no snap) */
     protected gridSnapSize: number = 0;
@@ -232,8 +232,8 @@ export class ResizeHandlesExtension extends AbstractUIExtension {
             const handle = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             handle.classList.add(ResizeHandleClasses.HANDLE);
             handle.classList.add(`${ResizeHandleClasses.HANDLE}-${position}`);
-            handle.setAttribute('width', '8');
-            handle.setAttribute('height', '8');
+            handle.setAttribute('width', '12');
+            handle.setAttribute('height', '12');
             handle.style.display = 'none';
             handle.style.pointerEvents = 'auto';
             handle.style.cursor = this.getCursorForHandle(position);
@@ -299,7 +299,7 @@ export class ResizeHandlesExtension extends AbstractUIExtension {
             return;
         }
 
-        const halfHandle = 4; // Half of handle size
+        const halfHandle = 6; // Half of handle size
 
         // Position handles
         this.setHandlePosition('nw', bounds.x - halfHandle, bounds.y - halfHandle);

@@ -110,8 +110,12 @@ export class SanyamLanguageClientProvider implements LanguageClientProvider {
         // Route to the appropriate service method based on the request method
         switch (method) {
             case 'glsp/loadModel': {
-                const { uri } = params as { uri: string };
-                const result = await glspService.loadModel(uri);
+                const { uri, savedIdMap, savedFingerprints } = params as {
+                    uri: string;
+                    savedIdMap?: Record<string, string>;
+                    savedFingerprints?: Record<string, unknown>;
+                };
+                const result = await glspService.loadModel(uri, savedIdMap, savedFingerprints);
                 return result as R;
             }
 
@@ -173,6 +177,15 @@ export class SanyamLanguageClientProvider implements LanguageClientProvider {
             case 'glsp/diagramLanguages':
             case 'glsp/getDiagramLanguages': {
                 const result = await glspService.getDiagramLanguages();
+                return result as R;
+            }
+
+            case 'workspace/executeCommand': {
+                const { command, arguments: cmdArgs } = params as {
+                    command: string;
+                    arguments: unknown[];
+                };
+                const result = await glspService.executeCommand(command, cmdArgs ?? []);
                 return result as R;
             }
 

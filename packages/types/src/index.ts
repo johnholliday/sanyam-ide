@@ -39,6 +39,15 @@ export {
   type RootTypeConfig,
   // Grammar manifest
   type GrammarManifest,
+  // Grammar operation types
+  type JSONSchema,
+  type OperationDialogField,
+  type OperationLicensing,
+  type OperationExecution,
+  type OperationEndpoint,
+  type OperationContexts,
+  type OperationInput,
+  type GrammarOperation,
   // Type guards
   isGrammarManifest,
   // Validation
@@ -78,6 +87,47 @@ export {
   type GrammarPackageJson,
   type RegisteredLanguage,
 } from './language-contribution.js';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Grammar Operation Handler Types
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export {
+  // Operation context types
+  type OperationUser,
+  type OperationContext,
+  // Operation result types
+  type OperationResult,
+  // Progress types
+  type ProgressCallback,
+  // Handler types
+  type OperationHandler,
+  type OperationHandlers,
+  // Async job types
+  type JobStatus,
+  type JobInfo,
+  type JobResult,
+} from './grammar-operation-handler.js';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Document Reference Types
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export {
+  // Reference types
+  type FileUriReference,
+  type InlineContentReference,
+  type DocumentReference,
+  // Type guards
+  isFileUriReference,
+  isInlineContentReference,
+  // API request types
+  type OperationRequestBase,
+  type OperationRequestShorthand,
+  type OperationRequest,
+  // Utilities
+  normalizeOperationRequest,
+} from './document-reference.js';
 
 export {
   // LSP providers

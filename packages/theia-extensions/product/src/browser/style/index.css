@@ -217,6 +217,7 @@ ul.theia-aboutExtensions {
     height: 120px;
     width: auto;
     object-fit: contain;
+    margin-top: 24px;
 }
 
 .gs-tagline {

@@ -27,7 +27,6 @@ import {
     SNodeImpl,
     SEdgeImpl,
     SLabelImpl,
-    SLabelView,
     SCompartmentImpl,
     SCompartmentView,
     SRoutingHandleView,
@@ -41,7 +40,7 @@ import {
 } from 'sprotty';
 import { SRoutingHandleImpl } from 'sprotty/lib/features/routing/model';
 import { Action } from 'sprotty-protocol';
-import { SanyamNodeImpl, SanyamNodeView, SanyamLabelImpl } from './sanyam-node-view';
+import { SanyamNodeImpl, SanyamNodeView, SanyamLabelImpl, SanyamLabelView } from './sanyam-node-view';
 import { SanyamModelFactory, SanyamEdgeImpl, SanyamCompartmentImpl } from './sanyam-model-factory';
 import { SanyamPortImpl, SanyamPortView } from '../ports';
 import { SanyamEdgeView } from './sanyam-edge-view';
@@ -65,10 +64,10 @@ import {
     UIExtensionsModuleOptions,
     UIExtensionRegistry,
     UI_EXTENSION_REGISTRY,
-    RequestToolPaletteAction,
 } from '../ui-extensions';
 
 import { createElkLayoutModule, LayoutCompleteAction, EdgeRoutingService, EdgeJumpPostprocessor } from '../layout';
+import { GridSnapper, SnapGridServiceSymbol, SnapGridTool, type SnapGridService } from '../ui-extensions/snap-to-grid';
 
 /**
  * Service identifier for the diagram ID.
@@ -91,21 +90,30 @@ export const LAYOUT_COMPLETE_CALLBACK = Symbol.for('LayoutCompleteCallback');
 export type SelectionChangedCallback = (selectedIds: string[]) => void;
 
 /**
- * Service identifier for selection changed callback.
- */
-export const SELECTION_CHANGED_CALLBACK = Symbol.for('SelectionChangedCallback');
-
-/**
  * Action handler for selection changes.
  * Intercepts Sprotty's SelectAction and SelectAllAction to notify external listeners.
+ *
+ * NOTE: The callback is set imperatively via {@link setCallback} rather than via
+ * `@inject` because the `ActionHandlerRegistry` resolves all handler singletons
+ * eagerly during the first `setModel` dispatch (in `initializeViewer`), which
+ * runs before `SprottyDiagramManager.setCallbacks` has a chance to rebind the
+ * callback in the container.  Using a mutable setter avoids this race.
  */
 @injectable()
 export class SelectionChangeActionHandler implements IActionHandler {
-    @inject(SELECTION_CHANGED_CALLBACK)
-    protected callback: SelectionChangedCallback;
+    protected callback: SelectionChangedCallback = () => {};
 
     /** Track currently selected element IDs */
     private selectedIds: Set<string> = new Set();
+
+    /**
+     * Set the callback invoked when the selection changes.
+     *
+     * @param cb - Callback receiving the current set of selected element IDs
+     */
+    setCallback(cb: SelectionChangedCallback): void {
+        this.callback = cb;
+    }
 
     handle(action: Action): void {
         if (action.kind === 'elementSelected') {
@@ -316,11 +324,11 @@ function createSanyamDiagramModule(): ContainerModule {
         configureModelElement(context, SanyamModelTypes.EDGE_COMPOSITION, SanyamEdgeImpl, SanyamEdgeView);
         configureModelElement(context, SanyamModelTypes.EDGE_AGGREGATION, SanyamEdgeImpl, SanyamEdgeView);
 
-        // Labels - register all backend label types
-        configureModelElement(context, SanyamModelTypes.LABEL, SanyamLabelImpl, SLabelView);
-        configureModelElement(context, SanyamModelTypes.LABEL_HEADING, SanyamLabelImpl, SLabelView);
-        configureModelElement(context, SanyamModelTypes.LABEL_TEXT, SanyamLabelImpl, SLabelView);
-        configureModelElement(context, SanyamModelTypes.LABEL_ICON, SanyamLabelImpl, SLabelView);
+        // Labels - register with custom SanyamLabelView for quote stripping and word-wrap (FR-008, FR-009)
+        configureModelElement(context, SanyamModelTypes.LABEL, SanyamLabelImpl, SanyamLabelView);
+        configureModelElement(context, SanyamModelTypes.LABEL_HEADING, SanyamLabelImpl, SanyamLabelView);
+        configureModelElement(context, SanyamModelTypes.LABEL_TEXT, SanyamLabelImpl, SanyamLabelView);
+        configureModelElement(context, SanyamModelTypes.LABEL_ICON, SanyamLabelImpl, SanyamLabelView);
 
         // Compartments - register all backend compartment types
         configureModelElement(context, SanyamModelTypes.COMPARTMENT, SanyamCompartmentImpl, SCompartmentView);
@@ -362,6 +370,8 @@ export interface CreateDiagramContainerOptions {
     onLayoutComplete?: LayoutCompleteCallback;
     /** Edge routing service for dynamic edge routing mode */
     edgeRoutingService?: EdgeRoutingService;
+    /** Snap grid service for snap-to-grid functionality */
+    snapGridService?: SnapGridService;
 }
 
 /**
@@ -410,10 +420,9 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
     container.bind(LayoutCompleteActionHandler).toSelf().inSingletonScope();
     configureActionHandler({ bind: container.bind.bind(container), isBound: container.isBound.bind(container) }, LayoutCompleteAction.KIND, LayoutCompleteActionHandler);
 
-    // Bind selection changed callback (default no-op, overridden via setCallbacks)
-    container.bind(SELECTION_CHANGED_CALLBACK).toConstantValue(() => {});
-
-    // Bind and configure selection change action handler
+    // Bind and configure selection change action handler.
+    // The callback is set imperatively via SelectionChangeActionHandler.setCallback()
+    // in SprottyDiagramManager.setCallbacks() to avoid a singleton timing race.
     container.bind(SelectionChangeActionHandler).toSelf().inSingletonScope();
     const actionHandlerCtx = { bind: container.bind.bind(container), isBound: container.isBound.bind(container) };
     configureActionHandler(actionHandlerCtx, 'elementSelected', SelectionChangeActionHandler);
@@ -422,7 +431,6 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
     // Load UI Extensions module if any extensions are enabled
     const uiExtensionsOptions: UIExtensionsModuleOptions = {
         diagramContainerId: options.diagramId,
-        enableToolPalette: options.uiExtensions?.enableToolPalette ?? true,
         enableValidation: options.uiExtensions?.enableValidation ?? true,
         enableEditLabel: options.uiExtensions?.enableEditLabel ?? true,
         enableCommandPalette: options.uiExtensions?.enableCommandPalette ?? true,
@@ -432,9 +440,20 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
         enableResizeHandles: options.uiExtensions?.enableResizeHandles ?? true,
         enablePopup: options.uiExtensions?.enablePopup ?? true,
         enableMinimap: options.uiExtensions?.enableMinimap ?? true,
+        enableQuickMenu: options.uiExtensions?.enableQuickMenu ?? true,
+        // Pass existing SnapGridTool from Theia container to avoid creating duplicate instance
+        snapGridTool: options.snapGridService as SnapGridTool | undefined,
     };
 
     container.load(createUIExtensionsModule(uiExtensionsOptions));
+
+    // Bind snap-to-grid snapper for Sprotty's ISnapper interface
+    // This enables snapping during drag operations
+    if (options.snapGridService) {
+        container.bind(SnapGridServiceSymbol).toConstantValue(options.snapGridService);
+    }
+    container.bind(GridSnapper).toSelf().inSingletonScope();
+    container.bind(TYPES.ISnapper).toService(GridSnapper);
 
     return container;
 }
@@ -464,7 +483,6 @@ export class SprottyDiagramManager {
         // Store UI extensions options for later initialization
         this.uiExtensionsOptions = {
             diagramContainerId: options.diagramId,
-            enableToolPalette: options.uiExtensions?.enableToolPalette ?? true,
             enableValidation: options.uiExtensions?.enableValidation ?? true,
             enableEditLabel: options.uiExtensions?.enableEditLabel ?? true,
             enableCommandPalette: options.uiExtensions?.enableCommandPalette ?? true,
@@ -475,6 +493,27 @@ export class SprottyDiagramManager {
             enablePopup: options.uiExtensions?.enablePopup ?? true,
             enableMinimap: options.uiExtensions?.enableMinimap ?? true,
         };
+
+        // Initialize the viewer with an empty model to ensure SVG is created
+        // This is required because Sprotty's viewer is lazy-initialized
+        this.initializeViewer();
+    }
+
+    /**
+     * Initialize the Sprotty viewer by setting an empty model.
+     * This ensures the SVG container is created before the real model is set.
+     */
+    private async initializeViewer(): Promise<void> {
+        const emptyModel: SModelRoot = {
+            type: 'graph',
+            id: 'empty-init-model',
+            children: [],
+        };
+        try {
+            await this.modelSource.setModel(emptyModel);
+        } catch (error) {
+            this.logger.error({ err: error }, 'Failed to initialize viewer');
+        }
     }
 
     /**
@@ -508,11 +547,12 @@ export class SprottyDiagramManager {
     setCallbacks(callbacks: DiagramEventCallbacks): void {
         this.mouseListener.setCallbacks(callbacks);
 
-        // Wire selection changed callback into the Sprotty container
+        // Set selection callback directly on the handler instance.
+        // We must NOT use container.rebind() here because the handler singleton
+        // is already resolved during initializeViewer() with the initial binding.
         if (callbacks.onSelectionChanged) {
-            if (this.container.isBound(SELECTION_CHANGED_CALLBACK)) {
-                this.container.rebind(SELECTION_CHANGED_CALLBACK).toConstantValue(callbacks.onSelectionChanged);
-            }
+            const handler = this.container.get(SelectionChangeActionHandler);
+            handler.setCallback(callbacks.onSelectionChanged);
         }
     }
 
@@ -521,16 +561,6 @@ export class SprottyDiagramManager {
      */
     async setModel(model: GModelRoot): Promise<void> {
         this.logger.debug({ id: model.id, type: model.type, childCount: model.children?.length ?? 0 }, 'setModel called');
-
-        // Log child types for debugging
-        if (model.children && model.children.length > 0) {
-            const typeCount = new Map<string, number>();
-            for (const child of model.children) {
-                const count = typeCount.get(child.type) ?? 0;
-                typeCount.set(child.type, count + 1);
-            }
-            this.logger.debug({ childTypes: Object.fromEntries(typeCount) }, 'Child types');
-        }
 
         this.currentRoot = model as unknown as SModelRootImpl;
         await this.modelSource.setModel(model);
@@ -656,16 +686,6 @@ export class SprottyDiagramManager {
     }
 
     /**
-     * Request the tool palette from the server.
-     * Dispatches a RequestToolPaletteAction to fetch palette items.
-     */
-    async requestToolPalette(): Promise<void> {
-        if (this.uiExtensionsOptions.enableToolPalette) {
-            await this.modelSource.actionDispatcher.dispatch(RequestToolPaletteAction.create());
-        }
-    }
-
-    /**
      * Request automatic layout of the diagram using ELK.
      * Dispatches a RequestLayoutAction to trigger the layout engine.
      */
@@ -673,7 +693,6 @@ export class SprottyDiagramManager {
         this.logger.debug('Requesting layout...');
         try {
             const { RequestLayoutAction } = await import('../layout');
-            this.logger.debug('RequestLayoutAction imported, dispatching...');
             await this.modelSource.actionDispatcher.dispatch(RequestLayoutAction.create());
             this.logger.debug('Layout action dispatched');
         } catch (error) {

@@ -1,0 +1,19 @@
+{
+  "name": "@sanyam/e2e",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Playwright E2E tests for Sanyam IDE",
+  "scripts": {
+    "test": "playwright test --config ../../playwright.config.ts",
+    "test:headed": "playwright test --config ../../playwright.config.ts --headed",
+    "test:ui": "playwright test --config ../../playwright.config.ts --ui",
+    "test:debug": "playwright test --config ../../playwright.config.ts --debug",
+    "test:report": "playwright show-report ../../playwright-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.42.1",
+    "@theia/playwright": "1.64.1",
+    "@eclipse-glsp/glsp-playwright": "2.2.1",
+    "typescript": "~5.6.3"
+  }
+}

@@ -6,10 +6,11 @@
  * @packageDocumentation
  */
 
+import { randomUUID } from 'node:crypto';
 import type { AstNode } from 'langium';
 import { AstUtils } from 'langium';
 import { createLogger } from '@sanyam/logger';
-import type { ElementIdRegistry } from '../element-id-registry.js';
+import { ElementIdRegistry } from '../element-id-registry.js';
 
 // Langium 4.x exports these via AstUtils namespace
 const { streamAllContents } = AstUtils;
@@ -53,8 +54,14 @@ export const defaultAstToGModelProvider = {
       context.metadata.sourceRanges = new Map();
     }
 
-    // Reconcile element IDs using the registry if available
-    const idRegistry: ElementIdRegistry | undefined = (context as any).idRegistry;
+    // Ensure a UUID registry is always available so every node gets a unique ID.
+    // When the persistent registry hasn't been loaded yet (e.g. first parse before
+    // model state is initialised), create a fresh one on the context.
+    let idRegistry: ElementIdRegistry | undefined = (context as any).idRegistry;
+    if (!idRegistry && root) {
+      idRegistry = new ElementIdRegistry();
+      (context as any).idRegistry = idRegistry;
+    }
     if (idRegistry && root) {
       idRegistry.reconcile(root, context.document);
     }
@@ -106,7 +113,12 @@ export const defaultAstToGModelProvider = {
       edges.push(...nodeEdges);
     }
 
-    logger.info({ nodeCount: nodes.length, edgeCount: edges.length }, 'Conversion complete');
+    logger.info({
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+      sourceRangeCount: context.metadata?.sourceRanges?.size ?? 0,
+      hasMetadata: !!context.metadata,
+    }, 'Conversion complete');
 
     return {
       id: `root_${context.document.uri.toString()}`,
@@ -345,7 +357,8 @@ export const defaultAstToGModelProvider = {
       }
     }
 
-    // Fallback: legacy path-based ID
+    // Fallback: legacy path-based ID (idRegistry should always be available during normal conversion)
+    logger.warn({ astType: astNode.$type }, 'Using legacy path-based ID — idRegistry unavailable');
     return computeLegacyPathId(astNode);
   },
 
@@ -603,7 +616,7 @@ export function computeLegacyPathId(astNode: AstNode): string {
     return `${astNode.$type}_${cstNode.offset}`;
   }
 
-  return `${astNode.$type}_${Math.random().toString(36).substr(2, 9)}`;
+  return `${astNode.$type}_${randomUUID()}`;
 }
 
 /**

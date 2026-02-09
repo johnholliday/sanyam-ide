@@ -31,7 +31,9 @@ import { COMPOSITE_EDITOR_WIDGET_FACTORY_ID_STRING } from '@sanyam/types';
 
 // Direct import from same package - no more symbol-based lookup needed
 import { DIAGRAM_WIDGET_FACTORY_ID } from './diagram-widget';
-import { DiagramLanguageClient } from './diagram-language-client';
+import { DiagramLanguageClient, TextEdit } from './diagram-language-client';
+import { DiagramLayoutStorageService, type DiagramLayoutV3 } from './layout-storage-service';
+import { CanvasDropHandler, CanvasDropHandlerSymbol, TextEditorDropHandler, TextEditorDropHandlerSymbol, ELEMENT_PALETTE_DRAG_MIME_TYPE, decodeDragData } from './element-palette';
 
 import './style/index.css';
 
@@ -52,6 +54,8 @@ export interface DiagramWidgetCapabilities extends Widget {
     updatePositions?(positions: Map<string, { x: number; y: number }>): void;
     /** Update element sizes */
     updateSizes?(sizes: Map<string, { width: number; height: number }>): void;
+    /** Update source ranges for outline↔diagram mapping */
+    updateSourceRanges?(sourceRanges: Map<string, { start: { line: number; character: number }; end: { line: number; character: number } }>): void;
     /** Show loading state */
     showLoading?(): void;
     /** Show error state */
@@ -84,6 +88,12 @@ export interface DiagramWidgetCapabilities extends Widget {
     getModel?(): unknown;
     /** Get source ranges for outline↔diagram mapping */
     getSourceRanges?(): ReadonlyMap<string, { start: { line: number; character: number }; end: { line: number; character: number } }> | undefined;
+    /** Get the SVG container element for drop handling */
+    getSvgContainer?(): HTMLElement | undefined;
+    /** Set whether the widget should auto-load the model during initialization */
+    setAutoLoadModel?(enabled: boolean): void;
+    /** Update UUID registry data (idMap and fingerprints) for layout persistence */
+    updateIdRegistry?(idMap: Record<string, string>, fingerprints: Record<string, unknown>): void;
 }
 
 export namespace CompositeEditorWidget {
@@ -118,10 +128,25 @@ export class CompositeEditorWidget extends BaseWidget
     @inject(DiagramLanguageClient)
     protected readonly diagramLanguageClient: DiagramLanguageClient;
 
+    @inject(DiagramLayoutStorageService)
+    protected readonly layoutStorageService: DiagramLayoutStorageService;
+
+    @inject(CanvasDropHandlerSymbol)
+    protected readonly canvasDropHandler: CanvasDropHandler;
+
+    @inject(TextEditorDropHandlerSymbol)
+    protected readonly textEditorDropHandler: TextEditorDropHandler;
+
     readonly uri: URI;
     readonly manifest: GrammarManifest;
 
     protected diagramModelLoaded = false;
+
+    /** Suppresses the onDirtyChanged diagram reload when an explicit reload is already in progress. */
+    protected suppressAutoReload = false;
+
+    /** Set when restoreDockLayout is pending/running so initializeViews defers to it. */
+    protected restoringDockLayout: Promise<void> | undefined;
 
     protected textEditor: EditorWidget | undefined;
     protected diagramWidget: DiagramWidgetCapabilities | undefined;
@@ -145,6 +170,69 @@ export class CompositeEditorWidget extends BaseWidget
         if (dragEvent.source === this.dockPanel && !this.node.contains(event.target as Node)) {
             event.stopImmediatePropagation();
             event.preventDefault();
+        }
+    };
+
+    /**
+     * Capture-phase listener for native HTML5 drag events from the sidebar palette.
+     *
+     * Theia's FrontendApplication (document-level) sets dropEffect='none' and
+     * ApplicationShell (main DockPanel) sets dropEffect='link' + stopPropagation
+     * on all native dragover/dragenter events. Since the palette drag source uses
+     * effectAllowed='copy', the 'link' override makes the browser show the no-drop
+     * cursor (incompatible effects).
+     *
+     * This capture-phase handler fires BEFORE any bubble-phase handler and
+     * short-circuits the event when it carries our palette MIME type, ensuring
+     * dropEffect stays 'copy'.
+     */
+    protected readonly paletteDragListener = (event: DragEvent): void => {
+        const types = event.dataTransfer?.types;
+        if (types && Array.from(types).includes(ELEMENT_PALETTE_DRAG_MIME_TYPE)) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'copy';
+            }
+        }
+    };
+
+    /**
+     * Capture-phase drop handler for palette drags.
+     *
+     * Handles the drop directly at the composite editor level instead of relying
+     * on individual handlers that may not be initialized (due to timing — the SVG
+     * container and Monaco DOM node may not be available when initialize() is
+     * first called).
+     */
+    protected readonly paletteDropListener = (event: DragEvent): void => {
+        const types = event.dataTransfer?.types;
+        if (!types || !Array.from(types).includes(ELEMENT_PALETTE_DRAG_MIME_TYPE)) {
+            return;
+        }
+
+        const dataStr = event.dataTransfer?.getData(ELEMENT_PALETTE_DRAG_MIME_TYPE);
+        if (!dataStr) {
+            return;
+        }
+
+        const dragData = decodeDragData(dataStr);
+        if (!dragData) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const target = event.target as HTMLElement;
+        const svgContainer = this.diagramWidget?.getSvgContainer?.();
+
+        if (svgContainer && svgContainer.contains(target)) {
+            this.handleCanvasDrop(event, dragData.elementTypeId);
+        } else if (this.textEditor && this.textEditor.node.contains(target)) {
+            this.handleTextEditorDrop(event, dragData);
+        } else {
+            this.logger.debug('Drop target not in diagram or text editor');
         }
     };
 
@@ -174,21 +262,20 @@ export class CompositeEditorWidget extends BaseWidget
 
     /**
      * Subscribe to diagram model changes from the language server.
+     *
+     * Only sets flags and initializes drop handlers here.
+     * Model rendering is handled by DiagramWidget's own subscription
+     * (via setDiagramLanguageClient → subscribeToChanges → handleModelUpdate).
      */
     protected setupModelChangeSubscription(): void {
-        // Subscribe to model updates
         const subscription = this.diagramLanguageClient.onModelUpdated((update) => {
             if (update.uri === this.uri.toString() && this.diagramWidget) {
-                // Update positions and sizes if available
-                if (update.metadata?.positions) {
-                    this.diagramWidget.updatePositions?.(update.metadata.positions);
-                }
-                if (update.metadata?.sizes) {
-                    this.diagramWidget.updateSizes?.(update.metadata.sizes);
-                }
-                // Update the model
-                this.diagramWidget.setModel(update.gModel);
                 this.diagramModelLoaded = true;
+
+                // Initialize drop handlers — model arrived via push,
+                // so loadDiagramModel() was skipped
+                this.initializeCanvasDropHandler();
+                this.initializeTextEditorDropHandler();
             }
         });
         this.toDispose.push(subscription);
@@ -234,27 +321,40 @@ export class CompositeEditorWidget extends BaseWidget
     }
 
     restoreState(state: CompositeEditorWidget.State): void {
-        if (state.activeView && state.activeView !== this._activeView) {
-            this.switchView(state.activeView);
-        }
         if (state.dockLayout) {
-            // Layout restore requires widgets to exist; kick off async restore
-            this.restoreDockLayout(state.dockLayout).catch(error => {
+            // Layout restore requires widgets to exist; kick off async restore.
+            // Store the promise so initializeViews can await it instead of racing.
+            this.restoringDockLayout = this.restoreDockLayout(state.dockLayout).catch(error => {
                 this.logger.error({ err: error }, 'Failed to restore dock layout');
             });
+        }
+        if (state.activeView && state.activeView !== this._activeView) {
+            this._activeView = state.activeView;
         }
     }
 
     /**
      * Asynchronously create widgets and restore a saved dock layout.
+     *
+     * Widgets must be added to the DockPanel before `restoreLayout` is called,
+     * because Lumino matches saved layout entries to widgets by their `id`.
      */
     protected async restoreDockLayout(config: DockPanel.ILayoutConfig): Promise<void> {
-        // Eagerly create both widgets so restoreLayout can find them
+        // Create both widgets
         if (!this.textEditor) {
             await this.createTextEditor();
         }
         if (this.manifest.diagrammingEnabled && !this.diagramWidget) {
             await this.createDiagramWidget();
+        }
+        // Add to dock so restoreLayout can locate them by widget ID.
+        // createTextEditor() closes any shell-attached editor first, so the
+        // widget returned by getOrCreateByUri() should be unattached here.
+        if (this.textEditor && !this.textEditor.isAttached) {
+            this.dockPanel.addWidget(this.textEditor);
+        }
+        if (this.diagramWidget && !this.diagramWidget.isAttached) {
+            this.dockPanel.addWidget(this.diagramWidget);
         }
         this.dockPanel.restoreLayout(config);
     }
@@ -300,12 +400,24 @@ export class CompositeEditorWidget extends BaseWidget
             this._activeView = newActiveView;
             this.onActiveViewChangedEmitter.fire(newActiveView);
 
-            // Load diagram model on first activation via tab click
+            // Load diagram model on first activation via tab click.
+            // Deferred with requestAnimationFrame to avoid spurious loads during
+            // initializeViews() when addWidget fires layoutModified before activateWidget.
             if (newActiveView === 'diagram' && this.diagramWidget && !this.diagramModelLoaded) {
-                this.loadDiagramModel().catch(error => {
-                    this.logger.error({ err: error }, 'Failed to load diagram model on tab switch');
+                requestAnimationFrame(() => {
+                    if (this._activeView === 'diagram' && !this.diagramModelLoaded) {
+                        this.loadDiagramModel().catch(error => {
+                            this.logger.error({ err: error }, 'Failed to load diagram model on tab switch');
+                        });
+                    }
                 });
             }
+            // Re-initialize canvas drop handler when switching to diagram with model loaded
+            // (SVG container may have been recreated after detach/reattach)
+            if (newActiveView === 'diagram' && this.diagramModelLoaded) {
+                this.initializeCanvasDropHandler();
+            }
+
             // Trigger Monaco resize when switching back to text
             if (newActiveView === 'text') {
                 this.triggerEditorResize();
@@ -395,12 +507,38 @@ export class CompositeEditorWidget extends BaseWidget
             return;
         }
 
-        // Show loading state
-        this.diagramWidget.showLoading?.();
+        // Show loading state only for the initial load.
+        // After Sprotty has rendered, showLoading() would destroy the SVG DOM
+        // tree and invalidate Snabbdom's internal VNode references — causing
+        // subsequent setModel() calls to patch disconnected elements.
+        if (!this.diagramModelLoaded) {
+            this.diagramWidget.showLoading?.();
+        }
 
         try {
-            this.logger.debug('Calling diagramLanguageClient.loadModel...');
-            const response = await this.diagramLanguageClient.loadModel(this.uri.toString());
+            // Load saved layout to extract UUID registry data for server seeding
+            let savedRegistry: { idMap?: Record<string, string>; fingerprints?: Record<string, unknown> } | undefined;
+            try {
+                const savedLayout = await this.layoutStorageService.loadLayout(this.uri.toString());
+                if (savedLayout) {
+                    const v3Layout = savedLayout as DiagramLayoutV3;
+                    savedRegistry = {
+                        idMap: v3Layout.idMap,
+                        fingerprints: v3Layout.fingerprints,
+                    };
+                }
+            } catch (layoutError) {
+                this.logger.debug({ err: layoutError }, 'Failed to load saved layout for registry seeding');
+            }
+
+            this.logger.info({
+                event: 'uuid:layout-load',
+                uri: this.uri.toString(),
+                hasSavedLayout: !!savedRegistry,
+                savedIdMapSize: Object.keys(savedRegistry?.idMap ?? {}).length,
+                savedFingerprintCount: Object.keys(savedRegistry?.fingerprints ?? {}).length,
+            }, 'UUID registry loaded from browser storage');
+            const response = await this.diagramLanguageClient.loadModel(this.uri.toString(), savedRegistry);
             this.logger.debug({
                 success: response.success,
                 hasGModel: !!response.gModel,
@@ -420,11 +558,51 @@ export class CompositeEditorWidget extends BaseWidget
                     const sizesMap = new Map(Object.entries(response.metadata.sizes));
                     this.diagramWidget.updateSizes?.(sizesMap);
                 }
+                // Update source ranges for outline↔diagram mapping
+                if (response.metadata?.sourceRanges) {
+                    const sourceRangesMap = new Map(
+                        Object.entries(response.metadata.sourceRanges)
+                    ) as Map<string, { start: { line: number; character: number }; end: { line: number; character: number } }>;
+                    this.diagramWidget.updateSourceRanges?.(sourceRangesMap);
+                }
+
+                // Store UUID registry data on the diagram widget so layout saves
+                // include the registry needed for UUID stability across restarts.
+                if (response.metadata?.idMap && response.metadata?.fingerprints) {
+                    this.diagramWidget.updateIdRegistry?.(
+                        response.metadata.idMap,
+                        response.metadata.fingerprints,
+                    );
+                }
+
+                this.logger.info({
+                    event: 'uuid:client-store',
+                    uri: this.uri.toString(),
+                    idMapSize: Object.keys(response.metadata?.idMap ?? {}).length,
+                    fingerprintCount: Object.keys(response.metadata?.fingerprints ?? {}).length,
+                    sourceRangeCount: Object.keys(response.metadata?.sourceRanges ?? {}).length,
+                }, 'Stored UUID registry and sourceRanges from server response');
 
                 // Set the model
                 this.diagramWidget.setModel(response.gModel);
+
+                // Initialize drop handler for sidebar element palette
+                this.initializeCanvasDropHandler();
             } else {
-                this.diagramWidget.showError?.(response.error || 'Failed to load diagram model');
+                // Handle error - response.error might be an object (JSON-RPC error format)
+                let errorMsg: string;
+                if (response.error === undefined || response.error === null) {
+                    errorMsg = 'Failed to load diagram model';
+                } else if (typeof response.error === 'string') {
+                    errorMsg = response.error;
+                } else if (typeof response.error === 'object') {
+                    const errObj = response.error as { message?: string; code?: number };
+                    errorMsg = errObj.message || JSON.stringify(response.error);
+                } else {
+                    errorMsg = String(response.error);
+                }
+                this.logger.error({ rawError: response.error, errorType: typeof response.error }, 'Model load failed');
+                this.diagramWidget.showError?.(errorMsg);
             }
         } catch (error) {
             this.logger.error({ err: error }, 'Error loading diagram model');
@@ -443,6 +621,287 @@ export class CompositeEditorWidget extends BaseWidget
     }
 
     /**
+     * Initialize the canvas drop handler for sidebar element palette drag-and-drop.
+     */
+    protected initializeCanvasDropHandler(): void {
+        if (!this.diagramWidget) {
+            return;
+        }
+
+        // Get the SVG container from the diagram widget
+        const svgContainer = this.diagramWidget.getSvgContainer?.();
+        if (svgContainer) {
+            this.canvasDropHandler.initialize(svgContainer, this.uri.toString());
+            this.logger.debug('Canvas drop handler initialized');
+        } else {
+            this.logger.warn('SVG container not available for drop handler');
+        }
+    }
+
+    /**
+     * Initialize the text editor drop handler for sidebar element palette drag-and-drop.
+     */
+    protected initializeTextEditorDropHandler(): void {
+        if (!this.textEditor) {
+            return;
+        }
+
+        // Get the Monaco editor instance from the Theia EditorWidget
+        const monacoEditor = (this.textEditor as any).editor?.getControl?.();
+        if (!monacoEditor) {
+            this.logger.warn('Monaco editor not available for text drop handler');
+            return;
+        }
+
+        // Get the editor DOM node
+        const domNode = monacoEditor.getDomNode?.() as HTMLElement | null;
+        if (domNode) {
+            this.textEditorDropHandler.initialize(domNode, monacoEditor, this.uri.toString());
+
+            // Wire up post-operation callback: apply returned text edits,
+            // save the file to disk, and invalidate the diagram model so
+            // it reloads from the updated content on the next tab switch.
+            this.textEditorDropHandler.onOperationComplete = async (response) => {
+                if (response.success && response.edits?.length) {
+                    this.applyTextEdits(response.edits);
+                    try {
+                        await this.textEditor?.saveable?.save();
+                    } catch (saveError) {
+                        this.logger.error(`Failed to save after text editor drop: ${saveError}`);
+                    }
+                    this.diagramModelLoaded = false;
+                }
+            };
+
+            this.logger.debug('Text editor drop handler initialized');
+        } else {
+            this.logger.warn('Monaco editor DOM node not available for text drop handler');
+        }
+    }
+
+    /**
+     * Handle a palette drop on the diagram canvas.
+     * Converts screen coordinates to model coordinates and creates a node.
+     */
+    protected handleCanvasDrop(event: DragEvent, elementTypeId: string): void {
+        const svgContainer = this.diagramWidget?.getSvgContainer?.();
+        if (!svgContainer) {
+            this.logger.warn('SVG container not available for canvas drop');
+            return;
+        }
+
+        // Convert screen coordinates to model coordinates via SVG CTM
+        const svgElement = svgContainer.querySelector('svg') as SVGSVGElement | null;
+        if (!svgElement) {
+            this.logger.warn('SVG element not found for coordinate conversion');
+            return;
+        }
+
+        const point = svgElement.createSVGPoint();
+        point.x = event.clientX;
+        point.y = event.clientY;
+        const ctm = svgElement.getScreenCTM();
+        if (!ctm) {
+            this.logger.warn('Could not get screen CTM for coordinate conversion');
+            return;
+        }
+        const svgPoint = point.matrixTransform(ctm.inverse());
+
+        // Snapshot existing element IDs so we can identify the new one after reload
+        const existingIds = new Set<string>();
+        const currentModel = this.diagramWidget?.getModel?.() as
+            { children?: Array<{ id: string; type: string }> } | undefined;
+        if (currentModel?.children) {
+            for (const child of currentModel.children) {
+                existingIds.add(child.id);
+            }
+        }
+
+        this.logger.info({ elementTypeId, x: svgPoint.x, y: svgPoint.y }, 'Canvas drop: creating element');
+        this.diagramLanguageClient.executeOperation(this.uri.toString(), {
+            kind: 'createNode',
+            elementTypeId,
+            location: { x: svgPoint.x, y: svgPoint.y },
+        }).then(async response => {
+            if (response.success && response.edits?.length) {
+                this.applyTextEdits(response.edits);
+                // Save the file so the backend can re-read from disk, then
+                // reload the diagram model to show the newly created element.
+                // Suppress the onDirtyChanged auto-reload to avoid a double load.
+                this.suppressAutoReload = true;
+                try {
+                    await this.textEditor?.saveable?.save();
+                    // Brief delay to let the backend re-parse the saved file
+                    // before requesting the updated model
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await this.loadDiagramModel();
+
+                    // Center on the newly created element without changing zoom
+                    this.centerOnNewElements(existingIds);
+                } catch (reloadError) {
+                    this.logger.error(`Failed to reload diagram after canvas drop: ${reloadError}`);
+                } finally {
+                    this.suppressAutoReload = false;
+                }
+            } else if (!response.success) {
+                this.logger.error(`Canvas drop operation failed: ${response.error ?? 'unknown error'}`);
+            }
+        }).catch(error => {
+            this.logger.error(`Failed to create element from canvas drop: ${error}`);
+        });
+    }
+
+    /**
+     * Center the diagram on elements that are new (not in the provided set of existing IDs).
+     * Uses retainZoom to keep the current zoom level.
+     */
+    protected centerOnNewElements(existingIds: Set<string>): void {
+        if (!this.diagramWidget) {
+            return;
+        }
+
+        const newModel = this.diagramWidget.getModel?.() as
+            { children?: Array<{ id: string; type: string }> } | undefined;
+        if (!newModel?.children) {
+            return;
+        }
+
+        // Find newly added nodes (exclude edges)
+        const newNodeIds = newModel.children
+            .filter(child => !existingIds.has(child.id) && child.type.startsWith('node:'))
+            .map(child => child.id);
+
+        if (newNodeIds.length > 0) {
+            this.logger.debug({ newNodeIds }, 'Centering on newly created element(s)');
+            this.diagramWidget.dispatchAction?.({
+                kind: 'center',
+                elementIds: newNodeIds,
+                animate: true,
+                retainZoom: true,
+            });
+        }
+    }
+
+    /**
+     * Handle a palette drop on the text editor.
+     * Resolves the text position at the drop point and creates a node.
+     */
+    protected handleTextEditorDrop(
+        event: DragEvent,
+        dragData: { elementTypeId: string; kind?: string }
+    ): void {
+        // Reject edges — they need two endpoints
+        if (dragData.kind === 'createEdge') {
+            this.logger.debug('Rejected edge drop on text editor');
+            return;
+        }
+
+        // Get Monaco editor to resolve text position
+        const monacoEditor = (this.textEditor as any)?.editor?.getControl?.() as {
+            getTargetAtClientPoint?(clientX: number, clientY: number): {
+                position?: { lineNumber: number; column: number };
+            } | null;
+        } | null;
+
+        let insertPosition: { line: number; character: number } | undefined;
+
+        if (monacoEditor?.getTargetAtClientPoint) {
+            const target = monacoEditor.getTargetAtClientPoint(event.clientX, event.clientY);
+            if (target?.position) {
+                // Monaco is 1-based, LSP is 0-based
+                insertPosition = {
+                    line: target.position.lineNumber - 1,
+                    character: target.position.column - 1,
+                };
+            }
+        }
+
+        this.logger.info({
+            elementTypeId: dragData.elementTypeId,
+            insertPosition,
+        }, 'Text editor drop: creating element');
+
+        this.diagramLanguageClient.executeOperation(this.uri.toString(), {
+            kind: 'createNode',
+            elementTypeId: dragData.elementTypeId,
+            args: insertPosition ? { insertAtPosition: insertPosition } : undefined,
+        }).then(async response => {
+            if (response.success && response.edits?.length) {
+                this.applyTextEdits(response.edits);
+                // Save the file so the on-disk content is up to date.
+                // Invalidate the diagram model so it reloads from disk the
+                // next time the user switches to the Diagram tab (the lazy
+                // load handler at tab-switch time will call loadDiagramModel).
+                try {
+                    await this.textEditor?.saveable?.save();
+                } catch (saveError) {
+                    this.logger.error(`Failed to save after text editor drop: ${saveError}`);
+                }
+                this.diagramModelLoaded = false;
+            } else if (!response.success) {
+                this.logger.error(`Text editor drop operation failed: ${response.error ?? 'unknown error'}`);
+            }
+        }).catch(error => {
+            this.logger.error(`Failed to create element from text editor drop: ${error}`);
+        });
+    }
+
+    /**
+     * Apply text edits returned from a server operation to the Monaco editor.
+     * LSP positions are 0-based; Monaco positions are 1-based.
+     *
+     * When the diagram tab is active, the Monaco editor may be detached from
+     * the DOM and `getModel()` returns null.  In that case we fall back to
+     * `textEditorModel.pushEditOperations()` which operates on the in-memory
+     * text model directly and correctly marks it as dirty.
+     */
+    protected applyTextEdits(edits: TextEdit[]): void {
+        if (!this.textEditor) {
+            this.logger.warn('Cannot apply text edits: text editor not available');
+            return;
+        }
+
+        const monacoEdits = edits.map(edit => ({
+            range: {
+                startLineNumber: edit.range.start.line + 1,
+                startColumn: edit.range.start.character + 1,
+                endLineNumber: edit.range.end.line + 1,
+                endColumn: edit.range.end.character + 1,
+            },
+            text: edit.newText,
+        }));
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const monacoEditor = (this.textEditor as any)?.editor?.getControl?.();
+
+        // Try the editor's executeEdits first (works when the editor has a model).
+        if (monacoEditor?.executeEdits) {
+            const success = monacoEditor.executeEdits('sanyam-palette-drop', monacoEdits);
+            if (success) {
+                return;
+            }
+        }
+
+        // Fallback: the editor is hidden (diagram tab active) so getModel()
+        // returns null.  Apply edits directly on the underlying text model.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const textModel = (this.textEditor as any)?.editor?.document?.textEditorModel;
+        if (textModel?.pushEditOperations) {
+            textModel.pushEditOperations(
+                [],
+                monacoEdits.map((e: { range: { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number }; text: string }) => ({
+                    range: e.range,
+                    text: e.text,
+                    forceMoveMarkers: true,
+                })),
+                () => null,
+            );
+        } else {
+            this.logger.warn('Cannot apply text edits: no model available on editor or document');
+        }
+    }
+
+    /**
      * Reload the diagram model after the text file has been saved.
      * The backend service will re-read the file from disk.
      */
@@ -453,7 +912,53 @@ export class CompositeEditorWidget extends BaseWidget
 
     protected async createTextEditor(): Promise<void> {
         try {
-            const editor = await this.editorManager.getOrCreateByUri(this.uri);
+            this.logger.debug({ uri: this.uri.toString() }, 'createTextEditor: starting');
+
+            // Close any standalone editor for this URI that Theia may have restored
+            // to the shell during layout initialization. editorManager.getOrCreateByUri()
+            // reuses cached WidgetManager widgets, and a shell-attached editor cannot
+            // be reparented into our internal DockPanel without triggering Monaco model
+            // detachment (setModel(null) → WordHighlighter.dispose → Canceled error).
+            // Closing disposes the widget (removing it from WidgetManager cache),
+            // so getOrCreateByUri() then creates a fresh, unattached widget.
+            const toClose: Widget[] = [];
+            for (const widget of this.shell.widgets) {
+                if (widget instanceof EditorWidget
+                    && !(widget instanceof CompositeEditorWidget)
+                    && !widget.hasClass('sanyam-composite-text-editor')
+                    && widget.getResourceUri()?.toString() === this.uri.toString()) {
+                    toClose.push(widget);
+                }
+            }
+            if (toClose.length > 0) {
+                this.logger.debug({ closingCount: toClose.length }, 'createTextEditor: closing standalone editors');
+            }
+            for (const widget of toClose) {
+                widget.close();
+            }
+
+            // Retry loop: editorManager.getOrCreateByUri may fail during early
+            // layout restoration when Theia's editor infrastructure isn't ready.
+            let editor: EditorWidget | undefined;
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    editor = await this.editorManager.getOrCreateByUri(this.uri);
+                    if (editor) {
+                        break;
+                    }
+                } catch (retryError) {
+                    this.logger.debug({ attempt, err: retryError }, 'createTextEditor: getOrCreateByUri failed, retrying');
+                }
+                if (attempt < 2) {
+                    await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+                }
+            }
+
+            this.logger.debug({
+                hasEditor: !!editor,
+                isAttached: editor?.isAttached ?? false,
+                editorId: editor?.id,
+            }, 'createTextEditor: editor resolved');
 
             if (editor) {
                 this.textEditor = editor;
@@ -468,7 +973,9 @@ export class CompositeEditorWidget extends BaseWidget
 
                     // When dirty transitions to false, the file was saved.
                     // Reload the diagram model so it reflects the new text content.
-                    if (!isDirty && this.diagramModelLoaded) {
+                    // Skip if suppressAutoReload is set (canvas drop path handles
+                    // the reload explicitly to avoid a double load).
+                    if (!isDirty && this.diagramModelLoaded && !this.suppressAutoReload) {
                         this.reloadDiagramModelAfterSave();
                     }
                 }));
@@ -480,6 +987,9 @@ export class CompositeEditorWidget extends BaseWidget
                         }
                     }
                 });
+
+                // Initialize text editor drop handler for sidebar palette drag-and-drop
+                this.initializeTextEditorDropHandler();
             }
         } catch (error) {
             this.logger.error({ err: error }, 'Failed to create text editor');
@@ -499,6 +1009,8 @@ export class CompositeEditorWidget extends BaseWidget
 
             if (widget) {
                 this.diagramWidget = widget;
+                // Disable auto-load: CompositeEditorWidget manages when to load the model
+                this.diagramWidget.setAutoLoadModel?.(false);
                 this.diagramWidget.addClass('sanyam-composite-diagram');
                 this.diagramWidget.title.label = 'Diagram';
                 this.diagramWidget.title.iconClass = 'codicon codicon-type-hierarchy';
@@ -538,9 +1050,13 @@ export class CompositeEditorWidget extends BaseWidget
     protected onActivateRequest(msg: Message): void {
         super.onActivateRequest(msg);
 
-        if (this._activeView === 'text' && this.textEditor) {
+        // Guard: during shell layout restoration, onActivateRequest may fire
+        // before restoreDockLayout has added child widgets to the internal
+        // DockPanel. Calling activateWidget on a widget not yet in the panel
+        // throws "Widget is not contained in the dock panel."
+        if (this._activeView === 'text' && this.textEditor && this.textEditor.isAttached) {
             this.dockPanel.activateWidget(this.textEditor);
-        } else if (this._activeView === 'diagram' && this.diagramWidget) {
+        } else if (this._activeView === 'diagram' && this.diagramWidget && this.diagramWidget.isAttached) {
             this.dockPanel.activateWidget(this.diagramWidget);
         }
     }
@@ -552,6 +1068,13 @@ export class CompositeEditorWidget extends BaseWidget
         document.addEventListener('lm-dragenter', this.constrainDragListener, true);
         document.addEventListener('lm-dragover', this.constrainDragListener, true);
         document.addEventListener('lm-drop', this.constrainDragListener, true);
+
+        // Intercept native palette drag events in capture phase so Theia's
+        // ApplicationShell/FrontendApplication handlers cannot override dropEffect.
+        this.node.addEventListener('dragover', this.paletteDragListener, true);
+        this.node.addEventListener('dragenter', this.paletteDragListener, true);
+        this.node.addEventListener('drop', this.paletteDropListener, true);
+
         this.initializeViews();
     }
 
@@ -559,6 +1082,9 @@ export class CompositeEditorWidget extends BaseWidget
         document.removeEventListener('lm-dragenter', this.constrainDragListener, true);
         document.removeEventListener('lm-dragover', this.constrainDragListener, true);
         document.removeEventListener('lm-drop', this.constrainDragListener, true);
+        this.node.removeEventListener('dragover', this.paletteDragListener, true);
+        this.node.removeEventListener('dragenter', this.paletteDragListener, true);
+        this.node.removeEventListener('drop', this.paletteDropListener, true);
         super.onBeforeDetach(msg);
     }
 
@@ -566,18 +1092,40 @@ export class CompositeEditorWidget extends BaseWidget
      * Eagerly create and add both widgets to the DockPanel so both tabs appear.
      */
     protected async initializeViews(): Promise<void> {
-        await this.showTextView();
-        if (this.manifest.diagrammingEnabled) {
-            if (!this.diagramWidget) {
-                await this.createDiagramWidget();
+        // If a dock layout restore is in progress (from restoreState), await
+        // it so we don't race with restoreLayout replacing the dock contents.
+        if (this.restoringDockLayout) {
+            await this.restoringDockLayout;
+            this.restoringDockLayout = undefined;
+        }
+
+        // Ensure both widgets exist (may already be created by restoreDockLayout)
+        if (!this.textEditor) {
+            await this.createTextEditor();
+        }
+        if (this.manifest.diagrammingEnabled && !this.diagramWidget) {
+            await this.createDiagramWidget();
+        }
+
+        // Ensure both widgets are in the dock panel.
+        // createTextEditor() closes shell-attached editors first, ensuring the
+        // widget is unattached by this point.
+        if (this.textEditor && !this.textEditor.isAttached) {
+            this.dockPanel.addWidget(this.textEditor);
+        }
+        if (this.diagramWidget && !this.diagramWidget.isAttached) {
+            this.dockPanel.addWidget(this.diagramWidget);
+        }
+
+        // Activate the correct view (respects restored activeView)
+        if (this._activeView === 'diagram' && this.diagramWidget) {
+            this.dockPanel.activateWidget(this.diagramWidget);
+            if (!this.diagramModelLoaded) {
+                this.loadDiagramModel();
             }
-            if (this.diagramWidget && !this.diagramWidget.isAttached) {
-                this.dockPanel.addWidget(this.diagramWidget);
-            }
-            // Ensure the text editor is the active tab
-            if (this.textEditor) {
-                this.dockPanel.activateWidget(this.textEditor);
-            }
+        } else if (this.textEditor) {
+            this.dockPanel.activateWidget(this.textEditor);
+            this.triggerEditorResize();
         }
     }
 
@@ -599,7 +1147,12 @@ export class CompositeEditorWidget extends BaseWidget
         document.removeEventListener('lm-dragenter', this.constrainDragListener, true);
         document.removeEventListener('lm-dragover', this.constrainDragListener, true);
         document.removeEventListener('lm-drop', this.constrainDragListener, true);
+        this.node.removeEventListener('dragover', this.paletteDragListener, true);
+        this.node.removeEventListener('dragenter', this.paletteDragListener, true);
+        this.node.removeEventListener('drop', this.paletteDropListener, true);
         this.dockPanel.layoutModified.disconnect(this.onDockLayoutModified, this);
+        this.canvasDropHandler.cleanup();
+        this.textEditorDropHandler.cleanup();
         this.toDispose.dispose();
         super.dispose();
     }
@@ -619,12 +1172,24 @@ export class CompositeEditorWidgetFactory {
     @inject(DiagramLanguageClient)
     protected readonly diagramLanguageClient: DiagramLanguageClient;
 
+    @inject(DiagramLayoutStorageService)
+    protected readonly layoutStorageService: DiagramLayoutStorageService;
+
+    @inject(CanvasDropHandlerSymbol)
+    protected readonly canvasDropHandler: CanvasDropHandler;
+
+    @inject(TextEditorDropHandlerSymbol)
+    protected readonly textEditorDropHandler: TextEditorDropHandler;
+
     createWidget(options: CompositeEditorWidget.Options): CompositeEditorWidget {
         const widget = new CompositeEditorWidget(options);
         (widget as any).editorManager = this.editorManager;
         (widget as any).widgetManager = this.widgetManager;
         (widget as any).shell = this.shell;
         (widget as any).diagramLanguageClient = this.diagramLanguageClient;
+        (widget as any).layoutStorageService = this.layoutStorageService;
+        (widget as any).canvasDropHandler = this.canvasDropHandler;
+        (widget as any).textEditorDropHandler = this.textEditorDropHandler;
         widget['init']();
         return widget;
     }

@@ -1,0 +1,14 @@
+{% extends "layouts/base.njk" %}
+
+{% block main %}
+<div class="home-layout">
+  {% if site.logo %}
+  <div class="home-logo-column">
+    <img src="{{ site.logo }}" alt="{{ site.applicationName }}" class="home-logo-img" />
+  </div>
+  {% endif %}
+  <div class="home-content prose">
+    {{ content | safe }}
+  </div>
+</div>
+{% endblock %}

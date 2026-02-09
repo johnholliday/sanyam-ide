@@ -12,7 +12,7 @@
     "type": "git",
     "url": "git+https://github.com/johnholliday/sanyam-ide.git"
   },
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@10.29.2",
   "engines": {
     "pnpm": ">=9",
     "node": ">=20"
@@ -33,7 +33,7 @@
     "node-gyp": "^11.4.0",
     "rimraf": "^5.0.5",
     "ts-node": "^10.0.0",
-    "turbo": "^2.8.0",
+    "turbo": "^2.8.3",
     "type-fest": "^0.20.2",
     "yargs": "17.2.1"
   },
@@ -68,7 +68,7 @@
     "package:applications:prod": "pnpm --workspace-concurrency=1 --filter \"sanyam*\" --filter \"!@sanyam/*\" --filter \"!@sanyam-ide/*\" --filter \"!@sanyam-grammar/*\" run package:prod",
     "permissions:writeable": "ts-node scripts/make-files-writeable.ts plugins",
     "postbuild": "pnpm deploy:language-server && bash scripts/postbuild-electron-win.sh",
-    "postinstall": "theia-patch",
+    "postinstall": "theia-patch && node scripts/ensure-ripgrep.js",
     "prebuild": "bash scripts/swap-native-modules.sh linux && pnpm rebuild drivelist",
     "rebuild:electron:win": "bash scripts/rebuild-electron-win.sh",
     "setup:electron:win": "bash scripts/setup-electron-win.sh",
@@ -78,6 +78,9 @@
     "structurizr": "bash scripts/structurizr.sh",
     "structurizr:rebuild": "bash ./scripts/structurizr.sh --rebuild",
     "test": "turbo run test",
+    "test:e2e": "pnpm --filter @sanyam/e2e test",
+    "test:e2e:headed": "pnpm --filter @sanyam/e2e test:headed",
+    "test:e2e:ui": "pnpm --filter @sanyam/e2e test:ui",
     "theia:browser": "pnpm --dir applications/browser",
     "theia:bundle": "pnpm theia:electron bundle && pnpm theia:browser bundle",
     "theia:electron": "pnpm --dir applications/electron",
@@ -85,13 +88,12 @@
     "update:theia:children": "pnpm -r run update:theia -- ",
     "watch": "turbo run watch --concurrency=20",
     "watch:ide": "turbo run watch --filter=\"@sanyam-ide/*\"",
-    "go": "pnpm build:browser && pnpm start:browser"
+    "go": "pnpm build:browser && pnpm start:browser",
+    "go:force": "rm -rf node_modules/.cache/turbo && pnpm go"
   },
   "theiaPluginsDir": "plugins",
   "theiaPlugins": {
-    "eclipse-theia.builtin-extension-pack": "https://open-vsx.org/api/eclipse-theia/builtin-extension-pack/1.95.3/file/eclipse-theia.builtin-extension-pack-1.95.3.vsix",
-    "vscjava.vscode-java-pack": "https://open-vsx.org/api/vscjava/vscode-java-pack/0.29.0/file/vscjava.vscode-java-pack-0.29.0.vsix",
-    "vscjava.vscode-java-dependency": "https://open-vsx.org/api/vscjava/vscode-java-dependency/0.24.1/file/vscjava.vscode-java-dependency-0.24.1.vsix"
+    "eclipse-theia.builtin-extension-pack": "https://open-vsx.org/api/eclipse-theia/builtin-extension-pack/1.95.3/file/eclipse-theia.builtin-extension-pack-1.95.3.vsix"
   },
   "theiaPluginsExcludeIds": [
     "ms-vscode.js-debug-companion",
@@ -105,9 +107,9 @@
     "packages/*",
     "packages/theia-extensions/*",
     "packages/grammar-definitions/*",
+    "packages/grammar-definitions/*/docs",
     "applications/*",
-    "tests/*",
-    "docs/*"
+    "tests/*"
   ],
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -115,6 +117,7 @@
       "@theia/ffmpeg",
       "@vscode/ripgrep",
       "@vscode/windows-ca-certs",
+      "better-sqlite3",
       "chromedriver",
       "cpu-features",
       "drivelist",

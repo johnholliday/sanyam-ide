@@ -16,11 +16,13 @@ import {
     MenuModelRegistry,
 } from '@theia/core/lib/common';
 import {
+    FrontendApplicationContribution,
     KeybindingContribution,
     KeybindingRegistry,
     ApplicationShell,
 } from '@theia/core/lib/browser';
-import { EditorManager } from '@theia/editor/lib/browser';
+import { EditorManager, EditorWidget } from '@theia/editor/lib/browser';
+import { createLogger } from '@sanyam/logger';
 import { CompositeEditorWidget } from './composite-editor-widget';
 import { CompositeEditorOpenHandler } from './composite-editor-open-handler';
 
@@ -54,7 +56,9 @@ export namespace CompositeEditorCommands {
 
 @injectable()
 export class CompositeEditorContribution
-    implements CommandContribution, KeybindingContribution, MenuContribution {
+    implements CommandContribution, KeybindingContribution, MenuContribution, FrontendApplicationContribution {
+
+    protected readonly logger = createLogger({ name: 'CompositeEditorContribution' });
 
     @inject(ApplicationShell)
     protected readonly shell: ApplicationShell;
@@ -64,6 +68,75 @@ export class CompositeEditorContribution
 
     @inject(CompositeEditorOpenHandler)
     protected readonly openHandler: CompositeEditorOpenHandler;
+
+    /**
+     * After layout restoration, check if any grammar files were restored as plain
+     * text editors (e.g. due to a missing WidgetManager description from an older
+     * session). If so, close them and reopen via the composite editor.
+     *
+     * This runs in `onDidInitializeLayout` (after `initializeLayout`) rather than
+     * `onStart` (which runs before layout restoration, making it too early to see
+     * restored widgets).
+     */
+    async onDidInitializeLayout(): Promise<void> {
+        const allWidgets = this.shell.widgets;
+
+        // Collect URIs already managed by composite editors so we don't
+        // close-and-reopen files that are already handled.
+        const compositeUris = new Set<string>();
+        for (const widget of allWidgets) {
+            if (widget instanceof CompositeEditorWidget) {
+                const uri = widget.getResourceUri();
+                if (uri) {
+                    compositeUris.add(uri.toString());
+                }
+            }
+        }
+
+        for (const widget of allWidgets) {
+            if (!(widget instanceof EditorWidget)) {
+                continue;
+            }
+            // Skip if already a composite editor
+            if (widget instanceof CompositeEditorWidget) {
+                continue;
+            }
+            // Skip if this editor is embedded inside a composite editor's
+            // internal DockPanel (identified by the CSS class set in
+            // CompositeEditorWidget.createTextEditor).  Closing it would
+            // destroy the composite editor's text tab.
+            if (widget.hasClass('sanyam-composite-text-editor')) {
+                continue;
+            }
+            const uri = widget.getResourceUri();
+            if (!uri) {
+                continue;
+            }
+            // If a composite editor already manages this URI, close the
+            // standalone editor. The composite editor's createTextEditor()
+            // will create a fresh editor for embedding. Closing here ensures
+            // the WidgetManager cache is clean regardless of timing (the
+            // composite editor's restoreDockLayout is async).
+            if (compositeUris.has(uri.toString())) {
+                this.logger.debug({ uri: uri.toString() }, 'Closing standalone editor (composite editor manages this URI)');
+                widget.close();
+                continue;
+            }
+            // Check if the composite editor can handle this URI
+            const canHandle = this.openHandler.canHandle(uri);
+            if (canHandle <= 0) {
+                continue;
+            }
+            // This file should be in a composite editor but was opened as plain text
+            this.logger.info({ uri: uri.toString() }, 'Reopening grammar file in composite editor');
+            try {
+                widget.close();
+                await this.openHandler.open(uri, { mode: 'activate' });
+            } catch (error) {
+                this.logger.error({ error, uri: uri.toString() }, 'Failed to reopen grammar file in composite editor');
+            }
+        }
+    }
 
     registerCommands(registry: CommandRegistry): void {
         registry.registerCommand(CompositeEditorCommands.SHOW_TEXT_VIEW, {

@@ -13,9 +13,12 @@
 import type { LangiumCoreServices, LangiumDocument } from 'langium';
 import type { CancellationToken } from 'vscode-languageserver';
 import type { GlspContext, LanguageContribution, GlspFeatureProviders } from '@sanyam/types';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'GlspServer' });
 import { GlspContextFactory, createGlspContextFactory } from './glsp-context-factory.js';
 import { LangiumSourceModelStorage, createLangiumSourceModelStorage } from './langium-source-model-storage.js';
-import type { IdRegistryLayoutData } from './element-id-registry.js';
+import type { IdRegistryLayoutData, ElementIdRegistry } from './element-id-registry.js';
 import {
   OperationHandlerRegistry,
   ProviderRegistry,
@@ -96,6 +99,15 @@ export class GlspServer {
   private propertyProvider: PropertyProvider;
   private languageContributions: Map<string, LanguageContribution> = new Map();
   private config: GlspServerConfig;
+
+  /**
+   * Persistent idRegistry cache keyed by document URI.
+   * The sourceModelStorage may fail to create model states when the
+   * constructor receives LangiumSharedServices instead of LangiumCoreServices.
+   * This cache ensures the idRegistry created during loadModel() is available
+   * to subsequent createContext() / getProperties() calls.
+   */
+  private idRegistries: Map<string, ElementIdRegistry> = new Map();
 
   constructor(
     private readonly services: LangiumCoreServices,
@@ -206,10 +218,14 @@ export class GlspServer {
       (context as any).manifest = contribution.manifest;
     }
 
-    // Wire the element ID registry into every context for UUID→AST lookups
-    const modelState = this.sourceModelStorage.getModelState(document.uri.toString());
+    // Wire the element ID registry into every context for UUID→AST lookups.
+    // Try sourceModelStorage first, fall back to the persistent cache.
+    const uri = document.uri.toString();
+    const modelState = this.sourceModelStorage.getModelState(uri);
     if (modelState) {
       (context as any).idRegistry = modelState.idRegistry;
+    } else if (this.idRegistries.has(uri)) {
+      (context as any).idRegistry = this.idRegistries.get(uri);
     }
 
     return context;
@@ -217,10 +233,15 @@ export class GlspServer {
 
   /**
    * Load a diagram model for a document.
+   *
+   * @param document - The Langium document
+   * @param token - Cancellation token
+   * @param options - Optional saved registry data from the client for UUID persistence
    */
   async loadModel(
     document: LangiumDocument,
-    token: CancellationToken
+    token: CancellationToken,
+    options?: { savedIdMap?: Record<string, string>; savedFingerprints?: Record<string, unknown> }
   ): Promise<GlspContext> {
     // Update the cached model state with the fresh document before creating context,
     // otherwise createContext returns stale cached AST data
@@ -242,6 +263,25 @@ export class GlspServer {
       (context as any).idRegistry = modelState.idRegistry;
     }
 
+    // Seed the element ID registry from client's saved data BEFORE reconcile.
+    // This ensures UUIDs are stable across server restarts by reusing the
+    // fingerprints and idMap that the client persisted in browser storage.
+    if (options?.savedIdMap || options?.savedFingerprints) {
+      const idRegistry: ElementIdRegistry | undefined = (context as any).idRegistry;
+      if (idRegistry) {
+        logger.info({
+          event: 'uuid:registry-seed',
+          uri: document.uri.toString(),
+          idMapSize: Object.keys(options.savedIdMap ?? {}).length,
+          fingerprintCount: Object.keys(options.savedFingerprints ?? {}).length,
+        }, 'Seeding element ID registry from client data');
+        idRegistry.loadFromLayoutData({
+          idMap: (options.savedIdMap ?? {}) as Record<string, string>,
+          fingerprints: (options.savedFingerprints ?? {}) as Record<string, import('./element-id-registry.js').StructuralFingerprint>,
+        });
+      }
+    }
+
     // Convert AST to GModel using resolver if contribution exists
     const astToGModel = this.getResolvedProvider('astToGModel', contribution);
     if (astToGModel?.convert) {
@@ -252,9 +292,19 @@ export class GlspServer {
       context.gModel = gModel;
     }
 
+    // Persist the idRegistry so subsequent createContext() / getProperties() calls
+    // can resolve UUIDs back to AST nodes. The converter may have created a fresh
+    // registry on the context if sourceModelStorage.load() failed.
+    const uri = document.uri.toString();
+    const contextIdRegistry: ElementIdRegistry | undefined = (context as any).idRegistry;
+    if (contextIdRegistry) {
+      this.idRegistries.set(uri, contextIdRegistry);
+    }
+
     // Export id registry data into context metadata for client consumption
-    if (modelState) {
-      (context as any).idRegistryData = modelState.idRegistry.exportToLayoutData();
+    const idRegistryForExport = contextIdRegistry ?? modelState?.idRegistry;
+    if (idRegistryForExport) {
+      (context as any).idRegistryData = idRegistryForExport.exportToLayoutData();
     }
 
     // Apply auto-layout if enabled and no positions exist
@@ -434,6 +484,7 @@ export class GlspServer {
   onDocumentClosed(uri: string): void {
     this.contextFactory.removeModelState(uri);
     this.sourceModelStorage.removeModelState(uri);
+    this.idRegistries.delete(uri);
   }
 
   /**
@@ -473,6 +524,14 @@ export class GlspServer {
     elementIds: string[],
     contribution?: LanguageContribution
   ): PropertyExtractionResult {
+    // Ensure idRegistry's uuidToAstNode map is populated for the current AST.
+    // After document reparses, the registry is recreated with preserved fingerprints
+    // but reconcile() has not been called yet, leaving UUID→AST lookups empty.
+    const idRegistry: ElementIdRegistry | undefined = (context as any).idRegistry;
+    if (idRegistry && context.root) {
+      idRegistry.reconcile(context.root, context.document);
+    }
+
     return this.propertyProvider.extractProperties(
       context,
       elementIds,
@@ -498,6 +557,12 @@ export class GlspServer {
     propertyName: string,
     value: unknown
   ): PropertyUpdateResult {
+    // Ensure idRegistry's uuidToAstNode map is populated (same rationale as getProperties)
+    const idRegistry: ElementIdRegistry | undefined = (context as any).idRegistry;
+    if (idRegistry && context.root) {
+      idRegistry.reconcile(context.root, context.document);
+    }
+
     return this.propertyProvider.updateProperty(
       context,
       elementIds,

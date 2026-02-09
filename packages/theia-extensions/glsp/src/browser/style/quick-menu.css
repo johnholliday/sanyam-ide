@@ -1,0 +1,198 @@
+/********************************************************************************
+ * Copyright (C) 2024 Sanyam IDE contributors.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ *
+ * SPDX-License-Identifier: MIT
+ ********************************************************************************/
+
+/**
+ * Quick Menu Styles
+ *
+ * Styles for the canvas double-click quick menu popup.
+ */
+
+/* Container */
+.sanyam-quick-menu {
+    position: absolute;
+    z-index: 10000;
+    min-width: 200px;
+    max-width: 400px;
+    max-height: 320px;
+    display: flex;
+    flex-direction: column;
+    background: var(--theia-quickInput-background, var(--theia-editor-background));
+    border: 1px solid var(--theia-widget-border, var(--theia-contrastBorder));
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+    transition: opacity 0.1s ease, transform 0.1s ease;
+    pointer-events: none;
+}
+
+.sanyam-quick-menu.visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: auto;
+}
+
+/* Search input */
+.sanyam-quick-menu-search {
+    padding: 8px;
+    border-bottom: 1px solid var(--theia-widget-border);
+}
+
+.sanyam-quick-menu-search-input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--theia-input-border);
+    border-radius: 4px;
+    background: var(--theia-input-background);
+    color: var(--theia-input-foreground);
+    font-size: 13px;
+    outline: none;
+}
+
+.sanyam-quick-menu-search-input:focus {
+    border-color: var(--theia-focusBorder);
+}
+
+.sanyam-quick-menu-search-input::placeholder {
+    color: var(--theia-input-placeholderForeground);
+}
+
+/* Items list */
+.sanyam-quick-menu-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+/* Single item */
+.sanyam-quick-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+}
+
+.sanyam-quick-menu-item:hover {
+    background: var(--theia-list-hoverBackground);
+}
+
+.sanyam-quick-menu-item.selected {
+    background: var(--theia-list-activeSelectionBackground);
+    color: var(--theia-list-activeSelectionForeground);
+}
+
+.sanyam-quick-menu-item-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+}
+
+.sanyam-quick-menu-item.selected .sanyam-quick-menu-item-icon {
+    opacity: 1;
+}
+
+.sanyam-quick-menu-item-label {
+    flex: 1;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sanyam-quick-menu-item-category {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-left: 8px;
+    padding: 2px 6px;
+    background: var(--theia-badge-background);
+    color: var(--theia-badge-foreground);
+    border-radius: 3px;
+}
+
+.sanyam-quick-menu-item.selected .sanyam-quick-menu-item-category {
+    opacity: 0.8;
+}
+
+.sanyam-quick-menu-item-hint {
+    font-size: 10px;
+    opacity: 0.5;
+    padding: 2px 4px;
+    background: var(--theia-button-secondaryBackground);
+    border: 1px solid var(--theia-button-border, transparent);
+    border-radius: 3px;
+    margin-left: auto;
+}
+
+.sanyam-quick-menu-item.selected .sanyam-quick-menu-item-hint {
+    opacity: 0.7;
+}
+
+/* Empty state */
+.sanyam-quick-menu-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: var(--theia-descriptionForeground);
+    text-align: center;
+}
+
+.sanyam-quick-menu-empty-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+    opacity: 0.5;
+}
+
+/* Keyboard hint */
+.sanyam-quick-menu-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 8px;
+    font-size: 11px;
+    color: var(--theia-descriptionForeground);
+    background: var(--theia-sideBarSectionHeader-background);
+    border-top: 1px solid var(--theia-widget-border);
+}
+
+.sanyam-quick-menu-hint kbd {
+    display: inline-block;
+    padding: 1px 4px;
+    margin: 0 2px;
+    font-size: 10px;
+    font-family: var(--theia-ui-font-family);
+    background: var(--theia-button-secondaryBackground);
+    border: 1px solid var(--theia-button-secondaryHoverBackground);
+    border-radius: 3px;
+}
+
+/* Scrollbar styling */
+.sanyam-quick-menu-items::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sanyam-quick-menu-items::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sanyam-quick-menu-items::-webkit-scrollbar-thumb {
+    background: var(--theia-scrollbarSlider-background);
+    border-radius: 4px;
+}
+
+.sanyam-quick-menu-items::-webkit-scrollbar-thumb:hover {
+    background: var(--theia-scrollbarSlider-hoverBackground);
+}

@@ -9,12 +9,19 @@
 
 import { injectable, postConstruct, inject } from 'inversify';
 import { createLogger } from '@sanyam/logger';
-import { Widget, BaseWidget, Message } from '@theia/core/lib/browser';
+import { Widget, BaseWidget, Message, ContextMenuRenderer } from '@theia/core/lib/browser';
 import { Emitter, Event, DisposableCollection, Disposable } from '@theia/core/lib/common';
+import { MenuPath } from '@theia/core/lib/common/menu';
 import { PreferenceService, PreferenceChange } from '@theia/core/lib/common/preferences/preference-service';
 import URI from '@theia/core/lib/common/uri';
 import { DIAGRAM_WIDGET_FACTORY_ID_STRING } from '@sanyam/types';
 import type { GModelRoot as GModelRootType, GModelElement as GModelElementType } from '@sanyam/types';
+
+/**
+ * Menu path for diagram element context menu.
+ * Defined here to avoid circular dependency with glsp-menus.ts.
+ */
+const DIAGRAM_ELEMENT_CONTEXT_MENU: MenuPath = ['diagram-element-context-menu'];
 
 // Import diagram language client for server communication
 import { DiagramLanguageClient, DiagramModelUpdate } from './diagram-language-client';
@@ -34,7 +41,7 @@ import { DiagramPreferences, DiagramBackgroundStyle } from './diagram-preference
 import { EdgeRoutingService } from './layout';
 
 // Layout storage
-import { DiagramLayoutStorageService, type ElementLayout, type DiagramLayout } from './layout-storage-service';
+import { DiagramLayoutStorageService, type ElementLayout, type DiagramLayout, type DiagramLayoutV3, type DiagramViewState } from './layout-storage-service';
 
 /**
  * Factory ID for diagram widgets.
@@ -180,8 +187,14 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     /** SVG container element (used by Sprotty) */
     protected svgContainer: HTMLDivElement | undefined;
 
-    /** Tool palette element */
-    protected toolPalette: HTMLDivElement | undefined;
+    /** Embedded diagram toolbar element */
+    protected diagramToolbar: HTMLDivElement | undefined;
+
+    /** Floating mini-toolbar element */
+    protected floatingToolbar: HTMLDivElement | undefined;
+
+    /** Loading progress bar element */
+    protected progressBar: HTMLDivElement | undefined;
 
     /** Flag indicating if Sprotty has been initialized */
     protected sprottyInitialized = false;
@@ -189,8 +202,17 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     /** Flag indicating layout is in progress (used to hide diagram during initial layout) */
     protected layoutPending = false;
 
+    /** Flag to prevent concurrent setModel calls */
+    protected setModelInProgress = false;
+
+    /** Queued model to process after current setModel completes (queue-latest pattern) */
+    protected pendingModel: GModelRootType | undefined;
+
     /** Flag indicating whether the initial layout+fitToScreen has been completed */
     protected initialLayoutDone = false;
+
+    /** Whether to auto-load the model during initializeSprotty(). Embedded widgets set this to false. */
+    protected autoLoadModel = true;
 
     /** Preference service for reading diagram preferences */
     protected preferenceService: PreferenceService | undefined;
@@ -212,6 +234,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
     /** Edge routing service for dynamic edge routing mode */
     protected edgeRoutingService: EdgeRoutingService | undefined;
+
+    /** Context menu renderer for showing Theia context menus */
+    protected contextMenuRenderer: ContextMenuRenderer | undefined;
 
     constructor(
         protected readonly options: DiagramWidget.Options
@@ -247,11 +272,32 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         // Apply initial background style
         this.applyBackgroundPreferences();
 
+        // Apply initial edge jumps preference
+        this.applyEdgeJumpsPreference();
+
+        // Apply initial toolbar visibility preference
+        this.applyToolbarVisibilityPreference();
+
+        // Apply initial floating toolbar visibility preference
+        this.applyFloatingToolbarVisibilityPreference();
+
         // Subscribe to preference changes
         this.toDispose.push(
             preferenceService.onPreferenceChanged((event: PreferenceChange) => {
-                if (event.preferenceName.startsWith('diagram.')) {
+                if (event.preferenceName.startsWith('diagram.background.') ||
+                    event.preferenceName.startsWith('diagram.pattern.') ||
+                    event.preferenceName.startsWith('diagram.grid.') ||
+                    event.preferenceName.startsWith('diagram.dots.')) {
                     this.applyBackgroundPreferences();
+                }
+                if (event.preferenceName === DiagramPreferences.EDGE_JUMPS_ENABLED) {
+                    this.applyEdgeJumpsPreference();
+                }
+                if (event.preferenceName === DiagramPreferences.TOOLBAR_VISIBLE) {
+                    this.applyToolbarVisibilityPreference();
+                }
+                if (event.preferenceName === DiagramPreferences.FLOATING_TOOLBAR_VISIBLE) {
+                    this.applyFloatingToolbarVisibilityPreference();
                 }
             })
         );
@@ -290,6 +336,22 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      */
     setEdgeRoutingService(service: EdgeRoutingService): void {
         this.edgeRoutingService = service;
+    }
+
+    /**
+     * Set context menu renderer for showing Theia context menus on right-click.
+     */
+    setContextMenuRenderer(renderer: ContextMenuRenderer): void {
+        this.contextMenuRenderer = renderer;
+    }
+
+    /**
+     * Set whether the widget should auto-load the model during Sprotty initialization.
+     * Embedded widgets (inside CompositeEditorWidget) set this to false to avoid
+     * premature model loads before the language server is ready.
+     */
+    setAutoLoadModel(enabled: boolean): void {
+        this.autoLoadModel = enabled;
     }
 
     /**
@@ -425,6 +487,43 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
+     * Apply edge jumps preference to the edge routing service.
+     */
+    protected applyEdgeJumpsPreference(): void {
+        if (!this.preferenceService || !this.edgeRoutingService) {
+            return;
+        }
+        const enabled = this.preferenceService.get<boolean>(DiagramPreferences.EDGE_JUMPS_ENABLED, false);
+        this.edgeRoutingService.setEdgeJumpsEnabled(enabled);
+        // Re-render if Sprotty is initialized
+        if (this.sprottyInitialized) {
+            this.sprottyManager?.requestLayout();
+        }
+    }
+
+    /**
+     * Apply toolbar visibility preference.
+     */
+    protected applyToolbarVisibilityPreference(): void {
+        if (!this.diagramToolbar || !this.preferenceService) {
+            return;
+        }
+        const visible = this.preferenceService.get<boolean>(DiagramPreferences.TOOLBAR_VISIBLE, false);
+        this.diagramToolbar.style.display = visible ? '' : 'none';
+    }
+
+    /**
+     * Apply floating toolbar visibility preference.
+     */
+    protected applyFloatingToolbarVisibilityPreference(): void {
+        if (!this.floatingToolbar || !this.preferenceService) {
+            return;
+        }
+        const visible = this.preferenceService.get<boolean>(DiagramPreferences.FLOATING_TOOLBAR_VISIBLE, true);
+        this.floatingToolbar.style.display = visible ? '' : 'none';
+    }
+
+    /**
      * Get default label from URI.
      */
     protected getDefaultLabel(): string {
@@ -446,7 +545,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      */
     protected onAfterShow(msg: Message): void {
         super.onAfterShow(msg);
-        this.refresh();
+        // Diagram retains its rendered state when hidden/re-shown.
+        // Model loading is managed by CompositeEditorWidget.
+        // The Refresh toolbar button still works for explicit refresh.
     }
 
     /**
@@ -458,6 +559,90 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
+     * Create a toolbar button element.
+     */
+    protected createToolbarButton(icon: string, tooltip: string, onClick: () => void): HTMLButtonElement {
+        const btn = document.createElement('button');
+        btn.className = 'sanyam-diagram-toolbar-button';
+        btn.title = tooltip;
+        btn.innerHTML = `<span class="${icon}"></span>`;
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            onClick();
+        });
+        return btn;
+    }
+
+    /**
+     * Create a toolbar separator element.
+     */
+    protected createToolbarSeparator(): HTMLDivElement {
+        const sep = document.createElement('div');
+        sep.className = 'sanyam-diagram-toolbar-separator';
+        return sep;
+    }
+
+    /**
+     * Create the floating mini-toolbar anchored to the bottom-left corner.
+     * Contains zoom, fit, layout, and minimap controls.
+     */
+    protected createFloatingToolbar(): HTMLDivElement {
+        const toolbar = document.createElement('div');
+        toolbar.className = 'sanyam-diagram-floating-toolbar';
+
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-zoom-in', 'Zoom In', () => this.zoomIn()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-zoom-out', 'Zoom Out', () => this.zoomOut()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-screen-full', 'Fit to Screen', () => this.zoomToFit()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-layout', 'Auto-Layout', () => {
+            this.sprottyManager?.requestLayout();
+        }));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-map', 'Toggle Minimap', () => {
+            this.dispatchAction({ kind: 'toggleMinimap' });
+        }));
+
+        return toolbar;
+    }
+
+    /**
+     * Create the embedded diagram toolbar (FR-006).
+     * Toolbar is rendered at the top of the diagram view panel.
+     */
+    protected createEmbeddedToolbar(): HTMLDivElement {
+        const toolbar = document.createElement('div');
+        toolbar.className = 'sanyam-diagram-embedded-toolbar';
+
+        // Zoom group
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-zoom-in', 'Zoom In', () => this.zoomIn()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-zoom-out', 'Zoom Out', () => this.zoomOut()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-screen-full', 'Fit to Screen', () => this.zoomToFit()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-target', 'Center View', () => this.center()));
+
+        toolbar.appendChild(this.createToolbarSeparator());
+
+        // Layout
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-layout', 'Auto-Layout', () => {
+            this.sprottyManager?.requestLayout();
+        }));
+
+        toolbar.appendChild(this.createToolbarSeparator());
+
+        // Toggles
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-map', 'Toggle Minimap', () => {
+            this.dispatchAction({ kind: 'toggleMinimap' });
+        }));
+
+        toolbar.appendChild(this.createToolbarSeparator());
+
+        // Actions
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-refresh', 'Refresh Diagram', () => this.refresh()));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-file-media', 'Export as SVG', () => {
+            this.dispatchAction({ kind: 'requestExportSvg' });
+        }));
+
+        return toolbar;
+    }
+
+    /**
      * Create the diagram container elements.
      */
     protected createDiagramContainer(): void {
@@ -465,16 +650,31 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         const container = document.createElement('div');
         container.className = 'sanyam-diagram-container';
 
-        // Create tool palette
-        this.toolPalette = document.createElement('div');
-        this.toolPalette.className = 'sanyam-diagram-tool-palette';
-        container.appendChild(this.toolPalette);
+        // Create embedded diagram toolbar (FR-006) - hidden by default per preference
+        this.diagramToolbar = this.createEmbeddedToolbar();
+        const toolbarVisible = this.preferenceService?.get<boolean>(DiagramPreferences.TOOLBAR_VISIBLE, false) ?? false;
+        this.diagramToolbar.style.display = toolbarVisible ? '' : 'none';
+        container.appendChild(this.diagramToolbar);
 
         // Create SVG container for Sprotty
+        // T011: Add layout-pending class from the very start to prevent any flash
         this.svgContainer = document.createElement('div');
-        this.svgContainer.className = 'sanyam-diagram-svg-container bg-dots'; // Default to dots pattern
+        this.svgContainer.className = 'sanyam-diagram-svg-container bg-dots layout-pending';
         this.svgContainer.id = `sprotty-${this.id.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        this.layoutPending = true;
+
+        // Create progress bar as first child of SVG container
+        this.progressBar = document.createElement('div');
+        this.progressBar.className = 'sanyam-diagram-progress-bar';
+        this.svgContainer.appendChild(this.progressBar);
+
         container.appendChild(this.svgContainer);
+
+        // Create floating mini-toolbar - visible by default per preference
+        this.floatingToolbar = this.createFloatingToolbar();
+        const floatingVisible = this.preferenceService?.get<boolean>(DiagramPreferences.FLOATING_TOOLBAR_VISIBLE, true) ?? true;
+        this.floatingToolbar.style.display = floatingVisible ? '' : 'none';
+        container.appendChild(this.floatingToolbar);
 
         // Apply background preferences if preference service is available
         if (this.preferenceService) {
@@ -491,6 +691,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
         // T022: Add mousedown listener for marquee selection on Ctrl+click empty space
         this.svgContainer.addEventListener('mousedown', this.handleCanvasMouseDown);
+
+        // Add context menu listener for right-click on diagram
+        this.svgContainer.addEventListener('contextmenu', this.handleContextMenu);
 
         // Show placeholder initially
         this.showPlaceholder();
@@ -520,6 +723,30 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 this.logger.debug('[DiagramWidget] Marquee selection mode enabled via Ctrl+click');
             }
         }
+    };
+
+    /**
+     * Handle right-click context menu on the diagram canvas.
+     * Shows Theia's context menu for diagram elements.
+     */
+    protected handleContextMenu = (event: MouseEvent): void => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!this.contextMenuRenderer || !this.svgContainer) {
+            this.logger.warn('[DiagramWidget] Context menu renderer or container not available');
+            return;
+        }
+
+        // Render the diagram element context menu at the click position
+        this.contextMenuRenderer.render({
+            menuPath: DIAGRAM_ELEMENT_CONTEXT_MENU,
+            anchor: { x: event.clientX, y: event.clientY },
+            args: [this.uri, this.state.selection.selectedIds],
+            context: this.svgContainer,
+        });
+
+        this.logger.debug({ position: { x: event.clientX, y: event.clientY } }, '[DiagramWidget] Context menu shown');
     };
 
     /**
@@ -576,7 +803,6 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 needsMoveAction: true,
                 edgeRoutingService: this.edgeRoutingService,
                 uiExtensions: {
-                    enableToolPalette: true,
                     enableValidation: true,
                     enableEditLabel: true,
                     enableCommandPalette: true,
@@ -636,11 +862,10 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             this.sprottyInitialized = true;
             this.logger.debug(`[DiagramWidget] Sprotty initialized for: ${this.uri}`);
 
-            // Request tool palette from server
-            await this.sprottyManager.requestToolPalette();
-
-            // Load initial model
-            await this.loadModel();
+            // Load initial model (skip for embedded widgets where CompositeEditorWidget manages loading)
+            if (this.autoLoadModel) {
+                await this.loadModel();
+            }
         } catch (error) {
             this.logger.error({ err: error }, 'Failed to initialize Sprotty');
             this.showError('Failed to initialize diagram viewer');
@@ -676,14 +901,25 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             return;
         }
 
-        this.svgContainer.innerHTML = `
-            <div class="sanyam-diagram-placeholder">
-                <div class="sanyam-diagram-loading-spinner"></div>
-                <div class="sanyam-diagram-placeholder-text">
-                    <p>Loading diagram...</p>
-                </div>
-            </div>
-        `;
+        // Show the progress bar
+        if (this.progressBar) {
+            this.progressBar.classList.remove('hidden');
+        }
+
+        // Once Sprotty has rendered into the container, we must not replace
+        // innerHTML — Snabbdom's internal VNode tree references the live DOM
+        // elements.  Destroying them causes subsequent setModel() calls to
+        // patch disconnected elements, leaving the container empty.
+        if (this.sprottyInitialized) {
+            return;
+        }
+
+        // Show a centered placeholder only for the very first load
+        // (before Sprotty is initialized)
+        this.svgContainer.innerHTML = '';
+        if (this.progressBar) {
+            this.svgContainer.appendChild(this.progressBar);
+        }
     }
 
     /**
@@ -692,6 +928,11 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     showError(message: string): void {
         if (!this.svgContainer) {
             return;
+        }
+
+        // Hide progress bar on error
+        if (this.progressBar) {
+            this.progressBar.classList.add('hidden');
         }
 
         this.svgContainer.innerHTML = `
@@ -741,7 +982,31 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 }
             }
 
-            const response = await this.diagramLanguageClient.loadModel(this.uri);
+            // Pass saved UUID registry data to the server so it can seed the
+            // element ID registry before reconciliation, producing stable UUIDs.
+            const savedRegistry = this.savedLayout ? {
+                idMap: (this.savedLayout as DiagramLayoutV3).idMap,
+                fingerprints: (this.savedLayout as DiagramLayoutV3).fingerprints,
+            } : undefined;
+
+            this.logger.info({
+                event: 'uuid:layout-load',
+                uri: this.uri,
+                hasSavedLayout: !!this.savedLayout,
+                savedIdMapSize: Object.keys(savedRegistry?.idMap ?? {}).length,
+                savedFingerprintCount: Object.keys(savedRegistry?.fingerprints ?? {}).length,
+            }, 'UUID registry loaded from browser storage');
+
+            const response = await this.diagramLanguageClient.loadModel(this.uri, savedRegistry);
+
+            // Debug log the full response structure
+            this.logger.debug({
+                success: response.success,
+                hasGModel: !!response.gModel,
+                hasError: response.error !== undefined,
+                errorType: typeof response.error,
+                errorValue: response.error,
+            }, '[DiagramWidget] loadModel response received');
 
             if (response.success && response.gModel) {
                 this.logger.debug(`[DiagramWidget] Response has gModel with ${response.gModel.children?.length ?? 0} children`);
@@ -765,30 +1030,46 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     this.state.fingerprints = response.metadata.fingerprints;
                 }
 
-                // T075a: Override with saved layout positions if available (with performance logging)
+                this.logger.info({
+                    event: 'uuid:rpc-receive',
+                    uri: this.uri,
+                    idMapSize: Object.keys(this.state.idMap ?? {}).length,
+                    fingerprintCount: Object.keys(this.state.fingerprints ?? {}).length,
+                    sourceRangeCount: this.state.sourceRanges?.size ?? 0,
+                }, 'Stored UUID registry and sourceRanges from server response');
+
+                // Apply saved layout positions directly.
+                // Server-side UUID seeding (via savedRegistry above) ensures
+                // element IDs are stable, so saved positions match current IDs.
                 if (this.savedLayout) {
-                    const applyStartTime = performance.now();
                     for (const [id, layout] of Object.entries(this.savedLayout.elements)) {
                         this.state.positions.set(id, layout.position);
                         if (layout.size) {
                             this.state.sizes.set(id, layout.size);
                         }
                     }
-                    const applyDuration = performance.now() - applyStartTime;
-                    const elementCount = Object.keys(this.savedLayout.elements).length;
-                    if (applyDuration > 100) {
-                        this.logger.warn(`[DiagramWidget] Layout apply took ${applyDuration.toFixed(2)}ms for ${elementCount} elements (target: <100ms)`);
-                    } else {
-                        this.logger.debug(`[DiagramWidget] Applied ${elementCount} saved positions in ${applyDuration.toFixed(2)}ms`);
-                    }
+                    this.logger.debug(`[DiagramWidget] Applied ${Object.keys(this.savedLayout.elements).length} saved positions directly`);
                 }
 
                 // Set the model
                 await this.setModel(response.gModel);
                 this.logger.debug(`[DiagramWidget] Model loaded successfully for: ${this.uri}`);
             } else {
-                const errorMsg = response.error || 'Unknown error loading diagram model';
-                this.logger.error(`[DiagramWidget] Failed to load model: ${errorMsg}`);
+                // Convert error to string - handle object errors (e.g., JSON-RPC errors)
+                let errorMsg: string;
+                if (response.error === undefined || response.error === null) {
+                    errorMsg = 'Unknown error loading diagram model';
+                } else if (typeof response.error === 'string') {
+                    errorMsg = response.error;
+                } else if (typeof response.error === 'object') {
+                    // Handle JSON-RPC error format { code, message, data }
+                    const errObj = response.error as { message?: string; code?: number };
+                    errorMsg = errObj.message || JSON.stringify(response.error);
+                } else {
+                    errorMsg = String(response.error);
+                }
+
+                this.logger.error({ errorMsg }, '[DiagramWidget] Failed to load model');
                 this.showError(errorMsg);
             }
         } catch (error) {
@@ -805,6 +1086,22 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      * the diagram during initial rendering (prevents visual repositioning).
      */
     async setModel(gModel: GModelRootType): Promise<void> {
+        // Queue-latest pattern: if another setModel is in progress, store
+        // the most recent model and process it when the current call finishes.
+        if (this.setModelInProgress) {
+            this.pendingModel = gModel;
+            this.logger.debug('[DiagramWidget] setModel queued (in-progress)');
+            return;
+        }
+
+        this.setModelInProgress = true;
+
+        this.logger.info({
+            sprottyInitialized: this.sprottyInitialized,
+            hasSprottyManager: !!this.sprottyManager,
+            childCount: gModel.children?.length ?? 0,
+        }, '[DiagramWidget] setModel called');
+
         this.state.gModel = gModel;
 
         // Clear placeholder content if present
@@ -820,7 +1117,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             try {
                 // T011: Add layout-pending class IMMEDIATELY to hide diagram during rendering
                 // This prevents any visual jarring regardless of saved layout state
-                if (this.svgContainer) {
+                // BUT: Skip if we've already revealed (to avoid race condition with multiple setModel calls)
+                const shouldHide = !this.initialLayoutDone;
+                if (this.svgContainer && shouldHide) {
                     this.layoutPending = true;
                     this.svgContainer.classList.add('layout-pending');
                     this.logger.debug('[DiagramWidget] Layout pending - diagram hidden');
@@ -834,24 +1133,74 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 if (hasSavedLayout) {
                     // Skip auto-layout - we have saved positions
                     this.logger.debug('[DiagramWidget] Skipping auto-layout - using saved positions');
-                    // Fit to screen with the saved positions
-                    await this.sprottyManager.fitToScreen();
                     this.initialLayoutDone = true;
-                    // T015: Reveal diagram after fitToScreen completes
+
+                    // Wait for Sprotty to actually render the SVG content
+                    // setModel() only dispatches the action, it doesn't wait for rendering
+                    await this.waitForSvgContent();
+
+                    // Restore saved viewport and toggle state if available (FR-002, FR-003, FR-004)
+                    const savedViewState = this.savedLayout && 'viewState' in this.savedLayout
+                        ? this.savedLayout.viewState
+                        : undefined;
+                    if (savedViewState?.zoom !== undefined) {
+                        await this.restoreViewState(savedViewState);
+                    } else {
+                        // No saved viewport — fit to screen as fallback
+                        await this.sprottyManager.fitToScreen();
+                    }
+
+                    // Reveal diagram after restore completes
                     this.revealDiagramAfterLayout();
                     // Update minimap
                     this.updateMinimapAfterLayout();
                 } else {
                     // Request automatic layout for fresh diagrams
+                    this.logger.debug('[DiagramWidget] Requesting layout for fresh diagram...');
                     await this.sprottyManager.requestLayout();
                     this.logger.debug('[DiagramWidget] Layout requested');
                     // Note: fitToScreen and revealDiagramAfterLayout are called in onLayoutComplete
+
+                    // Safety timeout: if layout doesn't complete within 5 seconds, reveal anyway
+                    // This prevents the diagram from being permanently hidden if layout fails silently
+                    setTimeout(() => {
+                        if (this.layoutPending) {
+                            this.logger.warn('[DiagramWidget] Layout timeout - revealing diagram anyway');
+                            this.initialLayoutDone = true;
+                            this.sprottyManager?.fitToScreen().then(() => {
+                                this.revealDiagramAfterLayout();
+                                this.updateMinimapAfterLayout();
+                            }).catch(() => {
+                                this.revealDiagramAfterLayout();
+                            });
+                        }
+                    }, 5000);
                 }
             } catch (error) {
                 this.logger.error({ err: error }, 'Failed to set model in Sprotty');
                 // Reveal diagram on error (so user sees error state, not blank)
                 this.revealDiagramAfterLayout();
+                this.setModelInProgress = false;
+                return;
             }
+        } else {
+            this.logger.warn({
+                sprottyInitialized: this.sprottyInitialized,
+                hasSprottyManager: !!this.sprottyManager,
+            }, '[DiagramWidget] setModel called but Sprotty not ready - model stored for later');
+        }
+
+        this.setModelInProgress = false;
+
+        // Process queued model if one arrived while we were busy
+        const queued = this.pendingModel;
+        if (queued) {
+            this.pendingModel = undefined;
+            this.logger.debug('[DiagramWidget] Processing queued model');
+            // Don't await — let it run asynchronously to avoid deep recursion
+            this.setModel(queued).catch(err => {
+                this.logger.error({ err }, 'Failed to process queued model');
+            });
         }
 
         this.onModelChangedEmitter.fire(gModel);
@@ -862,20 +1211,21 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      * Called when the ELK layout engine finishes positioning elements.
      */
     protected onLayoutComplete(success: boolean, error?: string): void {
-        this.logger.debug(`[DiagramWidget] Layout complete: success=${success}, initialLayoutDone=${this.initialLayoutDone}${error ? ', error=' + error : ''}`);
+        this.logger.info(`[DiagramWidget] onLayoutComplete called: success=${success}, initialLayoutDone=${this.initialLayoutDone}, layoutPending=${this.layoutPending}${error ? ', error=' + error : ''}`);
 
         if (success) {
             if (!this.initialLayoutDone) {
                 // First layout: fit to screen BEFORE revealing (while still hidden)
                 this.initialLayoutDone = true;
-                this.sprottyManager?.fitToScreen().then(() => {
+                const applyInitialView = this.sprottyManager?.fitToScreen();
+                (applyInitialView ?? Promise.resolve()).then(() => {
                     // Now reveal the diagram with smooth transition
                     this.revealDiagramAfterLayout();
                     // Update minimap after reveal
                     this.updateMinimapAfterLayout();
                 }).catch(err => {
-                    this.logger.warn({ err }, 'Failed to fit to screen');
-                    // Still reveal even if fit fails
+                    this.logger.warn({ err }, 'Failed to apply initial view');
+                    // Still reveal even if it fails
                     this.revealDiagramAfterLayout();
                 });
             } else {
@@ -898,6 +1248,11 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         }
 
         this.layoutPending = false;
+
+        // Hide the progress bar
+        if (this.progressBar) {
+            this.progressBar.classList.add('hidden');
+        }
 
         // Remove layout-pending (which had visibility: hidden)
         this.svgContainer.classList.remove('layout-pending');
@@ -926,6 +1281,36 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
+     * Wait for SVG to have rendered content from Sprotty.
+     * Sprotty's setModel dispatches actions but doesn't wait for rendering.
+     * This polls until the SVG has at least one graph group (g.sprotty-graph).
+     */
+    protected waitForSvgContent(maxAttempts: number = 50, interval: number = 20): Promise<boolean> {
+        return new Promise((resolve) => {
+            let attempts = 0;
+            const check = () => {
+                attempts++;
+                const svg = this.svgContainer?.querySelector('svg');
+                // Check for sprotty-graph group (the main content group)
+                const graphGroup = svg?.querySelector('g.sprotty-graph');
+                // Also check if there are any child elements rendered
+                const hasContent = graphGroup && graphGroup.children.length > 0;
+
+                if (hasContent) {
+                    resolve(true);
+                } else if (attempts >= maxAttempts) {
+                    this.logger.warn('[DiagramWidget] waitForSvgContent timeout - no content after max attempts');
+                    resolve(false);
+                } else {
+                    requestAnimationFrame(check);
+                }
+            };
+            // Start checking after one animation frame
+            requestAnimationFrame(check);
+        });
+    }
+
+    /**
      * Update minimap after layout completes (with small delay for DOM to settle).
      */
     protected updateMinimapAfterLayout(): void {
@@ -943,8 +1328,91 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
+     * Collect current view state (zoom, toggles) for persistence.
+     */
+    protected collectViewState(): DiagramViewState {
+        const viewState: DiagramViewState = {
+            zoom: this.state.viewport.zoom,
+            scroll: { ...this.state.viewport.scroll },
+        };
+
+        // Collect toggle states from UI extensions
+        const registry = this.sprottyManager?.getUIExtensionRegistry();
+        if (registry) {
+            const snapGridTool = registry.get('sanyam-snap-grid-tool');
+            if (snapGridTool && 'getConfig' in snapGridTool) {
+                viewState.snapToGrid = (snapGridTool as any).getConfig().enabled ?? false;
+            }
+            const minimap = registry.get('sanyam-minimap');
+            if (minimap && 'isVisible' in minimap) {
+                viewState.minimapVisible = (minimap as any).isVisible();
+            }
+        }
+
+        // Collect edge routing state
+        if (this.edgeRoutingService) {
+            viewState.arrowheadsVisible = this.edgeRoutingService.arrowheadsVisible;
+            viewState.edgeJumpsEnabled = this.edgeRoutingService.edgeJumpsEnabled;
+            viewState.edgeRoutingMode = this.edgeRoutingService.currentMode;
+        }
+
+        return viewState;
+    }
+
+    /**
+     * Restore view state (zoom, toggles) from saved layout.
+     */
+    protected async restoreViewState(viewState: DiagramViewState): Promise<void> {
+        // Restore zoom and scroll
+        if (viewState.zoom !== undefined) {
+            const zoom = Math.max(0.1, Math.min(5, viewState.zoom));
+            this.state.viewport.zoom = zoom;
+            const scroll = viewState.scroll ?? { x: 0, y: 0 };
+            this.state.viewport.scroll = scroll;
+            await this.sprottyManager?.setViewport(scroll, zoom, false);
+        }
+
+        // Restore toggle states
+        if (viewState.snapToGrid !== undefined) {
+            const registry = this.sprottyManager?.getUIExtensionRegistry();
+            if (registry) {
+                const snapGridTool = registry.get('sanyam-snap-grid-tool');
+                if (snapGridTool && 'getConfig' in snapGridTool && 'setEnabled' in snapGridTool) {
+                    const currentEnabled = (snapGridTool as any).getConfig().enabled ?? false;
+                    if (currentEnabled !== viewState.snapToGrid) {
+                        (snapGridTool as any).setEnabled(viewState.snapToGrid);
+                    }
+                }
+            }
+        }
+
+        if (viewState.minimapVisible !== undefined) {
+            const registry = this.sprottyManager?.getUIExtensionRegistry();
+            if (registry) {
+                const minimap = registry.get('sanyam-minimap');
+                if (minimap && 'setVisible' in minimap) {
+                    (minimap as any).setVisible(viewState.minimapVisible);
+                }
+            }
+        }
+
+        // Restore edge routing state
+        if (this.edgeRoutingService) {
+            if (viewState.arrowheadsVisible !== undefined) {
+                this.edgeRoutingService.setArrowheadsVisible(viewState.arrowheadsVisible);
+            }
+            if (viewState.edgeJumpsEnabled !== undefined) {
+                this.edgeRoutingService.setEdgeJumpsEnabled(viewState.edgeJumpsEnabled);
+            }
+            if (viewState.edgeRoutingMode !== undefined) {
+                this.edgeRoutingService.setMode(viewState.edgeRoutingMode as any);
+            }
+        }
+    }
+
+    /**
      * Save layout to storage (debounced).
-     * Collects all element positions and sizes and saves them.
+     * Collects all element positions, sizes, and view state.
      */
     protected saveLayoutDebounced(): void {
         if (!this.layoutStorageService) {
@@ -961,9 +1429,19 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             };
         }
 
-        // Use debounced save, including UUID registry data
+        const viewState = this.collectViewState();
+
+        this.logger.info({
+            event: 'uuid:layout-save',
+            uri: this.uri,
+            idMapSize: Object.keys(this.state.idMap ?? {}).length,
+            fingerprintCount: Object.keys(this.state.fingerprints ?? {}).length,
+            elementCount: Object.keys(elements).length,
+        }, 'UUID registry saved to browser storage');
+
+        // Use debounced save, including UUID registry data and view state
         this.layoutStorageService.saveLayoutDebounced(
-            this.uri, elements, this.state.idMap, this.state.fingerprints
+            this.uri, elements, this.state.idMap, this.state.fingerprints, viewState
         );
     }
 
@@ -985,8 +1463,10 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             };
         }
 
+        const viewState = this.collectViewState();
+
         await this.layoutStorageService.saveLayout(
-            this.uri, elements, this.state.idMap, this.state.fingerprints
+            this.uri, elements, this.state.idMap, this.state.fingerprints, viewState
         );
     }
 
@@ -1025,16 +1505,20 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     protected addPositionsToModel(element: GModelElementType): any {
         const result: any = { ...element };
 
-        // Add position if available
+        // Add position if available and valid (guards against NaN/Infinity)
         const position = this.state.positions.get(element.id);
-        if (position) {
+        if (position && Number.isFinite(position.x) && Number.isFinite(position.y)) {
             result.position = position;
+        } else if (position) {
+            this.logger.warn({ elementId: element.id, position }, 'Skipping invalid position (non-finite values)');
         }
 
-        // Add size if available
+        // Add size if available and valid
         const size = this.state.sizes.get(element.id);
-        if (size) {
+        if (size && Number.isFinite(size.width) && Number.isFinite(size.height)) {
             result.size = size;
+        } else if (size) {
+            this.logger.warn({ elementId: element.id, size }, 'Skipping invalid size (non-finite values)');
         }
 
         // Process children recursively
@@ -1043,6 +1527,18 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         }
 
         return result;
+    }
+
+    /**
+     * Collect all element IDs from a GModel tree.
+     */
+    protected collectElementIds(element: GModelElementType, ids: Set<string>): void {
+        ids.add(element.id);
+        if (element.children) {
+            for (const child of element.children) {
+                this.collectElementIds(child, ids);
+            }
+        }
     }
 
     /**
@@ -1058,6 +1554,27 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      */
     getSourceRanges(): ReadonlyMap<string, { start: { line: number; character: number }; end: { line: number; character: number } }> | undefined {
         return this.state.sourceRanges;
+    }
+
+    /**
+     * Get the SVG container element for external integrations (e.g., drop handling).
+     *
+     * Snabbdom's virtual DOM patching may replace the original DOM element with a
+     * new one (same ID, different reference) during the first render cycle.  To
+     * ensure callers always receive the **live** element that is actually in the
+     * DOM, we look it up by ID rather than returning the potentially stale private
+     * field directly.
+     */
+    getSvgContainer(): HTMLElement | undefined {
+        if (this.svgContainer) {
+            const live = document.getElementById(this.svgContainer.id);
+            if (live && live !== this.svgContainer) {
+                // Snabbdom replaced the element — update our reference.
+                this.svgContainer = live as HTMLDivElement;
+            }
+            return this.svgContainer;
+        }
+        return undefined;
     }
 
     /**
@@ -1113,27 +1630,37 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
-     * Update positions from metadata.
+     * Update positions in state (without triggering a re-render).
+     * Callers should follow with setModel() to render the updated positions.
      */
     updatePositions(positions: Map<string, Point>): void {
         this.state.positions = new Map(positions);
-
-        // Re-render with new positions
-        if (this.state.gModel) {
-            this.updateModel(this.state.gModel);
-        }
     }
 
     /**
-     * Update sizes from metadata.
+     * Update sizes in state (without triggering a re-render).
+     * Callers should follow with setModel() to render the updated sizes.
      */
     updateSizes(sizes: Map<string, Dimension>): void {
         this.state.sizes = new Map(sizes);
+    }
 
-        // Re-render with new sizes
-        if (this.state.gModel) {
-            this.updateModel(this.state.gModel);
-        }
+    /**
+     * Update source ranges in state (for outline↔diagram mapping).
+     * Maps element IDs to their source code ranges (LSP line/character positions).
+     */
+    updateSourceRanges(sourceRanges: Map<string, { start: { line: number; character: number }; end: { line: number; character: number } }>): void {
+        this.state.sourceRanges = new Map(sourceRanges);
+    }
+
+    /**
+     * Update UUID registry data (idMap and fingerprints) for layout persistence.
+     * Called by CompositeEditorWidget after loadModel to ensure layout saves
+     * include the registry data needed for UUID stability across restarts.
+     */
+    updateIdRegistry(idMap: Record<string, string>, fingerprints: Record<string, unknown>): void {
+        this.state.idMap = idMap;
+        this.state.fingerprints = fingerprints;
     }
 
     /**
@@ -1154,26 +1681,20 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
     /**
      * Zoom in by a factor.
+     * Delegates to ViewportActionHandler which reads the live viewport from the DOM.
      */
     async zoomIn(factor: number = 1.2): Promise<void> {
-        if (this.sprottyManager) {
-            const currentZoom = this.state.viewport.zoom;
-            const newZoom = Math.min(currentZoom * factor, 5); // Max zoom 5x
-            this.state.viewport.zoom = newZoom;
-            await this.sprottyManager.setViewport(this.state.viewport.scroll, newZoom, true);
-        }
+        await this.dispatchAction({ kind: 'zoomIn', factor } as Action);
+        this.saveLayoutDebounced();
     }
 
     /**
      * Zoom out by a factor.
+     * Delegates to ViewportActionHandler which reads the live viewport from the DOM.
      */
     async zoomOut(factor: number = 1.2): Promise<void> {
-        if (this.sprottyManager) {
-            const currentZoom = this.state.viewport.zoom;
-            const newZoom = Math.max(currentZoom / factor, 0.1); // Min zoom 0.1x
-            this.state.viewport.zoom = newZoom;
-            await this.sprottyManager.setViewport(this.state.viewport.scroll, newZoom, true);
-        }
+        await this.dispatchAction({ kind: 'zoomOut', factor } as Action);
+        this.saveLayoutDebounced();
     }
 
     /**
@@ -1246,9 +1767,10 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             this.logger.warn({ err: error }, 'Failed to save layout on dispose');
         });
 
-        // Remove marquee mousedown listener
+        // Remove event listeners
         if (this.svgContainer) {
             this.svgContainer.removeEventListener('mousedown', this.handleCanvasMouseDown);
+            this.svgContainer.removeEventListener('contextmenu', this.handleContextMenu);
         }
 
         if (this.sprottyManager) {
@@ -1278,6 +1800,9 @@ export class DiagramWidgetFactory {
     @inject(EdgeRoutingService)
     protected readonly edgeRoutingService: EdgeRoutingService;
 
+    @inject(ContextMenuRenderer)
+    protected readonly contextMenuRenderer: ContextMenuRenderer;
+
     /**
      * Create a diagram widget.
      */
@@ -1287,6 +1812,7 @@ export class DiagramWidgetFactory {
         widget.setDiagramLanguageClient(this.diagramLanguageClient);
         widget.setLayoutStorageService(this.layoutStorageService);
         widget.setEdgeRoutingService(this.edgeRoutingService);
+        widget.setContextMenuRenderer(this.contextMenuRenderer);
         return widget;
     }
 }

@@ -20,7 +20,6 @@ import { TabBarToolbarContribution, TabBarToolbarRegistry } from '@theia/core/li
 import { Widget } from '@theia/core/lib/browser';
 import { CommandRegistry } from '@theia/core/lib/common';
 import { DiagramWidget } from './diagram-widget';
-import { CompositeEditorWidget } from './composite-editor-widget';
 import { DiagramCommands } from './glsp-commands';
 
 /**
@@ -119,16 +118,6 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
             isVisible,
         });
 
-        // Toggle Snap to Grid
-        registry.registerItem({
-            id: 'sanyam.diagram.toolbar.snapToGrid',
-            command: DiagramCommands.TOGGLE_SNAP_TO_GRID.id,
-            tooltip: 'Toggle Snap to Grid',
-            icon: 'codicon codicon-layout-sidebar-right',
-            priority: 115,
-            isVisible,
-        });
-
         // Edge Routing: Orthogonal
         registry.registerItem({
             id: 'sanyam.diagram.toolbar.edgeRouteOrthogonal',
@@ -144,7 +133,7 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
             id: 'sanyam.diagram.toolbar.edgeRouteStraight',
             command: DiagramCommands.EDGE_ROUTING_STRAIGHT.id,
             tooltip: 'Straight Edge Routing',
-            icon: 'codicon codicon-arrow-right',
+            icon: 'codicon codicon-type-hierarchy-sub',
             priority: 117,
             isVisible,
         });
@@ -154,43 +143,25 @@ export class GlspDiagramToolbarContribution implements TabBarToolbarContribution
             id: 'sanyam.diagram.toolbar.edgeRouteBezier',
             command: DiagramCommands.EDGE_ROUTING_BEZIER.id,
             tooltip: 'Bezier Edge Routing',
-            icon: 'codicon codicon-debug-disconnect',
+            icon: 'codicon codicon-git-compare',
             priority: 118,
             isVisible,
         });
 
-        // Toggle Arrowheads
-        registry.registerItem({
-            id: 'sanyam.diagram.toolbar.toggleArrowheads',
-            command: DiagramCommands.TOGGLE_ARROWHEADS.id,
-            tooltip: 'Toggle Arrowheads',
-            icon: 'codicon codicon-triangle-right',
-            priority: 119,
-            isVisible,
-        });
-
-        // Toggle Edge Jumps (line bridges)
-        registry.registerItem({
-            id: 'sanyam.diagram.toolbar.toggleEdgeJumps',
-            command: DiagramCommands.TOGGLE_EDGE_JUMPS.id,
-            tooltip: 'Toggle Edge Jumps',
-            icon: 'codicon codicon-git-compare',
-            priority: 120,
-            isVisible,
-        });
     }
 
     /**
-     * Check if the widget is a diagram widget or a composite editor showing diagram view.
+     * Check if the widget is a standalone diagram widget (not embedded in composite editor).
+     * FR-007: Toolbar items are removed from the composite editor's tab bar area
+     * since the diagram now has its own embedded toolbar.
      */
     protected isDiagramWidgetOrComposite(widget: Widget | undefined): boolean {
         if (widget instanceof DiagramWidget) {
+            // Only show tab bar toolbar for standalone diagram widgets
             return true;
         }
-        if (widget instanceof CompositeEditorWidget) {
-            // Show toolbar when composite editor is showing diagram view
-            return widget.activeView === 'diagram';
-        }
+        // FR-007: Do NOT show tab bar toolbar for composite editors —
+        // the embedded toolbar within the diagram view handles these controls.
         return false;
     }
 }

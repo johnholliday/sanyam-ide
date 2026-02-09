@@ -39,3 +39,8 @@ packages/grammar-definitions/*/*.d.ts.map
 
 # Auto-generated grammar configuration files
 applications/*/src/language-server/grammars.ts
+
+# Playwright
+/playwright-report/
+/test-results/
+/blob-report/

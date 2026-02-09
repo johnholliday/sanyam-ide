@@ -22,6 +22,8 @@ Actor FinanceApprover "Finance Approver" "Approves financial terms"
 Actor ExecutiveSigner "Executive Signer" "Final signature authority"
 Actor CanReview "Can Review Role" "Role that can review contracts"
 
+Activity NewActivity "New Activity" "Description of the new Activity"
+
 // =============================================================================
 // COMPLIANCE - Security and retention configuration
 // =============================================================================
@@ -92,3 +94,4 @@ Workflow ContractApproval "Contract Approval" "Main approval workflow" {
     Repeat [LegalReview, FinanceReview] Until status = approved
     Do FinalApproval If this.status = approved
 }
+

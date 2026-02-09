@@ -689,7 +689,7 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
      * T012: Implements AST-to-GModel conversion using the GLSP server.
      * T019: Includes debug logging for model load operations.
      */
-    async loadModel(uri: string): Promise<LoadModelResponse> {
+    async loadModel(uri: string, savedIdMap?: Record<string, string>, savedFingerprints?: Record<string, unknown>): Promise<LoadModelResponse> {
         return this.ensureInitialized(async () => {
             this.log(`[SanyamGlspBackendService] loadModel called for: ${uri}`);
             const startTime = Date.now();
@@ -730,7 +730,10 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
 
                 // Load model using GLSP server
                 this.log(`[SanyamGlspBackendService] Calling glspServer.loadModel...`);
-                const context = await this.glspServer.loadModel(document, CancellationToken.None);
+                const context = await this.glspServer.loadModel(document, CancellationToken.None, {
+                    savedIdMap,
+                    savedFingerprints,
+                });
                 this.log(`[SanyamGlspBackendService] glspServer.loadModel returned`);
                 this.log(`  - context.root type: ${context.root?.$type ?? 'none'}`);
                 this.log(`  - context.gModel exists: ${!!context.gModel}`);
@@ -746,6 +749,10 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
                 this.log(`  - Children count: ${childCount}`);
                 this.log(`[SanyamGlspBackendService] GModel child count: ${context.gModel?.children?.length ?? 0}`);
 
+                // Export id registry data for client consumption
+                const idRegistryData = (context as any).idRegistryData as
+                    { idMap: Record<string, string>; fingerprints: Record<string, unknown> } | undefined;
+
                 return {
                     success: true,
                     gModel: context.gModel,
@@ -759,6 +766,11 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
                         routingPoints: context.metadata?.routingPoints
                             ? Object.fromEntries(context.metadata.routingPoints)
                             : undefined,
+                        sourceRanges: context.metadata?.sourceRanges
+                            ? Object.fromEntries(context.metadata.sourceRanges)
+                            : {},
+                        idMap: idRegistryData?.idMap,
+                        fingerprints: idRegistryData?.fingerprints,
                     },
                 };
             } catch (error) {
@@ -850,7 +862,7 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
                 return {
                     success: opResult?.success ?? true,
                     error: opResult?.error,
-                    edits: opResult?.edits,
+                    edits: opResult?.textEdits,
                     updatedModel: context.gModel,
                 };
             } catch (error) {
@@ -1178,12 +1190,17 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
 
                 const context = this.glspServer.createContext(result.document, CancellationToken.None);
 
-                // TODO: Phase 6 (US4) - Implement actual property extraction
-                // For now, return stub response
+                this.log(`[SanyamGlspBackendService] getProperties context: root=$type=${context.root?.$type}, hasIdRegistry=${!!(context as any).idRegistry}, elementIds=${JSON.stringify(elementIds)}`);
+
                 if (this.glspServer.getProperties) {
-                    const propsResult = this.glspServer.getProperties(context, elementIds);
+                    const propsResult = this.glspServer.getProperties(context, elementIds, result.contribution);
+
+                    this.log(`[SanyamGlspBackendService] getProperties result: typeLabel=${propsResult.typeLabel}, propertyCount=${propsResult.properties?.length}, error=${propsResult.error ?? 'none'}`);
+
+                    // Propagate error from property extraction as failure
+                    const success = !propsResult.error;
                     return {
-                        success: true,
+                        success,
                         ...propsResult,
                     };
                 }
@@ -1280,6 +1297,85 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
                     success: false,
                     error: error instanceof Error ? error.message : String(error),
                 };
+            }
+        });
+    }
+
+    // =========================================================================
+    // Workspace Command Execution
+    // =========================================================================
+
+    /**
+     * Execute a workspace command.
+     *
+     * Routes `sanyam.operation.{languageId}.{operationId}` commands to
+     * the appropriate operation handler registered in the grammar contribution.
+     *
+     * @param command - Full command name (e.g., 'sanyam.operation.ecml.generate-powershell')
+     * @param args - Command arguments array
+     * @returns Command execution result
+     */
+    async executeCommand(command: string, args: unknown[]): Promise<unknown> {
+        return this.ensureInitialized(async () => {
+            this.log(`[SanyamGlspBackendService] executeCommand: ${command}`);
+
+            // Parse command: sanyam.operation.{languageId}.{operationId}
+            const match = command.match(/^sanyam\.operation\.([^.]+)\.(.+)$/);
+            if (!match) {
+                return { success: false, error: `Unknown command: ${command}` };
+            }
+
+            const [, languageId, operationId] = match;
+            const contribution = this.contributions.get(languageId);
+
+            if (!contribution) {
+                return { success: false, error: `Unknown language: ${languageId}` };
+            }
+
+            const handler = contribution.operationHandlers?.[operationId];
+            if (!handler) {
+                return { success: false, error: `Unknown operation: ${operationId}` };
+            }
+
+            // Parse arguments
+            const cmdArgs = (args[0] ?? {}) as {
+                uri?: string;
+                selectedIds?: string[];
+                input?: Record<string, unknown>;
+            };
+
+            if (!cmdArgs.uri) {
+                return { success: false, error: 'Missing uri argument' };
+            }
+
+            // Get Langium document
+            const langium = await this.dynamicImport('langium') as { URI: { parse: (uri: string) => unknown } };
+            const docUri = langium.URI.parse(cmdArgs.uri);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const document = (this.sharedServices as any)?.workspace?.LangiumDocuments?.getDocument(docUri);
+
+            if (!document) {
+                return { success: false, error: `Document not found: ${cmdArgs.uri}` };
+            }
+
+            // Build operation context
+            const context: import('@sanyam/types').OperationContext = {
+                document,
+                selectedIds: cmdArgs.selectedIds,
+                input: cmdArgs.input,
+                correlationId: `cmd-${Date.now()}`,
+                languageId,
+                documentUri: cmdArgs.uri,
+            };
+
+            // Execute handler
+            try {
+                const result = await handler(context);
+                return { success: true, result };
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                this.logError(`[SanyamGlspBackendService] executeCommand error:`, error);
+                return { success: false, error: message };
             }
         });
     }

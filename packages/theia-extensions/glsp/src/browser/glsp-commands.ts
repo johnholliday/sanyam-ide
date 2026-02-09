@@ -6,9 +6,10 @@
  * @packageDocumentation
  */
 
-import { injectable, inject } from 'inversify';
+import { injectable, inject, postConstruct } from 'inversify';
 import { Command, CommandContribution, CommandRegistry } from '@theia/core/lib/common';
 import { ApplicationShell } from '@theia/core/lib/browser';
+import { ContextKeyService, ContextKey } from '@theia/core/lib/browser/context-key-service';
 import URI from '@theia/core/lib/common/uri';
 import { SelectAllAction } from 'sprotty-protocol';
 import { createLogger } from '@sanyam/logger';
@@ -23,7 +24,8 @@ import {
   ZoomOutAction,
   FitDiagramAction,
   CenterDiagramAction,
-} from './ui-extensions/tool-palette';
+} from './ui-extensions/viewport';
+import { SnapGridServiceSymbol, type SnapGridService } from './ui-extensions/snap-to-grid';
 
 /**
  * Command IDs for diagram operations.
@@ -179,17 +181,18 @@ export namespace DiagramCommands {
     category: 'Diagram',
   };
 
-  export const TOGGLE_EDGE_JUMPS: Command = {
-    id: 'sanyam.diagram.toggleEdgeJumps',
-    label: 'Toggle Edge Jumps',
+  export const EXPORT_JSON: Command = {
+    id: 'sanyam.diagram.exportJson',
+    label: 'Export as JSON',
     category: 'Diagram',
   };
 
-  export const TOGGLE_ARROWHEADS: Command = {
-    id: 'sanyam.diagram.toggleArrowheads',
-    label: 'Toggle Arrowheads',
+  export const EXPORT_MARKDOWN: Command = {
+    id: 'sanyam.diagram.exportMarkdown',
+    label: 'Export as Markdown',
     category: 'Diagram',
   };
+
 }
 
 /**
@@ -208,6 +211,15 @@ export class GlspDiagramCommands implements CommandContribution {
   @inject(EdgeRoutingService)
   protected readonly edgeRoutingService: EdgeRoutingService;
 
+  @inject(SnapGridServiceSymbol)
+  protected readonly snapGridService: SnapGridService;
+
+  @inject(ContextKeyService)
+  protected readonly contextKeyService: ContextKeyService;
+
+  /** Context key for snap-to-grid state - triggers toolbar refresh when changed */
+  protected snapToGridContextKey: ContextKey<boolean> | undefined;
+
   /**
    * Cache of the last known diagram widget.
    * Used as fallback when shell.activeWidget is undefined (e.g., during toolbar clicks).
@@ -219,6 +231,12 @@ export class GlspDiagramCommands implements CommandContribution {
    * Used as fallback when shell.activeWidget is undefined.
    */
   protected lastKnownCompositeWidget: CompositeEditorWidget | undefined;
+
+  @postConstruct()
+  protected init(): void {
+    // Create context key for snap-to-grid state
+    this.snapToGridContextKey = this.contextKeyService.createKey<boolean>('sanyam.diagram.snapToGridEnabled', false);
+  }
 
   /**
    * Register commands.
@@ -291,6 +309,16 @@ export class GlspDiagramCommands implements CommandContribution {
       isEnabled: () => this.hasDiagramFocus(),
     });
 
+    registry.registerCommand(DiagramCommands.EXPORT_JSON, {
+      execute: (...args: unknown[]) => this.exportJson(this.extractWidgetFromArgs(args)),
+      isEnabled: () => this.hasDiagramFocus(),
+    });
+
+    registry.registerCommand(DiagramCommands.EXPORT_MARKDOWN, {
+      execute: (...args: unknown[]) => this.exportMarkdown(this.extractWidgetFromArgs(args)),
+      isEnabled: () => this.hasDiagramFocus(),
+    });
+
     // View commands - accept widget argument from toolbar
     registry.registerCommand(DiagramCommands.CENTER_VIEW, {
       execute: (...args: unknown[]) => this.centerView(this.extractWidgetFromArgs(args)),
@@ -329,40 +357,6 @@ export class GlspDiagramCommands implements CommandContribution {
     this.registerEdgeRoutingCommand(registry, DiagramCommands.EDGE_ROUTING_STRAIGHT, 'straight');
     this.registerEdgeRoutingCommand(registry, DiagramCommands.EDGE_ROUTING_BEZIER, 'bezier');
 
-    // Toggle arrowheads visibility
-    registry.registerCommand(DiagramCommands.TOGGLE_ARROWHEADS, {
-      execute: (...args: unknown[]) => {
-        const visible = !this.edgeRoutingService.arrowheadsVisible;
-        this.edgeRoutingService.setArrowheadsVisible(visible);
-        // Trigger re-render so the edge view adds/removes arrowhead polygons
-        const diagram = this.getActiveDiagram(this.extractWidgetFromArgs(args));
-        if (diagram) {
-          diagram.dispatchAction(RequestLayoutAction.create()).catch(err => {
-            this.logger.error({ err }, 'Toggle arrowheads re-render failed');
-          });
-        }
-      },
-      isEnabled: () => this.hasDiagramFocus(),
-      isToggled: () => !this.edgeRoutingService.arrowheadsVisible,
-    });
-
-    // Toggle edge jumps (line bridges)
-    registry.registerCommand(DiagramCommands.TOGGLE_EDGE_JUMPS, {
-      execute: (...args: unknown[]) => {
-        const enabled = !this.edgeRoutingService.edgeJumpsEnabled;
-        this.edgeRoutingService.setEdgeJumpsEnabled(enabled);
-        // Trigger re-render by requesting layout
-        const diagram = this.getActiveDiagram(this.extractWidgetFromArgs(args));
-        if (diagram) {
-          const action = RequestLayoutAction.create();
-          diagram.dispatchAction(action).catch(err => {
-            this.logger.error({ err }, 'Toggle edge jumps layout failed');
-          });
-        }
-      },
-      isEnabled: () => this.hasDiagramFocus(),
-      isToggled: () => this.edgeRoutingService.edgeJumpsEnabled,
-    });
   }
 
   /**
@@ -386,11 +380,13 @@ export class GlspDiagramCommands implements CommandContribution {
   }
 
   /**
-   * Check if snap-to-grid is enabled in the active diagram.
+   * Check if snap-to-grid is enabled.
+   * Reads directly from global window state to ensure consistency across all webpack chunks.
    */
   protected isSnapToGridEnabled(): boolean {
-    const diagram = this.getActiveDiagram();
-    return diagram?.isSnapToGridEnabled() ?? false;
+    // Read directly from global state to bypass any instance issues
+    const globalConfig = (window as any)['__sanyam_snap_grid_config__'];
+    return globalConfig?.enabled ?? false;
   }
 
   /**
@@ -507,6 +503,20 @@ export class GlspDiagramCommands implements CommandContribution {
     }
     if (isComposite) {
       this.lastKnownCompositeWidget = widget as CompositeEditorWidget;
+    }
+
+    // If active widget is not a diagram (e.g., sidebar palette), fall back to cached widgets
+    if (!result) {
+      if (this.lastKnownDiagramWidget && !this.lastKnownDiagramWidget.isDisposed) {
+        this.logger.debug('[GlspDiagramCommands] hasDiagramFocus: true (fallback to cached DiagramWidget)');
+        return true;
+      }
+      if (this.lastKnownCompositeWidget && !this.lastKnownCompositeWidget.isDisposed) {
+        if (this.lastKnownCompositeWidget.activeView === 'diagram') {
+          this.logger.debug('[GlspDiagramCommands] hasDiagramFocus: true (fallback to cached CompositeEditorWidget)');
+          return true;
+        }
+      }
     }
 
     this.logger.debug({ result, activeWidget: widget?.constructor.name }, 'hasDiagramFocus');
@@ -739,6 +749,135 @@ export class GlspDiagramCommands implements CommandContribution {
     this.logger.debug('[GlspDiagramCommands] Export PNG - not yet implemented');
   }
 
+  protected exportJson(widgetHint?: unknown): void {
+    this.logger.debug('[GlspDiagramCommands] exportJson called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (!diagram) {
+      this.logger.debug('[GlspDiagramCommands] No diagram for exportJson');
+      return;
+    }
+    const gModel = diagram.getModel();
+    if (!gModel) {
+      this.logger.warn('[GlspDiagramCommands] No model available for JSON export');
+      return;
+    }
+    const jsonStr = JSON.stringify(gModel, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `diagram-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.logger.debug('[GlspDiagramCommands] JSON exported');
+  }
+
+  protected exportMarkdown(widgetHint?: unknown): void {
+    this.logger.debug('[GlspDiagramCommands] exportMarkdown called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (!diagram) {
+      this.logger.debug('[GlspDiagramCommands] No diagram for exportMarkdown');
+      return;
+    }
+    const gModel = diagram.getModel();
+    if (!gModel) {
+      this.logger.warn('[GlspDiagramCommands] No model available for Markdown export');
+      return;
+    }
+    const md = this.generateMarkdownSummary(gModel);
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `diagram-${Date.now()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.logger.debug('[GlspDiagramCommands] Markdown exported');
+  }
+
+  /**
+   * Generate a Markdown summary of the diagram model.
+   */
+  protected generateMarkdownSummary(gModel: unknown): string {
+    const root = gModel as { id?: string; type?: string; children?: unknown[] };
+    const nodes: { id: string; type: string; label?: string }[] = [];
+    const edges: { id: string; type: string; source?: string; target?: string; label?: string }[] = [];
+
+    const collectElements = (element: unknown): void => {
+      const el = element as { id?: string; type?: string; children?: unknown[]; sourceId?: string; targetId?: string; text?: string };
+      if (!el || !el.type) return;
+
+      if (el.type.includes('edge') || el.type.includes('Edge')) {
+        edges.push({
+          id: el.id ?? '',
+          type: el.type,
+          source: el.sourceId,
+          target: el.targetId,
+          label: el.text,
+        });
+      } else if (el.type.includes('node') || el.type.includes('Node')) {
+        const label = el.text ?? this.findLabelInChildren(el.children);
+        nodes.push({ id: el.id ?? '', type: el.type, label });
+      }
+
+      if (el.children) {
+        for (const child of el.children) {
+          collectElements(child);
+        }
+      }
+    };
+
+    if (root.children) {
+      for (const child of root.children) {
+        collectElements(child);
+      }
+    }
+
+    const lines: string[] = [
+      '# Diagram Summary',
+      '',
+      `**Root**: ${root.type ?? 'unknown'} (${root.id ?? 'no-id'})`,
+      '',
+    ];
+
+    if (nodes.length > 0) {
+      lines.push('## Nodes', '', '| ID | Type | Label |', '|---|------|-------|');
+      for (const n of nodes) {
+        lines.push(`| ${n.id} | ${n.type} | ${n.label ?? ''} |`);
+      }
+      lines.push('');
+    }
+
+    if (edges.length > 0) {
+      lines.push('## Edges', '', '| ID | Type | Source | Target | Label |', '|---|------|--------|--------|-------|');
+      for (const e of edges) {
+        lines.push(`| ${e.id} | ${e.type} | ${e.source ?? ''} | ${e.target ?? ''} | ${e.label ?? ''} |`);
+      }
+      lines.push('');
+    }
+
+    lines.push(`*Exported at ${new Date().toISOString()}*`);
+    return lines.join('\n');
+  }
+
+  /**
+   * Find a label text in child elements.
+   */
+  protected findLabelInChildren(children?: unknown[]): string | undefined {
+    if (!children) return undefined;
+    for (const child of children) {
+      const el = child as { type?: string; text?: string; children?: unknown[] };
+      if (el.type?.includes('label') || el.type?.includes('Label')) {
+        return el.text;
+      }
+      if (el.children) {
+        const found = this.findLabelInChildren(el.children);
+        if (found) return found;
+      }
+    }
+    return undefined;
+  }
+
   protected centerView(widgetHint?: unknown): void {
     this.logger.debug('[GlspDiagramCommands] centerView called');
     const diagram = this.getActiveDiagram(widgetHint);
@@ -794,16 +933,11 @@ export class GlspDiagramCommands implements CommandContribution {
     }
   }
 
-  protected toggleSnapToGrid(widgetHint?: unknown): void {
-    this.logger.debug('[GlspDiagramCommands] toggleSnapToGrid called');
-    const diagram = this.getActiveDiagram(widgetHint);
-    if (diagram) {
-      this.logger.debug('[GlspDiagramCommands] Dispatching toggleSnapToGrid action');
-      diagram.dispatchAction({ kind: 'toggleSnapToGrid' }).catch(err => {
-        this.logger.error({ err }, 'toggleSnapToGrid failed');
-      });
-    } else {
-      this.logger.debug('[GlspDiagramCommands] No diagram for toggleSnapToGrid');
-    }
+  protected toggleSnapToGrid(_widgetHint?: unknown): void {
+    // Toggle the snap-to-grid state directly via the service
+    const newState = this.snapGridService.toggle();
+
+    // Update context key to trigger toolbar refresh
+    this.snapToGridContextKey?.set(newState);
   }
 }

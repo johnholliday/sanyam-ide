@@ -7,7 +7,221 @@
  * @packageDocumentation
  */
 
-import type { GrammarManifest } from '@sanyam/types';
+import type { GrammarManifest, GrammarOperation } from '@sanyam/types';
+
+/**
+ * ECML Operations
+ *
+ * Custom API operations exposed via LSP and REST gateway.
+ */
+const operations: GrammarOperation[] = [
+  {
+    id: 'generate-powershell',
+    displayName: 'Generate PowerShell Script',
+    description: 'Generate a PnP PowerShell script for deploying this content model to SharePoint/Microsoft 365',
+    targetTypes: ['Model', 'Content', 'SecurityGroup', 'Workflow'],
+    icon: 'terminal-powershell',
+    category: 'Generate',
+    contexts: {
+      fileExplorer: true,
+      diagramElement: true,
+      compositeToolbar: true,
+    },
+    endpoint: {
+      method: 'POST',
+      path: '/generate/powershell',
+    },
+    input: { type: 'selection' },
+    licensing: { requiresAuth: false, tier: 'free', group: 'generators' },
+    execution: { async: false, durationHint: 'fast' },
+  },
+  {
+    id: 'export-markdown',
+    displayName: 'Export as Markdown',
+    description: 'Export the content model documentation as Markdown',
+    targetTypes: ['Model'],
+    icon: 'markdown',
+    category: 'Export',
+    contexts: {
+      fileExplorer: true,
+      compositeToolbar: true,
+    },
+    endpoint: {
+      method: 'POST',
+      path: '/export/markdown',
+    },
+    input: { type: 'none' },
+    licensing: { requiresAuth: false, tier: 'free', group: 'export' },
+    execution: { async: false, durationHint: 'fast' },
+  },
+  {
+    id: 'ai-analyze-compliance',
+    displayName: 'AI Compliance Analysis',
+    description: 'AI-powered analysis to identify potential regulatory compliance issues in the content model',
+    targetTypes: ['Model', 'RetentionLabel', 'SensitivityLabel', 'SecurityGroup'],
+    icon: 'shield',
+    category: 'Analyze',
+    contexts: {
+      fileExplorer: true,
+      compositeToolbar: true,
+    },
+    endpoint: {
+      method: 'POST',
+      path: '/analyze/compliance',
+    },
+    input: {
+      type: 'dialog',
+      dialogFields: [
+        {
+          id: 'regulations',
+          label: 'Regulations to Check',
+          type: 'select',
+          options: [
+            { label: 'GDPR', value: 'gdpr' },
+            { label: 'HIPAA', value: 'hipaa' },
+            { label: 'SOX', value: 'sox' },
+            { label: 'All', value: 'all' },
+          ],
+          default: 'all',
+        },
+        {
+          id: 'includeRecommendations',
+          label: 'Include Recommendations',
+          type: 'boolean',
+          default: true,
+        },
+      ],
+    },
+    licensing: { requiresAuth: true, tier: 'pro', group: 'ai-features' },
+    execution: { async: true, durationHint: 'slow', showProgress: true },
+  },
+  {
+    id: 'export-json',
+    displayName: 'Export as JSON',
+    description: 'Export the content model as JSON for integration with external tools',
+    targetTypes: ['ContentModel'],
+    icon: 'json',
+    category: 'Export',
+    contexts: {
+      fileExplorer: true,
+      compositeToolbar: true,
+    },
+    endpoint: {
+      method: 'POST',
+      path: '/export/json',
+    },
+    input: { type: 'none' },
+    licensing: { requiresAuth: false, tier: 'free', group: 'export' },
+    execution: { async: false, durationHint: 'fast' },
+  },
+  {
+    id: 'validate-workflow',
+    displayName: 'Validate Workflow',
+    description: 'Validate workflow definitions for consistency and potential issues',
+    targetTypes: ['ContentModel', 'Workflow'],
+    icon: 'check-all',
+    category: 'Validate',
+    contexts: {
+      fileExplorer: true,
+      diagramElement: true,
+      compositeToolbar: true,
+    },
+    endpoint: {
+      method: 'POST',
+      path: '/validate/workflow',
+    },
+    input: { type: 'selection' },
+    licensing: { requiresAuth: false, tier: 'free', group: 'validate' },
+    execution: { async: false, durationHint: 'fast' },
+  },
+  {
+    id: 'generate-bicep',
+    displayName: 'Generate Bicep Template',
+    description: 'Generate Azure Bicep infrastructure-as-code for deploying to Microsoft 365/Azure',
+    targetTypes: ['ContentModel', 'SecurityGroup'],
+    icon: 'cloud-upload',
+    category: 'Generate',
+    contexts: {
+      fileExplorer: true,
+      compositeToolbar: true,
+    },
+    endpoint: {
+      method: 'POST',
+      path: '/generate/bicep',
+    },
+    input: { type: 'selection' },
+    licensing: { requiresAuth: false, tier: 'free', group: 'generators' },
+    execution: { async: false, durationHint: 'fast' },
+  },
+  {
+    id: 'find-usages',
+    displayName: 'Find Usages',
+    description: 'Find all references to a selected element across the content model',
+    targetTypes: ['Actor', 'Activity', 'Task', 'Content', 'SecurityGroup', 'Permission', 'RetentionLabel', 'SensitivityLabel'],
+    icon: 'references',
+    category: 'Analyze',
+    contexts: {
+      diagramElement: true,
+    },
+    endpoint: {
+      method: 'POST',
+      path: '/analyze/usages',
+    },
+    input: { type: 'selection' },
+    licensing: { requiresAuth: false, tier: 'free', group: 'analyze' },
+    execution: { async: false, durationHint: 'fast' },
+  },
+  {
+    id: 'export-security-report',
+    displayName: 'Export Security Report',
+    description: 'Generate a comprehensive security report documenting all security configurations',
+    targetTypes: ['ContentModel'],
+    icon: 'shield',
+    category: 'Export',
+    contexts: {
+      fileExplorer: true,
+      compositeToolbar: true,
+    },
+    endpoint: {
+      method: 'POST',
+      path: '/export/security-report',
+    },
+    input: { type: 'none' },
+    licensing: { requiresAuth: true, tier: 'pro', group: 'export' },
+    execution: { async: false, durationHint: 'medium' },
+  },
+  {
+    id: 'ai-workflow-review',
+    displayName: 'AI Workflow Review',
+    description: 'AI-powered analysis of workflow definitions to identify issues and suggest improvements',
+    targetTypes: ['ContentModel', 'Workflow'],
+    icon: 'sparkle',
+    category: 'Analyze',
+    contexts: {
+      fileExplorer: true,
+      diagramElement: true,
+      compositeToolbar: true,
+    },
+    endpoint: {
+      method: 'POST',
+      path: '/analyze/workflow-review',
+    },
+    input: {
+      type: 'dialog',
+      dialogFields: [
+        {
+          id: 'includeOptimizations',
+          label: 'Include Optimization Suggestions',
+          type: 'boolean',
+          default: true,
+          helpText: 'Suggest ways to improve workflow efficiency',
+        },
+      ],
+    },
+    licensing: { requiresAuth: true, tier: 'pro', group: 'ai-features' },
+    execution: { async: true, durationHint: 'medium', showProgress: true },
+  },
+];
 
 /**
  * ECML Grammar Manifest
@@ -409,6 +623,7 @@ Permission FullAccess "Full Access" "Complete system access"`,
       },
     },
   ],
+  operations,
 };
 
 export default manifest;

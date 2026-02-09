@@ -29,6 +29,8 @@ import { Action } from 'sprotty-protocol';
  * When `preventScrolling` is true, mouseDown returns `[]` so that
  * `lastScrollPosition` is never captured and subsequent mouseMove
  * events do not cause panning.
+ *
+ * Also ignores right-click (button 2) to allow context menu to work.
  */
 @injectable()
 export class SanyamScrollMouseListener extends ScrollMouseListener {
@@ -37,6 +39,10 @@ export class SanyamScrollMouseListener extends ScrollMouseListener {
 
     override mouseDown(target: SModelElementImpl, event: MouseEvent): (Action | Promise<Action>)[] {
         if (this.preventScrolling) {
+            return [];
+        }
+        // Ignore right-click (button 2) to allow context menu
+        if (event.button === 2) {
             return [];
         }
         return super.mouseDown(target, event);

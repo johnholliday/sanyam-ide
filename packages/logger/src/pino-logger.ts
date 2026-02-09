@@ -221,11 +221,27 @@ export function createLogger(options: LoggerOptions): SanyamLogger {
 
   if (isBrowser) {
     // In browsers, pino delegates to console.* methods.
-    // asObject: true passes structured objects so context fields are preserved.
+    // We use a custom write function so that:
+    //  - Theia's terminal logger sees a readable "[Name] message {context}" string
+    //  - Browser DevTools shows the full structured object as a second arg
+    //
+    // With the default asObject: true, pino passes a single merged object
+    // to console.info(obj) — but Theia's logger calls .toString() on
+    // arguments, producing unhelpful "[object Object]" in the terminal.
     const pinoInstance = pino({
       name: options.name,
       level,
-      browser: { asObject: true },
+      browser: {
+        asObject: true,
+        write: {
+          trace: (o: any) => { const { msg, name, level: _l, time: _t, ...ctx } = o; const tag = name ? `[${name}] ` : ''; console.trace(`${tag}${msg}`, Object.keys(ctx).length > 0 ? ctx : ''); },
+          debug: (o: any) => { const { msg, name, level: _l, time: _t, ...ctx } = o; const tag = name ? `[${name}] ` : ''; console.debug(`${tag}${msg}`, Object.keys(ctx).length > 0 ? ctx : ''); },
+          info:  (o: any) => { const { msg, name, level: _l, time: _t, ...ctx } = o; const tag = name ? `[${name}] ` : ''; console.info(`${tag}${msg}`,  Object.keys(ctx).length > 0 ? ctx : ''); },
+          warn:  (o: any) => { const { msg, name, level: _l, time: _t, ...ctx } = o; const tag = name ? `[${name}] ` : ''; console.warn(`${tag}${msg}`,  Object.keys(ctx).length > 0 ? ctx : ''); },
+          error: (o: any) => { const { msg, name, level: _l, time: _t, ...ctx } = o; const tag = name ? `[${name}] ` : ''; console.error(`${tag}${msg}`, Object.keys(ctx).length > 0 ? ctx : ''); },
+          fatal: (o: any) => { const { msg, name, level: _l, time: _t, ...ctx } = o; const tag = name ? `[${name}] ` : ''; console.error(`${tag}${msg}`, Object.keys(ctx).length > 0 ? ctx : ''); },
+        },
+      },
     });
     return wrapPino(pinoInstance);
   }

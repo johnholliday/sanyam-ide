@@ -31,10 +31,10 @@ import { svg } from 'sprotty/lib/lib/jsx';
 import { EdgeRoutingService, EdgeRoutingServiceSymbol } from '../layout/edge-routing-service';
 
 /** Half-width of the arrowhead triangle base, in pixels. */
-const ARROW_HALF_WIDTH = 5;
+const ARROW_HALF_WIDTH = 8;
 
 /** Length of the arrowhead triangle along the edge direction, in pixels. */
-const ARROW_LENGTH = 10;
+const ARROW_LENGTH = 15;
 
 /**
  * Edge view that delegates to PolylineEdgeView or BezierCurveEdgeView

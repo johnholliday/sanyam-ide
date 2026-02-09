@@ -11,12 +11,15 @@ import * as React from 'react';
 import { createLogger } from '@sanyam/logger';
 import { injectable, inject } from 'inversify';
 import { ReactWidget } from '@theia/core/lib/browser/widgets/react-widget';
+import { EditorManager } from '@theia/editor/lib/browser';
 import type { PropertyDataService } from '@theia/property-view/lib/browser/property-data-service';
 import type { PropertyViewContentWidget } from '@theia/property-view/lib/browser/property-view-content-widget';
+import URI from '@theia/core/lib/common/uri';
 import { Model } from 'survey-core';
 import { Survey } from 'survey-react-ui';
 import {
   type GlspPropertyDescriptor,
+  type GlspTextEdit,
   type GetPropertiesResponse,
   type SanyamGlspServiceInterface,
   SanyamGlspService as SanyamGlspServiceSymbol,
@@ -64,6 +67,9 @@ export class ElementPropertyViewFormWidget extends ReactWidget implements Proper
 
   @inject(SanyamGlspServiceSymbol)
   protected readonly glspService: SanyamGlspServiceInterface;
+
+  @inject(EditorManager)
+  protected readonly editorManager: EditorManager;
 
   constructor() {
     super();
@@ -115,7 +121,7 @@ export class ElementPropertyViewFormWidget extends ReactWidget implements Proper
 
       this.logger.debug({ success: response?.success, propertyCount: response?.properties?.length, typeLabel: response?.typeLabel, error: response?.error }, 'loadProperties response');
 
-      if (response && response.success) {
+      if (response && response.success && !response.error) {
         this.properties = response.properties;
         this.typeLabel = response.typeLabel;
         this.error = undefined;
@@ -232,11 +238,79 @@ export class ElementPropertyViewFormWidget extends ReactWidget implements Proper
         if (prop) {
           (prop as unknown as Record<string, unknown>).value = value;
         }
+        // Apply returned text edits to the Monaco editor so the source file
+        // reflects the property change.  The standard LSP didChange flow
+        // then propagates the update to the language server and diagram.
+        if (response.edits?.length) {
+          this.applyTextEdits(response.edits);
+        }
       } else {
         this.logger.error({ error: response.error }, 'Failed to update property');
       }
     } catch (err) {
       this.logger.error({ err }, 'Error updating property');
+    }
+  }
+
+  /**
+   * Apply text edits returned from a backend property update to the Monaco editor.
+   *
+   * LSP positions are 0-based; Monaco positions are 1-based.
+   * When the editor is hidden (diagram tab active), `getModel()` returns null
+   * so we fall back to `textEditorModel.pushEditOperations()`.
+   */
+  protected applyTextEdits(edits: GlspTextEdit[]): void {
+    if (!this.currentSelection) {
+      return;
+    }
+
+    const uri = new URI(this.currentSelection.uri);
+    const editorWidget = this.editorManager.all.find(
+      e => e.getResourceUri()?.toString() === uri.toString()
+    );
+
+    if (!editorWidget) {
+      this.logger.warn('Cannot apply text edits: no editor found for URI');
+      return;
+    }
+
+    const monacoEdits = edits.map(edit => ({
+      range: {
+        startLineNumber: edit.range.start.line + 1,
+        startColumn: edit.range.start.character + 1,
+        endLineNumber: edit.range.end.line + 1,
+        endColumn: edit.range.end.character + 1,
+      },
+      text: edit.newText,
+    }));
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const monacoEditor = (editorWidget as any)?.editor?.getControl?.();
+
+    // Try the editor's executeEdits first (works when the editor has a model).
+    if (monacoEditor?.executeEdits) {
+      const success = monacoEditor.executeEdits('sanyam-property-edit', monacoEdits);
+      if (success) {
+        return;
+      }
+    }
+
+    // Fallback: the editor is hidden (diagram tab active) so getModel()
+    // returns null.  Apply edits directly on the underlying text model.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const textModel = (editorWidget as any)?.editor?.document?.textEditorModel;
+    if (textModel?.pushEditOperations) {
+      textModel.pushEditOperations(
+        [],
+        monacoEdits.map((e: { range: { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number }; text: string }) => ({
+          range: e.range,
+          text: e.text,
+          forceMoveMarkers: true,
+        })),
+        () => null,
+      );
+    } else {
+      this.logger.warn('Cannot apply text edits: no model available on editor or document');
     }
   }
 

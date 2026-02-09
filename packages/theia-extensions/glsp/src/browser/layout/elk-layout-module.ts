@@ -48,15 +48,15 @@ export const ELK_LAYOUT_ENGINE = Symbol.for('ElkLayoutEngine');
 export const DEFAULT_LAYOUT_OPTIONS: LayoutOptions = {
     'elk.algorithm': 'layered',
     'elk.direction': 'DOWN',
-    'elk.spacing.nodeNode': '50',
-    'elk.spacing.edgeNode': '30',
-    'elk.layered.spacing.nodeNodeBetweenLayers': '70',
-    'elk.layered.spacing.edgeNodeBetweenLayers': '30',
+    'elk.spacing.nodeNode': '75',
+    'elk.spacing.edgeNode': '45',
+    'elk.layered.spacing.nodeNodeBetweenLayers': '105',
+    'elk.layered.spacing.edgeNodeBetweenLayers': '45',
     'elk.edgeRouting': 'ORTHOGONAL',
     'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
     'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
     'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-    'elk.padding': '[top=20,left=20,bottom=20,right=20]',
+    'elk.padding': '[top=30,left=30,bottom=30,right=30]',
 };
 
 /**
@@ -140,7 +140,7 @@ export class SanyamLayoutConfigurator extends DefaultLayoutConfigurator {
         // Nodes should have consistent sizing
         return {
             'elk.nodeSize.constraints': 'MINIMUM_SIZE',
-            'elk.nodeSize.minimum': '(100, 50)',
+            'elk.nodeSize.minimum': '(150, 75)',
             'elk.portConstraints': 'FIXED_SIDE',
         };
     }

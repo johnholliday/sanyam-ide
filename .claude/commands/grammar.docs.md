@@ -31,6 +31,7 @@ Set:
 - `grammarPath` = the found file path
 - `packageDir` = `packages/grammar-definitions/{name}/` (target package directory)
 - `sourcePath` = `packages/grammar-definitions/.source/{name}.langium` (master source location)
+- `docsDir` = `{packageDir}docs/` (documentation output directory)
 
 ## Overview
 
@@ -38,11 +39,11 @@ Generate a fully-functional Eleventy (11ty) documentation website for the {name}
 
 ## Step 1: Ensure 11ty Infrastructure Exists
 
-Check if `docs/{name}/eleventy.config.js` exists. If not, create the complete 11ty site structure.
+Check if `{docsDir}eleventy.config.js` exists. If not, create the complete 11ty site structure.
 
 ### Required Files
 
-**1. Create `docs/{name}/eleventy.config.js`:**
+**1. Create `{docsDir}eleventy.config.js`:**
 
 ```javascript
 import syntaxHighlight from '@11ty/eleventy-plugin-syntaxhighlight';
@@ -129,7 +130,7 @@ export default function(eleventyConfig) {
 }
 ```
 
-**2. Create `docs/{name}/package.json`:**
+**2. Create `{docsDir}package.json`:**
 
 ```json
 {
@@ -151,7 +152,7 @@ export default function(eleventyConfig) {
 }
 ```
 
-**3. Create `docs/{name}/.gitignore`:**
+**3. Create `{docsDir}.gitignore`:**
 
 ```text
 # Dependencies
@@ -165,7 +166,7 @@ _site/
 *.swp
 ```
 
-**4. Create `docs/{name}/_includes/layouts/base.njk`:**
+**4. Create `{docsDir}_includes/layouts/base.njk`:**
 
 ```html
 <!DOCTYPE html>
@@ -280,7 +281,7 @@ _site/
 </html>
 ```
 
-**5. Create `docs/{name}/_includes/layouts/doc.njk`:**
+**5. Create `{docsDir}_includes/layouts/doc.njk`:**
 
 ```html
 {% extends "layouts/base.njk" %}
@@ -340,7 +341,7 @@ _site/
 {% endblock %}
 ```
 
-**6. Create `docs/{name}/_includes/layouts/home.njk`:**
+**6. Create `{docsDir}_includes/layouts/home.njk`:**
 
 ```html
 {% extends "layouts/base.njk" %}
@@ -354,7 +355,7 @@ _site/
 {% endblock %}
 ```
 
-**7. Create `docs/{name}/_data/site.json`:**
+**7. Create `{docsDir}_data/site.json`:**
 
 Replace `{name}` with the resolved grammar name (e.g., "ECML", "SPDevKit") and `<ext>` with the file extension:
 
@@ -368,7 +369,7 @@ Replace `{name}` with the resolved grammar name (e.g., "ECML", "SPDevKit") and `
 }
 ```
 
-**8. Create `docs/{name}/_data/navigation.json`:**
+**8. Create `{docsDir}_data/navigation.json`:**
 
 ```json
 {
@@ -381,7 +382,7 @@ Replace `{name}` with the resolved grammar name (e.g., "ECML", "SPDevKit") and `
 }
 ```
 
-**9. Create `docs/{name}/assets/css/main.css`:**
+**9. Create `{docsDir}assets/css/main.css`:**
 
 ```css
 /* ==========================================================================
@@ -957,7 +958,7 @@ body {
 }
 ```
 
-**10. Create `docs/{name}/assets/css/prism-theme.css`:**
+**10. Create `{docsDir}assets/css/prism-theme.css`:**
 
 ```css
 /* ==========================================================================
@@ -1156,7 +1157,7 @@ Read `{name}.langium` and extract:
 
 ### 4.1 Homepage
 
-**Save to**: `docs/{name}/index.md`
+**Save to**: `{docsDir}index.md`
 
 ```yaml
 ---
@@ -1172,7 +1173,7 @@ Include: Welcome message, feature highlights, quick links.
 
 ### 4.2 Getting Started Guide
 
-**Save to**: `docs/{name}/getting-started/index.md`
+**Save to**: `{docsDir}getting-started/index.md`
 
 ```yaml
 ---
@@ -1188,7 +1189,7 @@ Include: Prerequisites, first file walkthrough, basic concepts.
 
 ### 4.3 Language Reference
 
-**Save to**: `docs/{name}/language/reference.md`
+**Save to**: `{docsDir}language/reference.md`
 
 ```yaml
 ---
@@ -1205,7 +1206,7 @@ Include: Complete syntax reference for all grammar rules.
 
 ### 4.4 Quick Reference
 
-**Save to**: `docs/{name}/language/quick-reference.md`
+**Save to**: `{docsDir}language/quick-reference.md`
 
 ```yaml
 ---
@@ -1222,7 +1223,7 @@ Include: Cheatsheet with keywords, terminals, common patterns.
 
 ### 4.5 Tutorial
 
-**Save to**: `docs/{name}/language/tutorial.md`
+**Save to**: `{docsDir}language/tutorial.md`
 
 ```yaml
 ---
@@ -1243,7 +1244,7 @@ If examples were found in Step 2:
 
 ### 5.1 Create Example Pages
 
-For each example file found, create `docs/{name}/examples/{example-name}.md`:
+For each example file found, create `{docsDir}examples/{example-name}.md`:
 
 ```yaml
 ---
@@ -1263,7 +1264,7 @@ Include:
 
 ### 5.2 Create Examples Index
 
-**Save to**: `docs/{name}/examples/index.md`
+**Save to**: `{docsDir}examples/index.md`
 
 ```yaml
 ---
@@ -1284,19 +1285,27 @@ Include:
 
 After generating all files, run:
 ```bash
-cd docs/{name} && npm install
+cd {packageDir}docs && pnpm install
 ```
 
 ## Running the Documentation Site
 
-From the `docs/{name}/` directory, the following npm scripts are available:
+From the `{docsDir}` directory, the following pnpm scripts are available:
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start development server with hot reload |
-| `npm run build` | Build static site to `_site/` |
-| `npm run preview` | Preview built site on port 8080 |
-| `npm run clean` | Remove generated `_site/` folder |
+| `pnpm run dev` | Start development server with hot reload |
+| `pnpm run build` | Build static site to `_site/` |
+| `pnpm run preview` | Preview built site on port 8080 |
+| `pnpm run clean` | Remove generated `_site/` folder |
+
+Alternatively, use the workspace scripts from the project root:
+
+| Command | Description |
+|---------|-------------|
+| `pnpm docs:start {name}` | Start documentation dev server |
+| `pnpm docs:build {name}` | Build documentation site |
+| `pnpm docs:clean {name}` | Clean documentation build output |
 
 ## Style Guidelines
 
@@ -1316,10 +1325,10 @@ From the `docs/{name}/` directory, the following npm scripts are available:
 After generation, report:
 1. List of all created/updated files
 2. Number of examples incorporated
-3. Command to start the dev server: `cd docs/{name} && npm run dev`
+3. Command to start the dev server: `cd {packageDir}docs && pnpm run dev`
 
 ## Error Handling
 
 - If grammar file not found: Report the expected path
-- If docs/{name}/eleventy.config.js exists: Skip infrastructure generation, only update content
+- If {docsDir}eleventy.config.js exists: Skip infrastructure generation, only update content
 - If /workspace/{name}/ folder not found: Generate documentation without user examples

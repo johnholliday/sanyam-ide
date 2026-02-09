@@ -1,0 +1,19 @@
+// Test fixture file for E2E Playwright tests
+// Contains a minimal ECML model used by canvas-drop, text-drop, and editing tests
+
+#Title "E2E Test Model"
+#Description "Minimal model for automated E2E testing"
+#Author "Test Suite"
+#Version "1.0"
+
+Actor Admin "Administrator" "System administrator with full access"
+
+Actor Element "Element" "Description of Element"
+
+Actor Element "Element" "Description of Element"
+
+Activity Activity "Activity" "Description of Activity"
+
+Permission Permission "Permission" "Description of Permission"
+
+Actor Actor "Actor" "Description of Actor"

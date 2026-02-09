@@ -11,12 +11,16 @@
 import './style/index.css';
 import './style/sprotty.css';
 import './style/properties-panel.css';
+import './style/element-palette.css';
+import './style/quick-menu.css';
 
 import { ContainerModule, interfaces, injectable, inject } from 'inversify';
 import { WidgetFactory, FrontendApplicationContribution, KeybindingContribution, OpenHandler } from '@theia/core/lib/browser';
 import { ColorContribution } from '@theia/core/lib/browser/color-application-contribution';
 import { TabBarToolbarContribution } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { CommandContribution, MenuContribution, PreferenceContribution } from '@theia/core/lib/common';
+import URI from '@theia/core/lib/common/uri';
+import { GrammarRegistry } from '@sanyam-ide/product/lib/browser/grammar-registry';
 
 // Diagram color contribution
 import { DiagramColorContribution } from './diagram-color-contribution';
@@ -29,7 +33,6 @@ import { GlspDiagramMenus } from './glsp-menus';
 
 // Composite editor imports
 import {
-    CompositeEditorWidget,
     CompositeEditorWidgetFactory,
     COMPOSITE_EDITOR_WIDGET_FACTORY_ID,
 } from './composite-editor-widget';
@@ -72,6 +75,36 @@ import { GridSnapper, SnapGridTool, bindSnapGridPreferences, SnapGridServiceSymb
 
 // Edge routing service
 import { EdgeRoutingService } from './layout';
+
+// GLSP theia-integration menu contribution (we unbind this to avoid duplicate Diagram menu)
+import { GLSPDiagramMenuContribution } from '@eclipse-glsp/theia-integration/lib/browser/diagram/glsp-diagram-commands';
+
+// Grammar Operations imports
+import {
+  GrammarOperationService,
+  GrammarOperationServiceImpl,
+  GrammarOperationCommandContribution,
+  GrammarOperationMenuContribution,
+  GrammarOperationToolbarContribution,
+  GrammarOperationToolbarContributionImpl,
+  GrammarOperationOutput,
+  GrammarOperationOutputServiceImpl,
+  GrammarOperationInitializer,
+  GrammarOperationInitializerImpl,
+} from './grammar-operations';
+
+// Element Palette imports
+import {
+  ElementPaletteService,
+  ElementPaletteServiceSymbol,
+  ElementPaletteWidget,
+  ELEMENT_PALETTE_WIDGET_ID,
+  ElementPaletteViewContribution,
+  CanvasDropHandler,
+  CanvasDropHandlerSymbol,
+  TextEditorDropHandler,
+  TextEditorDropHandlerSymbol,
+} from './element-palette';
 
 // Note: Sprotty types are re-exported from di/sprotty-di-config via index.ts
 
@@ -120,7 +153,24 @@ class CompositeAwareMonacoOutlineContribution extends MonacoOutlineContribution 
     }
 }
 
-export default new ContainerModule((bind: interfaces.Bind, _unbind, _isBound, rebind) => {
+/**
+ * Override GLSP's menu contribution to prevent duplicate "Diagram" menu.
+ * We use our own GlspDiagramMenus instead.
+ */
+@injectable()
+class DisabledGLSPDiagramMenuContribution extends GLSPDiagramMenuContribution {
+  override registerMenus(): void {
+    // No-op - we use our own GlspDiagramMenus
+  }
+}
+
+export default new ContainerModule((bind: interfaces.Bind, _unbind, isBound, rebind) => {
+  // Rebind GLSP's menu contribution to our disabled version to avoid duplicate "Diagram" menu
+  // The @eclipse-glsp/theia-integration package auto-registers GLSPDiagramMenuContribution
+  // which creates its own Diagram menu. We use our own GlspDiagramMenus instead.
+  if (isBound(GLSPDiagramMenuContribution)) {
+    rebind(GLSPDiagramMenuContribution).to(DisabledGLSPDiagramMenuContribution).inSingletonScope();
+  }
   // Override MonacoOutlineContribution to avoid opening new tabs for composite editor symbols
   rebind(MonacoOutlineContribution).to(CompositeAwareMonacoOutlineContribution).inSingletonScope();
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -189,12 +239,21 @@ export default new ContainerModule((bind: interfaces.Bind, _unbind, _isBound, re
   bind(CompositeEditorWidgetFactory).toSelf().inSingletonScope();
   bind(GLSP_FRONTEND_TYPES.CompositeEditorWidgetFactory).toService(CompositeEditorWidgetFactory);
 
-  // Register widget factory with Theia
+  // Register widget factory with Theia.
+  // During layout restoration, WidgetManager passes the serialized URI string
+  // (from CompositeEditorOpenHandler.createWidgetOptions) back to createWidget.
+  // We reconstruct the full options (including the manifest) from GrammarRegistry.
   bind(WidgetFactory).toDynamicValue((ctx) => ({
     id: COMPOSITE_EDITOR_WIDGET_FACTORY_ID,
-    createWidget: (options: CompositeEditorWidget.Options) => {
+    createWidget: (uriString: string) => {
       const factory = ctx.container.get(CompositeEditorWidgetFactory);
-      return factory.createWidget(options);
+      const grammarRegistry = ctx.container.get(GrammarRegistry);
+      const uri = new URI(uriString);
+      const manifest = grammarRegistry.getManifestByFilePath(uri.path.toString());
+      if (!manifest) {
+        throw new Error(`No grammar manifest found for ${uri.toString()}`);
+      }
+      return factory.createWidget({ uri, manifest });
     },
   })).inSingletonScope();
 
@@ -202,11 +261,12 @@ export default new ContainerModule((bind: interfaces.Bind, _unbind, _isBound, re
   bind(CompositeEditorOpenHandler).toSelf().inSingletonScope();
   bind(OpenHandler).toService(CompositeEditorOpenHandler);
 
-  // Bind composite editor contribution (commands, keybindings, menus)
+  // Bind composite editor contribution (commands, keybindings, menus, startup)
   bind(CompositeEditorContribution).toSelf().inSingletonScope();
   bind(CommandContribution).toService(CompositeEditorContribution);
   bind(KeybindingContribution).toService(CompositeEditorContribution);
   bind(MenuContribution).toService(CompositeEditorContribution);
+  bind(FrontendApplicationContribution).toService(CompositeEditorContribution);
 
   // Bind context key service for composite editor
   bind(CompositeEditorContextKeyService).toSelf().inSingletonScope();
@@ -308,6 +368,67 @@ export default new ContainerModule((bind: interfaces.Bind, _unbind, _isBound, re
 
   bind(DiagramColorContribution).toSelf().inSingletonScope();
   bind(ColorContribution).toService(DiagramColorContribution);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Grammar Operations
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Bind grammar operation service
+  bind(GrammarOperationServiceImpl).toSelf().inSingletonScope();
+  bind(GrammarOperationService).toService(GrammarOperationServiceImpl);
+
+  // Bind grammar operation output service
+  bind(GrammarOperationOutputServiceImpl).toSelf().inSingletonScope();
+  bind(GrammarOperationOutput).toService(GrammarOperationOutputServiceImpl);
+
+  // Bind grammar operation command contribution
+  bind(GrammarOperationCommandContribution).toSelf().inSingletonScope();
+  bind(CommandContribution).toService(GrammarOperationCommandContribution);
+
+  // Bind grammar operation menu contribution
+  bind(GrammarOperationMenuContribution).toSelf().inSingletonScope();
+  bind(MenuContribution).toService(GrammarOperationMenuContribution);
+
+  // Bind grammar operation toolbar contribution
+  bind(GrammarOperationToolbarContributionImpl).toSelf().inSingletonScope();
+  bind(GrammarOperationToolbarContribution).toService(GrammarOperationToolbarContributionImpl);
+  bind(TabBarToolbarContribution).toService(GrammarOperationToolbarContributionImpl);
+
+  // Bind grammar operation initializer (discovers grammars and registers operations on app start)
+  bind(GrammarOperationInitializerImpl).toSelf().inSingletonScope();
+  bind(GrammarOperationInitializer).toService(GrammarOperationInitializerImpl);
+  bind(FrontendApplicationContribution).toService(GrammarOperationInitializerImpl);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Element Palette (Sidebar)
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Bind element palette service
+  bind(ElementPaletteService).toSelf().inSingletonScope();
+  bind(ElementPaletteServiceSymbol).toService(ElementPaletteService);
+
+  // Bind canvas drop handler
+  bind(CanvasDropHandler).toSelf().inSingletonScope();
+  bind(CanvasDropHandlerSymbol).toService(CanvasDropHandler);
+
+  // Bind text editor drop handler
+  bind(TextEditorDropHandler).toSelf().inSingletonScope();
+  bind(TextEditorDropHandlerSymbol).toService(TextEditorDropHandler);
+
+  // Bind element palette widget
+  bind(ElementPaletteWidget).toSelf();
+
+  // Register widget factory with Theia
+  bind(WidgetFactory).toDynamicValue((ctx) => ({
+    id: ELEMENT_PALETTE_WIDGET_ID,
+    createWidget: () => ctx.container.get(ElementPaletteWidget),
+  })).inSingletonScope();
+
+  // Bind view contribution (registers sidebar view)
+  bind(ElementPaletteViewContribution).toSelf().inSingletonScope();
+  bind(FrontendApplicationContribution).toService(ElementPaletteViewContribution);
+  bind(CommandContribution).toService(ElementPaletteViewContribution);
+  bind(MenuContribution).toService(ElementPaletteViewContribution);
 });
 
 /**

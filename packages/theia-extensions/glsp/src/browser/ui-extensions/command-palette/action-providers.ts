@@ -22,7 +22,29 @@ import {
     CommandPaletteContext,
     CommandPaletteProvider,
 } from './command-palette-actions';
-import { ToolPaletteGroup } from '../tool-palette/tool-palette-actions';
+
+/**
+ * Tool palette item with action.
+ */
+export interface ToolPaletteItem {
+    id: string;
+    label: string;
+    icon?: string;
+    toolAction?: {
+        kind: string;
+        elementTypeId: string;
+        args?: Record<string, unknown>;
+    };
+}
+
+/**
+ * Tool palette group containing items.
+ */
+export interface ToolPaletteGroup {
+    id: string;
+    label: string;
+    items: ToolPaletteItem[];
+}
 
 /**
  * Symbol for tool palette data provider.

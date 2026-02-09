@@ -21,6 +21,9 @@ import type {
 import { classifyFieldValue } from '@sanyam/types';
 import type { ElementIdRegistry } from '../element-id-registry.js';
 import { defaultGModelToAstProvider } from './gmodel-to-ast-provider.js';
+import { createLogger } from '@sanyam/logger';
+
+const logger = createLogger({ name: 'PropertyProvider' });
 
 /**
  * Maximum recursion depth for nested property extraction.
@@ -616,6 +619,8 @@ export class PropertyProvider {
     const nodes: AstNode[] = [];
     const idSet = new Set(elementIds);
 
+    logger.info({ hasRegistry: !!idRegistry, elementIds, rootType: root.$type }, 'findNodesById called');
+
     // First try: resolve UUIDs via the id registry (primary path when diagram uses UUIDs)
     if (idRegistry) {
       for (const id of elementIds) {
@@ -623,12 +628,16 @@ export class PropertyProvider {
         if (astNode) {
           nodes.push(astNode);
           idSet.delete(id);
+          logger.info({ id, nodeType: astNode.$type, nodeName: (astNode as any).name }, 'UUID lookup hit');
+        } else {
+          logger.warn({ id }, 'UUID lookup miss');
         }
       }
     }
 
     // Second try: fall back to name-based matching for any remaining IDs
     if (idSet.size > 0) {
+      logger.info({ remainingIds: [...idSet] }, 'Falling back to name-based matching');
       this.traverseAst(root, (node: AstNode) => {
         const nodeId = this.getNodeId(node);
         if (nodeId && idSet.has(nodeId)) {
@@ -637,6 +646,7 @@ export class PropertyProvider {
       });
     }
 
+    logger.info({ foundCount: nodes.length, requestedCount: elementIds.length }, 'findNodesById result');
     return nodes;
   }
 

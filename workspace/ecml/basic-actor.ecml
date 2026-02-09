@@ -2,3 +2,7 @@
 // An Actor represents a user role or participant in the enterprise
 
 Actor Admin "Administrator Name" "System administrator with full access"
+
+Content Content "Content" "Description of Content"
+
+RetentionLabel RetentionLabel "RetentionLabel" "Description of RetentionLabel"

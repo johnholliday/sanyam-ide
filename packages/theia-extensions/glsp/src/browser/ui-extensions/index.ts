@@ -12,7 +12,7 @@
  *
  * Barrel export and container module for all Sprotty UI extensions.
  * Provides a complete set of professional graphical editing tools:
- * - Tool Palette for node/edge creation
+ * - Viewport actions for zoom/pan/fit
  * - Validation Markers for error/warning display
  * - Edit Label for inline text editing
  * - Command Palette for quick actions
@@ -32,8 +32,8 @@ import { configureActionHandler, TYPES } from 'sprotty';
 // Base exports
 export * from './base-ui-extension';
 
-// Tool Palette
-export * from './tool-palette';
+// Viewport (zoom, center, fit actions)
+export * from './viewport';
 
 // Validation
 export * from './validation';
@@ -68,6 +68,9 @@ export * from './export';
 // Snap to Grid
 export * from './snap-to-grid';
 
+// Quick Menu
+export * from './quick-menu';
+
 // Import specific classes for DI binding
 import {
     UIExtensionRegistry,
@@ -76,25 +79,13 @@ import {
 } from './base-ui-extension';
 
 import {
-    ToolPaletteUIExtension,
-    ToolPaletteActionHandler,
-    RequestToolPaletteAction,
-    SetToolPaletteAction,
-    ToolSelectionAction,
-    EnableDefaultToolsAction,
-    EnableCreationToolAction,
-    ToggleToolPaletteGroupAction,
-    SearchToolPaletteAction,
-    CreateElementAction,
-    CreateElementActionHandler,
-    CreationToolMouseListener,
     ViewportActionHandler,
     ZoomInAction,
     ZoomOutAction,
     ResetZoomAction,
     CenterDiagramAction,
     FitDiagramAction,
-} from './tool-palette';
+} from './viewport';
 
 import {
     ValidationMarkersExtension,
@@ -165,14 +156,21 @@ import {
     ToggleGridVisibilityActionKind,
 } from './snap-to-grid';
 
+import {
+    QuickMenuUIExtension,
+    QuickMenuActionHandler,
+    CanvasDoubleClickTool,
+    ShowQuickMenuAction,
+    HideQuickMenuAction,
+    SelectQuickMenuItemAction,
+} from './quick-menu';
+
 /**
  * Options for creating the UI extensions module.
  */
 export interface UIExtensionsModuleOptions {
     /** Diagram container element ID */
     diagramContainerId: string;
-    /** Enable tool palette (default: true) */
-    enableToolPalette?: boolean;
     /** Enable validation markers (default: true) */
     enableValidation?: boolean;
     /** Enable edit label (default: true) */
@@ -191,6 +189,10 @@ export interface UIExtensionsModuleOptions {
     enablePopup?: boolean;
     /** Enable minimap (default: true) */
     enableMinimap?: boolean;
+    /** Enable quick menu (default: true) */
+    enableQuickMenu?: boolean;
+    /** Existing SnapGridTool instance from parent container (to avoid creating duplicate) */
+    snapGridTool?: SnapGridTool;
 }
 
 /**
@@ -210,35 +212,13 @@ export function createUIExtensionsModule(options: UIExtensionsModuleOptions): Co
         bind(UIExtensionRegistry).toSelf().inSingletonScope();
         bind(UI_EXTENSION_REGISTRY).toService(UIExtensionRegistry);
 
-        // Tool Palette
-        if (options.enableToolPalette !== false) {
-            bind(ToolPaletteUIExtension).toSelf().inSingletonScope();
-            bind(ToolPaletteActionHandler).toSelf().inSingletonScope();
-
-            configureActionHandler(context, RequestToolPaletteAction.KIND, ToolPaletteActionHandler);
-            configureActionHandler(context, SetToolPaletteAction.KIND, ToolPaletteActionHandler);
-            configureActionHandler(context, ToolSelectionAction.KIND, ToolPaletteActionHandler);
-            configureActionHandler(context, EnableDefaultToolsAction.KIND, ToolPaletteActionHandler);
-            configureActionHandler(context, EnableCreationToolAction.KIND, ToolPaletteActionHandler);
-            configureActionHandler(context, ToggleToolPaletteGroupAction.KIND, ToolPaletteActionHandler);
-            configureActionHandler(context, SearchToolPaletteAction.KIND, ToolPaletteActionHandler);
-
-            // Element creation
-            bind(CreateElementActionHandler).toSelf().inSingletonScope();
-            configureActionHandler(context, CreateElementAction.KIND, CreateElementActionHandler);
-
-            // Creation tool mouse listener
-            bind(CreationToolMouseListener).toSelf().inSingletonScope();
-            bind(TYPES.MouseListener).toService(CreationToolMouseListener);
-
-            // Viewport actions (zoom, center, fit)
-            bind(ViewportActionHandler).toSelf().inSingletonScope();
-            configureActionHandler(context, ZoomInAction.KIND, ViewportActionHandler);
-            configureActionHandler(context, ZoomOutAction.KIND, ViewportActionHandler);
-            configureActionHandler(context, ResetZoomAction.KIND, ViewportActionHandler);
-            configureActionHandler(context, CenterDiagramAction.KIND, ViewportActionHandler);
-            configureActionHandler(context, FitDiagramAction.KIND, ViewportActionHandler);
-        }
+        // Viewport actions (zoom, center, fit) - always enabled
+        bind(ViewportActionHandler).toSelf().inSingletonScope();
+        configureActionHandler(context, ZoomInAction.KIND, ViewportActionHandler);
+        configureActionHandler(context, ZoomOutAction.KIND, ViewportActionHandler);
+        configureActionHandler(context, ResetZoomAction.KIND, ViewportActionHandler);
+        configureActionHandler(context, CenterDiagramAction.KIND, ViewportActionHandler);
+        configureActionHandler(context, FitDiagramAction.KIND, ViewportActionHandler);
 
         // Validation Markers
         if (options.enableValidation !== false) {
@@ -318,11 +298,28 @@ export function createUIExtensionsModule(options: UIExtensionsModuleOptions): Co
         configureActionHandler(context, RequestExportSvgAction.KIND, ExportSvgActionHandler);
 
         // Snap to Grid (always enabled)
-        bind(SnapGridTool).toSelf().inSingletonScope();
+        // Use existing instance from parent container if provided, otherwise create new
+        if (options.snapGridTool) {
+            bind(SnapGridTool).toConstantValue(options.snapGridTool);
+        } else {
+            bind(SnapGridTool).toSelf().inSingletonScope();
+        }
         bind(SnapGridActionHandler).toSelf().inSingletonScope();
         configureActionHandler(context, ToggleSnapToGridActionKind, SnapGridActionHandler);
         configureActionHandler(context, UpdateSnapGridConfigActionKind, SnapGridActionHandler);
         configureActionHandler(context, ToggleGridVisibilityActionKind, SnapGridActionHandler);
+
+        // Quick Menu
+        if (options.enableQuickMenu !== false) {
+            bind(QuickMenuUIExtension).toSelf().inSingletonScope();
+            bind(QuickMenuActionHandler).toSelf().inSingletonScope();
+            bind(CanvasDoubleClickTool).toSelf().inSingletonScope();
+            bind(TYPES.MouseListener).toService(CanvasDoubleClickTool);
+
+            configureActionHandler(context, ShowQuickMenuAction.KIND, QuickMenuActionHandler);
+            configureActionHandler(context, HideQuickMenuAction.KIND, QuickMenuActionHandler);
+            configureActionHandler(context, SelectQuickMenuItemAction.KIND, QuickMenuActionHandler);
+        }
     });
 }
 
@@ -339,10 +336,6 @@ export function initializeUIExtensions(
     options: UIExtensionsModuleOptions
 ): void {
     const registry = container.get<UIExtensionRegistry>(UI_EXTENSION_REGISTRY);
-
-    if (options.enableToolPalette !== false && container.isBound(ToolPaletteUIExtension)) {
-        registry.register(container.get(ToolPaletteUIExtension));
-    }
 
     if (options.enableValidation !== false && container.isBound(ValidationMarkersExtension)) {
         registry.register(container.get(ValidationMarkersExtension));
@@ -387,6 +380,11 @@ export function initializeUIExtensions(
     if (container.isBound(SnapGridTool)) {
         registry.register(container.get(SnapGridTool));
     }
+
+    // Quick Menu
+    if (options.enableQuickMenu !== false && container.isBound(QuickMenuUIExtension)) {
+        registry.register(container.get(QuickMenuUIExtension));
+    }
 }
 
 /**
@@ -401,10 +399,6 @@ export function setUIExtensionsParentContainer(
     parentElement: HTMLElement,
     options: UIExtensionsModuleOptions
 ): void {
-    if (options.enableToolPalette !== false && container.isBound(ToolPaletteUIExtension)) {
-        container.get(ToolPaletteUIExtension).setParentContainer(parentElement);
-    }
-
     if (options.enableValidation !== false && container.isBound(ValidationMarkersExtension)) {
         container.get(ValidationMarkersExtension).setParentContainer(parentElement);
     }
@@ -444,5 +438,10 @@ export function setUIExtensionsParentContainer(
     // Snap to Grid (always set parent)
     if (container.isBound(SnapGridTool)) {
         container.get(SnapGridTool).setParentContainer(parentElement);
+    }
+
+    // Quick Menu
+    if (options.enableQuickMenu !== false && container.isBound(QuickMenuUIExtension)) {
+        container.get(QuickMenuUIExtension).setParentContainer(parentElement);
     }
 }

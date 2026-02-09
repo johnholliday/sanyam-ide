@@ -39,6 +39,17 @@ import type { Operation } from './glsp/glsp-server.js';
 import { AstServer, createAstServer } from './model/ast-server.js';
 import type { ModelQuery, GetModelOptions, SubscriptionOptions } from '@sanyam/types';
 
+// Import Operation components
+import {
+  OperationRegistry,
+  OperationExecutor,
+  JobManager,
+  setupLspOperationHandlers,
+} from './operations/index.js';
+import { UnifiedDocumentResolver } from './services/document-resolver.js';
+import { createHttpServer, type HttpServerConfig, type HttpServerInstance } from './http/server.js';
+import { createAuthConfigFromEnv } from './http/middleware/auth.js';
+
 const logger = createLogger({ name: 'ServerFactory' });
 
 /**
@@ -56,6 +67,12 @@ export interface CreateServerOptions {
    * is created using stdio.
    */
   connection?: Connection;
+
+  /**
+   * HTTP REST gateway configuration.
+   * Set to false to disable the HTTP server.
+   */
+  httpServer?: HttpServerConfig | false;
 }
 
 /**
@@ -91,6 +108,21 @@ export interface LanguageServerInstance {
    * The AST server instance for Model API (available after initialization).
    */
   astServer: AstServer | null;
+
+  /**
+   * The operation registry (available after initialization).
+   */
+  operationRegistry: OperationRegistry | null;
+
+  /**
+   * The operation executor (available after initialization).
+   */
+  operationExecutor: OperationExecutor | null;
+
+  /**
+   * The HTTP server instance (available after initialization, if enabled).
+   */
+  httpServer: HttpServerInstance | null;
 }
 
 /**
@@ -146,6 +178,13 @@ export async function createLanguageServer(
   let astServer: AstServer | null = null;
   let initialized = false;
   let sharedServicesRef: import('langium/lsp').LangiumSharedServices | null = null;
+
+  // Operation system components
+  const operationRegistry = new OperationRegistry();
+  const jobManager = new JobManager();
+  let operationExecutor: OperationExecutor | null = null;
+  let documentResolver: UnifiedDocumentResolver | null = null;
+  let httpServer: HttpServerInstance | null = null;
 
   /**
    * Initialize the GLSP server.
@@ -248,6 +287,58 @@ export async function createLanguageServer(
         logger.error({ err: astError }, 'Failed to initialize AST Server');
       }
 
+      // Initialize Operation System
+      try {
+        // Create document resolver with shared services
+        documentResolver = new UnifiedDocumentResolver(sharedServices);
+
+        // Create operation executor
+        operationExecutor = new OperationExecutor(
+          operationRegistry,
+          documentResolver,
+          jobManager
+        );
+
+        // Register operations from all loaded languages
+        for (const langId of registry.getAllLanguageIds()) {
+          const registered = registry.getByLanguageId(langId);
+          if (registered?.contribution) {
+            operationRegistry.registerLanguage(registered.contribution);
+          }
+        }
+
+        // Set up LSP operation handlers
+        setupLspOperationHandlers(connection, operationExecutor, operationRegistry, jobManager);
+
+        logger.info(
+          { operationCount: operationRegistry.getOperationCount() },
+          'Operation system initialized'
+        );
+
+        // Start HTTP server if enabled
+        if (options.httpServer !== false) {
+          const httpConfig: HttpServerConfig = {
+            ...(typeof options.httpServer === 'object' ? options.httpServer : {}),
+            auth: createAuthConfigFromEnv(),
+          };
+
+          httpServer = createHttpServer(httpConfig, {
+            executor: operationExecutor,
+            registry: operationRegistry,
+            jobManager,
+            documentResolver,
+            isReady: () => initialized,
+          });
+
+          // Start HTTP server in the background
+          httpServer.start().catch((err) => {
+            logger.error({ err }, 'Failed to start HTTP server');
+          });
+        }
+      } catch (opsError) {
+        logger.error({ err: opsError }, 'Failed to initialize Operation System');
+      }
+
       initialized = true;
 
       // Return capabilities
@@ -309,12 +400,17 @@ export async function createLanguageServer(
     }
   });
 
-  connection.onShutdown(() => {
+  connection.onShutdown(async () => {
     logger.info('Shutting down Sanyam Language Server');
     if (astServer) {
       astServer.dispose();
       astServer = null;
     }
+    if (httpServer) {
+      await httpServer.stop();
+      httpServer = null;
+    }
+    jobManager.dispose();
   });
 
   connection.onExit(() => {
@@ -383,7 +479,10 @@ export async function createLanguageServer(
   interface GlspLayoutRequest extends GlspDiagramRequest { options?: { algorithm?: 'grid' | 'tree' | 'force-directed'; spacing?: number; }; }
   interface GlspContextMenuRequest extends GlspDiagramRequest { selectedIds: string[]; position?: { x: number; y: number }; }
 
-  connection.onRequest('glsp/loadModel', async (params: GlspDiagramRequest) => {
+  connection.onRequest('glsp/loadModel', async (params: GlspDiagramRequest & {
+    savedIdMap?: Record<string, string>;
+    savedFingerprints?: Record<string, unknown>;
+  }) => {
     if (!initialized || !glspServer) {
       return { success: false, error: 'Server not initialized' };
     }
@@ -396,8 +495,24 @@ export async function createLanguageServer(
       if (!langiumDoc) {
         return { success: false, error: `Document not found: ${params.uri}` };
       }
-      const context = await glspServer.loadModel(langiumDoc, CancellationToken.None);
+      logger.info({
+        event: 'uuid:rpc-receive',
+        uri: params.uri,
+        savedIdMapSize: Object.keys(params.savedIdMap ?? {}).length,
+        savedFingerprintCount: Object.keys(params.savedFingerprints ?? {}).length,
+      }, 'Received saved UUID registry from client');
+      const context = await glspServer.loadModel(langiumDoc, CancellationToken.None, {
+        savedIdMap: params.savedIdMap,
+        savedFingerprints: params.savedFingerprints,
+      });
       const idRegistryData = (context as any).idRegistryData;
+      logger.info({
+        event: 'uuid:rpc-respond',
+        uri: params.uri,
+        idMapSize: Object.keys(idRegistryData?.idMap ?? {}).length,
+        fingerprintCount: Object.keys(idRegistryData?.fingerprints ?? {}).length,
+        sourceRangeCount: context.metadata?.sourceRanges?.size ?? 0,
+      }, 'Sending UUID registry and sourceRanges to client');
       return {
         success: true,
         gModel: context.gModel,
@@ -718,6 +833,9 @@ export async function createLanguageServer(
     get documents() { return documents; },
     get glspServer() { return glspServer; },
     get astServer() { return astServer; },
+    get operationRegistry() { return operationRegistry; },
+    get operationExecutor() { return operationExecutor; },
+    get httpServer() { return httpServer; },
     start: () => {
       connection.listen();
       logger.info('Sanyam Language Server started');
@@ -734,3 +852,15 @@ export { LanguageRegistry } from './language-registry.js';
 // Re-export GLSP server for backend integration
 export { GlspServer, createGlspServer } from './glsp/glsp-server.js';
 export type { GlspServerConfig } from './glsp/glsp-server.js';
+
+// Re-export Operation system components
+export {
+  OperationRegistry,
+  OperationExecutor,
+  JobManager,
+  type RegisteredOperation,
+  type ExecuteOperationParams,
+  type ExecuteOperationResult,
+} from './operations/index.js';
+export { UnifiedDocumentResolver } from './services/document-resolver.js';
+export { createHttpServer, type HttpServerConfig, type HttpServerInstance } from './http/server.js';

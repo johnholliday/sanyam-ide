@@ -47,8 +47,8 @@ export class SanyamNodeImpl extends SNodeImpl {
 export class SanyamNodeView implements IView {
     render(node: SanyamNodeImpl, context: RenderingContext): VNode {
         const shape = node.shape || 'rectangle';
-        const width = node.size?.width ?? 100;
-        const height = node.size?.height ?? 50;
+        const width = node.size?.width ?? 150;
+        const height = node.size?.height ?? 75;
 
         // Create the shape element
         let shapeElement: VNode;
@@ -193,4 +193,104 @@ export class SanyamNodeView implements IView {
  */
 export class SanyamLabelImpl extends SLabelImpl {
     cssClasses?: string[];
+}
+
+/**
+ * Maximum label width (in px) before word-wrapping occurs.
+ */
+const LABEL_MAX_WIDTH = 135;
+
+/**
+ * Approximate character width for word-wrap estimation (px per char at 18px font).
+ */
+const CHAR_WIDTH_ESTIMATE = 10;
+
+/**
+ * Line height for word-wrapped labels (px).
+ */
+const LINE_HEIGHT = 24;
+
+/**
+ * Custom label view that strips double quotes and supports word-wrapping (FR-008, FR-009).
+ *
+ * Labels are rendered as SVG `<text>` elements with multiple `<tspan>` rows
+ * when the text exceeds the maximum label width.
+ */
+@injectable()
+export class SanyamLabelView implements IView {
+    render(label: SanyamLabelImpl, _context: RenderingContext): VNode {
+        // FR-009: Strip surrounding double quotes from label text
+        let text = label.text ?? '';
+        if (text.startsWith('"') && text.endsWith('"') && text.length >= 2) {
+            text = text.slice(1, -1);
+        }
+
+        const cssClasses: Record<string, boolean> = {
+            'sprotty-label': true,
+        };
+        if (label.cssClasses) {
+            for (const cls of label.cssClasses) {
+                cssClasses[cls] = true;
+            }
+        }
+
+        // Word-wrap: split text into lines that fit within LABEL_MAX_WIDTH
+        const lines = this.wrapText(text, LABEL_MAX_WIDTH);
+
+        if (lines.length <= 1) {
+            // Single line — standard rendering
+            return h('text', { class: cssClasses }, text);
+        }
+
+        // FR-008: Multi-line rendering using tspan elements
+        const tspans = lines.map((line, i) =>
+            h('tspan', {
+                attrs: {
+                    x: 0,
+                    dy: i === 0 ? '0' : `${LINE_HEIGHT}`,
+                },
+            }, line)
+        );
+
+        // Update the label's size to accommodate wrapped text so node expands
+        const requiredHeight = lines.length * LINE_HEIGHT;
+        if (label.size && label.size.height < requiredHeight) {
+            // Trigger Sprotty size recalculation by updating bounds
+            (label as any).size = {
+                width: Math.max(label.size.width, LABEL_MAX_WIDTH),
+                height: requiredHeight,
+            };
+        }
+
+        return h('text', { class: cssClasses }, tspans);
+    }
+
+    /**
+     * Split text into word-wrapped lines.
+     */
+    protected wrapText(text: string, maxWidth: number): string[] {
+        const maxChars = Math.floor(maxWidth / CHAR_WIDTH_ESTIMATE);
+        if (text.length <= maxChars) {
+            return [text];
+        }
+
+        const words = text.split(/\s+/);
+        const lines: string[] = [];
+        let currentLine = '';
+
+        for (const word of words) {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            if (testLine.length > maxChars && currentLine) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+
+        return lines;
+    }
 }

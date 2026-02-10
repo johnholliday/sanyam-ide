@@ -2,7 +2,7 @@
  * OpenAPI Schema Builder
  *
  * Converts GrammarOperation definitions to OpenAPI 3.1 specification.
- * Used to generate Swagger UI documentation for the REST gateway.
+ * Used to generate RapiDoc documentation for the REST gateway.
  *
  * @packageDocumentation
  */
@@ -137,7 +137,7 @@ export function buildOpenAPISpec(
   });
 
   // Add health endpoints
-  paths['/health'] = {
+  paths['/api/health'] = {
     get: {
       operationId: 'healthCheck',
       summary: 'Liveness check',
@@ -162,7 +162,7 @@ export function buildOpenAPISpec(
     },
   };
 
-  paths['/ready'] = {
+  paths['/api/ready'] = {
     get: {
       operationId: 'readyCheck',
       summary: 'Readiness check',
@@ -193,6 +193,292 @@ export function buildOpenAPISpec(
                   status: { type: 'string', enum: ['not_ready'] },
                   message: { type: 'string' },
                   timestamp: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  // Add models tag
+  tags.push({
+    name: 'models',
+    description: 'Grammar-agnostic CRUD operations for workspace model files',
+  });
+
+  // Add models endpoints
+  paths['/api/models'] = {
+    get: {
+      operationId: 'listOrGetModels',
+      summary: 'List all workspace models or get a single model',
+      description:
+        'Without `uri` query param: returns a list of all models in the workspace. ' +
+        'With `uri` query param: returns detailed information for a single model including content and AST. ' +
+        'Use `language` query param to filter the list by language ID.',
+      tags: ['models'],
+      parameters: [
+        {
+          name: 'uri',
+          in: 'query',
+          required: false,
+          description: 'Document URI to fetch a single model detail. If omitted, lists all models.',
+          schema: { type: 'string' },
+        },
+        {
+          name: 'language',
+          in: 'query',
+          required: false,
+          description: 'Filter models by language ID (e.g., "ecml"). Only applies to list mode.',
+          schema: { type: 'string' },
+        },
+      ],
+      responses: {
+        '200': {
+          description: 'Model list or single model detail',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', enum: [true] },
+                  data: {
+                    description: 'Either a list envelope or a ModelDetail object',
+                    type: 'object',
+                  },
+                  correlationId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        '404': {
+          description: 'Model not found (when uri is provided)',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', enum: [false] },
+                  error: { type: 'string' },
+                  correlationId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    post: {
+      operationId: 'createModel',
+      summary: 'Create a new model file',
+      description:
+        'Creates a new model file in the workspace based on the grammar manifest configuration. ' +
+        'Content is generated from the root type template if not provided.',
+      tags: ['models'],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/CreateModelRequest' },
+          },
+        },
+      },
+      responses: {
+        '201': {
+          description: 'Model created successfully',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', enum: [true] },
+                  data: { $ref: '#/components/schemas/ModelDetail' },
+                  correlationId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        '400': {
+          description: 'Bad request (missing fields, invalid name)',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', enum: [false] },
+                  error: { type: 'string' },
+                  correlationId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        '404': {
+          description: 'Language or root type not found',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', enum: [false] },
+                  error: { type: 'string' },
+                  correlationId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        '409': {
+          description: 'File already exists',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', enum: [false] },
+                  error: { type: 'string' },
+                  correlationId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    put: {
+      operationId: 'updateModel',
+      summary: 'Update model content',
+      description: 'Replaces the content of an existing model file and triggers a Langium rebuild.',
+      tags: ['models'],
+      parameters: [
+        {
+          name: 'uri',
+          in: 'query',
+          required: true,
+          description: 'Document URI of the model to update',
+          schema: { type: 'string' },
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/UpdateModelRequest' },
+          },
+        },
+      },
+      responses: {
+        '200': {
+          description: 'Model updated successfully',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', enum: [true] },
+                  data: { $ref: '#/components/schemas/ModelDetail' },
+                  correlationId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        '400': {
+          description: 'Bad request (missing uri or content)',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', enum: [false] },
+                  error: { type: 'string' },
+                  correlationId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        '404': {
+          description: 'Model not found',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', enum: [false] },
+                  error: { type: 'string' },
+                  correlationId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    delete: {
+      operationId: 'deleteModel',
+      summary: 'Delete a model file',
+      description: 'Removes a model file from the Langium workspace and deletes it from disk.',
+      tags: ['models'],
+      parameters: [
+        {
+          name: 'uri',
+          in: 'query',
+          required: true,
+          description: 'Document URI of the model to delete',
+          schema: { type: 'string' },
+        },
+      ],
+      responses: {
+        '200': {
+          description: 'Model deleted successfully',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', enum: [true] },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      deleted: { type: 'boolean', enum: [true] },
+                      uri: { type: 'string' },
+                    },
+                  },
+                  correlationId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        '400': {
+          description: 'Missing uri query parameter',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', enum: [false] },
+                  error: { type: 'string' },
+                  correlationId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        '404': {
+          description: 'Model not found',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', enum: [false] },
+                  error: { type: 'string' },
+                  correlationId: { type: 'string' },
                 },
               },
             },
@@ -452,6 +738,65 @@ export function buildOpenAPISpec(
             async: { type: 'boolean', enum: [true] },
             jobId: { type: 'string' },
             correlationId: { type: 'string' },
+          },
+        },
+        ModelSummary: {
+          type: 'object',
+          description: 'Summary of a model in the workspace',
+          properties: {
+            uri: { type: 'string', description: 'Document URI' },
+            languageId: { type: 'string', description: 'Language identifier' },
+            displayName: { type: 'string', description: 'File name for display' },
+            version: { type: 'integer', description: 'Document version' },
+            hasErrors: { type: 'boolean', description: 'Whether the model has parse/validation errors' },
+            diagnosticCount: { type: 'integer', description: 'Total number of diagnostics' },
+          },
+          required: ['uri', 'languageId', 'displayName', 'version', 'hasErrors', 'diagnosticCount'],
+        },
+        ModelDetail: {
+          type: 'object',
+          description: 'Detailed model with content and AST',
+          properties: {
+            uri: { type: 'string', description: 'Document URI' },
+            languageId: { type: 'string', description: 'Language identifier' },
+            displayName: { type: 'string', description: 'File name for display' },
+            version: { type: 'integer', description: 'Document version' },
+            hasErrors: { type: 'boolean', description: 'Whether the model has parse/validation errors' },
+            diagnosticCount: { type: 'integer', description: 'Total number of diagnostics' },
+            content: { type: 'string', description: 'Raw text content of the model' },
+            ast: { type: 'object', description: 'Serialized AST (JSON)' },
+            diagnostics: {
+              type: 'array',
+              description: 'Diagnostic messages',
+              items: {
+                type: 'object',
+                properties: {
+                  severity: { type: 'integer', description: '1=Error, 2=Warning, 3=Info, 4=Hint' },
+                  message: { type: 'string' },
+                  range: { type: 'object', description: 'LSP Range' },
+                },
+              },
+            },
+          },
+          required: ['uri', 'languageId', 'displayName', 'version', 'hasErrors', 'diagnosticCount', 'content', 'ast', 'diagnostics'],
+        },
+        CreateModelRequest: {
+          type: 'object',
+          description: 'Request body for creating a new model',
+          required: ['languageId', 'name'],
+          properties: {
+            languageId: { type: 'string', description: 'Target language identifier (e.g., "ecml")' },
+            name: { type: 'string', description: 'Model name (used for file name and template substitution)' },
+            content: { type: 'string', description: 'Optional content. If omitted, generated from root type template.' },
+            rootType: { type: 'string', description: 'Optional root type AST name. Defaults to first rootType in manifest.' },
+          },
+        },
+        UpdateModelRequest: {
+          type: 'object',
+          description: 'Request body for updating model content',
+          required: ['content'],
+          properties: {
+            content: { type: 'string', description: 'New content for the model file' },
           },
         },
       },

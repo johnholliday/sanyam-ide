@@ -82,6 +82,13 @@ export class ElementPaletteService implements IElementPaletteService {
 
     protected readonly onStateChangedEmitter = new Emitter<ElementPaletteState>();
 
+    /**
+     * Cached reference to the active diagram editor widget.
+     * Passed as argument when executing commands so that command handlers
+     * can find the diagram even when the palette sidebar has focus.
+     */
+    protected activeDiagramWidget: unknown;
+
     protected _state: ElementPaletteState = {
         groups: [],
         expandedCategories: new Set<string>(),
@@ -111,6 +118,7 @@ export class ElementPaletteService implements IElementPaletteService {
         this.shell.onDidChangeCurrentWidget(event => {
             const widget = event.newValue;
             if (isDiagramEditorWidget(widget)) {
+                this.activeDiagramWidget = widget;
                 const uri = widget.uri?.toString();
                 if (uri && uri !== this._state.activeDiagramUri) {
                     this.updateActiveDiagram(uri);
@@ -121,6 +129,7 @@ export class ElementPaletteService implements IElementPaletteService {
         // Check if there's already an active diagram widget
         const currentWidget = this.shell.currentWidget;
         if (isDiagramEditorWidget(currentWidget)) {
+            this.activeDiagramWidget = currentWidget;
             const uri = currentWidget.uri?.toString();
             if (uri) {
                 this.updateActiveDiagram(uri);
@@ -269,7 +278,9 @@ export class ElementPaletteService implements IElementPaletteService {
      */
     async executeCommand(commandId: string): Promise<void> {
         try {
-            await this.commandService.executeCommand(commandId);
+            // Pass the active diagram widget so command handlers can find the
+            // diagram even though the palette sidebar currently has focus.
+            await this.commandService.executeCommand(commandId, this.activeDiagramWidget);
         } catch (error) {
             this.logger.error({ error, commandId }, 'Failed to execute command from palette');
             this.messageService.error(`Failed to execute command: ${commandId}`);

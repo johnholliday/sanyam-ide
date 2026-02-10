@@ -327,6 +327,8 @@ export async function createLanguageServer(
             registry: operationRegistry,
             jobManager,
             documentResolver,
+            sharedServices,
+            languageRegistry: registry,
             isReady: () => initialized,
           });
 
@@ -461,7 +463,7 @@ export async function createLanguageServer(
     if (!shared) return null;
 
     const uri = URI.parse(params.textDocument.uri);
-    const document = await shared.workspace.LangiumDocuments.getOrCreateDocument(uri, token);
+    const document = shared.workspace.LangiumDocuments.getDocument(uri);
     if (!document) return null;
 
     try {

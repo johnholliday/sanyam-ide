@@ -12,14 +12,17 @@ import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import { execSync } from 'node:child_process';
 import net from 'node:net';
+import type { LangiumSharedCoreServices } from 'langium';
 import type { OperationExecutor } from '../operations/operation-executor.js';
 import type { OperationRegistry } from '../operations/operation-registry.js';
 import type { JobManager } from '../operations/job-manager.js';
 import type { UnifiedDocumentResolver } from '../services/document-resolver.js';
+import type { LanguageRegistry } from '../language-registry.js';
 import { createOperationsRoutes } from './routes/operations.js';
 import { createJobsRoutes } from './routes/jobs.js';
 import { createHealthRoutes } from './routes/health.js';
 import { createDocsRoutes } from './routes/docs.js';
+import { createModelsRoutes } from './routes/models.js';
 import { correlationMiddleware } from './middleware/correlation.js';
 import { authMiddleware, type AuthConfig } from './middleware/auth.js';
 import { createLogger } from '@sanyam/logger';
@@ -59,6 +62,12 @@ export interface HttpServerDependencies {
 
   /** Document resolver */
   documentResolver: UnifiedDocumentResolver;
+
+  /** Langium shared core services for workspace access */
+  sharedServices: LangiumSharedCoreServices;
+
+  /** Language registry for metadata lookups */
+  languageRegistry: LanguageRegistry;
 
   /** Ready check function */
   isReady: () => boolean;
@@ -187,10 +196,16 @@ export function createHttpServer(
   const operationsRoutes = createOperationsRoutes(deps.executor, deps.registry);
   const jobsRoutes = createJobsRoutes(deps.jobManager);
   const docsRoutes = createDocsRoutes(deps.registry, undefined, '/api');
+  const modelsRoutes = createModelsRoutes({
+    sharedServices: deps.sharedServices,
+    languageRegistry: deps.languageRegistry,
+    workspaceRoot: deps.documentResolver.getWorkspaceRoot(),
+  });
 
   // All routes under /api for consistent proxy routing
   app.route('/api', healthRoutes);        // /api/health, /api/ready, /api/version
   app.route('/api', docsRoutes);          // /api/docs, /api/openapi.json
+  app.route('/api', modelsRoutes);        // /api/models (CRUD)
   app.route('/api/v1', operationsRoutes); // /api/v1/* operations
   app.route('/api/v1/jobs', jobsRoutes);  // /api/v1/jobs/*
 

@@ -10,6 +10,8 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
+import { execSync } from 'node:child_process';
+import net from 'node:net';
 import type { OperationExecutor } from '../operations/operation-executor.js';
 import type { OperationRegistry } from '../operations/operation-registry.js';
 import type { JobManager } from '../operations/job-manager.js';
@@ -77,6 +79,74 @@ export interface HttpServerInstance {
 
   /** Get the port the server is listening on */
   getPort: () => number;
+}
+
+/**
+ * Check whether a TCP port is currently in use.
+ *
+ * @param port - Port number to probe
+ * @returns true if something is listening on the port
+ */
+function isPortInUse(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.createConnection({ port, host: '127.0.0.1' });
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once('error', () => {
+      resolve(false);
+    });
+  });
+}
+
+/**
+ * Kill any stale process occupying the given port so this server can bind.
+ *
+ * Only kills processes whose command line indicates they are a sanyam language
+ * server (`main.js`). Other processes are left alone.
+ *
+ * @param port - Port number to reclaim
+ */
+async function reclaimPort(port: number): Promise<void> {
+  if (!(await isPortInUse(port))) {
+    return;
+  }
+
+  logger.warn({ port }, `Port ${port} occupied by another process, attempting to reclaim`);
+
+  try {
+    // Find the PID occupying the port
+    const pidOutput = execSync(`fuser ${port}/tcp 2>/dev/null`, { encoding: 'utf-8' }).trim();
+    const pids = pidOutput.split(/\s+/).filter(Boolean);
+
+    for (const pidStr of pids) {
+      const pid = parseInt(pidStr, 10);
+      if (isNaN(pid) || pid === process.pid) {
+        continue;
+      }
+
+      // Verify it's a sanyam language server process before killing
+      try {
+        const cmdline = execSync(`ps -p ${pid} -o args=`, { encoding: 'utf-8' }).trim();
+        if (!cmdline.includes('main.js') || !cmdline.includes('node')) {
+          logger.warn({ port, pid, cmdline }, 'Port occupied by non-sanyam process, skipping');
+          continue;
+        }
+
+        logger.info({ port, pid }, 'Killing stale language server process');
+        process.kill(pid, 'SIGTERM');
+      } catch {
+        // Process may have already exited
+      }
+    }
+
+    // Wait briefly for port to be released
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  } catch {
+    // fuser not available or no process found — continue and let bind fail naturally
+    logger.debug({ port }, 'Could not reclaim port (fuser unavailable or no process found)');
+  }
 }
 
 /**
@@ -158,6 +228,9 @@ export function createHttpServer(
     app,
 
     async start() {
+      // Kill any stale language server process occupying the port
+      await reclaimPort(port);
+
       return new Promise<void>((resolve) => {
         try {
           server = serve({
@@ -174,7 +247,7 @@ export function createHttpServer(
             if (err.code === 'EADDRINUSE') {
               logger.warn(
                 { port, host },
-                `Port ${port} already in use. REST API disabled. Kill the existing process or set SANYAM_API_PORT to use a different port.`
+                `Port ${port} already in use after reclaim attempt. REST API disabled. Kill the existing process or set SANYAM_API_PORT to use a different port.`
               );
               server = null;
               resolve(); // Continue without REST API

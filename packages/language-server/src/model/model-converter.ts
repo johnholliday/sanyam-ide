@@ -23,6 +23,9 @@ const INTERNAL_PROPERTIES = new Set([
   '$containerIndex',
   '$document',
   '$cstNode',
+  '$refNode',
+  '$refText',
+  '$nodeDescription',
 ]);
 
 /**
@@ -182,8 +185,8 @@ export class ModelConverter {
     ctx.depth++;
 
     for (const [key, value] of Object.entries(obj)) {
-      // Skip internal Langium properties
-      if (INTERNAL_PROPERTIES.has(key)) {
+      // Skip internal Langium properties ($-prefixed non-identity, _-prefixed private)
+      if (INTERNAL_PROPERTIES.has(key) || (key.startsWith('_') && key.length > 1)) {
         continue;
       }
 

@@ -241,7 +241,10 @@ export class SanyamLabelView implements IView {
         // Detection by ID suffix because the model factory normalizes
         // 'label:heading' to 'label' for view lookup.
         if (label.id.endsWith('_header_label')) {
-            return h('text', { class: cssClasses }, text);
+            return h('text', {
+                class: cssClasses,
+                attrs: { x: 0, y: 0 }
+            }, text);
         }
 
         // Word-wrap: split text into lines that fit within LABEL_MAX_WIDTH

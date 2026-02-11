@@ -652,6 +652,7 @@ circle.sprotty-port.mouseover {
 .sanyam-container-node text.sprotty-label {
     font-weight: 600;
     font-size: 14px;
+    text-anchor: start !important;
 }
 
 /* Container node icon (codicon font) */

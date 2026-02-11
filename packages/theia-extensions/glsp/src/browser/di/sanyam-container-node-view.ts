@@ -205,24 +205,15 @@ export class SanyamContainerNodeView implements IView {
                             attrs: { transform: `translate(${buttonX}, ${(HEADER_HEIGHT - ICON_SIZE) / 2})` },
                         }, [vnode]));
                     } else {
-                        // Heading label: render directly as SVG <text> with
-                        // explicit positioning (same pattern as the icon).
-                        // We bypass context.renderElement() to avoid
-                        // LocationPostprocessor/IdPostprocessor interference.
-                        // The .sprotty-label class provides theme-aware fill
-                        // color via CSS variables.
+                        // Heading label: render as raw SVG <text> directly without wrapper
                         let labelText = (headerChild as any).text ?? '';
                         if (labelText.startsWith('"') && labelText.endsWith('"') && labelText.length >= 2) {
                             labelText = labelText.slice(1, -1);
                         }
                         // SVG <text> y is the BASELINE, not the top.  For 14px
-                        // text in a 32px header, baseline ≈ 22 centers visually
-                        // (matching the icon at y=22).
+                        // text in a 32px header, baseline ≈ 22 centers visually.
                         headerVNodes.push(h('text.sprotty-label', {
-                            attrs: {
-                                x: labelX,
-                                y: 22,
-                            },
+                            attrs: { x: labelX, y: 22, 'text-anchor': 'start' }
                         }, labelText));
                     }
                 }
@@ -254,6 +245,9 @@ export class SanyamContainerNodeView implements IView {
             svgChildren.push(...bodyVNodes);
         }
         svgChildren.push(...portVNodes);
+
+        // Let Sprotty's LocationPostprocessor apply the position transform.
+        // DO NOT manually set transform attribute - it will conflict with the postprocessor.
 
         return h('g', {
             class: classMap,

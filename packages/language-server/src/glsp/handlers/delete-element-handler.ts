@@ -198,7 +198,7 @@ export const deleteElementHandler = {
       context.metadata.positions?.delete(elementId);
       context.metadata.sizes?.delete(elementId);
       context.metadata.routingPoints?.delete(elementId);
-      context.metadata.collapsed?.delete(elementId);
+      context.metadata.expanded?.delete(elementId);
     }
   },
 

@@ -340,13 +340,28 @@ export function createEdge(
 
 /**
  * Helper to create a label element.
+ *
+ * Provides an estimated size based on text length so that ELK can position
+ * the label correctly (e.g. INSIDE V_CENTER H_CENTER).  Without a reasonable
+ * size, Sprotty's default {width: -1, height: -1} reaches ELK as negative
+ * dimensions, producing incorrect label placement.
  */
 export function createLabel(id: string, text: string, type?: string): GModelLabel {
+  // Strip surrounding quotes for width estimation (view also strips them)
+  let displayText = text;
+  if (displayText.startsWith('"') && displayText.endsWith('"') && displayText.length >= 2) {
+    displayText = displayText.slice(1, -1);
+  }
+  const CHAR_WIDTH = 10;  // ~10px per char at 18px font
+  const LINE_HEIGHT = 24; // single-line height
+  const estimatedWidth = Math.max(displayText.length * CHAR_WIDTH, 20);
   return {
     id,
     type: type ?? ElementTypes.LABEL_TEXT,
     text,
-  };
+    position: { x: 0, y: 0 },
+    size: { width: estimatedWidth, height: LINE_HEIGHT },
+  } as GModelLabel & { position: Point; size: Dimension };
 }
 
 /**
@@ -362,6 +377,21 @@ export function createCompartment(
     type,
     layout,
     children: [],
+  };
+}
+
+/**
+ * Helper to create a button element.
+ */
+export function createButton(
+  id: string,
+  type: string,
+  enabled: boolean = true
+): GModelButton {
+  return {
+    id,
+    type,
+    enabled,
   };
 }
 

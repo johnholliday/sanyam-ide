@@ -44,3 +44,4 @@ applications/*/src/language-server/grammars.ts
 /playwright-report/
 /test-results/
 /blob-report/
+.vscode/extensions.json

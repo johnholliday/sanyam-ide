@@ -1,43 +1,42 @@
 
 ---- The system must remember the previous layout and restore it automatically if available from the cache.
 
-----
-The grammar-specific diagram styling must support 'ports' for certain entity types, with grammar-specific rules for the kinds of connections that are allowed between diagram nodes.
-
-----
-The diagram edges are of two types.  Entity<->Entity and Entity->Child.  Entity<->Entity relationships are rendered as edges.  Entity->Child relationships should be rendered by default as containers with the child nodes inside, but can also be rendered as edges (based on a user preference setting).  Ensure that container nodes can be expanded/collapsed to show/hide child nodes.
-
-----
-Add a Supabase Authentication package (packages/theia-extensions/supabase-auth) that allows the user to login to the application using supabase credentials.  The credentials are stored securely and can be used to validate permissions for access to licensed operations.
-
 -----
-The auto-layout function may be grammar-specific, with a preferred layout style.
-Explore how to specify this declaratively as part of the grammar manifest, perhaps using a JSON schema.
+The auto-layout function may be grammar-specific, with a preferred ELK layout style.
+Explore how to specify this declaratively as part of the grammar manifest.
 
 -----
 Wire up a canvas double-click handler that opens a quick-pick or mini-menu at the click position. This is how tools like Miro and FigJam work — very low friction.
 
 -----
-In response to an API query to get the list of available models, the API should search for all documents in the active Langium workspace.
+Editing property values in the properties panel fails to update the model in the text editor or in the diagram canvas.
 
 -----
-Editing property values in the properties panel does not update the model in the text editor or in the diagram canvas.
+When a long operation is invoked (such as a large diagram being loaded), the VS Code progress bar is not visible.
 
 -----
-When the diagram is being loaded, the VS Code progress bar is not visible.
+Reduce the opacity of the minimap background to 75%.
 
 -----
+Switch from WebPack to RsPack to speed up builds and avoid bundle cacheing.
+
+-----
+Add an option for animated dashed edges.
+
+----- Property Hierarchy
 Add expand/collapse button on parent nodes in the property view.
 Indent child nodes in the property view.
 
------
-Eliminate the Toggle Arrows command entirely, since that is controls by the layout itself.  Configure the Edge Jumps and Snap to Grid commands as new User Preferences options instead of toggle buttons.
-
 ----- Forms
-The IDE will need dynamic forms support.  A given user may want to use a set of custom forms to gather raw data, text files containing notes, Excel spreadsheet, PDFs, DOCX, PowerPoints, etc.  The IDE can include a SurveyJS Form designer they can use to collect the information directly from within the IDE and then save the data to their project file.
+Add dynamic forms support in a licensable @sanyam/forms package and enables users to create one or more custom SurveyJS forms to gather raw JSON data and save it as part of a project.  This is implemented using the SurveyJS forms editor package, which requires a license key.  Suggest the best way to secure the key in production at runtime, since it must be embedded in the bundled app or retrieved from a docuGenix key vault.
 
------ Import+Conversion
-At any point, the user can ingest a data file and use the integrated AI support to generate a grammar file (having the same base name as the data file) that expresses the same information, but following the grammar syntax.  These grammar files can then be referenced from other grammar files as part of the overall model.
+----- Import
+Add a licensed runtime import package (@sanyam/import-core) that use the integrated AI support to read a JSON or Markdown data file to produce a validated grammar file that captures the semantic content of the imported data.
 
------ Projects
-This introduces the notion of a "project" that may comprise several model files, which are managed as a group and which can form the basis for various group-level operations, such as generating a graphical dashboard with an integrated pivot table for analyzing properties over time, or slicing and dicing the aggregate data across multiple projects.  The key insight is that the analysis is performed dynamically and produces a JSON data file that conforms to a common schema + custom schema extensions based on the target domain (grammar definition).
+Add a licensed import package for Microsoft Word and Excel files (@sanyam/import-msoffice).  Requires @sanyam/import-core for AI integration and import utility functions.
+
+----- misc
+double-clicking a node in the diagram should shift focus to the text editor (making it visible if necessary), and then navigate to the corresponding object in the text editor
+
+----- Context Menus
+Add grammar-driven context menus to diagram nodes that present both generic commands and custom operations that are relevant to each specific node type.  Generic commands include cut/copy/paste/print/goto source.  Custom operations include the ability to insert child objects (filtered by valid child types).

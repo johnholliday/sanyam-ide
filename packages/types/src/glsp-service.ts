@@ -617,6 +617,19 @@ export interface SanyamGlspService {
      * @returns Command execution result
      */
     executeCommand(command: string, args: unknown[]): Promise<unknown>;
+
+    /**
+     * Set the collapsed state of a container node.
+     *
+     * Toggles the expand/collapse state and regenerates the model
+     * with the updated collapsed set.
+     *
+     * @param uri - File URI
+     * @param elementId - ID of the container element
+     * @param collapsed - Whether the element should be collapsed
+     * @returns Updated model response
+     */
+    setCollapsed(uri: string, elementId: string, collapsed: boolean): Promise<LoadModelResponse>;
 }
 
 /**

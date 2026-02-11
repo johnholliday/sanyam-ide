@@ -87,8 +87,8 @@ export interface ModelMetadata {
   sizes: Map<string, Dimension>;
   /** Edge routing points by ID */
   routingPoints: Map<string, Point[]>;
-  /** Collapsed state by ID */
-  collapsed: Set<string>;
+  /** Explicitly expanded container IDs (containers are collapsed by default) */
+  expanded: Set<string>;
   /** Source ranges by element ID (LSP line/character positions from CST nodes) */
   sourceRanges?: Map<string, { start: { line: number; character: number }; end: { line: number; character: number } }>;
 }

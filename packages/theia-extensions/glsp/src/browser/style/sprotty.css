@@ -418,6 +418,11 @@ text.sprotty-label {
     font-size: 18px;
 }
 
+/* Edge labels - smaller font for readability */
+.sprotty-edge text.sprotty-label {
+    font-size: 12px;
+}
+
 /* Selection feedback - rect/circle with selected class */
 rect.sprotty-node.selected,
 circle.sprotty-node.selected,
@@ -576,6 +581,110 @@ circle.sprotty-port.mouseover {
 
 .sanyam-compartment-header {
     font-weight: 600;
+}
+
+/* ============================================
+   Container Node Styles (Expand/Collapse)
+   ============================================ */
+
+/* Container node group */
+.sanyam-container-node {
+    cursor: pointer;
+}
+
+/* Container outer rect - the full body background */
+.sanyam-container-body {
+    fill: var(--theia-editor-background, #1e1e1e);
+    stroke: var(--theia-foreground, #cccccc);
+    stroke-width: 1px;
+}
+
+/* Container header background - darker shade */
+.sanyam-container-header-bg {
+    fill: var(--theia-sideBar-background, #252526);
+    stroke: none;
+}
+
+/* Separator line between header and body */
+.sanyam-container-separator {
+    stroke: var(--theia-foreground, #cccccc);
+    stroke-width: 0.5px;
+    opacity: 0.5;
+}
+
+/* Selection state for container nodes */
+.sanyam-container-node.selected .sanyam-container-body {
+    stroke: var(--theia-focusBorder, #007fd4);
+    stroke-width: 2px;
+}
+
+/* Hover state for container nodes */
+.sanyam-container-node.mouseover .sanyam-container-body {
+    stroke: var(--theia-list-hoverForeground, #ffffff);
+}
+
+/* Collapsed state */
+.sanyam-container-node.collapsed .sanyam-container-body {
+    opacity: 0.85;
+}
+
+/* Expand/collapse button styling */
+.sanyam-container-node .sprotty-button {
+    cursor: pointer;
+}
+
+.sanyam-container-node .sprotty-button rect {
+    fill: transparent;
+    stroke: none;
+}
+
+.sanyam-container-node .sprotty-button text,
+.sanyam-container-node .sprotty-button polygon {
+    fill: var(--theia-foreground, #cccccc);
+}
+
+.sanyam-container-node .sprotty-button:hover text,
+.sanyam-container-node .sprotty-button:hover polygon {
+    fill: var(--theia-focusBorder, #007fd4);
+}
+
+/* Container heading label */
+.sanyam-container-node text.sprotty-label {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Container node icon (codicon font) */
+.sanyam-container-icon {
+    font-family: 'codicon';
+    font-size: 16px;
+    fill: var(--theia-foreground, #cccccc);
+    opacity: 0.7;
+}
+
+/* Light theme adjustments for container nodes */
+.theia-light .sanyam-container-body {
+    fill: var(--theia-editor-background, #ffffff);
+    stroke: var(--theia-foreground, #616161);
+}
+
+.theia-light .sanyam-container-header-bg {
+    fill: var(--theia-sideBar-background, #f3f3f3);
+}
+
+.theia-light .sanyam-container-separator {
+    stroke: var(--theia-foreground, #616161);
+}
+
+/* High contrast theme adjustments for container nodes */
+.theia-hcDark .sanyam-container-body,
+.theia-hcLight .sanyam-container-body {
+    stroke-width: 2px;
+}
+
+.theia-hcDark .sanyam-container-node.selected .sanyam-container-body,
+.theia-hcLight .sanyam-container-node.selected .sanyam-container-body {
+    stroke-width: 3px;
 }
 
 /* ============================================

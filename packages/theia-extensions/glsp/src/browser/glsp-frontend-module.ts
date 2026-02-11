@@ -149,7 +149,14 @@ class CompositeAwareMonacoOutlineContribution extends MonacoOutlineContribution 
             // Let DiagramOutlineContribution handle navigation in composite editors
             return;
         }
-        return super.selectInEditor(node as never, options as never);
+        try {
+            return await super.selectInEditor(node as never, options as never);
+        } catch {
+            // During shell layout restoration the outline tree may fire selection
+            // changes before the Monaco editor is fully restored, causing the
+            // underlying TextModel to be disposed. Silently ignore — the editor
+            // will sync once it finishes initializing.
+        }
     }
 }
 

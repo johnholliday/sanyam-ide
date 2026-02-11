@@ -85,7 +85,7 @@ export function createModelState(document: LangiumDocument): ModelState {
       positions: new Map(),
       sizes: new Map(),
       routingPoints: new Map(),
-      collapsed: new Set(),
+      expanded: new Set(),
     },
   };
 }

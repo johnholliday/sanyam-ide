@@ -108,8 +108,18 @@ export class SanyamModelFactory extends SModelFactory {
     private createNormalizedSchema(schema: SModelElement, normalizedType: string, originalType: string): SModelElement {
         const normalizedSchema: any = { ...schema, type: normalizedType };
 
+        // Detect container nodes: nodes with 'sanyam-container' CSS class
+        const isContainer = this.isNodeType(originalType) &&
+            Array.isArray(normalizedSchema.cssClasses) &&
+            normalizedSchema.cssClasses.includes('sanyam-container');
+
+        if (isContainer) {
+            // Container nodes get their own type for view lookup
+            normalizedSchema.type = 'node:container';
+        }
+
         // Preserve original type for CSS targeting
-        if (this.isNodeType(originalType)) {
+        if (this.isNodeType(originalType) && !this.isButtonType(originalType)) {
             normalizedSchema.nodeType = originalType;
             // Add CSS class based on original type
             const cssClass = originalType.replace(':', '-');
@@ -137,6 +147,10 @@ export class SanyamModelFactory extends SModelFactory {
      * Maps grammar-specific types to base types that have registered views.
      */
     protected normalizeTypeForView(type: string): string {
+        // Button types pass through — they need exact type match for handler registration
+        if (this.isButtonType(type)) {
+            return type;
+        }
         if (this.isNodeType(type)) {
             return 'node';
         }
@@ -156,6 +170,13 @@ export class SanyamModelFactory extends SModelFactory {
     }
 
     /**
+     * Check if type represents a button.
+     */
+    protected isButtonType(type: string): boolean {
+        return type === 'button' || type.startsWith('button:');
+    }
+
+    /**
      * Check if type represents a node.
      */
     protected isNodeType(type: string): boolean {
@@ -168,6 +189,7 @@ export class SanyamModelFactory extends SModelFactory {
             !this.isLabelType(type) &&
             !this.isCompartmentType(type) &&
             !this.isPortType(type) &&
+            !this.isButtonType(type) &&
             type !== 'graph') {
             return true;
         }

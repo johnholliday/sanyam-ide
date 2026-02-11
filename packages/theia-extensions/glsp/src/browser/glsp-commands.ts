@@ -253,31 +253,31 @@ export class GlspDiagramCommands implements CommandContribution {
     // Close diagram view
     registry.registerCommand(DiagramCommands.CLOSE_DIAGRAM, {
       execute: () => this.closeDiagram(),
-      isEnabled: () => this.hasDiagramFocus(),
-      isVisible: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
+      isVisible: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     // Refresh diagram - accept widget argument from toolbar
     registry.registerCommand(DiagramCommands.REFRESH_DIAGRAM, {
       execute: (...args: unknown[]) => this.refreshDiagram(this.extractWidgetFromArgs(args)),
-      isEnabled: () => this.hasDiagramFocus(),
-      isVisible: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
+      isVisible: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     // Zoom commands - accept widget argument from toolbar
     registry.registerCommand(DiagramCommands.ZOOM_TO_FIT, {
       execute: (...args: unknown[]) => this.zoomToFit(this.extractWidgetFromArgs(args)),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     registry.registerCommand(DiagramCommands.ZOOM_IN, {
       execute: (...args: unknown[]) => this.zoomIn(this.extractWidgetFromArgs(args)),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     registry.registerCommand(DiagramCommands.ZOOM_OUT, {
       execute: (...args: unknown[]) => this.zoomOut(this.extractWidgetFromArgs(args)),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     // Delete selected
@@ -289,45 +289,45 @@ export class GlspDiagramCommands implements CommandContribution {
     // Select all
     registry.registerCommand(DiagramCommands.SELECT_ALL, {
       execute: () => this.selectAll(),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     // Auto-layout - accept widget argument from toolbar
     registry.registerCommand(DiagramCommands.LAYOUT_DIAGRAM, {
       execute: (...args: unknown[]) => this.layoutDiagram(this.extractWidgetFromArgs(args)),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     // Export commands - accept widget argument from toolbar
     registry.registerCommand(DiagramCommands.EXPORT_SVG, {
       execute: (...args: unknown[]) => this.exportSvg(this.extractWidgetFromArgs(args)),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     registry.registerCommand(DiagramCommands.EXPORT_PNG, {
       execute: (...args: unknown[]) => this.exportPng(this.extractWidgetFromArgs(args)),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     registry.registerCommand(DiagramCommands.EXPORT_JSON, {
       execute: (...args: unknown[]) => this.exportJson(this.extractWidgetFromArgs(args)),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     registry.registerCommand(DiagramCommands.EXPORT_MARKDOWN, {
       execute: (...args: unknown[]) => this.exportMarkdown(this.extractWidgetFromArgs(args)),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     // View commands - accept widget argument from toolbar
     registry.registerCommand(DiagramCommands.CENTER_VIEW, {
       execute: (...args: unknown[]) => this.centerView(this.extractWidgetFromArgs(args)),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     registry.registerCommand(DiagramCommands.TOGGLE_GRID, {
       execute: () => this.toggleGrid(),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     // Alignment commands
@@ -336,19 +336,19 @@ export class GlspDiagramCommands implements CommandContribution {
     // Toggle minimap - accept widget argument from toolbar
     registry.registerCommand(DiagramCommands.TOGGLE_MINIMAP, {
       execute: (...args: unknown[]) => this.toggleMinimap(this.extractWidgetFromArgs(args)),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     // Marquee selection
     registry.registerCommand(DiagramCommands.MARQUEE_SELECT, {
       execute: () => this.enableMarqueeSelect(),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
     });
 
     // Toggle snap-to-grid
     registry.registerCommand(DiagramCommands.TOGGLE_SNAP_TO_GRID, {
       execute: (...args: unknown[]) => this.toggleSnapToGrid(this.extractWidgetFromArgs(args)),
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
       isToggled: () => this.isSnapToGridEnabled(),
     });
 
@@ -374,7 +374,7 @@ export class GlspDiagramCommands implements CommandContribution {
           });
         }
       },
-      isEnabled: () => this.hasDiagramFocus(),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
       isToggled: () => this.edgeRoutingService.currentMode === mode,
     });
   }
@@ -470,8 +470,23 @@ export class GlspDiagramCommands implements CommandContribution {
    * Check if a diagram has focus.
    * Returns true for both standalone diagram widgets and composite editors showing diagram view.
    * Uses cached widget as fallback when shell.activeWidget is undefined.
+   * Accepts optional command args — if a widget is passed (e.g. from palette or toolbar),
+   * it is checked first before falling back to shell.activeWidget.
    */
-  protected hasDiagramFocus(): boolean {
+  protected hasDiagramFocus(...args: unknown[]): boolean {
+    // Check if a diagram widget was passed as a command argument (from palette or toolbar)
+    const widgetFromArgs = this.extractWidgetFromArgs(args);
+    if (widgetFromArgs) {
+      if (widgetFromArgs instanceof DiagramWidget && !widgetFromArgs.isDisposed) {
+        this.lastKnownDiagramWidget = widgetFromArgs;
+        return true;
+      }
+      if (widgetFromArgs instanceof CompositeEditorWidget && !widgetFromArgs.isDisposed) {
+        this.lastKnownCompositeWidget = widgetFromArgs;
+        return true;
+      }
+    }
+
     let widget = this.shell.activeWidget;
 
     // If activeWidget is undefined, use cached fallback

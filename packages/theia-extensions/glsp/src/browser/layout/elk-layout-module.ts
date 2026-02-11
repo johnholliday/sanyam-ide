@@ -25,8 +25,6 @@ import {
     IElementFilter,
     DefaultLayoutConfigurator,
     DefaultElementFilter,
-    ILayoutPreprocessor,
-    ILayoutPostprocessor,
 } from 'sprotty-elk';
 import ElkConstructor from 'elkjs/lib/elk.bundled.js';
 import { TYPES, configureActionHandler } from 'sprotty';
@@ -132,16 +130,82 @@ export class SanyamLayoutConfigurator extends DefaultLayoutConfigurator {
 
     /**
      * Configure node-specific layout options.
+     *
+     * Detects compound nodes (container nodes with compartment children)
+     * and applies larger minimum size and extra top padding for the header bar.
      */
     protected override nodeOptions(
         snode: SNode,
         index: SModelIndex
     ): LayoutOptions | undefined {
-        // Nodes should have consistent sizing
+        // Detect compound nodes via the 'sanyam-container' CSS class.
+        // NOTE: We cannot check child types like 'compartment:header' because
+        // the model factory normalizes them to 'compartment' before ELK sees them.
+        const isCompound = Array.isArray((snode as any).cssClasses) &&
+            (snode as any).cssClasses.includes('sanyam-container');
+
+        if (isCompound) {
+            const isCollapsed = Array.isArray((snode as any).cssClasses) &&
+                (snode as any).cssClasses.includes('collapsed');
+
+            // Compute minimum width from header label text so the label is
+            // never clipped. Header layout:
+            //   [pad 8] [icon 16] [gap 6] [label ...] [gap 6] [button 16] [pad 8] = 60 + label
+            const HEADER_FIXED_WIDTH = 60;
+            const CHAR_WIDTH_ESTIMATE = 10; // conservative estimate for 14px font-weight:600
+            const headerComp = (snode.children ?? []).find(
+                (c: any) => c.id?.endsWith('_header')
+            );
+            let labelText = '';
+            if (headerComp && Array.isArray((headerComp as any).children)) {
+                const label = (headerComp as any).children.find(
+                    (c: any) => c.type?.includes('label')
+                );
+                if (label?.text) {
+                    labelText = label.text as string;
+                    // Strip surrounding quotes (matching the view's logic)
+                    if (labelText.startsWith('"') && labelText.endsWith('"') && labelText.length >= 2) {
+                        labelText = labelText.slice(1, -1);
+                    }
+                }
+            }
+            const labelMinWidth = Math.ceil(
+                HEADER_FIXED_WIDTH + Math.max(labelText.length, 3) * CHAR_WIDTH_ESTIMATE
+            );
+            const minWidth = Math.max(labelMinWidth, snode.size?.width ?? 160);
+
+            if (isCollapsed) {
+                // Collapsed: leaf node sized to header only
+                return {
+                    'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+                    'elk.nodeSize.minimum': `(${minWidth}, 32)`,
+                    'elk.portConstraints': 'FIXED_SIDE',
+                };
+            }
+
+            // Expanded: compound node — ELK positions children with padding.
+            // Override spacing because the global values (nodeNode: 75, between-layers: 105)
+            // propagate into containers via INCLUDE_CHILDREN and make the body far too tall.
+            return {
+                'elk.nodeSize.constraints': 'MINIMUM_SIZE NODE_LABELS',
+                'elk.nodeSize.minimum': `(${minWidth}, 60)`,
+                'elk.portConstraints': 'FIXED_SIDE',
+                'elk.padding': '[top=40,left=12,bottom=12,right=12]',
+                'elk.nodeLabels.placement': 'INSIDE V_TOP H_LEFT',
+                'elk.spacing.nodeNode': '20',
+                'elk.layered.spacing.nodeNodeBetweenLayers': '40',
+            };
+        }
+
+        // Regular nodes
+        // NOTE: elk.nodeLabels.placement is a PARENT property — it must be set
+        // on the node, NOT on the label (labelOptions() has no effect for this).
+        // NODE_LABELS in the size constraints tells ELK to grow the node to fit labels.
         return {
-            'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+            'elk.nodeSize.constraints': 'MINIMUM_SIZE NODE_LABELS',
             'elk.nodeSize.minimum': '(150, 75)',
             'elk.portConstraints': 'FIXED_SIDE',
+            'elk.nodeLabels.placement': 'INSIDE V_CENTER H_CENTER',
         };
     }
 
@@ -176,8 +240,9 @@ export class SanyamLayoutConfigurator extends DefaultLayoutConfigurator {
         slabel: SLabel,
         index: SModelIndex
     ): LayoutOptions | undefined {
+        // NOTE: elk.nodeLabels.placement is a PARENT property (set on nodes, not labels).
+        // Setting it here has no effect — see nodeOptions() instead.
         return {
-            'elk.nodeLabels.placement': 'INSIDE V_CENTER H_CENTER',
             'elk.edgeLabels.placement': 'CENTER',
         };
     }
@@ -237,12 +302,8 @@ export function createElkLayoutModule(customOptions?: LayoutOptions, edgeRouting
                     layoutConfigurator.setEdgeRoutingService(edgeRoutingService);
                 }
                 logger.info('Got layoutConfigurator');
-                const layoutPreprocessor = ctx.container.isBound(ILayoutPreprocessor)
-                    ? ctx.container.get<any>(ILayoutPreprocessor) : undefined;
-                const layoutPostprocessor = ctx.container.isBound(ILayoutPostprocessor)
-                    ? ctx.container.get<any>(ILayoutPostprocessor) : undefined;
                 logger.info('Creating engine instance...');
-                const engine = new ElkLayoutEngine(elkFactory, elementFilter, layoutConfigurator, layoutPreprocessor, layoutPostprocessor);
+                const engine = new ElkLayoutEngine(elkFactory, elementFilter, layoutConfigurator);
                 logger.info('ElkLayoutEngine created successfully');
                 return engine;
             } catch (error) {

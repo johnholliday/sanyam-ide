@@ -252,7 +252,7 @@ export class LangiumSourceModelStorage {
       positions: new Map(),
       sizes: new Map(),
       routingPoints: new Map(),
-      collapsed: new Set(),
+      expanded: new Set(),
     };
 
     this.metadataCache.set(uri, metadata);
@@ -321,7 +321,7 @@ export class LangiumSourceModelStorage {
       positions: Object.fromEntries(metadata.positions),
       sizes: Object.fromEntries(metadata.sizes),
       routingPoints: Object.fromEntries(metadata.routingPoints),
-      collapsed: Array.from(metadata.collapsed),
+      expanded: Array.from(metadata.expanded),
     };
 
     // Include id registry data for v2 layout format
@@ -345,7 +345,7 @@ export class LangiumSourceModelStorage {
       positions: new Map(Object.entries(data.positions || {})),
       sizes: new Map(Object.entries(data.sizes || {})),
       routingPoints: new Map(Object.entries(data.routingPoints || {})),
-      collapsed: new Set(data.collapsed || []),
+      expanded: new Set(data.expanded || data.collapsed || []),
     };
 
     // Extract id registry data if present (v2 layout format)

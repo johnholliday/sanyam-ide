@@ -304,6 +304,19 @@ export interface DiagramNodeConfig {
    * ```
    */
   readonly ports?: readonly PortConfig[];
+
+  /**
+   * Whether this node type can contain child nodes.
+   *
+   * Container nodes render children inside a body compartment
+   * with an expand/collapse button in the header.
+   *
+   * @example
+   * ```typescript
+   * { glspType: 'node:activity', shape: 'rectangle', isContainer: true, ... }
+   * ```
+   */
+  readonly isContainer?: boolean;
 }
 
 /**

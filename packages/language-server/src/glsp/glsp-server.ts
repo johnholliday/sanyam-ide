@@ -442,6 +442,44 @@ export class GlspServer {
   }
 
   /**
+   * Set the collapsed state of a container node and regenerate the model.
+   *
+   * @param document - The Langium document
+   * @param token - Cancellation token
+   * @param elementId - ID of the container element
+   * @param collapsed - Whether the element should be collapsed
+   * @returns Updated GLSP context with regenerated model
+   */
+  async setCollapsed(
+    document: LangiumDocument,
+    token: CancellationToken,
+    elementId: string,
+    collapsed: boolean
+  ): Promise<GlspContext> {
+    const uri = document.uri.toString();
+    const modelState = this.sourceModelStorage.getModelState(uri);
+    if (modelState) {
+      modelState.setCollapsed(elementId, collapsed);
+    } else {
+      logger.warn({ uri, elementId }, 'No model state found for setCollapsed');
+    }
+
+    // Also update the context factory's model state so the converter sees the
+    // expanded set.  The context factory and source model storage maintain
+    // separate metadata objects; without this, the converter always sees an
+    // empty expanded set and every container stays collapsed.
+    const factoryState = this.contextFactory.getOrCreateModelState(document);
+    if (collapsed) {
+      factoryState.metadata.expanded.delete(elementId);
+    } else {
+      factoryState.metadata.expanded.add(elementId);
+    }
+
+    // Regenerate the model with the updated collapsed state
+    return this.loadModel(document, token);
+  }
+
+  /**
    * Check if a GLSP feature is enabled for a language.
    */
   isFeatureEnabled(

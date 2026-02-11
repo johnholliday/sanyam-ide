@@ -252,6 +252,7 @@ Also scan for diagram-specific tags that apply to individual parser rules. These
 |-----|---------|-------------|
 | `@shape` | `diagramNode.shape` | Shape type: `rectangle`, `rounded`, `hexagon`, `diamond`, `ellipse`, `pill` |
 | `@tooltip` | `diagramNode.tooltip` | Hover tooltip template (supports `${name}` placeholder) |
+| `@container` | `diagramNode.isContainer` | Whether this type can contain child nodes |
 
 **Tag placement**: Tags apply to the rule immediately following them.
 
@@ -270,6 +271,7 @@ entry Model:
 
 // @shape = "hexagon"
 // @tooltip = "Workflow definition: ${name}"
+// @container
 WorkflowDef:
     'workflow' name=ID '{'
         (steps+=Step)*
@@ -293,19 +295,23 @@ For each parser rule, look for preceding comment lines with diagram tags:
 
 ```
 // Regex to find tagged rules (simplified - actual implementation scans line by line)
-/\/\/\s*@(shape|tooltip)\s*=\s*"([^"]+)"\s*\n(?:\/\/[^\n]*\n)*\s*(?:entry\s+)?([A-Z][a-zA-Z0-9]*)\s*:/g
+// Note: @container can be bare (no value) or with = "true". The value group is optional.
+/\/\/\s*@(shape|tooltip|container)\s*(?:=\s*"([^"]+)")?\s*\n(?:\/\/[^\n]*\n)*\s*(?:entry\s+)?([A-Z][a-zA-Z0-9]*)\s*:/g
 ```
 
 **Processing:**
 1. Scan grammar for tagged rules
 2. Build `DiagramMetadata` map: `{ [ruleName]: DiagramRuleMetadata }`
-3. Pass to Step 6 for enhanced diagram configuration
-4. Pass to Step 15 for Sprotty code generation
+3. For `@shape` and `@tooltip`, use the captured value directly
+4. For `@container`: if value is absent or `"true"`, set `container: true`; if `"false"`, set `container: false`
+5. Pass to Step 6 for enhanced diagram configuration
+6. Pass to Step 15 for Sprotty code generation
 
 ```typescript
 interface DiagramRuleMetadata {
   shape?: 'rectangle' | 'rounded' | 'hexagon' | 'diamond' | 'ellipse' | 'pill';
   tooltip?: string;  // Template with ${name} placeholder
+  container?: boolean;  // Whether this type can contain child nodes
 }
 
 type DiagramMetadata = Map<string, DiagramRuleMetadata>;
@@ -316,7 +322,7 @@ type DiagramMetadata = Map<string, DiagramRuleMetadata>;
 ```typescript
 diagramMetadata = new Map([
   ['Model', { shape: 'rounded', tooltip: 'Workflow model: ${name}' }],
-  ['WorkflowDef', { shape: 'hexagon', tooltip: 'Workflow definition: ${name}' }],
+  ['WorkflowDef', { shape: 'hexagon', tooltip: 'Workflow definition: ${name}', container: true }],
   ['Step', { shape: 'rectangle', tooltip: 'Step: ${name}' }],
   ['Decision', { shape: 'diamond', tooltip: 'Decision point' }],
 ]);
@@ -379,9 +385,14 @@ For each rootType, generate corresponding diagram configuration using metadata f
   glspType: `node:${astType.toLowerCase()}`,
   shape: diagramMetadata.get(astType)?.shape ?? deriveShapeFromName(astType),
   cssClass: `${GrammarName}.${astType}`,  // Grammar-qualified class name
-  defaultSize: deriveSizeFromShape(shape),
+  defaultSize: deriveSizeFromShape(shape, isContainer),
   tooltip: diagramMetadata.get(astType)?.tooltip ?? `${displayName}: \${name}`,
+  // Only include isContainer when true (omit when false)
+  ...(isContainer ? { isContainer: true } : {}),
 }
+
+// where isContainer is derived as:
+const isContainer = diagramMetadata.get(astType)?.container ?? deriveIsContainer(astType, ruleText);
 ```
 
 **Shape derivation heuristics** (when no `@shape` tag):
@@ -399,10 +410,29 @@ function deriveShapeFromName(astType: string): NodeShape {
 }
 ```
 
+**Container derivation heuristics** (when no `@container` tag):
+
+```typescript
+function deriveIsContainer(astType: string, ruleText: string): boolean {
+  const name = astType.toLowerCase();
+
+  // Explicit name-based heuristic
+  if (/group|container|package|module|namespace/i.test(name)) return true;
+
+  // Structural heuristic: rule has a block with containment arrays
+  // Matches patterns like: '{' (elements+=X)* '}' or '{' children+=X* '}'
+  if (/\{\s*\(?\s*\w+\s*\+=\s*\w+\s*\)\s*\*/.test(ruleText)) return true;
+
+  return false;
+}
+```
+
 **Size derivation:**
 
 ```typescript
-function deriveSizeFromShape(shape: NodeShape): { width: number; height: number } {
+function deriveSizeFromShape(shape: NodeShape, isContainer?: boolean): { width: number; height: number } {
+  if (isContainer) return { width: 280, height: 180 };
+
   switch (shape) {
     case 'diamond': return { width: 100, height: 100 };
     case 'ellipse': return { width: 120, height: 80 };
@@ -574,6 +604,7 @@ export const manifest: GrammarManifest = {
         shape: 'rectangle',
         cssClass: '{lowercase}-node',
         defaultSize: { width: 150, height: 60 },
+        // isContainer: true,  ← only present when derived as container
       },
     },
     // ... additional rootTypes
@@ -927,7 +958,7 @@ Diagramming: Enabled (built-in views with CSS styling)
 Logo: Auto-generated (bundled to assets/logos/{languageId}.svg by webpack)
 
 Diagram shapes:
-{list of rootType → shape mappings}
+{list of rootType → shape mappings, with (container) annotation where applicable}
 
 Next steps:
 1. Select this grammar for the applications:
@@ -947,7 +978,7 @@ Next steps:
    - Re-run /grammar.config {name} to sync changes and regenerate diagram code
 
 4. To customize diagram appearance:
-   - Add @shape, @tooltip tags to grammar rules
+   - Add @shape, @tooltip, @container tags to grammar rules
    - Edit src/diagram/styles.css for color/styling customization
    - CSS uses grammar-qualified selectors: .{GrammarName}.{RuleName}
    - Built-in Sprotty views (RectangularNodeView, PolylineEdgeView) are used
@@ -1863,6 +1894,7 @@ interface LanguageContribution {
 interface DiagramRuleMetadata {
   shape?: 'rectangle' | 'rounded' | 'hexagon' | 'diamond' | 'ellipse' | 'pill';
   tooltip?: string;  // Template with ${name} placeholder
+  container?: boolean;  // Whether this type can contain child nodes
 }
 
 type DiagramMetadata = Map<string, DiagramRuleMetadata>;

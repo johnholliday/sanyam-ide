@@ -43,6 +43,9 @@ import { EdgeRoutingService } from './layout';
 // Layout storage
 import { DiagramLayoutStorageService, type ElementLayout, type DiagramLayout, type DiagramLayoutV3, type DiagramViewState } from './layout-storage-service';
 
+// Resize handles
+import { ResizeHandlesExtension, RESIZE_HANDLES_ID } from './ui-extensions/resize';
+
 /**
  * Factory ID for diagram widgets.
  * Re-exported from @sanyam/types for backwards compatibility.
@@ -207,6 +210,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
     /** Queued model to process after current setModel completes (queue-latest pattern) */
     protected pendingModel: GModelRootType | undefined;
+
+    /** Flag indicating an expand/collapse triggered the current layout */
+    protected expandCollapseInProgress = false;
 
     /** Flag indicating whether the initial layout+fitToScreen has been completed */
     protected initialLayoutDone = false;
@@ -380,6 +386,68 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             }
             // Set the model
             await this.setModel(update.gModel);
+        }
+    }
+
+    /**
+     * Handle a collapse/expand action from the expand/collapse button.
+     *
+     * Sends the new collapsed state to the backend which regenerates the
+     * model with the container's body compartment either present or absent.
+     *
+     * @param elementId - The container element ID
+     * @param collapsed - Whether the container should be collapsed
+     */
+    protected async handleCollapseExpand(elementId: string, collapsed: boolean): Promise<void> {
+        if (!this.diagramLanguageClient) {
+            this.logger.warn('[DiagramWidget] No DiagramLanguageClient, cannot toggle collapse');
+            return;
+        }
+
+        this.logger.debug({ elementId, collapsed }, '[DiagramWidget] Collapse/expand toggle');
+        this.expandCollapseInProgress = true;
+
+        // Hide diagram immediately to prevent visual glitches.
+        // Sprotty's built-in CollapseExpandCommand runs synchronously and
+        // toggles `expanded` on the local model, causing an intermediate
+        // re-render before the server responds with the new model.  Hiding
+        // here (before the first await) ensures the user never sees that
+        // intermediate state or the viewport reset from setModel().
+        if (this.svgContainer) {
+            this.layoutPending = true;
+            this.svgContainer.classList.add('layout-pending');
+        }
+
+        try {
+            const response = await this.diagramLanguageClient.setCollapsed(
+                this.uri,
+                elementId,
+                collapsed
+            );
+
+            if (response.success && response.gModel) {
+                // Update metadata from response
+                if (response.metadata?.idMap) {
+                    this.state.idMap = response.metadata.idMap;
+                }
+                if (response.metadata?.fingerprints) {
+                    this.state.fingerprints = response.metadata.fingerprints;
+                }
+                if (response.metadata?.sourceRanges) {
+                    this.state.sourceRanges = new Map(Object.entries(response.metadata.sourceRanges));
+                }
+
+                // Clear saved layout so setModel() runs ELK layout for the new model.
+                // The model structure changes during expand/collapse (children added/removed),
+                // so saved positions are no longer valid and ELK must recompute.
+                this.savedLayout = undefined;
+
+                await this.setModel(response.gModel);
+            } else {
+                this.logger.warn({ elementId, error: response.error }, '[DiagramWidget] setCollapsed failed');
+            }
+        } catch (error) {
+            this.logger.error({ err: error, elementId }, '[DiagramWidget] Error toggling collapse');
         }
     }
 
@@ -821,6 +889,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 onSelectionChanged: (selectedIds) => {
                     this.state.selection.selectedIds = selectedIds;
                     this.onSelectionChangedEmitter.fire(this.state.selection);
+                    this.updateResizeHandles(selectedIds);
                 },
                 onMoveCompleted: (elementId, newPosition) => {
                     // Update local position state
@@ -846,6 +915,11 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                             elementId,
                         },
                     });
+                },
+                onCollapseExpand: (elementId, collapsed) => {
+                    // Send collapse/expand request to the backend, which will
+                    // regenerate the model with the updated collapsed state.
+                    this.handleCollapseExpand(elementId, collapsed);
                 },
             };
             this.sprottyManager.setCallbacks(callbacks);
@@ -1104,13 +1178,40 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
         this.state.gModel = gModel;
 
-        // Clear placeholder content if present
-        if (this.svgContainer && this.svgContainer.querySelector('.sanyam-diagram-placeholder')) {
+        // Clear placeholder content if present, but ONLY before Sprotty has rendered.
+        // Once Sprotty/Snabbdom manages the container's children, clearing innerHTML
+        // disconnects Snabbdom's tracked DOM elements causing subsequent patches to fail.
+        if (this.svgContainer && !this.sprottyInitialized && this.svgContainer.querySelector('.sanyam-diagram-placeholder')) {
             this.svgContainer.innerHTML = '';
         }
 
         // Check if we have saved positions (from layout storage)
-        const hasSavedLayout = this.savedLayout && Object.keys(this.savedLayout.elements).length > 0;
+        let hasSavedLayout = !!this.savedLayout && !!this.savedLayout.elements
+            && Object.keys(this.savedLayout.elements).length > 0;
+
+        // Verify saved layout isn't stale (element IDs actually match current model).
+        // When the model structure changes (e.g., container node refactoring),
+        // saved IDs may no longer match, leaving all nodes at (0,0).
+        if (hasSavedLayout && gModel.children && gModel.children.length > 0) {
+            const savedIds = new Set(Object.keys(this.savedLayout!.elements));
+            // Collect IDs of top-level nodes (edges don't need position matching)
+            const topLevelNodeIds = gModel.children
+                .filter((c: GModelElementType) => c.type.startsWith('node') || (c.type.includes(':') && !c.type.startsWith('edge')))
+                .map((c: GModelElementType) => c.id);
+            const matchCount = topLevelNodeIds.filter(id => savedIds.has(id)).length;
+            const matchRatio = topLevelNodeIds.length > 0 ? matchCount / topLevelNodeIds.length : 0;
+
+            this.logger.debug({ matchCount, total: topLevelNodeIds.length, ratio: matchRatio.toFixed(2) },
+                '[DiagramWidget] Saved layout coverage');
+
+            if (matchRatio < 0.5) {
+                this.logger.info('[DiagramWidget] Stale saved layout detected — falling back to auto-layout');
+                hasSavedLayout = false;
+                this.savedLayout = undefined;
+                this.state.positions.clear();
+                this.state.sizes.clear();
+            }
+        }
 
         // Set model in Sprotty
         if (this.sprottyManager && this.sprottyInitialized) {
@@ -1132,7 +1233,6 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
 
                 if (hasSavedLayout) {
                     // Skip auto-layout - we have saved positions
-                    this.logger.debug('[DiagramWidget] Skipping auto-layout - using saved positions');
                     this.initialLayoutDone = true;
 
                     // Wait for Sprotty to actually render the SVG content
@@ -1140,8 +1240,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     await this.waitForSvgContent();
 
                     // Restore saved viewport and toggle state if available (FR-002, FR-003, FR-004)
-                    const savedViewState = this.savedLayout && 'viewState' in this.savedLayout
-                        ? this.savedLayout.viewState
+                    const sl = this.savedLayout as DiagramLayout | undefined;
+                    const savedViewState = sl && 'viewState' in sl
+                        ? (sl as DiagramLayoutV3).viewState
                         : undefined;
                     if (savedViewState?.zoom !== undefined) {
                         await this.restoreViewState(savedViewState);
@@ -1156,7 +1257,6 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     this.updateMinimapAfterLayout();
                 } else {
                     // Request automatic layout for fresh diagrams
-                    this.logger.debug('[DiagramWidget] Requesting layout for fresh diagram...');
                     await this.sprottyManager.requestLayout();
                     this.logger.debug('[DiagramWidget] Layout requested');
                     // Note: fitToScreen and revealDiagramAfterLayout are called in onLayoutComplete
@@ -1211,7 +1311,7 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      * Called when the ELK layout engine finishes positioning elements.
      */
     protected onLayoutComplete(success: boolean, error?: string): void {
-        this.logger.info(`[DiagramWidget] onLayoutComplete called: success=${success}, initialLayoutDone=${this.initialLayoutDone}, layoutPending=${this.layoutPending}${error ? ', error=' + error : ''}`);
+        this.logger.info(`[DiagramWidget] onLayoutComplete: success=${success}, initialLayoutDone=${this.initialLayoutDone}${error ? ', error=' + error : ''}`);
 
         if (success) {
             if (!this.initialLayoutDone) {
@@ -1227,6 +1327,19 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                     this.logger.warn({ err }, 'Failed to apply initial view');
                     // Still reveal even if it fails
                     this.revealDiagramAfterLayout();
+                });
+            } else if (this.expandCollapseInProgress) {
+                // Expand/collapse: ELK recomputes the full layout, so all
+                // positions change.  Fit to screen so the user sees the
+                // result centered, then reveal the hidden diagram.
+                this.expandCollapseInProgress = false;
+                const fitPromise = this.sprottyManager?.fitToScreen() ?? Promise.resolve();
+                fitPromise.then(() => {
+                    this.revealDiagramAfterLayout();
+                    this.updateMinimapAfterLayout();
+                }).catch(() => {
+                    this.revealDiagramAfterLayout();
+                    this.updateMinimapAfterLayout();
                 });
             } else {
                 // Subsequent layouts (edge routing change, manual auto-layout):
@@ -1325,6 +1438,27 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 }
             }
         }, 200);
+    }
+
+    /**
+     * Update resize handles based on current selection.
+     * Shows handles for single-node selection, hides for multi/no selection.
+     */
+    protected updateResizeHandles(selectedIds: string[]): void {
+        const registry = this.sprottyManager?.getUIExtensionRegistry();
+        if (!registry) {
+            return;
+        }
+        const resizeHandles = registry.get(RESIZE_HANDLES_ID);
+        if (!resizeHandles) {
+            return;
+        }
+        const ext = resizeHandles as ResizeHandlesExtension;
+        if (selectedIds.length === 1) {
+            ext.showHandlesForElement(selectedIds[0]);
+        } else {
+            ext.hideHandles();
+        }
     }
 
     /**

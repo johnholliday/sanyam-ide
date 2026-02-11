@@ -16,9 +16,10 @@
  */
 
 import { injectable, inject, optional } from 'inversify';
-import { SModelRootImpl, TYPES, IActionDispatcher } from 'sprotty';
+import { SModelRootImpl, TYPES, IActionDispatcher, SShapeElementImpl, SChildElementImpl } from 'sprotty';
 import { Action } from 'sprotty-protocol';
 import { AbstractUIExtension, DIAGRAM_CONTAINER_ID } from '../base-ui-extension';
+import { SanyamContainerNodeImpl } from '../../di/sanyam-container-node';
 
 /**
  * Resize Handles Extension ID.
@@ -143,8 +144,17 @@ export class ResizeHandlesExtension extends AbstractUIExtension {
     @inject(TYPES.IActionDispatcher)
     protected override actionDispatcher: IActionDispatcher;
 
-    /** Minimum element size */
+    /** Default minimum element size */
     protected minSize: { width: number; height: number } = { width: 75, height: 45 };
+
+    /** Container body padding (must match ELK padding in elk-layout-module.ts) */
+    private static readonly CONTAINER_PADDING = { top: 40, left: 12, bottom: 12, right: 12 };
+
+    /** Minimum container body area beyond padding */
+    private static readonly MIN_CONTAINER_BODY = { width: 100, height: 40 };
+
+    /** Current Sprotty model root (updated via modelChanged) */
+    protected currentModel?: SModelRootImpl;
 
     /** Grid snap size (0 = no snap) */
     protected gridSnapSize: number = 0;
@@ -374,9 +384,12 @@ export class ResizeHandlesExtension extends AbstractUIExtension {
             event.shiftKey // Aspect ratio lock
         );
 
-        // Apply minimum size
-        newBounds.width = Math.max(newBounds.width, this.minSize.width);
-        newBounds.height = Math.max(newBounds.height, this.minSize.height);
+        // Apply dynamic minimum size (considers child node positions for containers)
+        const dynamicMin = this.resizeState.elementId
+            ? this.computeDynamicMinSize(this.resizeState.elementId)
+            : this.minSize;
+        newBounds.width = Math.max(newBounds.width, dynamicMin.width);
+        newBounds.height = Math.max(newBounds.height, dynamicMin.height);
 
         // Apply grid snap
         if (this.gridSnapSize > 0) {
@@ -412,9 +425,12 @@ export class ResizeHandlesExtension extends AbstractUIExtension {
             event.shiftKey
         );
 
-        // Apply minimum size
-        newBounds.width = Math.max(newBounds.width, this.minSize.width);
-        newBounds.height = Math.max(newBounds.height, this.minSize.height);
+        // Apply dynamic minimum size (considers child node positions for containers)
+        const dynamicMin = this.resizeState.elementId
+            ? this.computeDynamicMinSize(this.resizeState.elementId)
+            : this.minSize;
+        newBounds.width = Math.max(newBounds.width, dynamicMin.width);
+        newBounds.height = Math.max(newBounds.height, dynamicMin.height);
 
         // Dispatch complete action
         this.dispatch(CompleteResizeAction.create(this.resizeState.elementId, newBounds));
@@ -587,10 +603,65 @@ export class ResizeHandlesExtension extends AbstractUIExtension {
         return this.resizeState.isResizing;
     }
 
-    override modelChanged(_model: SModelRootImpl): void {
+    override modelChanged(model: SModelRootImpl): void {
+        this.currentModel = model;
         // Update handle positions if model changes
         if (this.selectedElementId) {
             this.updateHandlePositions();
         }
+    }
+
+    /**
+     * Compute the minimum size for the given element.
+     *
+     * For container nodes, the minimum is determined by child node positions
+     * (rightmost/bottommost child + padding) or the minimum body size of
+     * 100x40 + padding, whichever is larger.
+     *
+     * @returns Dynamic minimum size for the element, or the default minSize
+     */
+    protected computeDynamicMinSize(elementId: string): { width: number; height: number } {
+        if (!this.currentModel) {
+            return { ...this.minSize };
+        }
+
+        const element = this.currentModel.index.getById(elementId);
+        if (!(element instanceof SanyamContainerNodeImpl)) {
+            return { ...this.minSize };
+        }
+
+        const pad = ResizeHandlesExtension.CONTAINER_PADDING;
+        const minBody = ResizeHandlesExtension.MIN_CONTAINER_BODY;
+
+        // Find body compartment and compute bounding box of children
+        let maxRight = 0;
+        let maxBottom = 0;
+        for (const child of element.children) {
+            if (child.id.endsWith('_body') && child instanceof SChildElementImpl) {
+                for (const bodyChild of (child as any).children ?? []) {
+                    if (bodyChild instanceof SShapeElementImpl) {
+                        const right = bodyChild.position.x + bodyChild.size.width;
+                        const bottom = bodyChild.position.y + bodyChild.size.height;
+                        maxRight = Math.max(maxRight, right);
+                        maxBottom = Math.max(maxBottom, bottom);
+                    }
+                }
+            }
+        }
+
+        const minFromChildren = {
+            width: maxRight + pad.right,
+            height: maxBottom + pad.bottom,
+        };
+
+        const minFromBody = {
+            width: pad.left + minBody.width + pad.right,
+            height: pad.top + minBody.height + pad.bottom,
+        };
+
+        return {
+            width: Math.max(this.minSize.width, minFromChildren.width, minFromBody.width),
+            height: Math.max(this.minSize.height, minFromChildren.height, minFromBody.height),
+        };
     }
 }

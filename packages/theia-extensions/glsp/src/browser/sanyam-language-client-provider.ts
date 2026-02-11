@@ -162,6 +162,16 @@ export class SanyamLanguageClientProvider implements LanguageClientProvider {
                 return result as R;
             }
 
+            case 'glsp/setCollapsed': {
+                const { uri, elementId, collapsed } = params as {
+                    uri: string;
+                    elementId: string;
+                    collapsed: boolean;
+                };
+                const result = await glspService.setCollapsed(uri, elementId, collapsed);
+                return result as R;
+            }
+
             case 'glsp/syncDocument': {
                 const { uri, content, version } = params as { uri: string; content: string; version: number };
                 await glspService.syncDocument(uri, content, version);

@@ -38,6 +38,8 @@ export class SanyamNodeImpl extends SNodeImpl {
     nodeType?: string;
     /** Trace back to AST node */
     trace?: string;
+    /** Codicon icon name from grammar manifest */
+    icon?: string;
 }
 
 /**
@@ -232,6 +234,17 @@ export class SanyamLabelView implements IView {
             for (const cls of label.cssClasses) {
                 cssClasses[cls] = true;
             }
+        }
+
+        // Container heading labels must not word-wrap — they are rendered inline
+        // in the container header area with explicit positioning.
+        // Detection by ID suffix because the model factory normalizes
+        // 'label:heading' to 'label' for view lookup.
+        if (label.id.endsWith('_header_label')) {
+            return h('text', {
+                class: cssClasses,
+                attrs: { x: 0, y: 0 }
+            }, text);
         }
 
         // Word-wrap: split text into lines that fit within LABEL_MAX_WIDTH

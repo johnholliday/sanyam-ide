@@ -1070,6 +1070,77 @@ export class SanyamGlspBackendServiceImpl implements SanyamGlspServiceInterface 
     }
 
     /**
+     * Set the collapsed state of a container node.
+     *
+     * Updates the model state's collapsed set and regenerates the GModel,
+     * returning the updated model so the client can re-render.
+     */
+    async setCollapsed(uri: string, elementId: string, collapsed: boolean): Promise<LoadModelResponse> {
+        return this.ensureInitialized(async () => {
+            this.log(`[SanyamGlspBackendService] setCollapsed: ${uri}, element: ${elementId}, collapsed: ${collapsed}`);
+
+            if (!this.glspServer) {
+                return {
+                    success: false,
+                    error: 'GLSP server not initialized',
+                };
+            }
+
+            try {
+                const result = await this.getDocument(uri);
+                if (!result) {
+                    return {
+                        success: false,
+                        error: `Document not found: ${uri}`,
+                    };
+                }
+
+                const vscodeLanguageserver = await this.dynamicImport('vscode-languageserver');
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const CancellationToken = (vscodeLanguageserver as any).CancellationToken;
+
+                const context = await this.glspServer.setCollapsed(
+                    result.document,
+                    CancellationToken.None,
+                    elementId,
+                    collapsed
+                );
+
+                // Export id registry data for client consumption
+                const idRegistryData = (context as any).idRegistryData as
+                    { idMap: Record<string, string>; fingerprints: Record<string, unknown> } | undefined;
+
+                return {
+                    success: true,
+                    gModel: context.gModel,
+                    metadata: {
+                        positions: context.metadata?.positions
+                            ? Object.fromEntries(context.metadata.positions)
+                            : {},
+                        sizes: context.metadata?.sizes
+                            ? Object.fromEntries(context.metadata.sizes)
+                            : {},
+                        routingPoints: context.metadata?.routingPoints
+                            ? Object.fromEntries(context.metadata.routingPoints)
+                            : undefined,
+                        sourceRanges: context.metadata?.sourceRanges
+                            ? Object.fromEntries(context.metadata.sourceRanges)
+                            : {},
+                        idMap: idRegistryData?.idMap,
+                        fingerprints: idRegistryData?.fingerprints,
+                    },
+                };
+            } catch (error) {
+                this.logError(`[SanyamGlspBackendService] setCollapsed error for ${uri}:`, error);
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : String(error),
+                };
+            }
+        });
+    }
+
+    /**
      * Synchronize document content from frontend.
      *
      * Phase 5 (US3) will fully implement this.

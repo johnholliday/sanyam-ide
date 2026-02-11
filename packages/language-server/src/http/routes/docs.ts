@@ -37,6 +37,7 @@ export function createDocsRoutes(
     // Derive server URL from request if not provided
     const url = serverUrl ?? `${c.req.header('x-forwarded-proto') ?? 'http'}://${c.req.header('host') ?? 'localhost:3001'}`;
     const spec = buildOpenAPISpec(registry, url);
+    c.header('Cache-Control', 'no-store, no-cache, must-revalidate');
     return c.json(spec);
   });
 
@@ -88,6 +89,8 @@ export function createDocsRoutes(
   ></rapi-doc>
 </body>
 </html>`;
+    c.header('Cache-Control', 'no-store, no-cache, must-revalidate');
+    c.header('Pragma', 'no-cache');
     return c.html(page);
   });
 

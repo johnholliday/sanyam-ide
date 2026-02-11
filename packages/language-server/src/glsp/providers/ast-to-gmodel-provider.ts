@@ -26,6 +26,7 @@ import type { AstToGModelProvider } from '../provider-types.js';
 import type {
   GModelNode,
   GModelEdge,
+  GModelElement,
   GModelLabel,
   GModelPort,
   Point,
@@ -33,7 +34,15 @@ import type {
   NodeMappingConfig,
   NodeShape,
 } from '../conversion-types.js';
-import { ElementTypes, createNode, createEdge, createLabel, createPort } from '../conversion-types.js';
+import {
+  ElementTypes,
+  createNode,
+  createEdge,
+  createLabel,
+  createPort,
+  createCompartment,
+  createButton,
+} from '../conversion-types.js';
 
 /**
  * Default AST to GModel provider implementation.
@@ -41,13 +50,20 @@ import { ElementTypes, createNode, createEdge, createLabel, createPort } from '.
 export const defaultAstToGModelProvider = {
   /**
    * Convert an entire AST to GModel.
+   *
+   * Uses a three-pass conversion:
+   * 1. Create all nodes, detecting containers and adding header/body compartments
+   * 2. Determine parent-child nesting via findDiagrammedAncestor; nest into
+   *    containers or fall back to containment edges for non-containers
+   * 3. Populate container body compartments with nested children
    */
   convert(context: GlspContext): GModelRoot {
     const root = context.root;
     const nodes: GModelNode[] = [];
     const edges: GModelEdge[] = [];
     const nodeMap = new Map<AstNode, string>();
-    let nodeIndex = 0;
+    const containerIds = new Set<string>();
+    const childToParent = new Map<string, string>();
 
     // Initialize sourceRanges on metadata if not present
     if (context.metadata && !context.metadata.sourceRanges) {
@@ -77,53 +93,105 @@ export const defaultAstToGModelProvider = {
       };
     }
 
-    // First pass: create nodes
+    // ── Pass 1: Create all nodes ──────────────────────────────────────────────
+    // Detect container types and restructure them with header/body compartments.
     for (const astNode of streamAllContents(root)) {
       const node = this.createNode(context, astNode);
       if (node) {
+        // Detect containers and add header/body compartment structure
+        if (this.isContainerType(context, astNode)) {
+          this.convertToContainerNode(context, node, astNode);
+          containerIds.add(node.id);
+        }
+
         nodes.push(node);
         nodeMap.set(astNode, node.id);
-        nodeIndex++;
 
         // Record source range from CST node for outline mapping
         this.recordSourceRange(context, astNode, node.id);
 
-        logger.trace({ nodeId: node.id, nodeType: node.type }, 'Created node');
+        logger.trace({
+          nodeId: node.id,
+          nodeType: node.type,
+          isContainer: containerIds.has(node.id),
+        }, 'Created node');
       }
     }
 
-    // Second pass: create edges from containment (parent-child) relationships
+    // ── Pass 2: Determine nesting and create edges ────────────────────────────
+    // For each node, find its diagrammed ancestor (walks up $container chain,
+    // skipping intermediate wrapper AST nodes like TaskBlock, ActorBlock).
+    // If the ancestor is a container, record for nesting; otherwise create
+    // a containment edge.
     for (const astNode of streamAllContents(root)) {
       const childId = nodeMap.get(astNode);
       if (!childId) continue;
 
-      // Create edge from parent to child (containment)
-      const container = astNode.$container;
-      if (container) {
-        const parentId = nodeMap.get(container);
-        if (parentId) {
+      const parentAstNode = this.findDiagrammedAncestor(astNode, nodeMap);
+      if (parentAstNode) {
+        const parentId = nodeMap.get(parentAstNode)!;
+        if (containerIds.has(parentId)) {
+          // Parent is a container → nest child inside it
+          childToParent.set(childId, parentId);
+        } else {
+          // Parent is NOT a container → create containment edge
           const edge = this.createEdge(context, parentId, childId, 'contains');
           edges.push(edge);
           logger.trace({ parentId, childId }, 'Created containment edge');
         }
       }
 
-      // Also check for cross-references
+      // Create cross-reference edges
       const nodeEdges = this.createEdgesFromReferences(context, astNode, nodeMap);
       edges.push(...nodeEdges);
     }
 
+    // ── Pass 3: Nest children into container body compartments ────────────────
+    // Build parent → children mapping, then populate body compartments.
+    // Collapsed containers keep their children hidden (not in the body).
+    const parentToChildren = new Map<string, GModelNode[]>();
+    for (const [childId, parentId] of childToParent) {
+      if (!parentToChildren.has(parentId)) {
+        parentToChildren.set(parentId, []);
+      }
+      const childNode = nodes.find(n => n.id === childId);
+      if (childNode) {
+        parentToChildren.get(parentId)!.push(childNode);
+      }
+    }
+
+    for (const [parentId, children] of parentToChildren) {
+      const parentNode = nodes.find(n => n.id === parentId);
+      if (!parentNode) continue;
+
+      // Find the body compartment (only present when not collapsed)
+      const bodyCompartment = parentNode.children?.find(
+        (c: GModelElement) => c.type === ElementTypes.COMPARTMENT_BODY
+      );
+      if (bodyCompartment) {
+        if (!bodyCompartment.children) {
+          bodyCompartment.children = [];
+        }
+        bodyCompartment.children.push(...children);
+      }
+    }
+
+    // Collect top-level nodes (those not nested inside a container)
+    const nestedIds = new Set(childToParent.keys());
+    const topLevelNodes = nodes.filter(n => !nestedIds.has(n.id));
+
     logger.info({
       nodeCount: nodes.length,
       edgeCount: edges.length,
+      containerCount: containerIds.size,
+      nestedCount: nestedIds.size,
       sourceRangeCount: context.metadata?.sourceRanges?.size ?? 0,
-      hasMetadata: !!context.metadata,
     }, 'Conversion complete');
 
     return {
       id: `root_${context.document.uri.toString()}`,
       type: ElementTypes.GRAPH,
-      children: [...nodes, ...edges],
+      children: [...topLevelNodes, ...edges],
       revision: (context.gModel?.revision ?? 0) + 1,
     };
   },
@@ -177,8 +245,15 @@ export const defaultAstToGModelProvider = {
   ): GModelEdge {
     const id = `${sourceId}_${property}_${targetId}`;
     const type = this.getEdgeType(context, property);
+    const edge = createEdge(id, type, sourceId, targetId);
 
-    return createEdge(id, type, sourceId, targetId);
+    // Add edge label from property name (strip array index suffix like [0])
+    const labelText = property.replace(/\[\d+\]$/, '');
+    if (labelText) {
+      edge.children = [createLabel(`${id}_label`, labelText, ElementTypes.LABEL_TEXT)];
+    }
+
+    return edge;
   },
 
   /**
@@ -270,6 +345,167 @@ export const defaultAstToGModelProvider = {
       '$type' in value &&
       !nodeMap.has(value as AstNode)
     );
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Container Node Helpers
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Check if an AST node's type is marked as a container in the manifest.
+   *
+   * Container types render children inside a body compartment with an
+   * expand/collapse button in the header.
+   */
+  isContainerType(context: GlspContext, astNode: AstNode): boolean {
+    const manifest = (context as any).manifest as GrammarManifest | undefined;
+    if (!manifest?.rootTypes) return false;
+    const rootType = manifest.rootTypes.find(rt => rt.astType === astNode.$type);
+    return rootType?.diagramNode?.isContainer === true;
+  },
+
+  /**
+   * Walk up the AST $container chain to find the nearest ancestor
+   * that exists in the nodeMap (i.e., is a diagrammed node).
+   *
+   * This handles intermediate wrapper AST nodes like TaskBlock, ActorBlock,
+   * ContentBlock that sit between the parent and child in the grammar but
+   * are not themselves diagram nodes.
+   */
+  findDiagrammedAncestor(astNode: AstNode, nodeMap: Map<AstNode, string>): AstNode | undefined {
+    let current = astNode.$container;
+    while (current) {
+      if (nodeMap.has(current)) {
+        return current;
+      }
+      current = current.$container;
+    }
+    return undefined;
+  },
+
+  /**
+   * Restructure a node into a container with header and body compartments.
+   *
+   * Container node structure:
+   * ```
+   * GModelNode (container, layout: 'vbox')
+   *   ├── GModelCompartment (header, layout: 'hbox')
+   *   │   ├── GModelButton (expand/collapse)
+   *   │   └── GModelLabel (heading)
+   *   └── GModelCompartment (body, layout: 'freeform')  [omitted when collapsed]
+   *       ├── GModelNode (child 1)
+   *       └── GModelNode (child 2)
+   * ```
+   *
+   * Existing children (label, ports) are replaced by the compartment structure.
+   * Ports are preserved and re-attached to the outer container node.
+   */
+  convertToContainerNode(context: GlspContext, node: GModelNode, astNode: AstNode): void {
+    const id = node.id;
+    const label = this.getLabel(astNode);
+    const collapsed = this.isCollapsed(context, id);
+
+    // Propagate codicon icon name from manifest for header rendering
+    const manifest = (context as any).manifest as GrammarManifest | undefined;
+    if (manifest?.rootTypes) {
+      const rootType = manifest.rootTypes.find(rt => rt.astType === astNode.$type);
+      if (rootType?.icon) {
+        (node as any).icon = rootType.icon;
+      }
+    }
+
+    // Save any ports from existing children (created by createPorts)
+    const existingPorts = (node.children ?? []).filter(
+      (c: GModelElement) => c.type.startsWith('port')
+    );
+
+    // NOTE: Do NOT set node.layout here.  sprotty-elk's transformCompartment()
+    // uses the parent's `layout` property to accumulate padding from compartment
+    // positions/sizes.  Since compartments have Sprotty's default size {-1, -1},
+    // the padding formula produces massive values (containerWidth+1 per compartment).
+    // Our ELK nodeOptions() already sets elk.padding explicitly, and our custom
+    // view handles positioning manually (needsClientLayout: false), so the layout
+    // property serves no purpose.
+
+    // Add container CSS classes
+    if (!node.cssClasses) {
+      node.cssClasses = [];
+    }
+    node.cssClasses.push('sanyam-container');
+    if (collapsed) {
+      node.cssClasses.push('collapsed');
+    }
+
+    // Propagate expanded state to client for SanyamContainerNodeImpl
+    (node as any).expanded = !collapsed;
+
+    // Set container size based on collapsed state.
+    // Collapsed containers are header-only (32px tall).
+    // Expanded containers use the manifest default; ELK will auto-size to fit children.
+    // Width must accommodate the header: padding(8) + icon(16) + gap(6) + label + gap(6) + button(16) + padding(8).
+    const HEADER_FIXED_WIDTH = 60;
+    const CHAR_WIDTH_ESTIMATE = 10; // conservative estimate for 14px font-weight:600
+    const strippedLabel = label.replace(/^"|"$/g, '');
+    const labelMinWidth = Math.ceil(
+      HEADER_FIXED_WIDTH + Math.max(strippedLabel.length, 3) * CHAR_WIDTH_ESTIMATE
+    );
+    const containerWidth = Math.max(labelMinWidth, node.size?.width ?? 160);
+    if (collapsed) {
+      node.size = { width: containerWidth, height: 32 };
+    } else {
+      // For expanded, set a small initial height so ELK auto-sizes purely
+      // from children + padding.  The manifest's defaultSize (e.g. 80) is
+      // too large and causes ELK to preserve excessive height even when
+      // children only need minimal space.
+      node.size = { width: containerWidth, height: 60 };
+    }
+
+    // Create header compartment (no layout — our view positions elements manually)
+    const header = createCompartment(
+      `${id}_header`,
+      ElementTypes.COMPARTMENT_HEADER,
+    );
+
+    // Add expand/collapse button
+    const expandButton = createButton(
+      `${id}_expand`,
+      ElementTypes.BUTTON_EXPAND,
+      true
+    );
+    header.children = header.children ?? [];
+    header.children.push(expandButton);
+
+    // Add heading label
+    const headingLabel = createLabel(
+      `${id}_header_label`,
+      label,
+      ElementTypes.LABEL_HEADING
+    );
+    header.children.push(headingLabel);
+
+    // Build new children: header + body (when expanded) + preserved ports
+    node.children = [header];
+
+    if (!collapsed) {
+      // Create body compartment (no layout — ELK positions children via elk.padding)
+      const body = createCompartment(
+        `${id}_body`,
+        ElementTypes.COMPARTMENT_BODY,
+      );
+      node.children.push(body);
+    }
+
+    // Re-attach preserved ports
+    if (existingPorts.length > 0) {
+      node.children.push(...existingPorts);
+    }
+  },
+
+  /**
+   * Check if a container node is collapsed.
+   */
+  isCollapsed(context: GlspContext, elementId: string): boolean {
+    return !(context.metadata?.expanded?.has(elementId) ?? false);
   },
 
   /**

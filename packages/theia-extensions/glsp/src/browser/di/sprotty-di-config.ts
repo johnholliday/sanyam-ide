@@ -37,11 +37,17 @@ import {
     SModelRootImpl,
     SModelElementImpl,
     IActionHandler,
+    SButtonImpl,
+    ExpandButtonView,
 } from 'sprotty';
 import { SRoutingHandleImpl } from 'sprotty/lib/features/routing/model';
 import { Action } from 'sprotty-protocol';
 import { SanyamNodeImpl, SanyamNodeView, SanyamLabelImpl, SanyamLabelView } from './sanyam-node-view';
+import { SanyamContainerNodeImpl } from './sanyam-container-node';
+import { SanyamContainerNodeView } from './sanyam-container-node-view';
 import { SanyamModelFactory, SanyamEdgeImpl, SanyamCompartmentImpl } from './sanyam-model-factory';
+import { CollapseExpandAction } from 'sprotty-protocol';
+import { CollapseExpandActionHandler } from './collapse-expand-action-handler';
 import { SanyamPortImpl, SanyamPortView } from '../ports';
 import { SanyamEdgeView } from './sanyam-edge-view';
 import { ScrollMouseListener } from 'sprotty/lib/features/viewport/scroll';
@@ -198,6 +204,12 @@ export const SanyamModelTypes = {
     PORT_INPUT: 'port:input',
     PORT_OUTPUT: 'port:output',
 
+    // Button types
+    BUTTON_EXPAND: 'button:expand',
+
+    // Container node type
+    NODE_CONTAINER: 'node:container',
+
     // Routing types
     ROUTING_POINT: 'routing-point',
     VOLATILE_ROUTING_POINT: 'volatile-routing-point',
@@ -205,8 +217,10 @@ export const SanyamModelTypes = {
 
 // Re-export model classes from their modules for backwards compatibility
 export { SanyamNodeImpl as SanyamNode } from './sanyam-node-view';
+export { SanyamContainerNodeImpl as SanyamContainerNode } from './sanyam-container-node';
 export { SanyamEdgeImpl as SanyamEdge, SanyamCompartmentImpl as SanyamCompartment } from './sanyam-model-factory';
 export { SanyamLabelImpl as SanyamLabel } from './sanyam-node-view';
+export { CollapseExpandActionHandler } from './collapse-expand-action-handler';
 
 /**
  * Callback type for diagram events.
@@ -215,6 +229,8 @@ export interface DiagramEventCallbacks {
     onSelectionChanged?: (selectedIds: string[]) => void;
     onMoveCompleted?: (elementId: string, newPosition: { x: number; y: number }) => void;
     onDoubleClick?: (elementId: string) => void;
+    /** Called when a container node is expanded or collapsed */
+    onCollapseExpand?: (elementId: string, collapsed: boolean) => void;
 }
 
 /**
@@ -336,6 +352,14 @@ function createSanyamDiagramModule(): ContainerModule {
         configureModelElement(context, SanyamModelTypes.COMPARTMENT_HEADER, SanyamCompartmentImpl, SCompartmentView);
         configureModelElement(context, SanyamModelTypes.COMPARTMENT_BODY, SanyamCompartmentImpl, SCompartmentView);
 
+        // Container nodes - register with SanyamContainerNodeView for hierarchical rendering
+        configureModelElement(context, SanyamModelTypes.NODE_CONTAINER, SanyamContainerNodeImpl, SanyamContainerNodeView);
+
+        // Expand/collapse button — Sprotty's expandModule only registers the
+        // ExpandButtonHandler (click dispatch). The model element + view mapping
+        // must be registered explicitly for the button to render.
+        configureModelElement(context, SanyamModelTypes.BUTTON_EXPAND, SButtonImpl, ExpandButtonView);
+
         // T065: Ports - register with custom SanyamPortView for visual feedback
         configureModelElement(context, SanyamModelTypes.PORT, SanyamPortImpl, SanyamPortView);
         configureModelElement(context, SanyamModelTypes.PORT_DEFAULT, SanyamPortImpl, SanyamPortView);
@@ -404,9 +428,16 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
     container.bind(TYPES.ModelSource).to(LocalModelSource).inSingletonScope();
     container.bind(DIAGRAM_ID).toConstantValue(options.diagramId);
 
-    // Configure viewer options for the diagram
+    // Configure viewer options for the diagram.
+    // needsClientLayout is false because our ELK layout engine handles all
+    // element sizing via manifest defaultSize values.  Setting it to true
+    // would route every setModel through a hidden-div measurement pipeline
+    // (RequestBoundsAction → HiddenBoundsUpdater) which is fragile and
+    // currently breaks with container-node views (Snabbdom patch failure in
+    // the hidden div prevents ComputedBoundsAction dispatch, permanently
+    // hanging LocalModelSource.submitModel).
     configureViewerOptions(container, {
-        needsClientLayout: true,
+        needsClientLayout: false,
         needsServerLayout: false,
         baseDiv: options.diagramId,
         hiddenDiv: `${options.diagramId}-hidden`,
@@ -427,6 +458,12 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
     const actionHandlerCtx = { bind: container.bind.bind(container), isBound: container.isBound.bind(container) };
     configureActionHandler(actionHandlerCtx, 'elementSelected', SelectionChangeActionHandler);
     configureActionHandler(actionHandlerCtx, 'allSelected', SelectionChangeActionHandler);
+
+    // Bind and configure collapse/expand action handler.
+    // The callback is set imperatively via CollapseExpandActionHandler.setCallback()
+    // in SprottyDiagramManager.setCallbacks() to avoid a singleton timing race.
+    container.bind(CollapseExpandActionHandler).toSelf().inSingletonScope();
+    configureActionHandler(actionHandlerCtx, CollapseExpandAction.KIND, CollapseExpandActionHandler);
 
     // Load UI Extensions module if any extensions are enabled
     const uiExtensionsOptions: UIExtensionsModuleOptions = {
@@ -475,6 +512,14 @@ export class SprottyDiagramManager {
     private uiExtensionsOptions: UIExtensionsModuleOptions;
     private uiExtensionsInitialized: boolean = false;
 
+    /**
+     * Promise that resolves when the viewer has been initialized with the empty model.
+     * All dispatch operations (setModel, updateModel, center, fitToScreen, etc.)
+     * must await this before using the ActionDispatcher to avoid deadlocking
+     * against the SetModelCommand's blockUntil predicate.
+     */
+    private readonly viewerReady: Promise<void>;
+
     constructor(options: CreateDiagramContainerOptions) {
         this.container = createSanyamDiagramContainer(options);
         this.modelSource = this.container.get<LocalModelSource>(TYPES.ModelSource);
@@ -494,9 +539,13 @@ export class SprottyDiagramManager {
             enableMinimap: options.uiExtensions?.enableMinimap ?? true,
         };
 
-        // Initialize the viewer with an empty model to ensure SVG is created
-        // This is required because Sprotty's viewer is lazy-initialized
-        this.initializeViewer();
+        // Initialize the viewer with an empty model to ensure SVG is created.
+        // This is required because Sprotty's viewer is lazy-initialized.
+        // We store the promise so that subsequent setModel/dispatch calls
+        // can await it — Sprotty's ActionDispatcher uses a blockUntil mechanism
+        // (SetModelCommand blocks until InitializeCanvasBoundsAction) that would
+        // permanently postpone any dispatch issued while the init is in progress.
+        this.viewerReady = this.initializeViewer();
     }
 
     /**
@@ -554,23 +603,32 @@ export class SprottyDiagramManager {
             const handler = this.container.get(SelectionChangeActionHandler);
             handler.setCallback(callbacks.onSelectionChanged);
         }
+
+        // Set collapse/expand callback directly on the handler instance.
+        if (callbacks.onCollapseExpand) {
+            const handler = this.container.get(CollapseExpandActionHandler);
+            handler.setCallback(callbacks.onCollapseExpand);
+        }
     }
 
     /**
      * Set the diagram model.
      */
     async setModel(model: GModelRoot): Promise<void> {
-        this.logger.debug({ id: model.id, type: model.type, childCount: model.children?.length ?? 0 }, 'setModel called');
-
+        // Wait for viewer initialization to complete before dispatching.
+        // Sprotty's ActionDispatcher blocks all actions while SetModelCommand's
+        // blockUntil predicate is active (waiting for InitializeCanvasBoundsAction).
+        // If we dispatch before the init cycle completes, our action is permanently postponed.
+        await this.viewerReady;
         this.currentRoot = model as unknown as SModelRootImpl;
         await this.modelSource.setModel(model);
-        this.logger.debug('setModel completed');
     }
 
     /**
      * Update the diagram model.
      */
     async updateModel(model: GModelRoot): Promise<void> {
+        await this.viewerReady;
         this.currentRoot = model as unknown as SModelRootImpl;
         await this.modelSource.updateModel(model);
     }
@@ -586,6 +644,7 @@ export class SprottyDiagramManager {
      * Center the diagram on specific elements or all elements.
      */
     async center(elementIds?: string[]): Promise<void> {
+        await this.viewerReady;
         const action: CenterAction = {
             kind: 'center',
             elementIds: elementIds ?? [],
@@ -599,6 +658,7 @@ export class SprottyDiagramManager {
      * Fit the diagram to the screen.
      */
     async fitToScreen(elementIds?: string[], padding?: number): Promise<void> {
+        await this.viewerReady;
         const action: FitToScreenAction = {
             kind: 'fit',
             elementIds: elementIds ?? [],
@@ -612,6 +672,7 @@ export class SprottyDiagramManager {
      * Select elements.
      */
     async select(elementIds: string[], deselect?: boolean): Promise<void> {
+        await this.viewerReady;
         const action: SelectAction = {
             kind: 'elementSelected',
             selectedElementsIDs: deselect ? [] : elementIds,
@@ -624,6 +685,7 @@ export class SprottyDiagramManager {
      * Select all elements.
      */
     async selectAll(select: boolean = true): Promise<void> {
+        await this.viewerReady;
         const action: SelectAllAction = {
             kind: 'allSelected',
             select,
@@ -635,6 +697,7 @@ export class SprottyDiagramManager {
      * Set viewport.
      */
     async setViewport(scroll: { x: number; y: number }, zoom: number, animate: boolean = true): Promise<void> {
+        await this.viewerReady;
         // Get the root element ID from the model (dynamically)
         const model = (this.modelSource as any).model;
         const elementId = model?.id ?? 'graph';
@@ -690,6 +753,7 @@ export class SprottyDiagramManager {
      * Dispatches a RequestLayoutAction to trigger the layout engine.
      */
     async requestLayout(): Promise<void> {
+        await this.viewerReady;
         this.logger.debug('Requesting layout...');
         try {
             const { RequestLayoutAction } = await import('../layout');

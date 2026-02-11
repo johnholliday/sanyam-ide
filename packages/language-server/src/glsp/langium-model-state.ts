@@ -289,12 +289,13 @@ export class LangiumModelState implements ModelState {
 
   /**
    * Check if an element is collapsed.
+   * Containers are collapsed by default; only explicitly expanded ones return false.
    *
    * @param elementId - The element ID
-   * @returns True if collapsed
+   * @returns True if collapsed (default for containers)
    */
   isCollapsed(elementId: string): boolean {
-    return this.metadata.collapsed.has(elementId);
+    return !this.metadata.expanded.has(elementId);
   }
 
   /**
@@ -305,9 +306,9 @@ export class LangiumModelState implements ModelState {
    */
   setCollapsed(elementId: string, collapsed: boolean): void {
     if (collapsed) {
-      this.metadata.collapsed.add(elementId);
+      this.metadata.expanded.delete(elementId);
     } else {
-      this.metadata.collapsed.delete(elementId);
+      this.metadata.expanded.add(elementId);
     }
     this._isDirty = true;
   }
@@ -363,7 +364,7 @@ export function createLangiumModelState(
     positions: new Map(),
     sizes: new Map(),
     routingPoints: new Map(),
-    collapsed: new Set(),
+    expanded: new Set(),
   };
 
   return new LangiumModelState(document, defaultMetadata);

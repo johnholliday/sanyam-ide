@@ -9,6 +9,7 @@
 
 import { injectable, inject, optional } from 'inversify';
 import type { ISnapper, SModelElementImpl } from 'sprotty';
+import { SChildElementImpl, SShapeElementImpl } from 'sprotty';
 import type { Point } from 'sprotty-protocol';
 
 import {
@@ -18,6 +19,23 @@ import {
   SnapGridServiceSymbol,
   type SnapGridService,
 } from './snap-grid-types';
+import { SanyamContainerNodeImpl } from '../../di/sanyam-container-node';
+
+/**
+ * Container body area padding (must match ELK padding in elk-layout-module.ts).
+ */
+const CONTAINER_PADDING = { top: 40, left: 12, bottom: 12, right: 12 };
+
+/**
+ * Minimum container body area size beyond padding. The container will never
+ * shrink below its current minimum (header + padding + this body size).
+ */
+const MIN_CONTAINER_BODY = { width: 100, height: 40 };
+
+/**
+ * Extra margin (px) added when auto-expanding a container to give breathing room.
+ */
+const EXPAND_MARGIN = 20;
 
 /**
  * Grid Snapper Implementation.
@@ -47,18 +65,75 @@ export class GridSnapper implements ISnapper {
    * @param _element - The element being dragged (unused)
    * @returns Snapped position
    */
-  snap(position: Point, _element: SModelElementImpl): Point {
+  snap(position: Point, element: SModelElementImpl): Point {
     // Get current config from service if available
     const config = this.snapGridService?.getConfig() ?? this.config;
 
-    if (!config.enabled) {
+    let result = position;
+
+    if (config.enabled) {
+      const snappedX = this.snapValue(position.x, config);
+      const snappedY = this.snapValue(position.y, config);
+      result = { x: snappedX, y: snappedY };
+    }
+
+    // Clamp child nodes within parent container bounds
+    return this.clampWithinContainer(result, element);
+  }
+
+  /**
+   * Constrain a child element within its parent container, expanding the
+   * container when the child is dragged past the current boundary.
+   *
+   * If the element is a child of a container node (SanyamContainerNodeImpl):
+   * - Positions are clamped at the minimum (top/left padding)
+   * - When the child + its size would exceed the container body area the
+   *   container is dynamically expanded to accommodate it
+   *
+   * @param position - Position to constrain
+   * @param element - The element being moved
+   * @returns Constrained position (may be unchanged if container was expanded)
+   */
+  protected clampWithinContainer(position: Point, element: SModelElementImpl): Point {
+    // Walk up to find the container node. Structure:
+    // Container → body compartment → child node (element)
+    if (!(element instanceof SChildElementImpl)) {
+      return position;
+    }
+    const bodyComp = element.parent;
+    if (!(bodyComp instanceof SChildElementImpl)) {
+      return position;
+    }
+    const container = bodyComp.parent;
+    if (!(container instanceof SanyamContainerNodeImpl)) {
       return position;
     }
 
-    const snappedX = this.snapValue(position.x, config);
-    const snappedY = this.snapValue(position.y, config);
+    // Get child element size (default to 0 if not a shape)
+    const childWidth = element instanceof SShapeElementImpl ? element.size.width : 0;
+    const childHeight = element instanceof SShapeElementImpl ? element.size.height : 0;
 
-    return { x: snappedX, y: snappedY };
+    // Enforce minimum position (cannot drag above header or into left padding)
+    const clampedX = Math.max(CONTAINER_PADDING.left, position.x);
+    const clampedY = Math.max(CONTAINER_PADDING.top, position.y);
+
+    // Compute the space the child needs from the container origin
+    const requiredWidth = clampedX + childWidth + CONTAINER_PADDING.right + EXPAND_MARGIN;
+    const requiredHeight = clampedY + childHeight + CONTAINER_PADDING.bottom + EXPAND_MARGIN;
+
+    // Minimum container size: padding + minimum body area
+    const minWidth = CONTAINER_PADDING.left + MIN_CONTAINER_BODY.width + CONTAINER_PADDING.right;
+    const minHeight = CONTAINER_PADDING.top + MIN_CONTAINER_BODY.height + CONTAINER_PADDING.bottom;
+
+    // Expand the container if needed (never shrink below minimum)
+    const newWidth = Math.max(minWidth, container.size.width, requiredWidth);
+    const newHeight = Math.max(minHeight, container.size.height, requiredHeight);
+
+    if (newWidth !== container.size.width || newHeight !== container.size.height) {
+      (container as any).size = { width: newWidth, height: newHeight };
+    }
+
+    return { x: clampedX, y: clampedY };
   }
 
   /**

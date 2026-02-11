@@ -543,6 +543,45 @@ export class DiagramLanguageClient implements Disposable {
     }
 
     /**
+     * Set the collapsed state of a container node.
+     *
+     * Sends a request to the backend to toggle collapsed state and
+     * regenerate the model with updated hierarchy.
+     *
+     * @param uri - Document URI
+     * @param elementId - ID of the container element
+     * @param collapsed - Whether the element should be collapsed
+     * @returns Updated model response
+     */
+    async setCollapsed(uri: string, elementId: string, collapsed: boolean): Promise<LoadModelResponse> {
+        try {
+            if (this.languageClientProvider) {
+                const response = await this.languageClientProvider.sendRequest<LoadModelResponse>(
+                    'glsp/setCollapsed',
+                    { uri, elementId, collapsed }
+                );
+
+                if (response.success && response.gModel) {
+                    this.cachedModels.set(uri, response.gModel);
+                }
+
+                return response;
+            }
+
+            return {
+                success: false,
+                error: 'Language client provider not available',
+            };
+        } catch (error) {
+            this.logger.error({ err: error }, 'Error setting collapsed state');
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+            };
+        }
+    }
+
+    /**
      * Validate the diagram model.
      */
     async validateModel(uri: string): Promise<{

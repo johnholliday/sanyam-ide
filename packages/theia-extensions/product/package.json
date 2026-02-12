@@ -5,10 +5,13 @@
   "description": "Sanyam IDE Product Branding",
   "dependencies": {
     "@sanyam/logger": "workspace:*",
+    "@sanyam/supabase-auth": "workspace:*",
     "@sanyam/types": "workspace:*",
+    "@theia/collaboration": "1.67.0",
     "@theia/core": "1.67.0",
     "@theia/getting-started": "1.67.0",
     "@theia/workspace": "1.67.0",
+    "@open-collaboration-tools/yjs": "^0.9.0",
     "hono": "^4.0.0",
     "inversify": "^6.0.1",
     "react-dom": "^18.2.0",
@@ -23,6 +26,12 @@
     {
       "frontend": "lib/browser/sanyam-ide-frontend-module",
       "electronMain": "lib/electron-main/sanyam-ide-main-module"
+    },
+    {
+      "frontend": "lib/browser/cloud/supabase-auth-frontend-module"
+    },
+    {
+      "frontend": "lib/browser/collaboration/collaboration-frontend-module"
     }
   ],
   "keywords": [

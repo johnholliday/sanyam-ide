@@ -1,0 +1,40 @@
+{
+  "name": "@sanyam/supabase-auth",
+  "version": "0.0.1",
+  "description": "Supabase authentication provider for Sanyam IDE with Theia integration",
+  "license": "MIT",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.js",
+      "default": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf lib tsconfig.tsbuildinfo",
+    "watch": "tsc -b -w"
+  },
+  "dependencies": {
+    "@sanyam/types": "workspace:*",
+    "@supabase/supabase-js": "^2.49.1"
+  },
+  "devDependencies": {
+    "@theia/core": "1.67.0",
+    "inversify": "^6.0.2",
+    "rimraf": "^5.0.5",
+    "typescript": "~5.6.3"
+  },
+  "peerDependencies": {
+    "@theia/core": "^1.67.0",
+    "inversify": "^6.0.0"
+  }
+}

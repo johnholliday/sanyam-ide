@@ -287,3 +287,79 @@ export {
   getEdgeTypeForConnection,
   calculatePortPosition,
 } from './properties-service.js';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Cloud Storage, Authentication & Licensing Types (Feature 007)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export {
+  // Tier limits
+  type SubscriptionTier,
+  type TierLimits,
+  DEFAULT_FREE_TIER_LIMITS,
+} from './tier-limits.js';
+
+export {
+  // Feature registration
+  type FeatureRegistration,
+  FeatureContribution,
+  type FeatureContribution as FeatureContributionInterface,
+} from './feature-registration.js';
+
+export {
+  // Cloud documents
+  type CloudDocument,
+  type CreateDocumentRequest,
+  type UpdateDocumentRequest,
+  type DocumentVersion,
+  type SharePermission,
+  type DocumentShare,
+  type CreateShareRequest,
+  SANYAM_URI_SCHEME,
+  ASSETS_PATH_SEGMENT,
+} from './cloud-document.js';
+
+export {
+  // API keys
+  type ApiScope,
+  ALL_API_SCOPES,
+  type ApiKey,
+  type CreateApiKeyRequest,
+  type CreateApiKeyResponse,
+  API_KEY_PREFIX,
+} from './api-key.js';
+
+export {
+  // User profiles
+  type UserProfile,
+  type AuthSession,
+  type AuthStateEvent,
+  type AuthState,
+} from './user-profile.js';
+
+export {
+  // API errors
+  type ApiErrorCode,
+  type ApiError,
+  type ErrorResponse,
+  type TierLimitDetails,
+  type PayloadTooLargeDetails,
+  type OptimisticLockDetails,
+  type RateLimitDetails,
+  type ValidationErrorDetails,
+  type FeatureNotAvailableDetails,
+  createErrorResponse,
+} from './api-errors.js';
+
+export {
+  // Pagination
+  type PaginationDirection,
+  type PaginationParams,
+  type PaginationMeta,
+  type PaginatedResponse,
+  DEFAULT_PAGINATION_LIMIT,
+  MAX_PAGINATION_LIMIT,
+  CURSOR_DELIMITER,
+  encodeCursor,
+  decodeCursor,
+} from './pagination.js';

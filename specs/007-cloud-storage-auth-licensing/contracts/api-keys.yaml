@@ -1,0 +1,317 @@
+openapi: 3.1.0
+info:
+  title: Sanyam API Keys Management
+  version: 1.0.0
+  description: |
+    REST API for managing API keys for programmatic access to Sanyam cloud services.
+
+    ## Requirements
+    - API key management requires Pro or Enterprise tier
+    - Keys are shown only once at creation time
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+tags:
+  - name: API Keys
+    description: API key management
+
+paths:
+  /api-keys:
+    get:
+      operationId: listApiKeys
+      tags: [API Keys]
+      summary: List user's API keys
+      description: Returns paginated list of API keys. Key secrets are never returned.
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Direction'
+      responses:
+        '200':
+          description: Paginated list of API keys
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/FeatureNotAvailable'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+    post:
+      operationId: createApiKey
+      tags: [API Keys]
+      summary: Create new API key
+      description: |
+        Creates a new API key. The key secret is returned ONLY in this response.
+        Store it securely - it cannot be retrieved again.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApiKeyRequest'
+      responses:
+        '201':
+          description: API key created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateApiKeyResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/FeatureNotAvailable'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /api-keys/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      operationId: getApiKey
+      tags: [API Keys]
+      summary: Get API key details
+      description: Returns API key metadata. Key secret is never returned.
+      responses:
+        '200':
+          description: API key details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/FeatureNotAvailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+    delete:
+      operationId: revokeApiKey
+      tags: [API Keys]
+      summary: Revoke API key
+      description: Permanently revokes the API key. This action cannot be undone.
+      responses:
+        '204':
+          description: API key revoked
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/FeatureNotAvailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+components:
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+
+    Direction:
+      name: direction
+      in: query
+      schema:
+        type: string
+        enum: [next, prev]
+        default: next
+
+  schemas:
+    ApiScope:
+      type: string
+      enum:
+        - documents:read
+        - documents:write
+        - documents:delete
+        - versions:read
+        - shares:read
+        - shares:write
+
+    CreateApiKeyRequest:
+      type: object
+      required: [name, scopes]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Human-readable name for the key
+        scopes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiScope'
+          minItems: 1
+          description: Permissions granted to this key
+        expires_in_days:
+          type: integer
+          minimum: 1
+          maximum: 365
+          description: Optional expiration (days from now)
+
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        key_prefix:
+          type: string
+          description: First 8 characters for identification
+        scopes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiScope'
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        usage_count:
+          type: integer
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    ApiKeyResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/ApiKey'
+
+    CreateApiKeyResponse:
+      type: object
+      properties:
+        data:
+          allOf:
+            - $ref: '#/components/schemas/ApiKey'
+            - type: object
+              properties:
+                key:
+                  type: string
+                  description: |
+                    Full API key secret. SAVE THIS NOW - it will not be shown again.
+                    Format: sanyam_XXXXXXXXXXXXXXXXXXXXXXXX
+
+    ApiKeyListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiKey'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Pagination:
+      type: object
+      properties:
+        next_cursor:
+          type: string
+          nullable: true
+        prev_cursor:
+          type: string
+          nullable: true
+        total_count:
+          type: integer
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    FeatureNotAvailable:
+      description: Feature requires Pro or Enterprise tier
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: FEATURE_NOT_AVAILABLE
+              message: API keys require Pro or Enterprise tier
+              details:
+                feature: api_keys
+                required_tier: pro
+                your_tier: free
+
+    NotFound:
+      description: API key not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+security:
+  - BearerAuth: []

@@ -45,3 +45,13 @@ applications/*/src/language-server/grammars.ts
 /test-results/
 /blob-report/
 .vscode/extensions.json
+
+# Environment files (cloud storage feature)
+.env
+.env.*
+!.env.example
+
+# Supabase local development
+supabase/.branches/
+supabase/.temp/
+.supabase/

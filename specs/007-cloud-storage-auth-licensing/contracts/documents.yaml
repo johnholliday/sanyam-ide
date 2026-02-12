@@ -1,0 +1,745 @@
+openapi: 3.1.0
+info:
+  title: Sanyam Cloud Documents API
+  version: 1.0.0
+  description: |
+    REST API for cloud document storage, versioning, and sharing.
+
+    ## Authentication
+    All endpoints require Bearer token authentication via Supabase Auth.
+
+    ## Rate Limiting
+    Rate limits are tier-based (Free: 100/hr, Pro: 1000/hr, Enterprise: 10000/hr).
+    Standard headers: `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`.
+
+    ## Pagination
+    List endpoints use cursor-based pagination with `cursor`, `limit`, and `direction` parameters.
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+tags:
+  - name: Documents
+    description: Document CRUD operations
+  - name: Versions
+    description: Document version history
+  - name: Shares
+    description: Document sharing
+
+paths:
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [Documents]
+      summary: List user's documents
+      description: Returns paginated list of documents owned by or shared with the authenticated user.
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Direction'
+        - name: include_shared
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: Include documents shared with the user
+        - name: language_id
+          in: query
+          schema:
+            type: string
+          description: Filter by language ID (e.g., 'ecml', 'garp')
+      responses:
+        '200':
+          description: Paginated list of documents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+    post:
+      operationId: createDocument
+      tags: [Documents]
+      summary: Create a new document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocumentRequest'
+      responses:
+        '201':
+          description: Document created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TierLimitExceeded'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /documents/{id}:
+    parameters:
+      - $ref: '#/components/parameters/DocumentId'
+
+    get:
+      operationId: getDocument
+      tags: [Documents]
+      summary: Get document by ID
+      responses:
+        '200':
+          description: Document details
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: Document version for optimistic locking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+    put:
+      operationId: updateDocument
+      tags: [Documents]
+      summary: Update document content
+      description: |
+        Updates document content. Supports optimistic locking via If-Match header.
+        Without If-Match, last-write-wins applies (logged for observability).
+      parameters:
+        - name: If-Match
+          in: header
+          schema:
+            type: string
+          description: Document version for optimistic locking (recommended)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDocumentRequest'
+      responses:
+        '200':
+          description: Document updated
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: New document version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+    delete:
+      operationId: deleteDocument
+      tags: [Documents]
+      summary: Soft-delete document
+      description: Moves document to trash. Can be restored within retention period.
+      responses:
+        '204':
+          description: Document deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /documents/{id}/restore:
+    parameters:
+      - $ref: '#/components/parameters/DocumentId'
+
+    post:
+      operationId: restoreDocument
+      tags: [Documents]
+      summary: Restore soft-deleted document
+      description: Restores a document from trash. Requires Pro or Enterprise tier.
+      responses:
+        '200':
+          description: Document restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/FeatureNotAvailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /documents/{id}/versions:
+    parameters:
+      - $ref: '#/components/parameters/DocumentId'
+
+    get:
+      operationId: listVersions
+      tags: [Versions]
+      summary: List document version history
+      description: Returns paginated list of document versions. Requires Pro or Enterprise tier.
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Direction'
+      responses:
+        '200':
+          description: Paginated list of versions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/FeatureNotAvailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /documents/{id}/versions/{versionNumber}:
+    parameters:
+      - $ref: '#/components/parameters/DocumentId'
+      - name: versionNumber
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+
+    get:
+      operationId: getVersion
+      tags: [Versions]
+      summary: Get specific version content
+      responses:
+        '200':
+          description: Version details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/FeatureNotAvailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /documents/{id}/versions/{versionNumber}/restore:
+    parameters:
+      - $ref: '#/components/parameters/DocumentId'
+      - name: versionNumber
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+
+    post:
+      operationId: restoreVersion
+      tags: [Versions]
+      summary: Restore document to specific version
+      description: Creates a new version with the content of the specified version.
+      responses:
+        '200':
+          description: Document restored to version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/FeatureNotAvailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /documents/{id}/shares:
+    parameters:
+      - $ref: '#/components/parameters/DocumentId'
+
+    get:
+      operationId: listShares
+      tags: [Shares]
+      summary: List document shares
+      responses:
+        '200':
+          description: List of shares
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+    post:
+      operationId: createShare
+      tags: [Shares]
+      summary: Share document with user
+      description: Creates a share. Requires Pro or Enterprise tier.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateShareRequest'
+      responses:
+        '201':
+          description: Share created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/FeatureNotAvailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /documents/{id}/shares/{shareId}:
+    parameters:
+      - $ref: '#/components/parameters/DocumentId'
+      - name: shareId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    delete:
+      operationId: revokeShare
+      tags: [Shares]
+      summary: Revoke document share
+      responses:
+        '204':
+          description: Share revoked
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+components:
+  parameters:
+    DocumentId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+      description: Opaque pagination cursor (base64-encoded)
+
+    Direction:
+      name: direction
+      in: query
+      schema:
+        type: string
+        enum: [next, prev]
+        default: next
+
+  schemas:
+    # Request schemas
+    CreateDocumentRequest:
+      type: object
+      required: [name, language_id]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        language_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+        content:
+          type: string
+          default: ''
+
+    UpdateDocumentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        content:
+          type: string
+
+    CreateShareRequest:
+      type: object
+      required: [email, permission]
+      properties:
+        email:
+          type: string
+          format: email
+        permission:
+          $ref: '#/components/schemas/SharePermission'
+
+    # Response schemas
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        owner_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        language_id:
+          type: string
+        content:
+          type: string
+        content_size_bytes:
+          type: integer
+        version:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    DocumentResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Document'
+
+    DocumentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Version:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        document_id:
+          type: string
+          format: uuid
+        version_number:
+          type: integer
+        content:
+          type: string
+        content_size_bytes:
+          type: integer
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    VersionResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Version'
+
+    VersionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Version'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Share:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        document_id:
+          type: string
+          format: uuid
+        shared_with_id:
+          type: string
+          format: uuid
+        shared_with_email:
+          type: string
+          format: email
+        permission:
+          $ref: '#/components/schemas/SharePermission'
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    ShareResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Share'
+
+    ShareListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Share'
+
+    SharePermission:
+      type: string
+      enum: [view, edit, admin]
+
+    Pagination:
+      type: object
+      properties:
+        next_cursor:
+          type: string
+          nullable: true
+        prev_cursor:
+          type: string
+          nullable: true
+        total_count:
+          type: integer
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code (SCREAMING_SNAKE_CASE)
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Context-specific error details
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: Missing or invalid authentication token
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: FORBIDDEN
+              message: You do not have permission to access this resource
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: DOCUMENT_NOT_FOUND
+              message: Document not found
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Request validation failed
+              details:
+                name: Required
+
+    Conflict:
+      description: Optimistic locking conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: OPTIMISTIC_LOCK_CONFLICT
+              message: Document was modified by another request
+              details:
+                current_version: 5
+                your_version: 4
+
+    PayloadTooLarge:
+      description: Document exceeds size limit
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: PAYLOAD_TOO_LARGE
+              message: Document exceeds your tier's size limit
+              details:
+                size: 512000
+                limit: 262144
+                tier: free
+
+    TierLimitExceeded:
+      description: Tier limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: TIER_LIMIT_EXCEEDED
+              message: You have reached your document limit
+              details:
+                current: 5
+                limit: 5
+                tier: free
+
+    FeatureNotAvailable:
+      description: Feature requires higher tier
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: FEATURE_NOT_AVAILABLE
+              message: Document versioning requires Pro or Enterprise tier
+              details:
+                feature: document_versioning
+                required_tier: pro
+                your_tier: free
+
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        RateLimit-Limit:
+          schema:
+            type: integer
+        RateLimit-Remaining:
+          schema:
+            type: integer
+        RateLimit-Reset:
+          schema:
+            type: integer
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: RATE_LIMIT_EXCEEDED
+              message: Rate limit exceeded. Please try again later.
+              details:
+                limit: 100
+                remaining: 0
+                reset: 1800
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Supabase Auth JWT token
+
+security:
+  - BearerAuth: []

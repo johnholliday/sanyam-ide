@@ -113,9 +113,9 @@
 - [X] T032 [P] [US1] Create feature-gate.test.ts with DB-sourced feature flag tests (FR-081, FR-082) in packages/licensing/tests/unit/feature-gate.test.ts
 - [X] T033 [P] [US1] Create license-validator.test.ts with cache timing tests using vi.useFakeTimers() (FR-098-101) in packages/licensing/tests/unit/license-validator.test.ts
 - [ ] T034 [P] [US1] Create tier-downgrade.test.ts with degradation policy tests (FR-093-096) in packages/licensing/tests/unit/tier-downgrade.test.ts
-- [ ] T035 [P] [US1] Create feature-contribution.test.ts with extensibility tests (FR-103-107) in packages/licensing/tests/unit/feature-contribution.test.ts
-- [ ] T036 [P] [US1] Create tier-limits.test.ts with getTierLimits() numeric column tests (FR-085-087) in packages/licensing/tests/unit/tier-limits.test.ts
-- [ ] T037 [P] [US1] Create unknown-tier.test.ts with defensive tier handling tests (FR-111-114) in packages/licensing/tests/unit/unknown-tier.test.ts
+- [X] T035 [P] [US1] Create feature-contribution.test.ts with extensibility tests (FR-103-107) in packages/licensing/tests/unit/feature-contribution.test.ts
+- [X] T036 [P] [US1] Create tier-limits.test.ts with getTierLimits() numeric column tests (FR-085-087) in packages/licensing/tests/unit/tier-limits.test.ts
+- [X] T037 [P] [US1] Create unknown-tier.test.ts with defensive tier handling tests (FR-111-114) in packages/licensing/tests/unit/unknown-tier.test.ts
 
 ### Unit Tests: @sanyam/supabase-auth
 
@@ -126,7 +126,7 @@
 ### Unit Tests: @sanyam/document-store
 
 - [X] T041 [P] [US1] Create document-cache.test.ts with cache operation tests in packages/document-store/tests/unit/document-cache.test.ts
-- [ ] T042 [P] [US1] Create uri-parser.test.ts with edge case tests (FR-146-153) in packages/document-store/tests/unit/uri-parser.test.ts
+- [X] T042 [P] [US1] Create uri-parser.test.ts with edge case tests (FR-146-153) in packages/document-store/tests/unit/uri-parser.test.ts
 
 ### Unit Tests: sanyam-language-server Routes
 
@@ -137,13 +137,13 @@
 
 ### Unit Tests: sanyam-language-server Middleware
 
-- [ ] T047 [P] [US1] Create cors.test.ts with CORS tests including prod security (FR-161-165) in packages/language-server/tests/unit/middleware/cors.test.ts
-- [ ] T048 [P] [US1] Create rate-limit.test.ts with sliding window tests in packages/language-server/tests/unit/middleware/rate-limit.test.ts
-- [ ] T049 [P] [US1] Create api-key-auth.test.ts with auth middleware tests in packages/language-server/tests/unit/middleware/api-key-auth.test.ts
+- [X] T047 [P] [US1] Create cors.test.ts with CORS tests including prod security (FR-161-165) in packages/language-server/tests/unit/middleware/cors.test.ts
+- [X] T048 [P] [US1] Create rate-limit.test.ts with sliding window tests in packages/language-server/tests/unit/middleware/rate-limit.test.ts
+- [X] T049 [P] [US1] Create api-key-auth.test.ts with auth middleware tests in packages/language-server/tests/unit/middleware/api-key-auth.test.ts
 
 ### Unit Tests: Zod Schemas
 
-- [ ] T050 [US1] Create zod-validation.test.ts with schema contract tests (FR-166-172) in packages/language-server/tests/unit/schemas/zod-validation.test.ts
+- [X] T050 [US1] Create zod-validation.test.ts with schema contract tests (FR-166-172) in packages/language-server/tests/unit/schemas/zod-validation.test.ts
 
 ### Unit Tests: Theia Commands
 

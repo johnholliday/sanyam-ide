@@ -146,6 +146,10 @@ export function createApiKeyAuthMiddleware(
       logger.debug({ keyId: keyRecord.id }, 'API key authenticated');
       return next();
     } catch (err) {
+      // Re-throw ApiException to let error handler handle it
+      if (err instanceof Error && err.name === 'ApiException') {
+        throw err;
+      }
       logger.error({ err }, 'API key authentication error');
       return ApiErrors.internal('Authentication error');
     }

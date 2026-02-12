@@ -151,7 +151,7 @@
 
 ### Logging Assertion Tests
 
-- [ ] T052 [US1] Create logging-assertions.test.ts with warning/error log tests (FR-179-183) in packages/test-utils/tests/unit/logging-assertions.test.ts
+- [X] T052 [US1] Create logging-assertions.test.ts with warning/error log tests (FR-179-183) in packages/test-utils/tests/unit/logging-assertions.test.ts
 
 ### Snapshot Tests
 

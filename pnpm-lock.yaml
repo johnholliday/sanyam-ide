@@ -1120,6 +1120,9 @@ importers:
       inversify:
         specifier: ^6.0.2
         version: 6.2.2(reflect-metadata@0.2.2)
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
       rimraf:
         specifier: ^5.0.5
         version: 5.0.10
@@ -1385,6 +1388,21 @@ importers:
       typescript:
         specifier: ~5.6.3
         version: 5.6.3
+
+  supabase:
+    devDependencies:
+      '@sanyam/test-utils':
+        specifier: workspace:*
+        version: link:../packages/test-utils
+      '@supabase/supabase-js':
+        specifier: ^2.45.0
+        version: 2.95.3
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@25.0.9)(less@3.13.1)(terser@5.45.0)
 
   tests/e2e:
     devDependencies:

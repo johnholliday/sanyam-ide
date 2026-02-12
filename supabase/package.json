@@ -1,0 +1,13 @@
+{
+  "name": "@sanyam/supabase-tests",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Supabase database tests for Sanyam IDE",
+  "devDependencies": {
+    "@sanyam/test-utils": "workspace:*",
+    "@supabase/supabase-js": "^2.45.0",
+    "reflect-metadata": "^0.2.2",
+    "vitest": "^2.0.0"
+  }
+}

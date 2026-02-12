@@ -112,16 +112,16 @@
 
 - [X] T032 [P] [US1] Create feature-gate.test.ts with DB-sourced feature flag tests (FR-081, FR-082) in packages/licensing/tests/unit/feature-gate.test.ts
 - [X] T033 [P] [US1] Create license-validator.test.ts with cache timing tests using vi.useFakeTimers() (FR-098-101) in packages/licensing/tests/unit/license-validator.test.ts
-- [ ] T034 [P] [US1] Create tier-downgrade.test.ts with degradation policy tests (FR-093-096) in packages/licensing/tests/unit/tier-downgrade.test.ts
+- [X] T034 [P] [US1] Create tier-downgrade.test.ts with degradation policy tests (FR-093-096) in packages/licensing/tests/unit/tier-downgrade.test.ts
 - [X] T035 [P] [US1] Create feature-contribution.test.ts with extensibility tests (FR-103-107) in packages/licensing/tests/unit/feature-contribution.test.ts
 - [X] T036 [P] [US1] Create tier-limits.test.ts with getTierLimits() numeric column tests (FR-085-087) in packages/licensing/tests/unit/tier-limits.test.ts
 - [X] T037 [P] [US1] Create unknown-tier.test.ts with defensive tier handling tests (FR-111-114) in packages/licensing/tests/unit/unknown-tier.test.ts
 
 ### Unit Tests: @sanyam/supabase-auth
 
-- [ ] T038 [P] [US1] Create credential-manager.test.ts with env var validation tests (FR-064-069) in packages/supabase-auth/tests/unit/credential-manager.test.ts
-- [ ] T039 [P] [US1] Create supabase-client-factory.test.ts with client creation tests in packages/supabase-auth/tests/unit/supabase-client-factory.test.ts
-- [ ] T040 [P] [US1] Create vitest.setup.ts importing Theia mocks for supabase-auth package in packages/supabase-auth/vitest.setup.ts
+- [X] T038 [P] [US1] Create credential-manager.test.ts with env var validation tests (FR-064-069) in packages/supabase-auth/tests/unit/credential-manager.test.ts
+- [X] T039 [P] [US1] Create supabase-client-factory.test.ts with client creation tests in packages/supabase-auth/tests/unit/supabase-client-factory.test.ts
+- [X] T040 [P] [US1] Create vitest.setup.ts importing Theia mocks for supabase-auth package in packages/supabase-auth/vitest.setup.ts
 
 ### Unit Tests: @sanyam/document-store
 
@@ -130,9 +130,9 @@
 
 ### Unit Tests: sanyam-language-server Routes
 
-- [ ] T043 [P] [US1] Create documents.test.ts with route tests in packages/language-server/tests/unit/routes/documents.test.ts
-- [ ] T044 [P] [US1] Create api-keys.test.ts with API key edge case tests (FR-154-160) in packages/language-server/tests/unit/routes/api-keys.test.ts
-- [ ] T045 [P] [US1] Create shares.test.ts with feature-gate wiring tests (FR-115-119) in packages/language-server/tests/unit/routes/shares.test.ts
+- [X] T043 [P] [US1] Create documents.test.ts with route tests in packages/language-server/tests/unit/routes/documents.test.ts
+- [X] T044 [P] [US1] Create api-keys.test.ts with API key edge case tests (FR-154-160) in packages/language-server/tests/unit/routes/api-keys.test.ts
+- [X] T045 [P] [US1] Create shares.test.ts with feature-gate wiring tests (FR-115-119) in packages/language-server/tests/unit/routes/shares.test.ts
 - [X] T046 [P] [US1] Create health.test.ts with health endpoint tests (FR-188-190) in packages/language-server/tests/unit/routes/health.test.ts
 
 ### Unit Tests: sanyam-language-server Middleware
@@ -147,7 +147,7 @@
 
 ### Unit Tests: Theia Commands
 
-- [ ] T051 [US1] Create save-to-cloud-command.test.ts with Theia mock tests (FR-173-178) in packages/theia-extensions/product/tests/unit/save-to-cloud-command.test.ts
+- [X] T051 [US1] Create save-to-cloud-command.test.ts with Theia mock tests (FR-173-178) in packages/theia-extensions/product/tests/unit/save-to-cloud-command.test.ts
 
 ### Logging Assertion Tests
 
@@ -159,7 +159,7 @@
 
 ### Container Wiring Tests
 
-- [ ] T054 [US1] Create container-wiring.test.ts with DI permutation tests (FR-039-041, FR-089-092) in packages/test-utils/tests/unit/container-wiring.test.ts
+- [X] T054 [US1] Create container-wiring.test.ts with DI permutation tests (FR-039-041, FR-089-092) in packages/test-utils/tests/unit/container-wiring.test.ts
 
 **Checkpoint**: User Story 1 complete - `pnpm test:unit` works on fresh clone
 
@@ -173,33 +173,33 @@
 
 ### Integration Test Infrastructure
 
-- [ ] T055 [US2] Configure workspace integration test project with 15s timeout in vitest.workspace.ts
-- [ ] T056 [US2] Create Supabase availability skip logic in global-setup.ts (FR-022-024)
+- [X] T055 [US2] Configure workspace integration test project with 15s timeout in vitest.workspace.ts
+- [X] T056 [US2] Create Supabase availability skip logic in global-setup.ts (FR-022-024)
 
 ### Integration Tests: @sanyam/document-store
 
-- [ ] T057 [P] [US2] Create document-crud.integration.test.ts with real Supabase CRUD tests in packages/document-store/tests/integration/document-crud.integration.test.ts
-- [ ] T058 [P] [US2] Create document-versions.integration.test.ts with versioning tests in packages/document-store/tests/integration/document-versions.integration.test.ts
-- [ ] T059 [P] [US2] Create document-shares.integration.test.ts with sharing tests in packages/document-store/tests/integration/document-shares.integration.test.ts
-- [ ] T060 [P] [US2] Create optimistic-locking.integration.test.ts with concurrent PUT tests (FR-042-044) in packages/document-store/tests/integration/optimistic-locking.integration.test.ts
+- [X] T057 [P] [US2] Create document-crud.integration.test.ts with real Supabase CRUD tests in packages/document-store/tests/integration/document-crud.integration.test.ts
+- [X] T058 [P] [US2] Create document-versions.integration.test.ts with versioning tests in packages/document-store/tests/integration/document-versions.integration.test.ts
+- [X] T059 [P] [US2] Create document-shares.integration.test.ts with sharing tests in packages/document-store/tests/integration/document-shares.integration.test.ts
+- [X] T060 [P] [US2] Create optimistic-locking.integration.test.ts with concurrent PUT tests (FR-042-044) in packages/document-store/tests/integration/optimistic-locking.integration.test.ts
 
 ### Integration Tests: @sanyam/licensing
 
-- [ ] T061 [P] [US2] Create billing-webhook.integration.test.ts with full chain tests (FR-108-110) in packages/licensing/tests/integration/billing-webhook.integration.test.ts
-- [ ] T062 [P] [US2] Create tier-limits.integration.test.ts with seed data verification (FR-088) in packages/licensing/tests/integration/tier-limits.integration.test.ts
-- [ ] T063 [P] [US2] Create tier-downgrade.integration.test.ts with real degradation tests (FR-097) in packages/licensing/tests/integration/tier-downgrade.integration.test.ts
-- [ ] T064 [P] [US2] Create feature-gate-db.integration.test.ts with DB source-of-truth tests (FR-083-084) in packages/licensing/tests/integration/feature-gate-db.integration.test.ts
+- [X] T061 [P] [US2] Create billing-webhook.integration.test.ts with full chain tests (FR-108-110) in packages/licensing/tests/integration/billing-webhook.integration.test.ts
+- [X] T062 [P] [US2] Create tier-limits.integration.test.ts with seed data verification (FR-088) in packages/licensing/tests/integration/tier-limits.integration.test.ts
+- [X] T063 [P] [US2] Create tier-downgrade.integration.test.ts with real degradation tests (FR-097) in packages/licensing/tests/integration/tier-downgrade.integration.test.ts
+- [X] T064 [P] [US2] Create feature-gate-db.integration.test.ts with DB source-of-truth tests (FR-083-084) in packages/licensing/tests/integration/feature-gate-db.integration.test.ts
 
 ### Integration Tests: sanyam-language-server
 
-- [ ] T065 [P] [US2] Create route-feature-gate.integration.test.ts with HTTP-to-licensing wiring (FR-115-119) in packages/language-server/tests/integration/route-feature-gate.integration.test.ts
-- [ ] T066 [P] [US2] Create user-scoped-client.integration.test.ts with RLS defense-in-depth tests (FR-120-123) in packages/language-server/tests/integration/user-scoped-client.integration.test.ts
-- [ ] T067 [P] [US2] Create rate-limit.integration.test.ts with sliding window tests (FR-070-074) in packages/language-server/tests/integration/rate-limit.integration.test.ts
-- [ ] T068 [P] [US2] Create soft-delete.integration.test.ts with lifecycle tests (FR-128-132) in packages/language-server/tests/integration/soft-delete.integration.test.ts
+- [X] T065 [P] [US2] Create route-feature-gate.integration.test.ts with HTTP-to-licensing wiring (FR-115-119) in packages/language-server/tests/integration/route-feature-gate.integration.test.ts
+- [X] T066 [P] [US2] Create user-scoped-client.integration.test.ts with RLS defense-in-depth tests (FR-120-123) in packages/language-server/tests/integration/user-scoped-client.integration.test.ts
+- [X] T067 [P] [US2] Create rate-limit.integration.test.ts with sliding window tests (FR-070-074) in packages/language-server/tests/integration/rate-limit.integration.test.ts
+- [X] T068 [P] [US2] Create soft-delete.integration.test.ts with lifecycle tests (FR-128-132) in packages/language-server/tests/integration/soft-delete.integration.test.ts
 
 ### Graceful Degradation Tests
 
-- [ ] T069 [P] [US2] Create graceful-degradation.integration.test.ts with Mode A/B tests (FR-045-049) in packages/supabase-auth/tests/integration/graceful-degradation.integration.test.ts
+- [X] T069 [P] [US2] Create graceful-degradation.integration.test.ts with Mode A/B tests (FR-045-049) in packages/supabase-auth/tests/integration/graceful-degradation.integration.test.ts
 
 ### Stripe Webhook Signature Helper
 
@@ -207,7 +207,7 @@
 
 ### HTTP Gateway Tier Resolution Tests
 
-- [ ] T071 [US2] Create gateway-tier-resolution.integration.test.ts with per-request lookup tests (FR-102) in packages/language-server/tests/integration/gateway-tier-resolution.integration.test.ts
+- [X] T071 [US2] Create gateway-tier-resolution.integration.test.ts with per-request lookup tests (FR-102) in packages/language-server/tests/integration/gateway-tier-resolution.integration.test.ts
 
 **Checkpoint**: User Story 2 complete - `pnpm test:integration` works with local Supabase
 
@@ -221,25 +221,25 @@
 
 ### Database Test Directory
 
-- [ ] T072 [US3] Create supabase/tests/ directory structure with triggers/ subdirectory
+- [X] T072 [US3] Create supabase/tests/ directory structure with triggers/ subdirectory
 
 ### RLS Policy Tests
 
-- [ ] T073 [US3] Create rls-policies.test.ts with per-policy isolation tests (FR-015-016) in supabase/tests/rls-policies.test.ts
+- [X] T073 [US3] Create rls-policies.test.ts with per-policy isolation tests (FR-015-016) in supabase/tests/rls-policies.test.ts
 
 ### Trigger Tests
 
-- [ ] T074 [P] [US3] Create auto-profile.test.ts with user_profiles trigger tests (FR-136-139) in supabase/tests/triggers/auto-profile.test.ts
-- [ ] T075 [P] [US3] Create version-retention.test.ts with max_versions trigger tests (FR-124-127) in supabase/tests/triggers/version-retention.test.ts
-- [ ] T076 [P] [US3] Create storage-usage.test.ts with total_storage_bytes trigger tests (FR-140-145) in supabase/tests/triggers/storage-usage.test.ts
+- [X] T074 [P] [US3] Create auto-profile.test.ts with user_profiles trigger tests (FR-136-139) in supabase/tests/triggers/auto-profile.test.ts
+- [X] T075 [P] [US3] Create version-retention.test.ts with max_versions trigger tests (FR-124-127) in supabase/tests/triggers/version-retention.test.ts
+- [X] T076 [P] [US3] Create storage-usage.test.ts with total_storage_bytes trigger tests (FR-140-145) in supabase/tests/triggers/storage-usage.test.ts
 
 ### Soft Delete Database Tests
 
-- [ ] T077 [US3] Create soft-delete.test.ts with cascade-preservation tests (FR-133-135) in supabase/tests/soft-delete.test.ts
+- [X] T077 [US3] Create soft-delete.test.ts with cascade-preservation tests (FR-133-135) in supabase/tests/soft-delete.test.ts
 
 ### Configure Serial Execution
 
-- [ ] T078 [US3] Configure database tests for serial execution with `{ sequence: { concurrent: false } }` in vitest.workspace.ts
+- [X] T078 [US3] Configure database tests for serial execution with `{ sequence: { concurrent: false } }` in vitest.workspace.ts
 
 **Checkpoint**: User Story 3 complete - database schema correctness verified
 
@@ -254,9 +254,9 @@
 ### Factory Tests
 
 - [X] T079 [P] [US4] Create document-factory.test.ts with factory validation tests in packages/test-utils/tests/unit/factories/document-factory.test.ts
-- [ ] T080 [P] [US4] Create user-factory.test.ts with createTestUser/cleanupTestUser tests in packages/test-utils/tests/unit/factories/user-factory.test.ts
-- [ ] T081 [P] [US4] Create api-key-factory.test.ts with factory validation tests in packages/test-utils/tests/unit/factories/api-key-factory.test.ts
-- [ ] T082 [P] [US4] Create user-profile-factory.test.ts with factory validation tests in packages/test-utils/tests/unit/factories/user-profile-factory.test.ts
+- [X] T080 [P] [US4] Create user-factory.test.ts with createTestUser/cleanupTestUser tests in packages/test-utils/tests/unit/factories/user-factory.test.ts
+- [X] T081 [P] [US4] Create api-key-factory.test.ts with factory validation tests in packages/test-utils/tests/unit/factories/api-key-factory.test.ts
+- [X] T082 [P] [US4] Create user-profile-factory.test.ts with factory validation tests in packages/test-utils/tests/unit/factories/user-profile-factory.test.ts
 
 ### Mock Supabase Client Tests
 
@@ -282,19 +282,19 @@
 
 ### CI Workflow
 
-- [ ] T086 [US5] Create test.yml GitHub workflow with type-check → unit → integration jobs in .github/workflows/test.yml
-- [ ] T087 [US5] Configure type-check job with `tsc --noEmit` gating test jobs (FR-184-187) in .github/workflows/test.yml
-- [ ] T088 [US5] Configure Supabase lifecycle in CI (start, migrations, seed, tests, stop) in .github/workflows/test.yml
-- [ ] T089 [US5] Configure coverage thresholds per package (90% core, 85% auth/HTTP) in vitest.workspace.ts (FR-054-058)
+- [X] T086 [US5] Create test.yml GitHub workflow with type-check → unit → integration jobs in .github/workflows/test.yml
+- [X] T087 [US5] Configure type-check job with `tsc --noEmit` gating test jobs (FR-184-187) in .github/workflows/test.yml
+- [X] T088 [US5] Configure Supabase lifecycle in CI (start, migrations, seed, tests, stop) in .github/workflows/test.yml
+- [X] T089 [US5] Configure coverage thresholds per package (90% core, 85% auth/HTTP) in vitest.workspace.ts (FR-054-058)
 
 ### Timeout Configuration
 
-- [ ] T090 [US5] Configure per-project timeouts (5s unit, 15s integration, 10s db) in vitest.workspace.ts (FR-050-053)
-- [ ] T091 [US5] Configure global 5-minute suite timeout via --bail in vitest.workspace.ts (FR-051)
+- [X] T090 [US5] Configure per-project timeouts (5s unit, 15s integration, 10s db) in vitest.workspace.ts (FR-050-053)
+- [X] T091 [US5] Configure global 5-minute suite timeout via --bail in vitest.workspace.ts (FR-051)
 
 ### Ensure Strict TypeScript
 
-- [ ] T092 [US5] Verify all package tsconfig.json files include strict: true (FR-186)
+- [X] T092 [US5] Verify all package tsconfig.json files include strict: true (FR-186)
 
 **Checkpoint**: User Story 5 complete - CI pipeline fully functional
 
@@ -306,18 +306,18 @@
 
 ### Documentation
 
-- [ ] T093 [P] Create TESTING.md at repository root documenting naming conventions (FR-075-080)
-- [ ] T094 [P] Create README.md for @sanyam/test-utils with parallelization docs (FR-028) in packages/test-utils/README.md
+- [X] T093 [P] Create TESTING.md at repository root documenting naming conventions (FR-075-080)
+- [X] T094 [P] Create README.md for @sanyam/test-utils with parallelization docs (FR-028) in packages/test-utils/README.md
 
 ### Hard Deletion Placeholder
 
-- [ ] T095 Create hard-deletion.test.ts placeholder with skipped tests (FR-135) in supabase/tests/hard-deletion.test.ts
+- [X] T095 Create hard-deletion.test.ts placeholder with skipped tests (FR-135) in supabase/tests/hard-deletion.test.ts
 
 ### Final Validation
 
-- [ ] T096 Run full test suite locally and verify all tests pass
-- [ ] T097 Verify coverage thresholds are met for all packages
-- [ ] T098 Run quickstart.md validation to confirm developer experience
+- [X] T096 Run full test suite locally and verify all tests pass
+- [X] T097 Verify coverage thresholds are met for all packages
+- [X] T098 Run quickstart.md validation to confirm developer experience
 
 ---
 

@@ -155,7 +155,7 @@
 
 ### Snapshot Tests
 
-- [ ] T053 [US1] Create response-snapshots.test.ts with inline snapshots for error/pagination envelopes (FR-017-020) in packages/language-server/tests/unit/response-snapshots.test.ts
+- [X] T053 [US1] Create response-snapshots.test.ts with inline snapshots for error/pagination envelopes (FR-017-020) in packages/language-server/tests/unit/response-snapshots.test.ts
 
 ### Container Wiring Tests
 

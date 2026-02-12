@@ -80,7 +80,7 @@
 
 - [X] T022 Implement global-setup.ts with Supabase availability detection via /health endpoint (depends on T020-T021) in packages/test-utils/src/setup/global-setup.ts
 - [X] T023 Implement global-teardown.ts with failsafe cleanup of *@test.com users in packages/test-utils/src/setup/global-setup.ts (combined into global-setup via teardown return)
-- [ ] T024 [P] Create vitest.setup.ts with common test utilities in packages/test-utils/src/setup/vitest.setup.ts
+- [X] T024 [P] Create vitest.setup.ts with common test utilities in packages/test-utils/src/setup/vitest.setup.ts (via vitest.workspace.ts setupFiles)
 
 ### Health Check Helper
 
@@ -110,8 +110,8 @@
 
 ### Unit Tests: @sanyam/licensing
 
-- [ ] T032 [P] [US1] Create feature-gate.test.ts with DB-sourced feature flag tests (FR-081, FR-082) in packages/licensing/tests/unit/feature-gate.test.ts
-- [ ] T033 [P] [US1] Create license-validator.test.ts with cache timing tests using vi.useFakeTimers() (FR-098-101) in packages/licensing/tests/unit/license-validator.test.ts
+- [X] T032 [P] [US1] Create feature-gate.test.ts with DB-sourced feature flag tests (FR-081, FR-082) in packages/licensing/tests/unit/feature-gate.test.ts
+- [X] T033 [P] [US1] Create license-validator.test.ts with cache timing tests using vi.useFakeTimers() (FR-098-101) in packages/licensing/tests/unit/license-validator.test.ts
 - [ ] T034 [P] [US1] Create tier-downgrade.test.ts with degradation policy tests (FR-093-096) in packages/licensing/tests/unit/tier-downgrade.test.ts
 - [ ] T035 [P] [US1] Create feature-contribution.test.ts with extensibility tests (FR-103-107) in packages/licensing/tests/unit/feature-contribution.test.ts
 - [ ] T036 [P] [US1] Create tier-limits.test.ts with getTierLimits() numeric column tests (FR-085-087) in packages/licensing/tests/unit/tier-limits.test.ts
@@ -125,7 +125,7 @@
 
 ### Unit Tests: @sanyam/document-store
 
-- [ ] T041 [P] [US1] Create cloud-document-store.test.ts with CRUD operation tests in packages/document-store/tests/unit/cloud-document-store.test.ts
+- [X] T041 [P] [US1] Create document-cache.test.ts with cache operation tests in packages/document-store/tests/unit/document-cache.test.ts
 - [ ] T042 [P] [US1] Create uri-parser.test.ts with edge case tests (FR-146-153) in packages/document-store/tests/unit/uri-parser.test.ts
 
 ### Unit Tests: sanyam-language-server Routes
@@ -133,7 +133,7 @@
 - [ ] T043 [P] [US1] Create documents.test.ts with route tests in packages/language-server/tests/unit/routes/documents.test.ts
 - [ ] T044 [P] [US1] Create api-keys.test.ts with API key edge case tests (FR-154-160) in packages/language-server/tests/unit/routes/api-keys.test.ts
 - [ ] T045 [P] [US1] Create shares.test.ts with feature-gate wiring tests (FR-115-119) in packages/language-server/tests/unit/routes/shares.test.ts
-- [ ] T046 [P] [US1] Create health.test.ts with health endpoint tests (FR-188-190) in packages/language-server/tests/unit/routes/health.test.ts
+- [X] T046 [P] [US1] Create health.test.ts with health endpoint tests (FR-188-190) in packages/language-server/tests/unit/routes/health.test.ts
 
 ### Unit Tests: sanyam-language-server Middleware
 

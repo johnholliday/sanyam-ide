@@ -21,16 +21,21 @@
   "scripts": {
     "build": "tsc -b",
     "clean": "rimraf lib tsconfig.tsbuildinfo",
-    "watch": "tsc -b -w"
+    "watch": "tsc -b -w",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@sanyam/types": "workspace:*",
     "@supabase/supabase-js": "^2.49.1"
   },
   "devDependencies": {
+    "@sanyam/test-utils": "workspace:*",
     "inversify": "^6.0.2",
+    "reflect-metadata": "^0.2.2",
     "rimraf": "^5.0.5",
-    "typescript": "~5.6.3"
+    "typescript": "~5.6.3",
+    "vitest": "^2.1.9"
   },
   "peerDependencies": {
     "inversify": "^6.0.0"

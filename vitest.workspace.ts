@@ -12,9 +12,21 @@ export default defineWorkspace([
   // Unit tests - fast, no external dependencies
   {
     extends: './vitest.config.ts',
+    esbuild: {
+      tsconfigRaw: {
+        compilerOptions: {
+          experimentalDecorators: true,
+          emitDecoratorMetadata: true,
+        },
+      },
+    },
     test: {
       name: 'unit',
-      include: ['packages/**/src/**/*.test.ts', 'packages/**/*.test.ts'],
+      include: [
+        'packages/**/src/**/*.test.ts',
+        'packages/**/tests/unit/**/*.test.ts',
+        'packages/**/*.test.ts',
+      ],
       exclude: [
         '**/node_modules/**',
         '**/lib/**',
@@ -22,6 +34,7 @@ export default defineWorkspace([
         '**/tests/integration/**',
       ],
       environment: 'node',
+      setupFiles: ['reflect-metadata'],
     },
   },
 

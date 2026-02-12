@@ -69,18 +69,18 @@ export interface AuthSessionStorage {
  * In-memory fallback storage (for environments without SecretStorage).
  */
 class InMemorySecretStorage implements SecretStorage {
-  private readonly store = new Map<string, string>();
+  private readonly _data = new Map<string, string>();
 
   async get(key: string): Promise<string | undefined> {
-    return this.store.get(key);
+    return this._data.get(key);
   }
 
   async store(key: string, value: string): Promise<void> {
-    this.store.set(key, value);
+    this._data.set(key, value);
   }
 
   async delete(key: string): Promise<void> {
-    this.store.delete(key);
+    this._data.delete(key);
   }
 }
 

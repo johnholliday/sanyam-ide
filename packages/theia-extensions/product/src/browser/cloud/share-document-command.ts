@@ -128,7 +128,7 @@ export class ShareDocumentCommand implements CommandContribution, MenuContributi
       title: 'Share Document',
       prompt: 'Enter the email address to share with',
       placeHolder: 'collaborator@example.com',
-      validateInput: (value) => {
+      validateInput: async (value) => {
         if (!value || !value.includes('@')) {
           return 'Please enter a valid email address';
         }
@@ -242,9 +242,8 @@ export class ShareDocumentCommand implements CommandContribution, MenuContributi
 
       // Show shares picker with revoke option
       const items: QuickPickItem[] = shares.map((share) => ({
-        label: `$(account) ${share.shared_with_email ?? share.shared_with_id}`,
+        label: `$(account) ${share.shared_with_id}`,
         description: PERMISSION_INFO[share.permission as SharePermission]?.label ?? share.permission,
-        detail: share.expires_at ? `Expires: ${new Date(share.expires_at).toLocaleDateString()}` : undefined,
         id: share.id,
       }));
 

@@ -178,7 +178,7 @@ export class CloudAuthCommands implements CommandContribution, MenuContribution 
       title: 'Sign In with Email',
       prompt: 'Enter your email address',
       placeHolder: 'you@example.com',
-      validateInput: (value) => {
+      validateInput: async (value) => {
         if (!value || !value.includes('@')) {
           return 'Please enter a valid email address';
         }
@@ -194,7 +194,7 @@ export class CloudAuthCommands implements CommandContribution, MenuContribution 
       title: 'Sign In with Email',
       prompt: 'Enter your password',
       password: true,
-      validateInput: (value) => {
+      validateInput: async (value) => {
         if (!value || value.length < 6) {
           return 'Password must be at least 6 characters';
         }
@@ -226,7 +226,7 @@ export class CloudAuthCommands implements CommandContribution, MenuContribution 
       title: 'Sign In with Magic Link',
       prompt: 'Enter your email address',
       placeHolder: 'you@example.com',
-      validateInput: (value) => {
+      validateInput: async (value) => {
         if (!value || !value.includes('@')) {
           return 'Please enter a valid email address';
         }
@@ -275,7 +275,7 @@ export class CloudAuthCommands implements CommandContribution, MenuContribution 
       title: 'Create Sanyam Cloud Account',
       prompt: 'Enter your email address',
       placeHolder: 'you@example.com',
-      validateInput: (value) => {
+      validateInput: async (value) => {
         if (!value || !value.includes('@')) {
           return 'Please enter a valid email address';
         }
@@ -291,7 +291,7 @@ export class CloudAuthCommands implements CommandContribution, MenuContribution 
       title: 'Create Sanyam Cloud Account',
       prompt: 'Choose a password (min 8 characters)',
       password: true,
-      validateInput: (value) => {
+      validateInput: async (value) => {
         if (!value || value.length < 8) {
           return 'Password must be at least 8 characters';
         }
@@ -307,7 +307,7 @@ export class CloudAuthCommands implements CommandContribution, MenuContribution 
       title: 'Create Sanyam Cloud Account',
       prompt: 'Confirm your password',
       password: true,
-      validateInput: (value) => {
+      validateInput: async (value) => {
         if (value !== password) {
           return 'Passwords do not match';
         }

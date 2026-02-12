@@ -14,10 +14,9 @@ import {
   MenuContribution,
   MenuModelRegistry,
 } from '@theia/core/lib/common';
-import { MessageService, nls } from '@theia/core';
+import { MessageService } from '@theia/core';
 import { EditorManager, EditorWidget } from '@theia/editor/lib/browser';
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
-import { WorkspaceService } from '@theia/workspace/lib/browser';
 import {
   SupabaseAuthProvider,
   type SupabaseAuthProviderType,

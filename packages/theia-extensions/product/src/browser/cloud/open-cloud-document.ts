@@ -14,7 +14,7 @@ import {
   MenuContribution,
   MenuModelRegistry,
 } from '@theia/core/lib/common';
-import { MessageService, nls } from '@theia/core';
+import { MessageService } from '@theia/core';
 import { QuickInputService, QuickPickItem, QuickPickSeparator } from '@theia/core/lib/browser';
 import { OpenerService, open } from '@theia/core/lib/browser/opener-service';
 import { URI } from '@theia/core/lib/common/uri';

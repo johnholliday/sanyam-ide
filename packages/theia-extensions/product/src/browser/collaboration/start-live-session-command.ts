@@ -15,7 +15,7 @@ import {
   MenuModelRegistry,
 } from '@theia/core/lib/common';
 import { MessageService, nls } from '@theia/core';
-import { ClipboardService } from '@theia/core/lib/browser';
+import { ClipboardService } from '@theia/core/lib/browser/clipboard-service';
 import {
   SupabaseAuthProvider,
   type SupabaseAuthProviderType,
@@ -60,9 +60,6 @@ export class StartLiveSessionCommand implements CommandContribution, MenuContrib
   @inject(ClipboardService)
   private readonly clipboardService!: ClipboardService;
 
-  // Pro+ tier required for live collaboration
-  private readonly requiredTier = 'pro';
-
   registerCommands(commands: CommandRegistry): void {
     commands.registerCommand(START_LIVE_SESSION_COMMAND, {
       execute: () => this.startSession(),
@@ -102,8 +99,8 @@ export class StartLiveSessionCommand implements CommandContribution, MenuContrib
     }
 
     // Check tier (Pro+ required)
-    const user = this.authProvider.currentUser;
-    if (!user) {
+    const session = this.authProvider.session;
+    if (!session?.user) {
       return false;
     }
 
@@ -117,8 +114,8 @@ export class StartLiveSessionCommand implements CommandContribution, MenuContrib
    */
   private async startSession(): Promise<void> {
     // Check tier
-    const user = this.authProvider.currentUser;
-    const tier = (user as any)?.user_metadata?.subscription_tier ?? 'free';
+    const session = this.authProvider.session;
+    const tier = session?.user?.tier ?? 'free';
 
     if (tier === 'free') {
       const result = await this.messageService.warn(

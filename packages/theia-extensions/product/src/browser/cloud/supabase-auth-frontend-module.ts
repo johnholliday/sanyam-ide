@@ -7,18 +7,13 @@
  */
 
 import { ContainerModule } from '@theia/core/shared/inversify';
-import {
-  FrontendApplicationContribution,
-  StatusBar,
-  StatusBarAlignment,
-} from '@theia/core/lib/browser';
+import { FrontendApplicationContribution } from '@theia/core/lib/browser';
 import { CommandContribution, MenuContribution } from '@theia/core/lib/common';
 import {
   AuthStateEmitter,
   AuthStateEmitterImpl,
   AuthSessionStorage,
   AuthSessionStorageImpl,
-  SecretStorage,
   OAuthHandler,
   OAuthHandlerImpl,
   SupabaseAuthProvider,

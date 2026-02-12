@@ -51,6 +51,7 @@ export function parsePagination(c: Context<HonoEnv>): ParsedPagination {
   const result = paginationQuerySchema.safeParse(query);
 
   if (!result.success) {
+    // ApiErrors.validationError throws, so this path never returns
     ApiErrors.validationError('Invalid pagination parameters', {
       limit: result.error.issues
         .filter((i) => i.path[0] === 'limit')
@@ -61,6 +62,8 @@ export function parsePagination(c: Context<HonoEnv>): ParsedPagination {
         .map((i) => i.message)
         .join(', ') || undefined,
     } as Record<string, string>);
+    // TypeScript needs explicit unreachable after throw helper
+    throw new Error('unreachable');
   }
 
   // Validate cursor format if provided

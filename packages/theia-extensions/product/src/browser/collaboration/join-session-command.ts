@@ -86,8 +86,8 @@ export class JoinSessionCommand implements CommandContribution, MenuContribution
    */
   private async joinSession(roomCode?: string): Promise<void> {
     // Check tier for joining
-    const user = this.authProvider.currentUser;
-    const tier = (user as any)?.user_metadata?.subscription_tier ?? 'free';
+    const session = this.authProvider.session;
+    const tier = session?.user?.tier ?? 'free';
 
     if (tier === 'free') {
       const result = await this.messageService.warn(
@@ -111,7 +111,7 @@ export class JoinSessionCommand implements CommandContribution, MenuContribution
         title: 'Join Collaboration Session',
         prompt: 'Enter the room code shared by the host',
         placeHolder: 'e.g., ABC123',
-        validateInput: (value) => {
+        validateInput: async (value) => {
           if (!value || value.length < 4) {
             return 'Room code must be at least 4 characters';
           }

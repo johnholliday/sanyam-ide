@@ -78,12 +78,13 @@ export function createSupabaseAuthModuleFromEnv(): ContainerModule | null {
   const isDesktop = typeof process !== 'undefined' &&
     (process.versions?.['electron'] !== undefined || process.env['SANYAM_DESKTOP'] === 'true');
 
+  const redirectUrl = process.env['SANYAM_AUTH_REDIRECT_URL'];
   const config: OAuthConfig = {
     supabaseUrl,
     supabaseAnonKey,
     providers,
     isDesktop,
-    redirectUrl: process.env['SANYAM_AUTH_REDIRECT_URL'],
+    ...(redirectUrl !== undefined && { redirectUrl }),
   };
 
   return createSupabaseAuthModule(config);

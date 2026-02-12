@@ -12,7 +12,7 @@ import { Disposable, DisposableCollection } from '@theia/core';
 import type { AuthSession, AuthStateEvent } from '@sanyam/types';
 import { AuthStateEmitter, type AuthStateEmitter as AuthStateEmitterType } from './auth-state-emitter.js';
 import { AuthSessionStorage, type AuthSessionStorage as AuthSessionStorageType } from './auth-session-storage.js';
-import { OAuthHandler, type OAuthHandler as OAuthHandlerType, type OAuthProvider, type OAuthConfig } from './oauth-handler.js';
+import { OAuthHandler, type OAuthHandler as OAuthHandlerType, type OAuthProvider } from './oauth-handler.js';
 
 /**
  * DI token for SupabaseAuthProvider.

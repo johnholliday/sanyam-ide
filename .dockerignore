@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build artifacts
+dist/
+lib/
+src-gen/
+*.tsbuildinfo
+
+# Git
+.git/
+.gitignore
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker (don't copy Dockerfiles into containers)
+Dockerfile*
+.dockerignore
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+.supabase/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Specifications (not needed in containers)
+specs/
+.specify/

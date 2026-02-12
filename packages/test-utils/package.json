@@ -1,0 +1,64 @@
+{
+  "name": "@sanyam/test-utils",
+  "version": "0.0.1",
+  "description": "Test utilities, mocks, factories, and harnesses for Sanyam IDE cloud packages",
+  "license": "MIT",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.js",
+      "default": "./lib/index.js"
+    },
+    "./mocks": {
+      "types": "./lib/mocks/index.d.ts",
+      "import": "./lib/mocks/index.js"
+    },
+    "./factories": {
+      "types": "./lib/factories/index.d.ts",
+      "import": "./lib/factories/index.js"
+    },
+    "./harness": {
+      "types": "./lib/harness/index.d.ts",
+      "import": "./lib/harness/index.js"
+    },
+    "./setup": {
+      "types": "./lib/setup/index.d.ts",
+      "import": "./lib/setup/index.js"
+    },
+    "./helpers": {
+      "types": "./lib/helpers/index.d.ts",
+      "import": "./lib/helpers/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf lib tsconfig.tsbuildinfo",
+    "watch": "tsc -b -w",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@sanyam/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "@types/node": "^20.0.0",
+    "inversify": "^6.0.2",
+    "rimraf": "^5.0.5",
+    "typescript": "~5.6.3",
+    "vitest": "^2.0.0"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "inversify": "^6.0.0",
+    "vitest": "^2.0.0"
+  }
+}

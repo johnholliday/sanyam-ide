@@ -131,4 +131,4 @@ export const SANYAM_URI_SCHEME = 'sanyam';
 /**
  * Reserved path segment for future binary assets.
  */
-export const ASSETS_PATH_SEGMENT = '/assets/';
+export const ASSETS_PATH_SEGMENT = 'assets';

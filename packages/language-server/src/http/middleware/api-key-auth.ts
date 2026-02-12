@@ -8,9 +8,9 @@
 
 import type { Context, Next } from 'hono';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createHash, timingSafeEqual } from 'crypto';
+import { createHash } from 'crypto';
 import { createLogger } from '@sanyam/logger';
-import type { HonoEnv } from '../types.js';
+import type { HonoEnv, ApiKeyContext } from '../types.js';
 import { ApiErrors } from './error-handler.js';
 import type { ApiScope } from '../routes/api-keys.schemas.js';
 
@@ -21,19 +21,8 @@ const logger = createLogger({ name: 'ApiKeyAuthMiddleware' });
  */
 export const API_KEY_HEADER = 'X-API-Key';
 
-/**
- * API key context for authenticated requests.
- */
-export interface ApiKeyContext {
-  /** API key ID */
-  id: string;
-  /** User ID who owns the key */
-  userId: string;
-  /** Granted scopes */
-  scopes: ApiScope[];
-  /** Key name */
-  name: string;
-}
+// Re-export ApiKeyContext for convenience
+export type { ApiKeyContext } from '../types.js';
 
 /**
  * Dependencies for API key auth middleware.
@@ -141,11 +130,20 @@ export function createApiKeyAuthMiddleware(
       c.set('apiKey', apiKeyContext);
 
       // Also set user context for RLS
-      c.set('user', { id: keyRecord.user_id });
+      // Note: API key auth sets minimal user context; full profile lookup happens elsewhere
+      c.set('user', {
+        id: keyRecord.user_id,
+        email: '', // Not available from API key context
+        tier: 'free', // Default, actual tier would need to be looked up
+      });
 
       logger.debug({ keyId: keyRecord.id }, 'API key authenticated');
       return next();
     } catch (err) {
+      // Re-throw ApiException to let error handler handle it
+      if (err instanceof Error && err.name === 'ApiException') {
+        throw err;
+      }
       logger.error({ err }, 'API key authentication error');
       return ApiErrors.internal('Authentication error');
     }

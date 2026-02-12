@@ -122,7 +122,7 @@ export function sendError(
 export function errorHandlerMiddleware() {
   return createMiddleware<HonoEnv>(async (c, next) => {
     try {
-      await next();
+      return await next();
     } catch (error) {
       const correlationId = c.get('correlationId') ?? 'unknown';
 

@@ -15,7 +15,7 @@ import {
   MenuModelRegistry,
 } from '@theia/core/lib/common';
 import { MessageService } from '@theia/core';
-import { QuickInputService, QuickPickItem, QuickPickSeparator } from '@theia/core/lib/browser';
+import { QuickInputService, QuickPickItem } from '@theia/core/lib/browser';
 import {
   SupabaseAuthProvider,
   type SupabaseAuthProviderType,

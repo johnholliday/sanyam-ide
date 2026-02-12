@@ -123,7 +123,7 @@ export class DocumentHistoryCommand implements CommandContribution, MenuContribu
       const items: QuickPickItem[] = versions.map((v) => ({
         label: `Version ${v.version_number}`,
         description: this.formatDate(v.created_at),
-        detail: `${this.formatSize(v.content_size_bytes)}${v.expires_at ? ' • Expires: ' + this.formatDate(v.expires_at) : ''}`,
+        detail: this.formatSize(v.content_size_bytes),
         id: String(v.version_number),
       }));
 

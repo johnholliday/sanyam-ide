@@ -20,8 +20,8 @@ import { TheiaIDEAboutDialog } from './sanyam-ide-about-dialog';
 import { TheiaIDEContribution } from './sanyam-ide-contribution';
 import { TheiaIDEGettingStartedWidget } from './sanyam-ide-getting-started-widget';
 
-// Cloud authentication module (optional, loads if Supabase is configured)
-import { SupabaseAuthFrontendModule } from './cloud/supabase-auth-frontend-module';
+// Note: Cloud authentication module is loaded separately via SupabaseAuthFrontendModule
+// from ./cloud/supabase-auth-frontend-module.ts
 
 // Import grammar manifests via webpack alias - resolved at bundle time
 // eslint-disable-next-line @typescript-eslint/no-require-imports

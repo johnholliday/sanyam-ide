@@ -153,7 +153,7 @@ export class CollaborationSessionServiceImpl implements CollaborationSessionServ
       throw new Error('Must be signed in to start a collaboration session');
     }
 
-    const user = this.authProvider.currentUser;
+    const user = this.authProvider.session?.user;
     if (!user) {
       throw new Error('No user information available');
     }
@@ -165,7 +165,7 @@ export class CollaborationSessionServiceImpl implements CollaborationSessionServ
       // Create local participant (host)
       const localParticipant: CollaborationParticipant = {
         id: user.id,
-        name: user.email?.split('@')[0] ?? 'Anonymous',
+        name: user.display_name ?? user.email?.split('@')[0] ?? 'Anonymous',
         color: this.getNextColor(),
         isLocal: true,
         isHost: true,
@@ -201,7 +201,7 @@ export class CollaborationSessionServiceImpl implements CollaborationSessionServ
       throw new Error('Must be signed in to join a collaboration session');
     }
 
-    const user = this.authProvider.currentUser;
+    const user = this.authProvider.session?.user;
     if (!user) {
       throw new Error('No user information available');
     }
@@ -210,7 +210,7 @@ export class CollaborationSessionServiceImpl implements CollaborationSessionServ
       // Create local participant
       const localParticipant: CollaborationParticipant = {
         id: user.id,
-        name: user.email?.split('@')[0] ?? 'Anonymous',
+        name: user.display_name ?? user.email?.split('@')[0] ?? 'Anonymous',
         color: this.getNextColor(),
         isLocal: true,
         isHost: false,

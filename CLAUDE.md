@@ -119,6 +119,8 @@ Feature specs live in `.specify/specs/{feature-id}/` with plan, tasks, and contr
 - TypeScript 5.6.3 + Theia 1.67.0, Supabase JS SDK 2.x, Hono 4.x, Inversify 6.x, Zod 3.x (007-cloud-storage-auth-licensing)
 - PostgreSQL via Supabase (documents, versions, shares, api_keys, tier_limits tables) (007-cloud-storage-auth-licensing)
 - Open Collaboration Tools (OCT) + Yjs for real-time collaboration (007-cloud-storage-auth-licensing)
+- TypeScript ~5.6.3 + Vitest 2.x, @vitest/coverage-v8, Supabase JS SDK 2.x, Hono 4.x, Inversify 6.x, Zod 3.x (008-cloud-test-infrastructure)
+- PostgreSQL via Supabase CLI (local development stack at ports 54321-54326) (008-cloud-test-infrastructure)
 
 ## Recent Changes
 - 007-cloud-storage-auth-licensing: Complete cloud storage, auth, and licensing implementation

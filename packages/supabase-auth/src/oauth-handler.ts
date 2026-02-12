@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import { injectable, inject, optional } from 'inversify';
+import { injectable, inject } from 'inversify';
 import { createClient, type SupabaseClient, type Provider } from '@supabase/supabase-js';
 import type { AuthSession, UserProfile, SubscriptionTier } from '@sanyam/types';
 
@@ -459,13 +459,14 @@ export function createOAuthHandlerFromEnv(isDesktop = false): OAuthHandler | nul
   const providersEnv = process.env['SANYAM_AUTH_PROVIDERS'] ?? 'email,github,google';
   const providers = providersEnv.split(',').map((p) => p.trim()) as OAuthProvider[];
 
+  const redirectUrl = process.env['SANYAM_AUTH_REDIRECT_URL'];
   const config: OAuthConfig = {
     supabaseUrl,
     supabaseAnonKey,
     providers,
     isDesktop,
-    redirectUrl: process.env['SANYAM_AUTH_REDIRECT_URL'],
+    ...(redirectUrl ? { redirectUrl } : {}),
   };
 
-  return new OAuthHandlerImpl(config as any);
+  return new OAuthHandlerImpl(config);
 }

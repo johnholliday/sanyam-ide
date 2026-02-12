@@ -16,7 +16,7 @@ import {
 } from '@theia/core/lib/common';
 import { MessageService } from '@theia/core';
 import { QuickInputService, QuickPickItem } from '@theia/core/lib/browser';
-import { ClipboardService } from '@theia/core/lib/browser';
+import { ClipboardService } from '@theia/core/lib/browser/clipboard-service';
 import {
   SupabaseAuthProvider,
   type SupabaseAuthProviderType,
@@ -109,12 +109,12 @@ export class ManageApiKeysCommand implements CommandContribution, MenuContributi
     }
 
     // Check tier (Pro+ required)
-    const user = this.authProvider.currentUser;
-    if (!user) {
+    const session = this.authProvider.session;
+    if (!session?.user) {
       return false;
     }
 
-    const tier = (user as any)?.user_metadata?.subscription_tier ?? 'free';
+    const tier = session.user.tier ?? 'free';
     return tier !== 'free';
   }
 
@@ -123,8 +123,8 @@ export class ManageApiKeysCommand implements CommandContribution, MenuContributi
    */
   private async manageApiKeys(): Promise<void> {
     // Check tier
-    const user = this.authProvider.currentUser;
-    const tier = (user as any)?.user_metadata?.subscription_tier ?? 'free';
+    const session = this.authProvider.session;
+    const tier = session?.user?.tier ?? 'free';
 
     if (tier === 'free') {
       const result = await this.messageService.warn(
@@ -164,7 +164,7 @@ export class ManageApiKeysCommand implements CommandContribution, MenuContributi
       // Build quick pick items
       const items: QuickPickItem[] = [
         { label: '$(add) Create New API Key', id: 'create', alwaysShow: true },
-        { label: '', kind: 2 }, // Separator
+        { label: '─────────────────', id: 'separator' }, // Visual separator
       ];
 
       if (keys.length === 0) {
@@ -215,7 +215,7 @@ export class ManageApiKeysCommand implements CommandContribution, MenuContributi
         title: 'Create API Key',
         prompt: 'Enter a name for this API key',
         placeHolder: 'e.g., CI/CD Pipeline',
-        validateInput: (value) => {
+        validateInput: async (value) => {
           if (!value || value.length < 1) {
             return 'Name is required';
           }
@@ -230,25 +230,25 @@ export class ManageApiKeysCommand implements CommandContribution, MenuContributi
         return;
       }
 
-      // Select scopes
-      const scopeItems = API_SCOPES.map((s) => ({
+      // Select scopes - use multiple single picks as Theia doesn't support multi-select well
+      const scopeItems: QuickPickItem[] = API_SCOPES.map((s) => ({
         label: s.label,
         description: s.description,
-        picked: s.label === 'documents:read', // Default to read-only
       }));
 
-      const selectedScopes = await this.quickInputService.showQuickPick(scopeItems, {
-        title: 'Select API Scopes',
-        placeholder: 'Choose the permissions for this key',
-        canPickMany: true,
+      // Show scope selection (user can select one, we default to read-only)
+      const selectedScope = await this.quickInputService.showQuickPick(scopeItems, {
+        title: 'Select Primary API Scope',
+        placeholder: 'Choose the primary permission for this key',
       });
 
-      if (!selectedScopes || selectedScopes.length === 0) {
+      if (!selectedScope) {
         this.messageService.warn('At least one scope is required');
         return;
       }
 
-      const scopes = (selectedScopes as any[]).map((s) => s.label);
+      // For now, use single scope - multi-scope can be enhanced later
+      const scopes = [(selectedScope as any).label];
 
       // Create the key
       const accessToken = await this.authProvider.getAccessToken();

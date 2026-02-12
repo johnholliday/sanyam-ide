@@ -39,9 +39,13 @@ Grammar packages build with: `langium generate && tsc -b`
 - `packages/` — Core platform packages
 - `packages/theia-extensions/` — Theia extension packages (`glsp`, `product`, `updater`, `launcher`)
 - `packages/grammar-definitions/` — Langium grammar packages (`@sanyam-grammar/*`)
+- `packages/document-store/` — @sanyam/document-store (cloud document storage via Supabase)
+- `packages/supabase-auth/` — @sanyam/supabase-auth (authentication with OAuth support)
+- `packages/licensing/` — @sanyam/licensing (subscription tier management and feature gating)
 - `applications/` — `sanyam-electron` and `sanyam-browser` apps
 - `configs/` — Shared tsconfig and eslint configs
 - `docs/` — Eleventy documentation site
+- `supabase/` — Supabase migrations and seed data
 
 ## Architecture
 
@@ -103,7 +107,25 @@ All services use Inversify 6.x dependency injection bound in singleton scope. Se
 | React | 18.x |
 | Node | >=20 |
 | pnpm | >=9 |
+| Supabase JS SDK | 2.x |
+| Hono | 4.x |
+| Zod | 3.x |
 
 ## Specification System
 
 Feature specs live in `.specify/specs/{feature-id}/` with plan, tasks, and contract files. The project constitution at `.specify/memory/constitution.md` governs all development standards.
+
+## Active Technologies
+- TypeScript 5.6.3 + Theia 1.67.0, Supabase JS SDK 2.x, Hono 4.x, Inversify 6.x, Zod 3.x (007-cloud-storage-auth-licensing)
+- PostgreSQL via Supabase (documents, versions, shares, api_keys, tier_limits tables) (007-cloud-storage-auth-licensing)
+- Open Collaboration Tools (OCT) + Yjs for real-time collaboration (007-cloud-storage-auth-licensing)
+
+## Recent Changes
+- 007-cloud-storage-auth-licensing: Complete cloud storage, auth, and licensing implementation
+  - @sanyam/document-store: Cloud document CRUD, versioning, sharing
+  - @sanyam/supabase-auth: OAuth authentication with GitHub, Google, Azure AD
+  - @sanyam/licensing: Subscription tier management and feature gating
+  - HTTP Gateway: REST API with rate limiting, pagination, error handling
+  - Real-time collaboration framework via OCT
+  - AutoSave with version consolidation
+  - API key management for Pro+ tiers

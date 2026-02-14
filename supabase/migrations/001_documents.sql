@@ -75,7 +75,13 @@ VALUES
   ('enterprise', 2147483647, 9223372036854775807, 8388608, 1000, -1, 180, 10000,
    true, true, true, true, true, true, true);
 
--- No RLS on tier_limits (public read, admin write via service role)
+-- RLS: public read, admin write via service role (bypasses RLS)
+ALTER TABLE tier_limits ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view tier limits"
+  ON tier_limits FOR SELECT
+  TO authenticated
+  USING (true);
 
 -- =============================================================================
 -- USER PROFILES TABLE
@@ -125,24 +131,25 @@ CREATE POLICY "Users can update own profile"
 CREATE OR REPLACE FUNCTION create_user_profile()
 RETURNS TRIGGER AS $$
 DECLARE
-  default_tier subscription_tier;
+  default_tier public.subscription_tier;
 BEGIN
   -- Read default tier from environment or use 'free'
   BEGIN
     default_tier := COALESCE(
-      current_setting('app.default_tier', true)::subscription_tier,
-      'free'::subscription_tier
+      current_setting('app.default_tier', true)::public.subscription_tier,
+      'free'::public.subscription_tier
     );
   EXCEPTION WHEN OTHERS THEN
-    default_tier := 'free'::subscription_tier;
+    default_tier := 'free'::public.subscription_tier;
   END;
 
-  INSERT INTO user_profiles (id, email, tier)
+  INSERT INTO public.user_profiles (id, email, tier)
   VALUES (NEW.id, NEW.email, default_tier);
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = '';
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -186,26 +193,9 @@ CREATE INDEX idx_documents_deleted_at ON documents(deleted_at) WHERE deleted_at 
 -- RLS policies
 ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
 
--- SELECT: Owner or shared access
-CREATE POLICY "Users can view accessible documents"
-  ON documents FOR SELECT
-  USING (
-    deleted_at IS NULL AND (
-      (SELECT auth.uid()) = owner_id
-      OR EXISTS (
-        SELECT 1 FROM document_shares
-        WHERE document_shares.document_id = documents.id
-          AND document_shares.shared_with_id = (SELECT auth.uid())
-      )
-    )
-  );
-
--- Also allow viewing deleted documents for restore (owner only)
-CREATE POLICY "Owners can view deleted documents"
-  ON documents FOR SELECT
-  USING (
-    deleted_at IS NOT NULL AND (SELECT auth.uid()) = owner_id
-  );
+-- NOTE: "Users can view accessible documents" policy is deferred to after
+-- document_shares table creation (references document_shares).
+-- That single policy covers both active (owner+shared) and deleted (owner only) documents.
 
 -- INSERT: Only owner
 CREATE POLICY "Users can create documents"
@@ -231,7 +221,8 @@ BEGIN
   NEW.version = OLD.version + 1;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path = '';
 
 CREATE TRIGGER documents_updated_at
   BEFORE UPDATE ON documents
@@ -242,23 +233,24 @@ CREATE OR REPLACE FUNCTION update_user_storage()
 RETURNS TRIGGER AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    UPDATE user_profiles
+    UPDATE public.user_profiles
     SET storage_used_bytes = storage_used_bytes + NEW.content_size_bytes,
         document_count = document_count + 1
     WHERE id = NEW.owner_id;
   ELSIF TG_OP = 'UPDATE' THEN
-    UPDATE user_profiles
+    UPDATE public.user_profiles
     SET storage_used_bytes = storage_used_bytes - OLD.content_size_bytes + NEW.content_size_bytes
     WHERE id = NEW.owner_id;
   ELSIF TG_OP = 'DELETE' THEN
-    UPDATE user_profiles
+    UPDATE public.user_profiles
     SET storage_used_bytes = storage_used_bytes - OLD.content_size_bytes,
         document_count = document_count - 1
     WHERE id = OLD.owner_id;
   END IF;
   RETURN COALESCE(NEW, OLD);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = '';
 
 CREATE TRIGGER documents_storage_tracking
   AFTER INSERT OR UPDATE OR DELETE ON documents
@@ -295,23 +287,8 @@ CREATE INDEX idx_document_versions_created_at ON document_versions(created_at);
 -- RLS policies (inherit from parent document)
 ALTER TABLE document_versions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view versions of accessible documents"
-  ON document_versions FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM documents
-      WHERE documents.id = document_versions.document_id
-        AND documents.deleted_at IS NULL
-        AND (
-          (SELECT auth.uid()) = documents.owner_id
-          OR EXISTS (
-            SELECT 1 FROM document_shares
-            WHERE document_shares.document_id = documents.id
-              AND document_shares.shared_with_id = (SELECT auth.uid())
-          )
-        )
-    )
-  );
+-- NOTE: "Users can view versions of accessible documents" policy is deferred to after
+-- document_shares table creation (references document_shares).
 
 -- Only owner can create versions (via document save)
 CREATE POLICY "Owner can create versions"
@@ -333,21 +310,21 @@ DECLARE
 BEGIN
   -- Get user's tier limit
   SELECT t.max_versions_per_document INTO max_versions
-  FROM documents d
-  JOIN user_profiles u ON d.owner_id = u.id
-  JOIN tier_limits t ON u.tier = t.tier
+  FROM public.documents d
+  JOIN public.user_profiles u ON d.owner_id = u.id
+  JOIN public.tier_limits t ON u.tier = t.tier
   WHERE d.id = NEW.document_id;
 
   -- Count current versions
   SELECT COUNT(*) INTO current_count
-  FROM document_versions
+  FROM public.document_versions
   WHERE document_id = NEW.document_id;
 
   -- Delete oldest if over limit
   IF current_count > max_versions THEN
-    DELETE FROM document_versions
+    DELETE FROM public.document_versions
     WHERE id IN (
-      SELECT id FROM document_versions
+      SELECT id FROM public.document_versions
       WHERE document_id = NEW.document_id
       ORDER BY version_number ASC
       LIMIT current_count - max_versions
@@ -356,7 +333,8 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = '';
 
 CREATE TRIGGER enforce_version_limit_trigger
   AFTER INSERT ON document_versions
@@ -440,6 +418,49 @@ CREATE POLICY "Owner can delete shares"
   );
 
 -- =============================================================================
+-- DEFERRED RLS POLICIES (require document_shares to exist)
+-- =============================================================================
+
+-- Documents: Owner or shared access (SELECT)
+CREATE POLICY "Users can view accessible documents"
+  ON documents FOR SELECT
+  USING (
+    -- Active documents: owner or shared access
+    (
+      deleted_at IS NULL AND (
+        (SELECT auth.uid()) = owner_id
+        OR EXISTS (
+          SELECT 1 FROM document_shares
+          WHERE document_shares.document_id = documents.id
+            AND document_shares.shared_with_id = (SELECT auth.uid())
+        )
+      )
+    )
+    OR
+    -- Deleted documents: owner only (for restore from trash)
+    (deleted_at IS NOT NULL AND (SELECT auth.uid()) = owner_id)
+  );
+
+-- Document versions: Inherit access from parent document
+CREATE POLICY "Users can view versions of accessible documents"
+  ON document_versions FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM documents
+      WHERE documents.id = document_versions.document_id
+        AND documents.deleted_at IS NULL
+        AND (
+          (SELECT auth.uid()) = documents.owner_id
+          OR EXISTS (
+            SELECT 1 FROM document_shares
+            WHERE document_shares.document_id = documents.id
+              AND document_shares.shared_with_id = (SELECT auth.uid())
+          )
+        )
+    )
+  );
+
+-- =============================================================================
 -- API KEYS TABLE
 -- =============================================================================
 
@@ -507,28 +528,30 @@ CREATE POLICY "Users can delete own keys"
 CREATE OR REPLACE FUNCTION cleanup_expired_versions()
 RETURNS void AS $$
 BEGIN
-  DELETE FROM document_versions v
-  USING documents d, user_profiles u, tier_limits t
+  DELETE FROM public.document_versions v
+  USING public.documents d, public.user_profiles u, public.tier_limits t
   WHERE v.document_id = d.id
     AND d.owner_id = u.id
     AND u.tier = t.tier
     AND t.version_retention_days > 0  -- -1 means unlimited
     AND v.created_at < now() - (t.version_retention_days || ' days')::interval;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = '';
 
 -- Run nightly: Hard-delete documents past trash retention
 CREATE OR REPLACE FUNCTION cleanup_trash()
 RETURNS void AS $$
 BEGIN
-  DELETE FROM documents d
-  USING user_profiles u, tier_limits t
+  DELETE FROM public.documents d
+  USING public.user_profiles u, public.tier_limits t
   WHERE d.owner_id = u.id
     AND u.tier = t.tier
     AND d.deleted_at IS NOT NULL
     AND d.deleted_at < now() - (t.trash_retention_days || ' days')::interval;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = '';
 
 -- =============================================================================
 -- GRANTS

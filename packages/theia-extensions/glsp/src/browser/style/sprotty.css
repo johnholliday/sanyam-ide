@@ -655,11 +655,15 @@ circle.sprotty-port.mouseover {
     text-anchor: start !important;
 }
 
-/* Container node icon (codicon font) */
+/* Container node icon (HTML codicon inside SVG foreignObject) */
 .sanyam-container-icon {
-    font-family: 'codicon';
+    display: block;
     font-size: 16px;
-    fill: var(--theia-foreground, #cccccc);
+    line-height: 16px;
+    width: 16px;
+    height: 16px;
+    text-align: center;
+    color: var(--theia-foreground, #cccccc);
     opacity: 0.7;
 }
 
@@ -1605,7 +1609,7 @@ circle.sprotty-port.mouseover {
    ============================================ */
 
 .sanyam-minimap-container {
-    background-color: var(--theia-minimap-background, rgba(37, 37, 38, 0.9));
+    background-color: var(--theia-minimap-background, rgba(13, 17, 23, 0.75));
     border: 1px solid var(--theia-sideBar-border, #454545);
     border-radius: 4px;
     box-shadow: 0 2px 8px var(--theia-widget-shadow, rgba(0, 0, 0, 0.36));
@@ -1615,7 +1619,8 @@ circle.sprotty-port.mouseover {
 
 .sanyam-minimap-canvas {
     display: block;
-    background-color: var(--theia-editor-background, #1e1e1e);
+    /* Transparent so the container's semi-transparent background shows through */
+    background-color: transparent;
 }
 
 .sanyam-minimap-viewport {

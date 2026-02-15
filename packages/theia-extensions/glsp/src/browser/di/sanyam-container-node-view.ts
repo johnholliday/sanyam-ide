@@ -44,22 +44,8 @@ const ICON_SIZE = 16;
 /** Gap between icon/button and label. */
 const ELEMENT_GAP = 6;
 
-/**
- * Codicon name → Unicode character mapping for SVG rendering.
- * Only the icons used in grammar manifests need to be listed here.
- */
-const CODICON_CHARS: Record<string, string> = {
-    'person': '\uEA67',
-    'checklist': '\uEAB3',
-    'tasklist': '\uEB67',
-    'file': '\uEA7B',
-    'shield': '\uEB53',
-    'key': '\uEB11',
-    'clock': '\uEA82',
-    'warning': '\uEA6C',
-    'git-merge': '\uEAFE',
-    'book': '\uEAA4',
-};
+/** Vertical offset to center the icon foreignObject in the header bar. */
+const ICON_Y_OFFSET = (HEADER_HEIGHT - ICON_SIZE) / 2;
 
 /**
  * View for container nodes.
@@ -168,19 +154,27 @@ export class SanyamContainerNodeView implements IView {
         const portVNodes: VNode[] = [];
 
         // ── Node icon (top-left) ──
+        // Use foreignObject to embed an HTML codicon span inside SVG.
+        // This reuses the same @font-face + CSS class mechanism that renders
+        // codicons everywhere else in the Theia UI, which is more reliable
+        // than SVG <text> with Unicode PUA characters.
         const iconName = node.icon ?? '';
-        const iconChar = CODICON_CHARS[iconName] ?? '';
-        if (iconChar) {
-            // Inline font-family ensures codicon renders even if CSS specificity fails in SVG
-            headerVNodes.push(h('text.sanyam-container-icon', {
+        if (iconName) {
+            headerVNodes.push(h('foreignObject', {
                 attrs: {
-                    x: iconX + ICON_SIZE / 2,
-                    y: 22,
-                    'text-anchor': 'middle',
-                    'font-family': 'codicon',
-                    'font-size': '16',
+                    x: iconX,
+                    y: ICON_Y_OFFSET,
+                    width: ICON_SIZE,
+                    height: ICON_SIZE,
                 },
-            }, iconChar));
+            }, [
+                h('i', {
+                    attrs: {
+                        xmlns: 'http://www.w3.org/1999/xhtml',
+                        class: `codicon codicon-${iconName} sanyam-container-icon`,
+                    },
+                }),
+            ]));
         }
 
         for (const child of node.children) {

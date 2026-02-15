@@ -802,7 +802,7 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
         const node: DiagramOutlineNode = {
             children,
             id,
-            iconClass: monaco.languages.SymbolKind[symbol.kind].toString().toLowerCase(),
+            iconClass: this.getIconClass(symbol),
             name: symbol.name,
             detail: symbol.detail || undefined,
             parent,
@@ -824,6 +824,27 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
         }
 
         return node;
+    }
+
+    /**
+     * Get the icon CSS class for an outline symbol.
+     *
+     * Looks up the grammar manifest's rootType by matching symbol.detail
+     * (which is the AST $type) to rootType.astType. If a manifest icon
+     * is found, uses `codicon codicon-{icon}` to match the diagram node
+     * icons. Falls back to the standard SymbolKind-based icon.
+     */
+    protected getIconClass(symbol: DocumentSymbol): string {
+        const manifest = this.currentComposite?.manifest;
+        if (manifest?.rootTypes && symbol.detail) {
+            const rootType = manifest.rootTypes.find(
+                rt => rt.astType === symbol.detail
+            );
+            if (rootType?.icon) {
+                return `codicon codicon-${rootType.icon}`;
+            }
+        }
+        return monaco.languages.SymbolKind[symbol.kind].toString().toLowerCase();
     }
 
     /** Convert 1-based Monaco IRange to 0-based LSP Range. */

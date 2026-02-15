@@ -315,6 +315,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
         containerElement.style.width = `${this.config.width}px`;
         containerElement.style.height = `${this.config.height}px`;
         containerElement.style.zIndex = '500';
+        containerElement.style.opacity = '0.75';
 
         switch (this.config.position) {
             case 'top-left':
@@ -677,15 +678,11 @@ export class MinimapUIExtension extends AbstractUIExtension {
         }
 
         // Get colors from CSS variables (canvas doesn't support CSS variables directly)
-        const bgColor = this.getColor('--theia-editor-background', '#1e1e1e');
         const fgColor = this.getColor('--theia-foreground', '#cccccc');
 
-        // Clear canvas
+        // Clear canvas (transparent — the container's CSS background provides
+        // the semi-transparent minimap background via --theia-minimap-background)
         ctx.clearRect(0, 0, this.config.width, this.config.height);
-
-        // Draw background
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(0, 0, this.config.width, this.config.height);
 
         // Find all elements and render simplified versions
         const svgContainer = this.findSvgContainer();

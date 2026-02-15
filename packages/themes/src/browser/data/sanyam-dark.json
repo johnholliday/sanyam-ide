@@ -202,7 +202,7 @@
     "menu.border": "#30363d",
     "menubar.selectionBackground": "#6e768166",
     "menubar.selectionForeground": "#e6edf3",
-    "minimap.background": "#0d1117",
+    "minimap.background": "#0d1117BF",
     "minimap.findMatchHighlight": "#f2cc60",
     "minimap.selectionHighlight": "#388bfd4d",
     "minimapSlider.background": "#6e768133",

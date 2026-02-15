@@ -127,6 +127,15 @@ export interface OAuthHandler {
   exchangeCodeForSession(code: string): Promise<OAuthResult>;
 
   /**
+   * Establish a session from raw tokens (implicit-flow callback).
+   *
+   * @param accessToken - JWT access token from URL hash
+   * @param refreshToken - Refresh token from URL hash
+   * @returns OAuth result with session
+   */
+  setSessionFromTokens(accessToken: string, refreshToken: string): Promise<OAuthResult>;
+
+  /**
    * Get the current Supabase client (for direct API calls).
    */
   getClient(): SupabaseClient;
@@ -148,7 +157,14 @@ export class OAuthHandlerImpl implements OAuthHandler {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
-        detectSessionInUrl: !config.isDesktop,
+        detectSessionInUrl: false,
+        // Browser uses implicit flow: tokens arrive directly in the URL
+        // hash fragment, avoiding the PKCE code_verifier problem
+        // (persistSession:false stores the verifier in memory, which is
+        // lost on the page reload triggered by the magic-link redirect).
+        // Desktop keeps PKCE because the loopback server handles the
+        // code exchange in the same process.
+        flowType: config.isDesktop ? 'pkce' : 'implicit',
       },
     });
   }
@@ -294,6 +310,30 @@ export class OAuthHandlerImpl implements OAuthHandler {
   async exchangeCodeForSession(code: string): Promise<OAuthResult> {
     try {
       const { data, error } = await this.client.auth.exchangeCodeForSession(code);
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (!data.session || !data.user) {
+        return { success: false, error: 'No session returned' };
+      }
+
+      return {
+        success: true,
+        session: this.mapSession(data.session, data.user),
+      };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  }
+
+  async setSessionFromTokens(accessToken: string, refreshToken: string): Promise<OAuthResult> {
+    try {
+      const { data, error } = await this.client.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
 
       if (error) {
         return { success: false, error: error.message };

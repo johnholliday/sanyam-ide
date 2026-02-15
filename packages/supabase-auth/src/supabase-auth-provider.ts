@@ -221,6 +221,32 @@ export class SupabaseAuthProviderImpl implements SupabaseAuthProvider {
       return;
     }
 
+    // Check for implicit-flow tokens in the URL hash fragment.
+    // After a magic-link or OAuth redirect, the server sends
+    // /auth/callback#access_token=…&refresh_token=… → 302 → /
+    // Browsers preserve the hash through 302 redirects, so the
+    // tokens arrive here on the initial page load.
+    if (typeof window !== 'undefined' && this.oauthHandler) {
+      const hash = window.location.hash;
+      if (hash && hash.length > 1) {
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          console.log('[SupabaseAuthProvider] Found auth tokens in URL hash, establishing session…');
+          const result = await this.oauthHandler.setSessionFromTokens(accessToken, refreshToken);
+          // Clean up the hash regardless of outcome
+          window.history.replaceState({}, '', window.location.pathname + window.location.search);
+          if (result.success && result.session) {
+            await this.handleSuccessfulAuth(result.session);
+            return;
+          }
+          console.warn('[SupabaseAuthProvider] Token session failed:', result.error);
+        }
+      }
+    }
+
     // Try to restore session from storage
     const storedSession = await this.sessionStorage.loadSession();
     if (storedSession) {

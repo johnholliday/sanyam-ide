@@ -25,6 +25,7 @@
   "theiaExtensions": [
     {
       "frontend": "lib/browser/sanyam-ide-frontend-module",
+      "backend": "lib/node/index",
       "electronMain": "lib/electron-main/sanyam-ide-main-module"
     },
     {

@@ -20,11 +20,11 @@
   "devDependencies": {
     "@eclipse-dash/nodejs-wrapper": "^0.0.1",
     "@theia/cli": "1.67.0",
-    "@vitest/coverage-v8": "^2.0.0",
     "@types/yargs": "17.0.7",
     "@typescript-eslint/eslint-plugin": "^4.25.0",
     "@typescript-eslint/eslint-plugin-tslint": "^4.25.0",
     "@typescript-eslint/parser": "^4.25.0",
+    "@vitest/coverage-v8": "^2.0.0",
     "eslint": "^7.27.0",
     "eslint-plugin-deprecation": "1.2.1",
     "eslint-plugin-import": "^2.23.3",
@@ -79,6 +79,8 @@
     "start:electron:win": "bash scripts/dev-electron-win.sh",
     "structurizr": "bash scripts/structurizr.sh",
     "structurizr:rebuild": "bash ./scripts/structurizr.sh --rebuild",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
     "test": "turbo run test",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
@@ -158,5 +160,8 @@
       "perfect-scrollbar": "1.5.5",
       "node-abi": "4.14.0"
     }
+  },
+  "dependencies": {
+    "supabase": "^2.76.8"
   }
 }

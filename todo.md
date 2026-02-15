@@ -15,13 +15,10 @@ Editing property values in the properties panel fails to update the model in the
 When a long operation is invoked (such as a large diagram being loaded), the VS Code progress bar is not visible.
 
 -----
-Reduce the opacity of the minimap background to 75%.
+Add a preferences option to enable/disable animated dashed edges (enabled by default).
 
 -----
-Switch from WebPack to RsPack to speed up builds and avoid bundle cacheing.
-
------
-Add an option for animated dashed edges.
+Use custom SVG node icons instead of CODEICON characters.
 
 ----- Property Hierarchy
 Add expand/collapse button on parent nodes in the property view.

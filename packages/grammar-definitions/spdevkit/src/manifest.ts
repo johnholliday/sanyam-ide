@@ -74,7 +74,7 @@ entity User {
       displayName: 'Entity',
       fileSuffix: '.entity',
       folder: 'entities',
-      icon: 'symbol-class',
+      icon: 'class',
       template: `entity \${name} {
     // Add properties here
     // name: string
@@ -97,7 +97,7 @@ entity User {
       displayName: 'Service',
       fileSuffix: '.service',
       folder: 'services',
-      icon: 'symbol-method',
+      icon: 'method',
       template: `service \${name} {
     description "TODO: Add description"
     // Add operations here
@@ -120,7 +120,7 @@ entity User {
       displayName: 'Workflow',
       fileSuffix: '.workflow',
       folder: 'workflows',
-      icon: 'git-merge',
+      icon: 'workflow',
       template: `workflow \${name} {
     description "TODO: Add description"
     // Add steps here
@@ -172,19 +172,19 @@ entity User {
               {
                 id: 'create-entity',
                 label: 'Entity',
-                icon: 'symbol-class',
+                icon: 'class',
                 action: { type: 'create-node', glspType: 'node:entity' },
               },
               {
                 id: 'create-service',
                 label: 'Service',
-                icon: 'symbol-method',
+                icon: 'method',
                 action: { type: 'create-node', glspType: 'node:service' },
               },
               {
                 id: 'create-workflow',
                 label: 'Workflow',
-                icon: 'git-merge',
+                icon: 'workflow',
                 action: { type: 'create-node', glspType: 'node:workflow' },
               },
             ],

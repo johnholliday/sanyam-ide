@@ -40,6 +40,10 @@ packages/grammar-definitions/*/*.d.ts.map
 # Auto-generated grammar configuration files
 applications/*/src/language-server/grammars.ts
 
+# Generated SVG icon TypeScript and CSS overrides (rebuilt from .svg source files)
+packages/theia-extensions/glsp/src/browser/di/svg-icons.ts
+packages/theia-extensions/glsp/src/browser/style/svg-icon-overrides.css
+
 # Playwright
 /playwright-report/
 /test-results/

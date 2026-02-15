@@ -60,6 +60,7 @@
     "src"
   ],
   "scripts": {
+    "prebuild": "npx tsx ../../../scripts/extract-svg-icons.ts src/icons --outdir src/browser/di --out svg-icons.ts --var SVG_ICON_PATHS --css src/browser/style/svg-icon-overrides.css",
     "build": "tsc -b && pnpm copy:css",
     "copy:css": "mkdir -p lib/browser/style && cp -r src/browser/style/* lib/browser/style/",
     "clean": "rimraf lib *.tsbuildinfo",

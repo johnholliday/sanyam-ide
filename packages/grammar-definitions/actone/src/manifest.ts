@@ -208,7 +208,7 @@ export const manifest: GrammarManifest = {
       displayName: 'Plot Arc',
       fileSuffix: '.plot',
       folder: 'plots',
-      icon: 'git-merge',
+      icon: 'git-compare',
       template: `plot \${name} {
   beats: [
     "\${beat1}",
@@ -312,7 +312,7 @@ export const manifest: GrammarManifest = {
               {
                 id: 'create-plot',
                 label: 'Plot Arc',
-                icon: 'git-merge',
+                icon: 'git-compare',
                 action: { type: 'create-node', glspType: 'node:plot' },
               },
             ],
@@ -421,7 +421,7 @@ export const manifest: GrammarManifest = {
               {
                 id: 'create-plot',
                 label: 'Plot Arc',
-                icon: 'git-merge',
+                icon: 'git-compare',
                 action: { type: 'create-node', glspType: 'node:plot' },
               },
             ],

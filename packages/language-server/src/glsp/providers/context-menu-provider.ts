@@ -476,7 +476,7 @@ export const defaultContextMenuProvider = {
         items.push({
           id: `create-${astType.toLowerCase()}`,
           label: this.formatLabel(astType),
-          icon: 'symbol-class',
+          icon: 'class',
           action: {
             kind: 'custom',
             command: 'createElement',
@@ -496,7 +496,7 @@ export const defaultContextMenuProvider = {
         {
           id: 'create-entity',
           label: 'Entity',
-          icon: 'symbol-class',
+          icon: 'class',
           action: {
             kind: 'custom',
             command: 'createElement',

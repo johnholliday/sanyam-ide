@@ -841,7 +841,7 @@ export class DiagramOutlineContribution implements FrontendApplicationContributi
                 rt => rt.astType === symbol.detail
             );
             if (rootType?.icon) {
-                return `codicon codicon-${rootType.icon}`;
+                return rootType.icon;
             }
         }
         return monaco.languages.SymbolKind[symbol.kind].toString().toLowerCase();

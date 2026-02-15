@@ -41,7 +41,7 @@ element MyElement {
       displayName: 'Element',
       fileSuffix: '.element',
       folder: 'elements',
-      icon: 'symbol-class',
+      icon: 'class',
       template: `element \${name} {
   // Add properties here
 }

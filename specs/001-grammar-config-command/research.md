@@ -16,6 +16,7 @@
 **Key Findings**:
 
 1. **Grammar Structure**:
+
    ```langium
    grammar MyLanguage
 
@@ -39,6 +40,7 @@
 
 **Parsing Strategy**:
 Since the `/grammar-config` command runs within Claude Code (not as a programmatic TypeScript tool), we will:
+
 1. Read the `.langium` file as text
 2. Use pattern matching to identify:
    - `entry` rules → rootTypes
@@ -47,10 +49,12 @@ Since the `/grammar-config` command runs within Claude Code (not as a programmat
 3. Generate manifest entries based on extracted information
 
 **Alternatives Considered**:
+
 - Use Langium's programmatic API (langium package) - Requires runtime dependencies, overkill for manifest generation
 - Write a full parser - Unnecessary complexity for extraction task
 
 **Sources**:
+
 - [Grammar Language | Langium](https://langium.org/docs/reference/grammar-language/)
 - [Semantic Model Inference | Langium](https://langium.org/docs/reference/semantic-model/)
 - [Langium 4.0 Release](https://www.typefox.io/blog/langium-release-4.0/)
@@ -66,6 +70,7 @@ Since the `/grammar-config` command runs within Claude Code (not as a programmat
 **Key Findings**:
 
 1. **File Format**: Markdown with YAML frontmatter
+
    ```yaml
    ---
    description: Short description shown in command list
@@ -91,6 +96,7 @@ Since the `/grammar-config` command runs within Claude Code (not as a programmat
 4. **Command Registration**: Commands in `.claude/commands/` are automatically available as `/command-name` in Claude Code
 
 **Template Structure for `/grammar-config`**:
+
 ```yaml
 ---
 description: Generate grammar package with GrammarManifest from Langium grammar
@@ -115,6 +121,7 @@ $ARGUMENTS
 ```
 
 **Alternatives Considered**:
+
 - Implement as TypeScript CLI tool - More complex deployment, harder to iterate
 - Use MCP server - Overkill for file generation task
 
@@ -232,6 +239,7 @@ interface ToolAction {
 ```
 
 **Alternatives Considered**:
+
 - Flatter structure - Would lose semantic grouping
 - Separate files per type - Adds complexity for import management
 
@@ -246,6 +254,7 @@ interface ToolAction {
 **Strategy**:
 
 1. **Initial Prompt Structure**:
+
    ```
    Generate a Langium grammar for the following DSL:
 
@@ -279,6 +288,7 @@ interface ToolAction {
    - Include original description as comment in the grammar file
 
 **Starter Grammar Template**:
+
 ```langium
 grammar ${GrammarName}
 
@@ -313,6 +323,7 @@ terminal INT returns number: /[0-9]+/;
 ```
 
 **Alternatives Considered**:
+
 - No AI generation - Limits accessibility for non-experts
 - Always require manual grammar - Reduces value proposition
 - Multiple AI providers - Adds complexity, Claude is already available
@@ -323,13 +334,13 @@ terminal INT returns number: /[0-9]+/;
 
 **Decision**: Use heuristic mapping based on AST type names with sensible defaults
 
-**Rationale**: VS Code provides a standard icon set. Type names often suggest appropriate icons (e.g., "Workflow" → git-merge, "Entity" → symbol-class).
+**Rationale**: VS Code provides a standard icon set. Type names often suggest appropriate icons (e.g., "Workflow" → workflow, "Entity" → symbol-class).
 
 **Heuristic Mapping Table**:
 
 | Pattern in Type Name | Suggested Icon | Reason |
 |---------------------|----------------|--------|
-| `Workflow`, `Flow`, `Process` | `git-merge` | Flow/process concept |
+| `Workflow`, `Flow`, `Process` | `workflow` | Flow/process concept |
 | `Task`, `Step`, `Action` | `checklist` | Actionable item |
 | `Entity`, `Class`, `Type` | `symbol-class` | Type/class concept |
 | `Property`, `Field`, `Attribute` | `symbol-field` | Field/property |
@@ -346,11 +357,12 @@ terminal INT returns number: /[0-9]+/;
 | `Default` | `symbol-namespace` | Fallback icon |
 
 **Implementation**:
+
 ```typescript
 function suggestIcon(typeName: string): string {
   const name = typeName.toLowerCase();
 
-  if (/workflow|flow|process/.test(name)) return 'git-merge';
+  if (/workflow|flow|process/.test(name)) return 'workflow';
   if (/task|step|action/.test(name)) return 'checklist';
   if (/entity|class|type/.test(name)) return 'symbol-class';
   if (/property|field|attribute/.test(name)) return 'symbol-field';
@@ -372,6 +384,7 @@ function suggestIcon(typeName: string): string {
 **VS Code Icon Reference**: Icons come from the Codicons set used by VS Code. Full list at [microsoft/vscode-codicons](https://github.com/microsoft/vscode-codicons).
 
 **Alternatives Considered**:
+
 - Require manual icon specification - Increases friction
 - Use ML-based icon selection - Overkill, heuristics work well
 - Random assignment - Poor UX

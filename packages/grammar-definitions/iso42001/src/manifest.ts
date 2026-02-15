@@ -141,7 +141,7 @@ aims MainAIMS {
       displayName: 'AI System',
       fileSuffix: '.aisystem',
       folder: 'aisystems',
-      icon: 'symbol-class',
+      icon: 'class',
       template: `aiSystem \${name} {
     description "AI system description"
     version "1.0"
@@ -635,7 +635,7 @@ aims MainAIMS {
               {
                 id: 'create-aisystem',
                 label: 'AI System',
-                icon: 'symbol-class',
+                icon: 'class',
                 action: { type: 'create-node', glspType: 'node:aisystem' },
               },
             ],

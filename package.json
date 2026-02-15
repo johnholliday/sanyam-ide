@@ -34,7 +34,7 @@
     "node-gyp": "^11.4.0",
     "rimraf": "^5.0.5",
     "ts-node": "^10.0.0",
-    "turbo": "^2.8.3",
+    "turbo": "^2.8.9",
     "type-fest": "^0.20.2",
     "vitest": "^2.0.0",
     "yargs": "17.2.1"
@@ -95,7 +95,7 @@
     "theia:electron": "pnpm --dir applications/electron",
     "update:theia": "ts-node scripts/update-theia-version.ts",
     "update:theia:children": "pnpm -r run update:theia -- ",
-    "watch": "turbo run watch --concurrency=20",
+    "watch": "turbo run watch --concurrency=25",
     "watch:ide": "turbo run watch --filter=\"@sanyam-ide/*\"",
     "go": "pnpm build:browser && pnpm start:browser",
     "go:force": "rm -rf node_modules/.cache/turbo && pnpm go"

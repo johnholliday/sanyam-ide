@@ -11,6 +11,24 @@
 // Primitive Types
 // =============================================================================
 
+// =============================================================================
+// SVG Icon Types
+// =============================================================================
+
+/** A single SVG path segment with optional fill color and fill rule. */
+export interface IconSvgPath {
+    readonly d: string;
+    readonly fill?: string;        // e.g., '#1177D7'
+    readonly fillRule?: 'evenodd';
+    readonly opacity?: number;     // e.g., 0.5
+}
+
+/** Parsed SVG icon data with viewBox and colored paths. */
+export interface IconSvgData {
+    readonly viewBox: string;                 // e.g., '0 0 32 32'
+    readonly paths: readonly IconSvgPath[];
+}
+
 /**
  * Available shapes for diagram nodes.
  *
@@ -552,6 +570,17 @@ export interface RootTypeConfig {
 
   /** VS Code Codicon name */
   readonly icon: string;
+
+  /**
+   * Custom SVG icon data for diagram node rendering.
+   *
+   * When provided, the diagram node header renders these paths inside
+   * a native `<svg>` element instead of looking up the built-in
+   * platform icon map. Supports multi-color icons with per-path fills.
+   *
+   * @example { viewBox: '0 0 32 32', paths: [{ d: 'M10,...', fill: '#1177D7' }] }
+   */
+  readonly iconSvg?: IconSvgData;
 
   /** Default content template for new files (supports ${name} placeholder) */
   readonly template: string;

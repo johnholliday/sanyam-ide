@@ -499,13 +499,13 @@ export const defaultToolPaletteProvider = {
    */
   getIconForType(astType: string): string {
     const lower = astType.toLowerCase();
-    if (lower.includes('entity') || lower.includes('class')) return 'symbol-class';
-    if (lower.includes('interface')) return 'symbol-interface';
-    if (lower.includes('property') || lower.includes('attribute')) return 'symbol-field';
-    if (lower.includes('method') || lower.includes('function')) return 'symbol-method';
-    if (lower.includes('package') || lower.includes('module')) return 'symbol-namespace';
-    if (lower.includes('enum')) return 'symbol-enum';
-    return 'symbol-misc';
+    if (lower.includes('entity') || lower.includes('class')) return 'class';
+    if (lower.includes('interface')) return 'interface';
+    if (lower.includes('property') || lower.includes('attribute')) return 'field';
+    if (lower.includes('method') || lower.includes('function')) return 'method';
+    if (lower.includes('package') || lower.includes('module')) return 'package';
+    if (lower.includes('enum')) return 'enum';
+    return 'class';
   },
 
   /**

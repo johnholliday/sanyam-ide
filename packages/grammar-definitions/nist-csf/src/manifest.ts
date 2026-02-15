@@ -91,7 +91,7 @@ profile CurrentState {
       displayName: 'Function',
       fileSuffix: '.function',
       folder: 'functions',
-      icon: 'symbol-method',
+      icon: 'method',
       template: `function Identify {
   description "Develop organizational understanding to manage cybersecurity risk"
 }
@@ -239,7 +239,7 @@ profile CurrentState {
               {
                 id: 'create-function',
                 label: 'Function',
-                icon: 'symbol-method',
+                icon: 'method',
                 action: { type: 'create-node', glspType: 'node:function' },
               },
               {

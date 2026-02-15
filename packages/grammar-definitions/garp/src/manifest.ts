@@ -139,7 +139,7 @@ policy RecordsRetention {
       displayName: 'Disposition Rule',
       fileSuffix: '.disposition',
       folder: 'disposition-rules',
-      icon: 'symbol-method',
+      icon: 'method',
       template: `disposition \${name} {
   description "Enter disposition rule description"
   method Destroy
@@ -206,7 +206,7 @@ policy RecordsRetention {
               {
                 id: 'create-dispositionrule',
                 label: 'Disposition Rule',
-                icon: 'symbol-method',
+                icon: 'method',
                 action: { type: 'create-node', glspType: 'node:dispositionrule' },
               },
             ],

@@ -315,7 +315,7 @@ export class MinimapUIExtension extends AbstractUIExtension {
         containerElement.style.width = `${this.config.width}px`;
         containerElement.style.height = `${this.config.height}px`;
         containerElement.style.zIndex = '500';
-        containerElement.style.opacity = '0.75';
+        containerElement.style.opacity = '0.5';
 
         switch (this.config.position) {
             case 'top-left':

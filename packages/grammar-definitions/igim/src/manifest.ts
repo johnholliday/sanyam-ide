@@ -220,7 +220,7 @@ export const manifest: GrammarManifest = {
       displayName: 'Process',
       fileSuffix: '.process',
       folder: 'processes',
-      icon: 'git-merge',
+      icon: 'process',
       template: `process \${name} {
   description "IG process definition"
   type procedure
@@ -510,7 +510,7 @@ export const manifest: GrammarManifest = {
               {
                 id: 'create-process',
                 label: 'Process',
-                icon: 'git-merge',
+                icon: 'process',
                 action: { type: 'create-node', glspType: 'node:process' },
               },
               {

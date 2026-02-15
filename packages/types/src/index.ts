@@ -7,6 +7,9 @@
  */
 
 export {
+  // SVG icon types
+  type IconSvgPath,
+  type IconSvgData,
   // Primitive types
   type NodeShape,
   type InputType,

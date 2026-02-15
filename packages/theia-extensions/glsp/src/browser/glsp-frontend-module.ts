@@ -13,6 +13,7 @@ import './style/sprotty.css';
 import './style/properties-panel.css';
 import './style/element-palette.css';
 import './style/quick-menu.css';
+import './style/svg-icon-overrides.css';
 
 import { ContainerModule, interfaces, injectable, inject } from 'inversify';
 import { WidgetFactory, FrontendApplicationContribution, KeybindingContribution, OpenHandler } from '@theia/core/lib/browser';

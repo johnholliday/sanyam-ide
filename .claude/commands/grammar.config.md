@@ -65,6 +65,7 @@ Search for the grammar file in the following locations (in order):
 2. `packages/grammar-definitions/{name}/src/{name}.langium` (existing package)
 
 Use the first location where the file exists. Set:
+
 - `grammarPath` = the found file path
 - `packageDir` = `packages/grammar-definitions/{name}/` (target package directory)
 - `sourcePath` = `packages/grammar-definitions/.source/{name}.langium` (master source location)
@@ -136,6 +137,7 @@ After parsing, check for common issues that cause build failures:
 Scan all parser rule names for JavaScript reserved words:
 
 Reserved names to check:
+
 ```
 Function, Object, Array, String, Number, Boolean, Symbol, Error,
 Map, Set, Promise, Date, RegExp, Math, JSON, Proxy, Reflect,
@@ -143,6 +145,7 @@ undefined, null, NaN, Infinity, eval, arguments
 ```
 
 If a reserved name is found, report a warning:
+
 ```
 Warning: Grammar rule '{RuleName}' conflicts with JavaScript reserved word.
 Recommendation: Rename to '{SuggestedName}' (e.g., Function → CoreFunction)
@@ -157,6 +160,7 @@ Identify parser rules that appear to be "enum-like" (returning string alternativ
 Pattern: `{RuleName}: 'value1' | 'value2' | ...;` (without `returns string`)
 
 For each such rule, report a warning:
+
 ```
 Warning: Rule '{RuleName}' appears to be a data type rule but is missing 'returns string'.
 Langium 4.x requires: `{RuleName} returns string: 'value1' | 'value2' | ...;`
@@ -167,6 +171,7 @@ Add 'returns string' to avoid "cannot infer a type" errors.
 **Auto-fix option:**
 
 If warnings are found, offer to auto-fix:
+
 - For reserved names: Suggest prefixed alternatives (e.g., Function → CoreFunction, Object → DataObject)
 - For data type rules: Automatically add `returns string` annotation
 
@@ -174,6 +179,7 @@ Use AskUserQuestion:
 **Question**: "The grammar has issues that will cause build errors. Would you like to auto-fix them?"
 **Header**: "Grammar issues"
 **Options**:
+
 1. `auto-fix` - "Automatically fix the issues" (Recommended)
 2. `continue` - "Continue without fixing (build will fail)"
 3. `abort` - "Stop and manually fix the grammar"
@@ -204,8 +210,10 @@ After validation, scan the grammar file for specially formatted single-line comm
 ```
 
 **Processing:**
+
 1. Scan the entire grammar file for matching patterns
 2. Store extracted values in a `languageTags` object:
+
    ```typescript
    interface LanguageTags {
      name?: string;        // → displayName
@@ -214,9 +222,11 @@ After validation, scan the grammar file for specially formatted single-line comm
      extension?: string;   // → fileExtension
    }
    ```
+
 3. Pass `languageTags` to Step 7 for manifest generation
 
 **Validation:**
+
 - If `@extension` is provided, validate it starts with `.`
 - If validation fails, report warning and ignore the invalid tag
 - Missing tags are acceptable (AI derivation will be used as fallback)
@@ -224,6 +234,7 @@ After validation, scan the grammar file for specially formatted single-line comm
 **Example extraction:**
 
 For grammar file:
+
 ```langium
 // @name = "E C M L"
 // @tagline = "Enterprise Content Modeling Language"
@@ -233,6 +244,7 @@ grammar Ecml
 ```
 
 Results in:
+
 ```typescript
 languageTags = {
   name: "E C M L",
@@ -300,6 +312,7 @@ For each parser rule, look for preceding comment lines with diagram tags:
 ```
 
 **Processing:**
+
 1. Scan grammar for tagged rules
 2. Build `DiagramMetadata` map: `{ [ruleName]: DiagramRuleMetadata }`
 3. For `@shape` and `@tooltip`, use the captured value directly
@@ -347,12 +360,12 @@ For each extracted entry rule and significant parser rule, create a `RootTypeCon
 **Icon mapping heuristics:**
 
 ```
-if name matches /workflow|flow|process/i → 'git-merge'
-if name matches /task|step|action/i → 'checklist'
+if name matches /workflow|flow|process/i → 'workflow'
+if name matches /task|step|action/i → 'task'
 if name matches /entity|class|type/i → 'symbol-class'
 if name matches /property|field|attribute/i → 'symbol-field'
 if name matches /function|method|operation/i → 'symbol-method'
-if name matches /event|trigger|signal/i → 'zap'
+if name matches /event|trigger|signal/i → 'event'
 if name matches /state|status/i → 'circle-filled'
 if name matches /connection|link|edge/i → 'link'
 if name matches /group|container|package/i → 'folder'
@@ -508,10 +521,12 @@ Create `packages/grammar-definitions/{name}/src/manifest.ts` with the complete `
 Before generating the manifest, derive the documentation properties. **Use language tags from Step 4.2 when available**, otherwise derive automatically:
 
 **displayName:**
+
 - If `languageTags.name` exists → use it directly
 - Otherwise → derive from grammar name (convert kebab-case to Title Case)
 
 **summary:**
+
 - If `languageTags.description` exists → use it directly
 - Otherwise → generate pattern: "A domain-specific language for {domain} with support for {key features}"
 - Derive domain from grammar name/display name
@@ -519,6 +534,7 @@ Before generating the manifest, derive the documentation properties. **Use langu
 - Keep to 1-2 sentences
 
 **tagline:**
+
 - If `languageTags.tagline` exists → use it directly
 - Otherwise → generate based on grammar type heuristics:
   - workflow → "Streamline your {domain} workflows"
@@ -530,21 +546,25 @@ Before generating the manifest, derive the documentation properties. **Use langu
 - Focus on the primary value proposition
 
 **fileExtension and baseExtension:**
+
 - If `languageTags.extension` exists → use it directly
 - Otherwise → derive as `.{languageId}` (e.g., `.ecml`)
 
 **Key features generation:**
+
 - Format: `{ feature: '{FeatureName}', description: '{FeatureDescription}' }`
 - Generate 3-5 features based on rootTypes and grammar capabilities
 - Include diagramming if enabled: `{ feature: 'Visual Diagrams', description: 'Create and edit diagrams interactively' }`
 - Add standard features: `{ feature: 'Type-safe Syntax', description: 'IDE-supported validation and autocomplete' }`
 
 **Core concepts generation:**
+
 - Extract from rootTypes: `{ concept: astType, description: 'Description based on displayName' }`
 - Derive description from context (e.g., Task → "A discrete unit of work in the process")
 - Include 4-6 most important concepts from rootTypes
 
 **Quick example generation:**
+
 - Generate 3-5 lines showing basic syntax
 - Use placeholder values demonstrating key elements
 - Show at least 2 different element types from rootTypes
@@ -884,6 +904,7 @@ Generate a default logo SVG using the grammar's display name. Use a gradient bac
 ```
 
 **Color selection heuristics** (based on grammar name):
+
 ```
 if name matches /workflow|flow|process/i → primary: #9b59b6, secondary: #8e44ad (purple)
 if name matches /api|rest|http/i → primary: #e74c3c, secondary: #c0392b (red)
@@ -895,11 +916,13 @@ else → primary: #3498db, secondary: #2c3e50 (default blue)
 ```
 
 **Short name derivation:**
+
 - Use uppercase acronym if grammar name has multiple words (e.g., "my-grammar" → "MG")
 - If single word and ≤6 chars, use uppercase (e.g., "ecml" → "ECML")
 - If single word and >6 chars, use first 4 chars uppercase (e.g., "workflow" → "WORK")
 
 **Font size selection:**
+
 - 1-4 chars: 36px
 - 5-6 chars: 30px
 - 7+ chars: 24px
@@ -1266,6 +1289,7 @@ The GLSP frontend loads grammar-specific CSS dynamically when a diagram is opene
 3. CSS is imported alongside the diagram module
 
 For manual integration or testing, import the CSS in your application:
+
 ```typescript
 import '@sanyam-grammar/{name}/lib/diagram/styles.css';
 ```
@@ -1273,11 +1297,13 @@ import '@sanyam-grammar/{name}/lib/diagram/styles.css';
 **CSS Class Naming Convention:**
 
 Grammar-qualified class names prevent conflicts between multiple grammars:
+
 - Node classes: `.{GrammarName}.{RuleName}` (e.g., `.Workflow.Step`)
 - State classes: `.selected`, `.mouseover`, `.highlighted`
 - Edge classes: `.{GrammarName}.edge.{kind}` (e.g., `.Workflow.edge.containment`)
 
 This differs from the older `{lowercase}-node` convention. For migration of existing grammars:
+
 1. Update CSS selectors from `.step-node` to `.{GrammarName}.Step`
 2. The new pattern supports grammar scoping for multi-grammar diagrams
 
@@ -1546,6 +1572,7 @@ After deriving the grammar name, confirm with the user using AskUserQuestion:
 **Question**: "What should the grammar be named?"
 **Header**: "Grammar name"
 **Options**:
+
 1. `{derived-name}` - "Use the derived name based on the description" (Recommended)
 2. `custom` - "Enter a custom grammar name"
 
@@ -1556,6 +1583,7 @@ Set `{name}` to the confirmed grammar name (normalized to kebab-case, lowercase)
 ### US3 Step 2.2: Check for Existing Grammar
 
 After confirming the name, check if a grammar already exists at:
+
 1. `packages/grammar-definitions/.source/{name}.langium`
 2. `packages/grammar-definitions/{name}/src/{name}.langium`
 
@@ -1566,6 +1594,7 @@ Use AskUserQuestion to confirm:
 **Question**: "A grammar named '{name}' already exists. What would you like to do?"
 **Header**: "Existing grammar"
 **Options**:
+
 1. `overwrite` - "Overwrite the existing grammar with AI-generated content"
 2. `use-existing` - "Use the existing grammar instead of generating new one" (Recommended)
 3. `rename` - "Choose a different name for the new grammar"

@@ -27,7 +27,9 @@ import { injectable } from 'inversify';
 import { VNode, h } from 'snabbdom';
 import type { IView, RenderingContext } from 'sprotty';
 import { SParentElementImpl } from 'sprotty';
+import type { IconSvgData } from '@sanyam/types';
 import type { SanyamContainerNodeImpl } from './sanyam-container-node';
+import { getSvgIcon } from './svg-icons';
 
 /** Height of the header bar (px). */
 const HEADER_HEIGHT = 32;
@@ -44,7 +46,7 @@ const ICON_SIZE = 16;
 /** Gap between icon/button and label. */
 const ELEMENT_GAP = 6;
 
-/** Vertical offset to center the icon foreignObject in the header bar. */
+/** Vertical offset to center the icon SVG in the header bar. */
 const ICON_Y_OFFSET = (HEADER_HEIGHT - ICON_SIZE) / 2;
 
 /**
@@ -154,27 +156,37 @@ export class SanyamContainerNodeView implements IView {
         const portVNodes: VNode[] = [];
 
         // ── Node icon (top-left) ──
-        // Use foreignObject to embed an HTML codicon span inside SVG.
-        // This reuses the same @font-face + CSS class mechanism that renders
-        // codicons everywhere else in the Theia UI, which is more reliable
-        // than SVG <text> with Unicode PUA characters.
-        const iconName = node.icon ?? '';
-        if (iconName) {
-            headerVNodes.push(h('foreignObject', {
+        // Render as native SVG <path> elements with per-path fills.
+        // Resolution order: node.iconSvg → getSvgIcon(node.icon) → no icon.
+        let iconData: IconSvgData | undefined;
+        if (node.iconSvg) {
+            iconData = node.iconSvg;
+        } else {
+            const iconName = node.icon ?? '';
+            if (iconName) {
+                iconData = getSvgIcon(iconName);
+            }
+        }
+
+        if (iconData && iconData.paths.length > 0) {
+            const pathVNodes = iconData.paths.map(seg => {
+                const attrs: Record<string, string> = { d: seg.d };
+                if (seg.fill) { attrs.fill = seg.fill; }
+                if (seg.fillRule) { attrs['fill-rule'] = seg.fillRule; attrs['clip-rule'] = seg.fillRule; }
+                if (seg.opacity !== undefined) { attrs.opacity = String(seg.opacity); }
+                return h('path', { attrs });
+            });
+
+            headerVNodes.push(h('svg', {
                 attrs: {
                     x: iconX,
                     y: ICON_Y_OFFSET,
                     width: ICON_SIZE,
                     height: ICON_SIZE,
+                    viewBox: iconData.viewBox,
                 },
-            }, [
-                h('i', {
-                    attrs: {
-                        xmlns: 'http://www.w3.org/1999/xhtml',
-                        class: `codicon codicon-${iconName} sanyam-container-icon`,
-                    },
-                }),
-            ]));
+                class: { 'sanyam-node-icon': true },
+            }, pathVNodes));
         }
 
         for (const child of node.children) {

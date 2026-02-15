@@ -379,7 +379,7 @@ Permission FullAccess "Full Access" "Complete system access"`,
       displayName: 'Retention Label',
       fileSuffix: '.retention',
       folder: 'labels',
-      icon: 'clock',
+      icon: 'retention-label',
       template: `RetentionLabel \${name} "\${name}" "Description of \${name}"
 `,
       templateInputs: [
@@ -397,7 +397,7 @@ Permission FullAccess "Full Access" "Complete system access"`,
       displayName: 'Sensitivity Label',
       fileSuffix: '.sensitivity',
       folder: 'labels',
-      icon: 'warning',
+      icon: 'sensitivity-label',
       template: `SensitivityLabel \${name} "\${name}" "Description of \${name}"
 `,
       templateInputs: [
@@ -415,7 +415,7 @@ Permission FullAccess "Full Access" "Complete system access"`,
       displayName: 'Workflow',
       fileSuffix: '.workflow',
       folder: 'workflows',
-      icon: 'git-merge',
+      icon: 'workflow',
       template: `Workflow \${name} "\${name}" "Description of \${name}" {
   // Add workflow steps here
 }
@@ -517,13 +517,13 @@ Permission FullAccess "Full Access" "Complete system access"`,
               {
                 id: 'create-retentionlabel',
                 label: 'Retention Label',
-                icon: 'clock',
+                icon: 'retention-label',
                 action: { type: 'create-node', glspType: 'node:retentionlabel' },
               },
               {
                 id: 'create-sensitivitylabel',
                 label: 'Sensitivity Label',
-                icon: 'warning',
+                icon: 'sensitivity-label',
                 action: { type: 'create-node', glspType: 'node:sensitivitylabel' },
               },
             ],
@@ -535,7 +535,7 @@ Permission FullAccess "Full Access" "Complete system access"`,
               {
                 id: 'create-workflow',
                 label: 'Workflow',
-                icon: 'git-merge',
+                icon: 'workflow',
                 action: { type: 'create-node', glspType: 'node:workflow' },
               },
             ],

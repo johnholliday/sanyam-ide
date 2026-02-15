@@ -223,6 +223,20 @@ export const defaultAstToGModelProvider = {
     const shape = this.getShape(context, astNode);
 
     const node = createNode(id, type, position, size, cssClasses, shape);
+
+    // Propagate icon name and optional SVG path from manifest for node view rendering.
+    // The icon is positioned independently by the view (not grouped with the label),
+    // so label size estimation does not include icon width.
+    if (manifest?.rootTypes) {
+      const rootType = manifest.rootTypes.find(rt => rt.astType === astNode.$type);
+      if (rootType?.icon) {
+        (node as any).icon = rootType.icon;
+      }
+      if (rootType?.iconSvg) {
+        (node as any).iconSvg = rootType.iconSvg;
+      }
+    }
+
     node.children = [createLabel(`${id}_label`, label)];
 
     // T063: Generate ports from manifest if defined
@@ -405,12 +419,15 @@ export const defaultAstToGModelProvider = {
     const label = this.getLabel(astNode);
     const collapsed = this.isCollapsed(context, id);
 
-    // Propagate codicon icon name from manifest for header rendering
+    // Propagate icon name and optional SVG path from manifest for header rendering
     const manifest = (context as any).manifest as GrammarManifest | undefined;
     if (manifest?.rootTypes) {
       const rootType = manifest.rootTypes.find(rt => rt.astType === astNode.$type);
       if (rootType?.icon) {
         (node as any).icon = rootType.icon;
+      }
+      if (rootType?.iconSvg) {
+        (node as any).iconSvg = rootType.iconSvg;
       }
     }
 
@@ -568,13 +585,27 @@ export const defaultAstToGModelProvider = {
   getDefaultSize(context: GlspContext, astNode: AstNode): Dimension {
     // Check manifest for size mapping in rootTypes
     const manifest = (context as any).manifest;
+    let baseSize: Dimension = { width: 100, height: 50 };
     if (manifest?.rootTypes) {
       const rootType = manifest.rootTypes.find((rt: any) => rt.astType === astNode.$type);
       if (rootType?.diagramNode?.defaultSize) {
-        return rootType.diagramNode.defaultSize;
+        baseSize = rootType.diagramNode.defaultSize;
       }
     }
-    return { width: 100, height: 50 };
+
+    // Non-rectangular shapes need larger bounding boxes because the polygon
+    // doesn't fill the entire rectangular area that ELK allocates.
+    const shape = this.getShape(context, astNode);
+    if (shape === 'diamond') {
+      // The inscribed rectangle of a diamond is W/2 × H/2, so roughly double.
+      return { width: Math.round(baseSize.width * 1.8), height: Math.round(baseSize.height * 1.8) };
+    }
+    if (shape === 'hexagon') {
+      // 20% inset on each side at top/bottom → need ~1.4× width.
+      return { width: Math.round(baseSize.width * 1.4), height: baseSize.height };
+    }
+
+    return baseSize;
   },
 
   /**

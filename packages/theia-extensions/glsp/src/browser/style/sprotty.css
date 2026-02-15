@@ -486,6 +486,7 @@ circle.sprotty-port.mouseover {
     font-family: 'codicon';
     font-size: 21px;
     fill: var(--theia-foreground, #cccccc);
+    overflow: visible;
 }
 
 /* Node type-specific styles */
@@ -655,16 +656,9 @@ circle.sprotty-port.mouseover {
     text-anchor: start !important;
 }
 
-/* Container node icon (HTML codicon inside SVG foreignObject) */
-.sanyam-container-icon {
-    display: block;
-    font-size: 16px;
-    line-height: 16px;
-    width: 16px;
-    height: 16px;
-    text-align: center;
-    color: var(--theia-foreground, #cccccc);
-    opacity: 0.7;
+/* Container node icon (native SVG paths with per-path fills) */
+.sanyam-container-node .sanyam-node-icon {
+    overflow: visible;
 }
 
 /* Light theme adjustments for container nodes */

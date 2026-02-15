@@ -354,13 +354,44 @@ export function createLabel(id: string, text: string, type?: string): GModelLabe
   }
   const CHAR_WIDTH = 10;  // ~10px per char at 18px font
   const LINE_HEIGHT = 24; // single-line height
-  const estimatedWidth = Math.max(displayText.length * CHAR_WIDTH, 20);
+  // Must match LABEL_MAX_WIDTH in SanyamLabelView — the view word-wraps at this width.
+  const LABEL_WRAP_WIDTH = 135;
+
+  const rawWidth = displayText.length * CHAR_WIDTH;
+  let estimatedWidth: number;
+  let estimatedHeight: number;
+
+  if (rawWidth > LABEL_WRAP_WIDTH) {
+    // Text will be word-wrapped by the view.
+    // Estimate the wrapped max-line width using the same word-wrap logic as the view.
+    const maxCharsPerLine = Math.floor(LABEL_WRAP_WIDTH / CHAR_WIDTH);
+    const words = displayText.split(/\s+/);
+    const lines: string[] = [];
+    let currentLine = '';
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      if (testLine.length > maxCharsPerLine && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) { lines.push(currentLine); }
+
+    estimatedWidth = Math.max(...lines.map(l => l.length * CHAR_WIDTH), 20);
+    estimatedHeight = lines.length * LINE_HEIGHT;
+  } else {
+    estimatedWidth = Math.max(rawWidth, 20);
+    estimatedHeight = LINE_HEIGHT;
+  }
+
   return {
     id,
     type: type ?? ElementTypes.LABEL_TEXT,
     text,
     position: { x: 0, y: 0 },
-    size: { width: estimatedWidth, height: LINE_HEIGHT },
+    size: { width: estimatedWidth, height: estimatedHeight },
   } as GModelLabel & { position: Point; size: Dimension };
 }
 

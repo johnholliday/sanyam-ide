@@ -24,7 +24,8 @@ import {
     SNodeImpl,
     SLabelImpl,
 } from 'sprotty';
-import type { NodeShape } from '@sanyam/types';
+import type { NodeShape, IconSvgData } from '@sanyam/types';
+import { getSvgIcon } from './svg-icons';
 
 /**
  * Extended SNode with Sanyam-specific properties.
@@ -40,7 +41,15 @@ export class SanyamNodeImpl extends SNodeImpl {
     trace?: string;
     /** Codicon icon name from grammar manifest */
     icon?: string;
+    /** Custom SVG icon data for diagram rendering (overrides built-in icon) */
+    iconSvg?: IconSvgData;
 }
+
+/** Size of the node icon (px). */
+const NODE_ICON_SIZE = 16;
+
+/** Padding from the node edge to the icon (px). */
+const NODE_ICON_PADDING = 8;
 
 /**
  * Custom node view that renders different shapes based on the node's shape property.
@@ -97,7 +106,17 @@ export class SanyamNodeView implements IView {
         }
         shapeElement.data.class = shapeClasses;
 
+        // ── Resolve icon data ──
+        // Resolution order: node.iconSvg → getSvgIcon(node.icon) → no icon.
+        let iconData: IconSvgData | undefined;
+        if (node.iconSvg) {
+            iconData = node.iconSvg;
+        } else if (node.icon) {
+            iconData = getSvgIcon(node.icon);
+        }
+
         // Render children (labels, compartments, etc.)
+        // Labels are centered by ELK; the icon is positioned independently.
         const children = context.renderChildren(node);
 
         // Build the group element
@@ -106,10 +125,100 @@ export class SanyamNodeView implements IView {
             'data-shape': shape,
         };
 
+        // ── Shape-dependent icon placement ──
+        // The icon is positioned independently of the label. Labels stay centered
+        // normally by ELK with no padding for the icon.
+        //
+        // Placement rules:
+        //   rectangle, rounded, pill → top-left corner
+        //   diamond, hexagon          → just inside the left "point"
+        //   ellipse                   → left side, vertically centered
+        if (iconData && iconData.paths.length > 0) {
+            const iconVNode = this.renderIcon(iconData, shape, width, height);
+
+            return h('g', {
+                class: { 'sanyam-node': true },
+                attrs: groupAttrs,
+            }, [shapeElement, iconVNode, ...children]);
+        }
+
         return h('g', {
             class: { 'sanyam-node': true },
             attrs: groupAttrs,
         }, [shapeElement, ...children]);
+    }
+
+    /**
+     * Render the node icon as an SVG element positioned according to the shape.
+     *
+     * - Rectangular shapes (rectangle, rounded, pill): top-left corner
+     * - Diamond / hexagon: just inside the left vertex
+     * - Ellipse: left side, vertically centered
+     */
+    protected renderIcon(
+        iconData: IconSvgData,
+        shape: NodeShape,
+        width: number,
+        height: number,
+    ): VNode {
+        const pathVNodes = iconData.paths.map(seg => {
+            const attrs: Record<string, string> = { d: seg.d };
+            if (seg.fill) { attrs.fill = seg.fill; }
+            if (seg.fillRule) { attrs['fill-rule'] = seg.fillRule; attrs['clip-rule'] = seg.fillRule; }
+            if (seg.opacity !== undefined) { attrs.opacity = String(seg.opacity); }
+            return h('path', { attrs });
+        });
+
+        let iconX: number;
+        let iconY: number;
+
+        switch (shape) {
+            case 'diamond': {
+                // Diamond left vertex at (0, H/2). Place icon just inside.
+                // At the icon's top/bottom edges (±ICON_SIZE/2 from centre), the
+                // diamond left boundary is at x = (ICON_SIZE/2) × (W/H).
+                // Add a small padding so the icon sits comfortably inside.
+                iconX = (NODE_ICON_SIZE / 2) * (width / height) + 4;
+                iconY = (height - NODE_ICON_SIZE) / 2;
+                break;
+            }
+            case 'hexagon': {
+                // Hexagon left vertex at (0, H/2) with 20% inset at top/bottom.
+                // Place icon just inside the left point.
+                const inset = width * 0.2;
+                iconX = inset / 2;
+                iconY = (height - NODE_ICON_SIZE) / 2;
+                break;
+            }
+            case 'ellipse': {
+                // Ellipse: left side, vertically centered.
+                // The leftmost edge is at x=0; the visible interior starts
+                // around ~15% of width in from the edge.
+                iconX = width * 0.15;
+                iconY = (height - NODE_ICON_SIZE) / 2;
+                break;
+            }
+            case 'rectangle':
+            case 'rounded':
+            case 'pill':
+            default: {
+                // Rectangular shapes: top-left corner with padding.
+                iconX = NODE_ICON_PADDING;
+                iconY = NODE_ICON_PADDING;
+                break;
+            }
+        }
+
+        return h('svg', {
+            attrs: {
+                x: iconX,
+                y: iconY,
+                width: NODE_ICON_SIZE,
+                height: NODE_ICON_SIZE,
+                viewBox: iconData.viewBox,
+            },
+            class: { 'sanyam-node-icon': true },
+        }, pathVNodes);
     }
 
     protected renderRectangle(width: number, height: number): VNode {
@@ -217,6 +326,17 @@ const LINE_HEIGHT = 24;
  *
  * Labels are rendered as SVG `<text>` elements with multiple `<tspan>` rows
  * when the text exceeds the maximum label width.
+ *
+ * ## Vertical centering
+ *
+ * ELK positions the label bounding-box centered inside the parent node.
+ * SVG `<text>` at y=0 places the **baseline** at y=0, so most of the glyph
+ * renders *above* the bounding-box top — visually pushing labels upward.
+ * We fix this with `dominant-baseline: central` and `y: LINE_HEIGHT/2`,
+ * which aligns the glyph vertical centre with the bounding-box centre.
+ *
+ * Container heading labels (id ending `_header_label`) are excluded because
+ * the container view positions them explicitly with a baseline-aware y.
  */
 @injectable()
 export class SanyamLabelView implements IView {
@@ -247,19 +367,41 @@ export class SanyamLabelView implements IView {
             }, text);
         }
 
+        // ── Centering within ELK bounding box ──
+        // ELK places the label's bounding-box centred inside the parent node.
+        // We must centre the SVG text within that bounding-box:
+        //
+        // Horizontal: text-anchor: middle + x = boundingBoxWidth / 2
+        //   → the glyph midpoint sits at the bounding-box centre, so even if
+        //   the width estimate is slightly off, the text stays visually centred.
+        //
+        // Vertical: dominant-baseline: central + y = LINE_HEIGHT / 2
+        //   → the glyph vertical centre (not baseline) aligns with the midpoint
+        //   of each LINE_HEIGHT row.
+        const centerX = (label.size?.width ?? 0) / 2;
+        const baseAttrs: Record<string, string | number> = {
+            'dominant-baseline': 'central',
+            'text-anchor': 'middle',
+            x: centerX,
+            y: LINE_HEIGHT / 2,
+        };
+
         // Word-wrap: split text into lines that fit within LABEL_MAX_WIDTH
         const lines = this.wrapText(text, LABEL_MAX_WIDTH);
 
         if (lines.length <= 1) {
             // Single line — standard rendering
-            return h('text', { class: cssClasses }, text);
+            return h('text', { class: cssClasses, attrs: baseAttrs }, text);
         }
 
-        // FR-008: Multi-line rendering using tspan elements
+        // FR-008: Multi-line rendering using tspan elements.
+        // Each tspan uses the same centred x so every line is individually centred.
+        // First tspan dy=0 inherits y from the parent <text> element;
+        // subsequent tspans shift down by LINE_HEIGHT.
         const tspans = lines.map((line, i) =>
             h('tspan', {
                 attrs: {
-                    x: 0,
+                    x: centerX,
                     dy: i === 0 ? '0' : `${LINE_HEIGHT}`,
                 },
             }, line)
@@ -275,7 +417,7 @@ export class SanyamLabelView implements IView {
             };
         }
 
-        return h('text', { class: cssClasses }, tspans);
+        return h('text', { class: cssClasses, attrs: baseAttrs }, tspans);
     }
 
     /**

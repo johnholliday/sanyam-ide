@@ -201,9 +201,23 @@ export class SanyamLayoutConfigurator extends DefaultLayoutConfigurator {
         // NOTE: elk.nodeLabels.placement is a PARENT property — it must be set
         // on the node, NOT on the label (labelOptions() has no effect for this).
         // NODE_LABELS in the size constraints tells ELK to grow the node to fit labels.
+
+        // Non-rectangular shapes need larger bounding boxes because the polygon
+        // doesn't fill the entire rectangular area.
+        const shape: string = (snode as any).shape ?? 'rectangle';
+        let minW = 150;
+        let minH = 75;
+        if (shape === 'diamond') {
+            minW = 270;  // ~1.8×150
+            minH = 135;  // ~1.8×75
+        } else if (shape === 'hexagon') {
+            minW = 210;  // ~1.4×150
+            minH = 75;   // height unchanged (hexagon is full-width at center)
+        }
+
         return {
             'elk.nodeSize.constraints': 'MINIMUM_SIZE NODE_LABELS',
-            'elk.nodeSize.minimum': '(150, 75)',
+            'elk.nodeSize.minimum': `(${minW}, ${minH})`,
             'elk.portConstraints': 'FIXED_SIDE',
             'elk.nodeLabels.placement': 'INSIDE V_CENTER H_CENTER',
         };

@@ -102,10 +102,9 @@ export class TheiaIDEAboutDialog extends AboutDialog {
 
     protected renderTitle(): React.ReactNode {
         const appData = getApplicationMetadata();
-        const effectiveLogo = this.resolveEffectiveLogo();
         const appName = getApplicationName();
         return <div className='gs-header'>
-            {appData ? this.renderApplicationHeader(appName, effectiveLogo) : this.renderDefaultHeader()}
+            {appData ? <h1>{appName}</h1> : this.renderDefaultHeader()}
             {this.renderVersion()}
         </div>;
     }

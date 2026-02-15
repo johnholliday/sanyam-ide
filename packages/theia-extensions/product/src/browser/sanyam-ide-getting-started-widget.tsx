@@ -87,7 +87,6 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
                 </div>
                 <div className='gs-main-content'>
                     {this.renderGrammarDocumentation()}
-                    {this.renderInstalledGrammars()}
                     <div className='flex-grid'>
                         <div className='col'>
                             {this.renderNews()}
@@ -430,7 +429,6 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
             {this.renderGrammarSummary(manifest)}
             {this.renderKeyFeatures(manifest)}
             {this.renderCoreConcepts(manifest)}
-            {this.renderQuickExample(manifest)}
         </div>;
     }
 

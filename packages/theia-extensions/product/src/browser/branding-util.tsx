@@ -32,7 +32,7 @@ export function renderWhatIs(windowService: WindowService): React.ReactNode {
     const appData = getApplicationMetadata();
     return <div className='gs-section'>
         <h3 className='gs-section-header'>
-            What is this?
+            About This IDE
         </h3>
         <div>
             Sanyam is a modern semantic development environment for knowledge workers.  It is available for cloud and desktop and is based on the <BrowserLink text="Theia platform"

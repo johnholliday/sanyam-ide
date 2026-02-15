@@ -583,8 +583,8 @@ export class CompositeEditorWidget extends BaseWidget
                     sourceRangeCount: Object.keys(response.metadata?.sourceRanges ?? {}).length,
                 }, 'Stored UUID registry and sourceRanges from server response');
 
-                // Set the model
-                this.diagramWidget.setModel(response.gModel);
+                // Set the model (must await to catch errors and ensure rendering completes)
+                await this.diagramWidget.setModel(response.gModel);
 
                 // Initialize drop handler for sidebar element palette
                 this.initializeCanvasDropHandler();
@@ -1121,7 +1121,21 @@ export class CompositeEditorWidget extends BaseWidget
         if (this._activeView === 'diagram' && this.diagramWidget) {
             this.dockPanel.activateWidget(this.diagramWidget);
             if (!this.diagramModelLoaded) {
-                this.loadDiagramModel();
+                try {
+                    await this.loadDiagramModel();
+                } catch (error) {
+                    this.logger.error({ err: error }, 'Failed to load diagram model during initialization');
+                    // Retry once after a short delay — the language server may
+                    // still be reconnecting after a browser reload.
+                    setTimeout(() => {
+                        if (!this.diagramModelLoaded && this._activeView === 'diagram') {
+                            this.logger.info('Retrying diagram model load after initialization failure');
+                            this.loadDiagramModel().catch(retryError => {
+                                this.logger.error({ err: retryError }, 'Retry also failed');
+                            });
+                        }
+                    }, 1500);
+                }
             }
         } else if (this.textEditor) {
             this.dockPanel.activateWidget(this.textEditor);

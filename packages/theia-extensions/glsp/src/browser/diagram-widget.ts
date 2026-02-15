@@ -714,6 +714,10 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      * Create the diagram container elements.
      */
     protected createDiagramContainer(): void {
+        // Guard against duplicate creation on re-attach
+        if (this.svgContainer) {
+            return;
+        }
         // Create main container
         const container = document.createElement('div');
         container.className = 'sanyam-diagram-container';
@@ -939,6 +943,11 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
             // Load initial model (skip for embedded widgets where CompositeEditorWidget manages loading)
             if (this.autoLoadModel) {
                 await this.loadModel();
+            } else if (this.state.gModel && this.state.gModel.children && this.state.gModel.children.length > 0) {
+                // A model was stored before Sprotty was ready (e.g., loadDiagramModel
+                // raced with initializeSprotty during widget restoration). Render it now.
+                this.logger.debug('[DiagramWidget] Rendering stored model after Sprotty init');
+                await this.setModel(this.state.gModel);
             }
         } catch (error) {
             this.logger.error({ err: error }, 'Failed to initialize Sprotty');

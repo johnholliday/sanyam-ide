@@ -258,7 +258,9 @@ export const defaultAstToGModelProvider = {
     property: string
   ): GModelEdge {
     const id = `${sourceId}_${property}_${targetId}`;
-    const type = this.getEdgeType(context, property);
+    // Strip array index suffix (e.g., permissions[0] → permissions) for type lookup and label
+    const baseProperty = property.replace(/\[\d+\]$/, '');
+    const type = this.getEdgeType(context, baseProperty);
     const edge = createEdge(id, type, sourceId, targetId);
 
     // Add `dashed` CSS class if the manifest marks this edge type as dashed
@@ -267,8 +269,8 @@ export const defaultAstToGModelProvider = {
       edge.cssClasses = [...(edge.cssClasses || []), 'dashed'];
     }
 
-    // Add edge label from property name (strip array index suffix like [0])
-    const labelText = property.replace(/\[\d+\]$/, '');
+    // Add edge label from property name
+    const labelText = baseProperty;
     if (labelText) {
       edge.children = [createLabel(`${id}_label`, labelText, ElementTypes.LABEL_TEXT)];
     }

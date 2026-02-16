@@ -1,0 +1,9 @@
+{
+  "main": [
+    { "text": "Home", "url": "/" },
+    { "text": "Getting Started", "url": "/getting-started/" },
+    { "text": "Grammar Manifest", "url": "/grammar-manifest/" },
+    { "text": "Grammar Authoring", "url": "/grammar-authoring/" },
+    { "text": "Architecture", "url": "/architecture/" }
+  ]
+}

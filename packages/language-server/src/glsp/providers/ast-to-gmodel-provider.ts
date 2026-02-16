@@ -261,6 +261,12 @@ export const defaultAstToGModelProvider = {
     const type = this.getEdgeType(context, property);
     const edge = createEdge(id, type, sourceId, targetId);
 
+    // Add `dashed` CSS class if the manifest marks this edge type as dashed
+    const edgeTypeConfig = this.getEdgeTypeConfig(context, type);
+    if (edgeTypeConfig?.dashed) {
+      edge.cssClasses = [...(edge.cssClasses || []), 'dashed'];
+    }
+
     // Add edge label from property name (strip array index suffix like [0])
     const labelText = property.replace(/\[\d+\]$/, '');
     if (labelText) {
@@ -679,6 +685,19 @@ export const defaultAstToGModelProvider = {
 
     // Default edge type
     return ElementTypes.EDGE_REFERENCE;
+  },
+
+  /**
+   * Look up the EdgeTypeConfig for a given GLSP edge type from the manifest.
+   */
+  getEdgeTypeConfig(context: GlspContext, glspType: string): { dashed?: boolean } | undefined {
+    const manifest = (context as any).manifest;
+    if (manifest?.diagramTypes?.[0]?.edgeTypes) {
+      return manifest.diagramTypes[0].edgeTypes.find(
+        (et: any) => et.glspType === glspType
+      );
+    }
+    return undefined;
   },
 
   /**

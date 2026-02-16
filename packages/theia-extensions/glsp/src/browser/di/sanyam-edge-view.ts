@@ -29,6 +29,7 @@ import {
     PolylineEdgeView,
     SEdgeImpl,
 } from 'sprotty';
+import { SanyamEdgeImpl } from './sanyam-model-factory';
 import type { Point } from 'sprotty-protocol';
 import type { IViewArgs, RenderingContext } from 'sprotty';
 import { EdgeRouterRegistry } from 'sprotty/lib/features/routing/routing';
@@ -99,6 +100,28 @@ export class SanyamEdgeView extends RoutableView {
 
         if (!vnode || !vnode.children) {
             return vnode;
+        }
+
+        // Apply sanyam-edge-path class and edge-type CSS classes to all <path> children.
+        // In polyline mode, Sprotty's PolylineEdgeView produces bare <path> with no classes.
+        // In bezier mode, renderBezier() adds sanyam-edge-path but not edge-type classes.
+        // This post-processing ensures both modes get the full set of classes.
+        const sanyamEdge = edge as SanyamEdgeImpl;
+        for (const child of vnode.children) {
+            const childVNode = child as VNode;
+            if (childVNode.sel === 'path') {
+                if (!childVNode.data) { childVNode.data = {}; }
+                const classes: Record<string, boolean> = {
+                    'sanyam-edge-path': true,
+                    ...(childVNode.data.class || {}),
+                };
+                if (sanyamEdge.cssClasses) {
+                    for (const cls of sanyamEdge.cssClasses) {
+                        classes[cls] = true;
+                    }
+                }
+                childVNode.data.class = classes;
+            }
         }
 
         // Append arrowhead if visible

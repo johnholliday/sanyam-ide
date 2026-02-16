@@ -1,5 +1,5 @@
 
----- The system must remember the previous layout and restore it automatically if available from the cache.
+---- The system must remember the previous diagram layout and restore it automatically if available from the cache.
 
 -----
 The auto-layout function may be grammar-specific, with a preferred ELK layout style.
@@ -13,12 +13,6 @@ Editing property values in the properties panel fails to update the model in the
 
 -----
 When a long operation is invoked (such as a large diagram being loaded), the VS Code progress bar is not visible.
-
------
-Add a preferences option to enable/disable animated dashed edges (enabled by default).
-
------
-Use custom SVG node icons instead of CODEICON characters.
 
 ----- Property Hierarchy
 Add expand/collapse button on parent nodes in the property view.
@@ -37,3 +31,6 @@ double-clicking a node in the diagram should shift focus to the text editor (mak
 
 ----- Context Menus
 Add grammar-driven context menus to diagram nodes that present both generic commands and custom operations that are relevant to each specific node type.  Generic commands include cut/copy/paste/print/goto source.  Custom operations include the ability to insert child objects (filtered by valid child types).
+
+----- Undo/Redo
+Add undo/redo buttons to the floating toolbar in the bottom left corner, and to the tools panel, and enable ctrl+z + ctrl+y as default keymappings.

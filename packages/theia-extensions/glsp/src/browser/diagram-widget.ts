@@ -287,6 +287,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         // Apply initial floating toolbar visibility preference
         this.applyFloatingToolbarVisibilityPreference();
 
+        // Apply initial animated edges preference
+        this.applyAnimatedEdgesPreference();
+
         // Subscribe to preference changes
         this.toDispose.push(
             preferenceService.onPreferenceChanged((event: PreferenceChange) => {
@@ -304,6 +307,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
                 }
                 if (event.preferenceName === DiagramPreferences.FLOATING_TOOLBAR_VISIBLE) {
                     this.applyFloatingToolbarVisibilityPreference();
+                }
+                if (event.preferenceName === DiagramPreferences.ANIMATED_EDGES_ENABLED) {
+                    this.applyAnimatedEdgesPreference();
                 }
             })
         );
@@ -342,6 +348,9 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
      */
     setEdgeRoutingService(service: EdgeRoutingService): void {
         this.edgeRoutingService = service;
+        // Apply edge jumps preference now that the service is available
+        // (setPreferenceService runs before this, so its initial apply call no-ops)
+        this.applyEdgeJumpsPreference();
     }
 
     /**
@@ -581,6 +590,18 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
     }
 
     /**
+     * Apply animated edges preference.
+     * Toggles the `animated-edges` CSS class on the SVG container.
+     */
+    protected applyAnimatedEdgesPreference(): void {
+        if (!this.svgContainer || !this.preferenceService) {
+            return;
+        }
+        const enabled = this.preferenceService.get<boolean>(DiagramPreferences.ANIMATED_EDGES_ENABLED, true);
+        this.svgContainer.classList.toggle('animated-edges', enabled);
+    }
+
+    /**
      * Apply floating toolbar visibility preference.
      */
     protected applyFloatingToolbarVisibilityPreference(): void {
@@ -748,9 +769,11 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         this.floatingToolbar.style.display = floatingVisible ? '' : 'none';
         container.appendChild(this.floatingToolbar);
 
-        // Apply background preferences if preference service is available
+        // Apply preferences now that svgContainer exists
+        // (setPreferenceService runs before createDiagramContainer, so initial apply calls no-op)
         if (this.preferenceService) {
             this.applyBackgroundPreferences();
+            this.applyAnimatedEdgesPreference();
         }
 
         // Create hidden container for Sprotty measurements

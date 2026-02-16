@@ -180,6 +180,9 @@ export class SnapGridTool extends AbstractUIExtension implements SnapGridService
         gridSize: gridSize ?? DEFAULT_SNAP_GRID_CONFIG.gridSize,
       };
 
+      // Propagate to global shared config so getConfig() returns the loaded values
+      setSharedConfig({ enabled: this.config.enabled, gridSize: this.config.gridSize });
+
       this.logger.info({ enabled, gridSize }, 'Loaded preferences');
     } catch (error) {
       this.logger.warn({ err: error }, 'Failed to load preferences');

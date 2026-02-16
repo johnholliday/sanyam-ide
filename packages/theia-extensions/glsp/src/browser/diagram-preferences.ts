@@ -31,6 +31,7 @@ export namespace DiagramPreferences {
     export const TOOLBAR_VISIBLE = 'diagram.toolbar.visible';
     export const FLOATING_TOOLBAR_VISIBLE = 'diagram.floatingToolbar.visible';
     export const EDGE_JUMPS_ENABLED = 'diagram.edgeJumps.enabled';
+    export const ANIMATED_EDGES_ENABLED = 'diagram.edges.animated';
 }
 
 /**
@@ -58,9 +59,7 @@ export const diagramPreferenceSchema: PreferenceSchema = {
         [DiagramPreferences.BACKGROUND_IMAGE_PATH]: {
             type: 'string',
             default: '',
-            description: 'Path to a custom background image file (used when style is "image"). Click the folder icon to browse.',
-            // Note: Theia will show a file picker for string preferences with this pattern
-            format: 'uri',
+            description: 'Path or URL to a custom background image file (used when style is "image").',
         },
         [DiagramPreferences.PATTERN_OPACITY]: {
             type: 'number',
@@ -104,6 +103,11 @@ export const diagramPreferenceSchema: PreferenceSchema = {
             type: 'boolean',
             default: false,
             description: 'Enable edge jumps (line bridges) at edge crossing points.',
+        },
+        [DiagramPreferences.ANIMATED_EDGES_ENABLED]: {
+            type: 'boolean',
+            default: true,
+            description: 'Animate dashed edges with a marching ants effect. Only affects edges that use a dash pattern (e.g., association edges).',
         },
     },
 };

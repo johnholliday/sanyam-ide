@@ -552,7 +552,8 @@ circle.sprotty-port.mouseover {
     stroke-width: 1.5px;
 }
 
-.sanyam-edge-path.association {
+/* Dashed edges (opt-in via manifest EdgeTypeConfig.dashed) */
+.sanyam-edge-path.dashed {
     stroke-dasharray: 5, 5;
 }
 
@@ -818,11 +819,32 @@ circle.sprotty-port.mouseover {
     transition: stroke 0.15s ease, fill 0.15s ease, stroke-width 0.15s ease;
 }
 
+/* ============================================
+   Animated Dashed Edges (Marching Ants)
+   ============================================ */
+
+@keyframes sanyam-dash-march {
+    to {
+        stroke-dashoffset: -10;
+    }
+}
+
+/* When animated-edges is enabled, animate edges marked as dashed.
+   Grammars opt in by setting `dashed: true` on EdgeTypeConfig in the manifest,
+   which adds the `dashed` CSS class to those edge paths. */
+.animated-edges .sanyam-edge-path.dashed {
+    animation: sanyam-dash-march 2s linear infinite;
+}
+
 /* Disable animations when user prefers reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .sanyam-node,
     .sanyam-edge {
         transition: none;
+    }
+
+    .animated-edges .sanyam-edge-path.dashed {
+        animation: none;
     }
 }
 

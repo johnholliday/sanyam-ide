@@ -126,6 +126,11 @@ export class SanyamModelFactory extends SModelFactory {
             normalizedSchema.cssClasses = [...(normalizedSchema.cssClasses || []), cssClass];
         } else if (this.isEdgeType(originalType)) {
             normalizedSchema.edgeType = originalType;
+            // Add CSS class based on edge subtype (e.g., edge:reference → 'reference')
+            const subtype = originalType.includes(':') ? originalType.split(':')[1] : undefined;
+            if (subtype) {
+                normalizedSchema.cssClasses = [...(normalizedSchema.cssClasses || []), subtype];
+            }
             if (this.edgeRoutingService) {
                 normalizedSchema.routerKind = this.edgeRoutingService.getSprottyRouterKind();
             }

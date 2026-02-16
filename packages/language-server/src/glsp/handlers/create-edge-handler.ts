@@ -182,6 +182,15 @@ export const createEdgeHandler = {
       operation.targetElementId
     );
 
+    // Add `dashed` CSS class if the manifest marks this edge type as dashed
+    const manifest = (context as any).manifest as GrammarManifest | undefined;
+    const edgeTypeConfig = manifest?.diagramTypes?.[0]?.edgeTypes?.find(
+      (et) => et.glspType === operation.elementTypeId
+    );
+    if (edgeTypeConfig?.dashed) {
+      edge.cssClasses = [...(edge.cssClasses || []), 'dashed'];
+    }
+
     // Add routing points if provided
     if (operation.routingPoints) {
       edge.routingPoints = operation.routingPoints;

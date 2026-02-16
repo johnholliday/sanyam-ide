@@ -450,9 +450,10 @@ Permission FullAccess "Full Access" "Complete system access"`,
         { glspType: 'node:workflow', creatable: true, showable: true },
       ],
       edgeTypes: [
-        { glspType: 'edge:flow', creatable: true, showable: true },
-        { glspType: 'edge:assignment', creatable: true, showable: true },
-        { glspType: 'edge:reference', creatable: true, showable: true },
+        { glspType: 'edge:flow', creatable: true, showable: true, dashed: false },
+        { glspType: 'edge:assignment', creatable: true, showable: true, dashed: false },
+        { glspType: 'edge:reference', creatable: true, showable: true, dashed: false },
+        { glspType: 'edge:permissions', creatable: true, showable: true, dashed: true }
       ],
       toolPalette: {
         groups: [

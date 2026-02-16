@@ -363,6 +363,9 @@ export interface EdgeTypeConfig {
 
   /** Whether this edge type is visible */
   readonly showable: boolean;
+
+  /** Whether edges of this type render with dashed strokes (and animate when animated-edges is enabled) */
+  readonly dashed?: boolean;
 }
 
 /**

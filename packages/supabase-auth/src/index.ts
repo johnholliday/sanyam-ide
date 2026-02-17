@@ -29,6 +29,7 @@ export {
   OAuthHandler,
   OAuthHandlerImpl,
   createOAuthHandlerFromEnv,
+  normalizeProvider,
   type OAuthHandler as OAuthHandlerType,
   type OAuthConfig,
   type OAuthProvider,

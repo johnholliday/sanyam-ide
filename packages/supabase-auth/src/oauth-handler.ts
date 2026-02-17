@@ -22,6 +22,26 @@ export const OAuthHandler = Symbol('OAuthHandler');
 export type OAuthProvider = 'github' | 'google' | 'azure' | 'email';
 
 /**
+ * Provider name aliases accepted in environment configuration.
+ * Maps common variant names to canonical {@link OAuthProvider} values.
+ */
+const PROVIDER_ALIASES: Record<string, OAuthProvider> = {
+  'azure-ad': 'azure',
+  'azuread': 'azure',
+  'microsoft': 'azure',
+};
+
+/**
+ * Normalize a provider name from environment config to a canonical
+ * {@link OAuthProvider} value. Unrecognised names pass through unchanged
+ * so the type-system can still flag them later.
+ */
+export function normalizeProvider(raw: string): OAuthProvider {
+  const trimmed = raw.trim().toLowerCase();
+  return (PROVIDER_ALIASES[trimmed] ?? trimmed) as OAuthProvider;
+}
+
+/**
  * OAuth handler configuration.
  */
 export interface OAuthConfig {
@@ -495,9 +515,9 @@ export function createOAuthHandlerFromEnv(isDesktop = false): OAuthHandler | nul
     return null;
   }
 
-  // Parse available providers from environment
+  // Parse available providers from environment, normalising aliases (e.g. azure-ad → azure)
   const providersEnv = process.env['SANYAM_AUTH_PROVIDERS'] ?? 'email,github,google';
-  const providers = providersEnv.split(',').map((p) => p.trim()) as OAuthProvider[];
+  const providers = providersEnv.split(',').map(normalizeProvider);
 
   const redirectUrl = process.env['SANYAM_AUTH_REDIRECT_URL'];
   const config: OAuthConfig = {

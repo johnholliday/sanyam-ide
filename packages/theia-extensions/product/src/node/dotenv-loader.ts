@@ -1,5 +1,5 @@
 /**
- * Side-effect module: loads `.env.local` (then `.env`) from the project root.
+ * Side-effect module: loads `.env` (then `.env.local` override) from the project root.
  *
  * Only sets `process.env[key]` when the key is not already set,
  * so real environment variables always take precedence.
@@ -87,7 +87,7 @@ function loadFile(filePath: string): number {
 
 const projectPath = process.env.THEIA_APP_PROJECT_PATH;
 if (projectPath) {
-    // .env.local takes priority (loaded first)
+    // .env.local overrides .env (loaded first so its values win)
     for (const name of ['.env.local', '.env']) {
         const found = findFileUpward(projectPath, name);
         if (found) {

@@ -18,6 +18,7 @@ import {
   OAuthHandlerImpl,
   SupabaseAuthProvider,
   SupabaseAuthProviderImpl,
+  normalizeProvider,
   type OAuthConfig,
   type OAuthProvider,
 } from '@sanyam/supabase-auth';
@@ -42,7 +43,7 @@ function getOAuthConfigFromWindow(): OAuthConfig | null {
 
   const providers: OAuthProvider[] = (config.authProviders ?? 'email,github,google')
     .split(',')
-    .map((p: string) => p.trim());
+    .map((p: string) => normalizeProvider(p));
 
   return {
     supabaseUrl: config.supabaseUrl,

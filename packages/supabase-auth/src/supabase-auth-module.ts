@@ -19,6 +19,7 @@ import {
 import {
   OAuthHandler,
   OAuthHandlerImpl,
+  normalizeProvider,
   type OAuthConfig,
 } from './oauth-handler.js';
 import {
@@ -70,9 +71,9 @@ export function createSupabaseAuthModuleFromEnv(): ContainerModule | null {
     return null;
   }
 
-  // Parse providers from environment
+  // Parse providers from environment, normalising aliases (e.g. azure-ad → azure)
   const providersEnv = process.env['SANYAM_AUTH_PROVIDERS'] ?? 'email,github,google';
-  const providers = providersEnv.split(',').map((p) => p.trim()) as any[];
+  const providers = providersEnv.split(',').map(normalizeProvider);
 
   // Detect desktop mode
   const isDesktop = typeof process !== 'undefined' &&

@@ -34,6 +34,7 @@ import type { SModelIndex } from 'sprotty-protocol/lib/utils/model-utils';
 import { LayoutActionHandler } from './layout-action-handler';
 import { RequestLayoutAction } from './layout-actions';
 import { EdgeRoutingService, EdgeRoutingServiceSymbol } from './edge-routing-service';
+import { SanyamElementFilter, EdgeBundlePostprocessor } from './edge-bundle-layout';
 
 /**
  * Symbol for the ELK layout engine.
@@ -53,8 +54,15 @@ export const DEFAULT_LAYOUT_OPTIONS: LayoutOptions = {
     'elk.edgeRouting': 'ORTHOGONAL',
     'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
     'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+    // Extra crossing reduction pass after layer sweep
+    'elk.layered.crossingMinimization.greedySwitch.type': 'TWO_SIDED',
     'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
     'elk.padding': '[top=30,left=30,bottom=30,right=30]',
+    // Handle disconnected components: place each subgraph independently
+    'elk.separateConnectedComponents': 'true',
+    'elk.spacing.componentComponent': '75',
+    // Preserve document order within layers for intuitive node placement
+    'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
 };
 
 /**
@@ -106,12 +114,31 @@ export const LayoutPresets = {
  */
 export class SanyamLayoutConfigurator extends DefaultLayoutConfigurator {
     private edgeRoutingService: EdgeRoutingService | undefined;
+    private algorithmOverride: string | undefined;
+    private directionOverride: string | undefined;
 
     /**
      * Set the edge routing service for dynamic edge routing configuration.
      */
     setEdgeRoutingService(service: EdgeRoutingService): void {
         this.edgeRoutingService = service;
+    }
+
+    /**
+     * Set per-request layout overrides (algorithm and/or direction).
+     * Call {@link clearLayoutOverrides} after the layout completes.
+     */
+    setLayoutOverrides(algorithm?: string, direction?: string): void {
+        this.algorithmOverride = algorithm;
+        this.directionOverride = direction;
+    }
+
+    /**
+     * Clear any per-request layout overrides.
+     */
+    clearLayoutOverrides(): void {
+        this.algorithmOverride = undefined;
+        this.directionOverride = undefined;
     }
 
     /**
@@ -122,10 +149,24 @@ export class SanyamLayoutConfigurator extends DefaultLayoutConfigurator {
         index: SModelIndex
     ): LayoutOptions | undefined {
         const edgeRouting = this.edgeRoutingService?.getElkEdgeRouting() ?? 'ORTHOGONAL';
-        return {
+        const options: LayoutOptions = {
             ...DEFAULT_LAYOUT_OPTIONS,
             'elk.edgeRouting': edgeRouting,
         };
+        // Non-orthogonal modes (polyline/splines) need extra edge-node clearance
+        // because diagonal/curved edges don't benefit from the grid-aligned
+        // avoidance that orthogonal routing provides.
+        if (edgeRouting === 'POLYLINE' || edgeRouting === 'SPLINES') {
+            options['elk.spacing.edgeNode'] = '55';
+            options['elk.layered.spacing.edgeNodeBetweenLayers'] = '55';
+        }
+        if (this.algorithmOverride) {
+            options['elk.algorithm'] = this.algorithmOverride;
+        }
+        if (this.directionOverride) {
+            options['elk.direction'] = this.directionOverride;
+        }
+        return options;
     }
 
     /**
@@ -291,8 +332,9 @@ export function createElkLayoutModule(customOptions?: LayoutOptions, edgeRouting
             }
         });
 
-        // Bind element filter
-        bind(IElementFilter).to(DefaultElementFilter).inSingletonScope();
+        // Bind element filter — excludes junction nodes and trunk/branch edges
+        // from ELK layout (they are positioned by the postprocessor instead)
+        bind(IElementFilter).to(SanyamElementFilter).inSingletonScope();
 
         // Bind layout configurator with our custom one
         bind(SanyamLayoutConfigurator).toSelf().inSingletonScope();
@@ -317,7 +359,8 @@ export function createElkLayoutModule(customOptions?: LayoutOptions, edgeRouting
                 }
                 logger.info('Got layoutConfigurator');
                 logger.info('Creating engine instance...');
-                const engine = new ElkLayoutEngine(elkFactory, elementFilter, layoutConfigurator);
+                const postprocessor = new EdgeBundlePostprocessor();
+                const engine = new ElkLayoutEngine(elkFactory, elementFilter, layoutConfigurator, undefined, postprocessor);
                 logger.info('ElkLayoutEngine created successfully');
                 return engine;
             } catch (error) {

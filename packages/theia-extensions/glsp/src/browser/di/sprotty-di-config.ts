@@ -45,6 +45,7 @@ import { Action } from 'sprotty-protocol';
 import { SanyamNodeImpl, SanyamNodeView, SanyamLabelImpl, SanyamLabelView } from './sanyam-node-view';
 import { SanyamContainerNodeImpl } from './sanyam-container-node';
 import { SanyamContainerNodeView } from './sanyam-container-node-view';
+import { SanyamJunctionNodeView } from './sanyam-junction-node-view';
 import { SanyamModelFactory, SanyamEdgeImpl, SanyamCompartmentImpl } from './sanyam-model-factory';
 import { CollapseExpandAction } from 'sprotty-protocol';
 import { CollapseExpandActionHandler } from './collapse-expand-action-handler';
@@ -52,6 +53,8 @@ import { SanyamPortImpl, SanyamPortView } from '../ports';
 import { SanyamEdgeView } from './sanyam-edge-view';
 import { ScrollMouseListener } from 'sprotty/lib/features/viewport/scroll';
 import { SanyamScrollMouseListener } from './sanyam-scroll-mouse-listener';
+import { MoveCommand } from 'sprotty/lib/features/move/move';
+import { SanyamMoveCommand } from './sanyam-move-command';
 import {
     SModelRoot,
     SetModelAction,
@@ -210,6 +213,9 @@ export const SanyamModelTypes = {
     // Container node type
     NODE_CONTAINER: 'node:container',
 
+    // Junction node type (edge bundling fan-out dot)
+    NODE_JUNCTION: 'node:junction',
+
     // Routing types
     ROUTING_POINT: 'routing-point',
     VOLATILE_ROUTING_POINT: 'volatile-routing-point',
@@ -355,6 +361,9 @@ function createSanyamDiagramModule(): ContainerModule {
         // Container nodes - register with SanyamContainerNodeView for hierarchical rendering
         configureModelElement(context, SanyamModelTypes.NODE_CONTAINER, SanyamContainerNodeImpl, SanyamContainerNodeView);
 
+        // Junction nodes - register with SanyamJunctionNodeView for edge bundling fan-out dots
+        configureModelElement(context, SanyamModelTypes.NODE_JUNCTION, SNodeImpl, SanyamJunctionNodeView);
+
         // Expand/collapse button — Sprotty's expandModule only registers the
         // ExpandButtonHandler (click dispatch). The model element + view mapping
         // must be registered explicitly for the button to render.
@@ -417,6 +426,14 @@ export function createSanyamDiagramContainer(options: CreateDiagramContainerOpti
     // Done on the container directly (not in a ContainerModule) for reliable rebind behavior.
     container.rebind(ScrollMouseListener).to(SanyamScrollMouseListener).inSingletonScope();
     container.bind(SanyamScrollMouseListener).toService(ScrollMouseListener);
+
+    // Rebind MoveCommand to SanyamMoveCommand for live edge re-routing during drag.
+    // configureCommand() in the default moveModule binds MoveCommand.toSelf() and creates
+    // a factory that resolves MoveCommand from a child container. Rebinding makes the
+    // factory resolve SanyamMoveCommand instead, which clears stale routing points during
+    // drag and runs obstacle-aware repair on drag completion.
+    container.rebind(MoveCommand).to(SanyamMoveCommand);
+
 
     // Load ELK layout module BEFORE binding LocalModelSource
     // This ensures IModelLayoutEngine is available when LocalModelSource is instantiated

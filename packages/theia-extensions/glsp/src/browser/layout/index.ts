@@ -20,3 +20,4 @@ export * from './elk-layout-module';
 export * from './layout-actions';
 export * from './layout-action-handler';
 export * from './edge-jump-postprocessor';
+export * from './edge-bundle-layout';

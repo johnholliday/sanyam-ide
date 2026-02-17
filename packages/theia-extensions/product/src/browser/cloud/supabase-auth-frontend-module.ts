@@ -16,11 +16,13 @@ import {
   AuthSessionStorageImpl,
   OAuthHandler,
   OAuthHandlerImpl,
+  SecretStorage,
   SupabaseAuthProvider,
   SupabaseAuthProviderImpl,
   normalizeProvider,
   type OAuthConfig,
   type OAuthProvider,
+  type SecretStorage as SecretStorageType,
 } from '@sanyam/supabase-auth';
 import { CloudStatusBarContribution } from './cloud-status-bar.js';
 import { CloudAuthCommands } from './cloud-auth-commands.js';
@@ -30,6 +32,28 @@ import { RestoreDocumentCommand } from './restore-document-command.js';
 import { ShareDocumentCommand } from './share-document-command.js';
 import { DocumentHistoryCommand } from './document-history-command.js';
 import { ManageApiKeysCommand } from './manage-api-keys-command.js';
+
+/**
+ * Browser-side SecretStorage backed by `localStorage`.
+ *
+ * Keys are prefixed to avoid collisions with other Theia storage.
+ */
+class BrowserSecretStorage implements SecretStorageType {
+  private static readonly PREFIX = 'sanyam.secret.';
+
+  async get(key: string): Promise<string | undefined> {
+    const v = localStorage.getItem(BrowserSecretStorage.PREFIX + key);
+    return v ?? undefined;
+  }
+
+  async store(key: string, value: string): Promise<void> {
+    localStorage.setItem(BrowserSecretStorage.PREFIX + key, value);
+  }
+
+  async delete(key: string): Promise<void> {
+    localStorage.removeItem(BrowserSecretStorage.PREFIX + key);
+  }
+}
 
 /**
  * Environment-based OAuth configuration.
@@ -61,7 +85,10 @@ export const SupabaseAuthFrontendModule = new ContainerModule((bind, unbind, isB
   // Auth state emitter
   bind(AuthStateEmitter).to(AuthStateEmitterImpl).inSingletonScope();
 
-  // Session storage (uses Theia SecretStorage when available)
+  // Persistent secret storage backed by localStorage
+  bind(SecretStorage).toConstantValue(new BrowserSecretStorage());
+
+  // Session storage (uses SecretStorage bound above)
   bind(AuthSessionStorage).to(AuthSessionStorageImpl).inSingletonScope();
 
   // OAuth configuration from window

@@ -166,6 +166,9 @@ export interface OAuthHandler {
  */
 @injectable()
 export class OAuthHandlerImpl implements OAuthHandler {
+  /** sessionStorage key used to restore the workspace URL after OAuth redirect. */
+  static readonly RETURN_URL_KEY = 'sanyam.auth.returnUrl';
+
   private readonly client: SupabaseClient;
   private readonly config: OAuthConfig;
 
@@ -441,6 +444,11 @@ export class OAuthHandlerImpl implements OAuthHandler {
     provider: Provider,
     redirectUrl: string
   ): Promise<OAuthResult> {
+    // Save current URL so we can restore the workspace after the OAuth round-trip
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(OAuthHandlerImpl.RETURN_URL_KEY, window.location.href);
+    }
+
     const { error } = await this.client.auth.signInWithOAuth({
       provider,
       options: {

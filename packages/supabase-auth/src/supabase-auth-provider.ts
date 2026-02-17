@@ -12,7 +12,7 @@ import { Disposable, DisposableCollection } from '@theia/core';
 import type { AuthSession, AuthStateEvent } from '@sanyam/types';
 import { AuthStateEmitter, type AuthStateEmitter as AuthStateEmitterType } from './auth-state-emitter.js';
 import { AuthSessionStorage, type AuthSessionStorage as AuthSessionStorageType } from './auth-session-storage.js';
-import { OAuthHandler, type OAuthHandler as OAuthHandlerType, type OAuthProvider } from './oauth-handler.js';
+import { OAuthHandler, OAuthHandlerImpl, type OAuthHandler as OAuthHandlerType, type OAuthProvider } from './oauth-handler.js';
 
 /**
  * DI token for SupabaseAuthProvider.
@@ -240,8 +240,20 @@ export class SupabaseAuthProviderImpl implements SupabaseAuthProvider {
         if (accessToken && refreshToken) {
           console.log('[SupabaseAuthProvider] Found auth tokens in URL hash, establishing session…');
           const result = await this.oauthHandler.setSessionFromTokens(accessToken, refreshToken);
-          // Clean up the hash regardless of outcome
-          window.history.replaceState({}, '', window.location.pathname + window.location.search);
+
+          // Restore the workspace URL that was saved before the OAuth redirect.
+          // This preserves ?folder=... and other query params so the workspace
+          // is not lost after sign-in.
+          const returnUrl = sessionStorage.getItem(OAuthHandlerImpl.RETURN_URL_KEY);
+          sessionStorage.removeItem(OAuthHandlerImpl.RETURN_URL_KEY);
+          if (returnUrl) {
+            console.log('[SupabaseAuthProvider] Restoring pre-OAuth URL:', returnUrl);
+            window.history.replaceState({}, '', returnUrl);
+          } else {
+            // No saved URL — just strip the hash
+            window.history.replaceState({}, '', window.location.pathname + window.location.search);
+          }
+
           if (result.success && result.session) {
             await this.handleSuccessfulAuth(result.session);
             return;

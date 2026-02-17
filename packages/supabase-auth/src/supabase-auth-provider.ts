@@ -201,10 +201,14 @@ export class SupabaseAuthProviderImpl implements SupabaseAuthProvider {
       return [];
     }
 
-    return this.oauthHandler.availableProviders.map((id) => ({
-      id,
-      ...PROVIDER_INFO[id],
-    }));
+    return this.oauthHandler.availableProviders.map((id) => {
+      const info = PROVIDER_INFO[id];
+      return {
+        id,
+        label: info?.label ?? id.charAt(0).toUpperCase() + id.slice(1),
+        icon: info?.icon ?? 'codicon-account',
+      };
+    });
   }
 
   get session(): AuthSession | null {

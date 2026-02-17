@@ -211,6 +211,7 @@ export const ElementTypes = {
   NODE_PROPERTY: 'node:property',
   NODE_PACKAGE: 'node:package',
   NODE_GENERIC: 'node:generic',
+  NODE_JUNCTION: 'node:junction',
 
   // Compartment types
   COMPARTMENT: 'compartment',

@@ -22,6 +22,7 @@ import {
     CommandPaletteContext,
     CommandPaletteProvider,
 } from './command-palette-actions';
+import { RequestLayoutAction } from '../../layout';
 
 /**
  * Tool palette item with action.
@@ -208,27 +209,21 @@ export class LayoutActionProvider implements CommandPaletteProvider {
     getCommands(_context: CommandPaletteContext): CommandPaletteItem[] {
         return [
             {
-                id: 'layoutLayered',
-                label: 'Layout: Layered',
-                icon: 'codicon codicon-layout',
+                id: 'layoutDown',
+                label: 'Layout: Top to Bottom',
+                icon: 'codicon codicon-arrow-down',
                 category: 'Layout',
-                action: {
-                    kind: 'layout',
-                    options: { algorithm: 'layered' },
-                } as Action,
-                description: 'Apply layered (hierarchical) layout',
+                action: RequestLayoutAction.create({ algorithm: 'layered', direction: 'DOWN' }),
+                description: 'Layered layout flowing downward',
                 sortPriority: 70,
             },
             {
-                id: 'layoutTree',
-                label: 'Layout: Tree',
-                icon: 'codicon codicon-list-tree',
+                id: 'layoutRight',
+                label: 'Layout: Left to Right',
+                icon: 'codicon codicon-arrow-right',
                 category: 'Layout',
-                action: {
-                    kind: 'layout',
-                    options: { algorithm: 'tree' },
-                } as Action,
-                description: 'Apply tree layout',
+                action: RequestLayoutAction.create({ algorithm: 'layered', direction: 'RIGHT' }),
+                description: 'Layered layout flowing rightward',
                 sortPriority: 71,
             },
             {
@@ -236,12 +231,18 @@ export class LayoutActionProvider implements CommandPaletteProvider {
                 label: 'Layout: Force-Directed',
                 icon: 'codicon codicon-type-hierarchy',
                 category: 'Layout',
-                action: {
-                    kind: 'layout',
-                    options: { algorithm: 'force' },
-                } as Action,
-                description: 'Apply force-directed layout',
+                action: RequestLayoutAction.create({ algorithm: 'force' }),
+                description: 'Organic force-directed layout',
                 sortPriority: 72,
+            },
+            {
+                id: 'layoutRadial',
+                label: 'Layout: Radial',
+                icon: 'codicon codicon-target',
+                category: 'Layout',
+                action: RequestLayoutAction.create({ algorithm: 'radial' }),
+                description: 'Radial tree layout',
+                sortPriority: 73,
             },
         ];
     }

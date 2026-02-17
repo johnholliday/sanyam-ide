@@ -19,7 +19,9 @@ import { createLogger } from '@sanyam/logger';
 import { injectable, inject, optional } from 'inversify';
 import { IActionHandler, TYPES, IActionDispatcher, LocalModelSource } from 'sprotty';
 import type { Action } from 'sprotty-protocol';
+import { ILayoutConfigurator } from 'sprotty-elk';
 import { RequestLayoutAction, LayoutCompleteAction } from './layout-actions';
+import type { SanyamLayoutConfigurator } from './elk-layout-module';
 
 /**
  * Layout Action Handler.
@@ -36,6 +38,9 @@ export class LayoutActionHandler implements IActionHandler {
 
     @inject(TYPES.ModelSource) @optional()
     protected modelSource?: LocalModelSource;
+
+    @inject(ILayoutConfigurator) @optional()
+    protected layoutConfigurator?: SanyamLayoutConfigurator;
 
     handle(action: Action): void {
         if (action.kind === RequestLayoutAction.KIND) {
@@ -81,6 +86,11 @@ export class LayoutActionHandler implements IActionHandler {
                 return;
             }
 
+            // Apply per-request layout overrides (algorithm / direction)
+            if (this.layoutConfigurator && (action.algorithm || action.direction)) {
+                this.layoutConfigurator.setLayoutOverrides(action.algorithm, action.direction);
+            }
+
             // Update the model - this triggers the layout engine
             try {
                 this.logger.info('Calling updateModel...');
@@ -90,6 +100,8 @@ export class LayoutActionHandler implements IActionHandler {
                 this.logger.info({ needsClientLayout: modelSourceAny.viewerOptions?.needsClientLayout, layoutEngineExists: !!modelSourceAny.layoutEngine }, 'Layout engine configuration');
 
                 await this.modelSource.updateModel(currentModel);
+
+                this.layoutConfigurator?.clearLayoutOverrides();
 
                 // Check if positions were updated
                 const updatedModel = this.modelSource.model;
@@ -101,6 +113,7 @@ export class LayoutActionHandler implements IActionHandler {
                 this.logger.info('Layout complete');
                 this.dispatchComplete(true);
             } catch (updateError) {
+                this.layoutConfigurator?.clearLayoutOverrides();
                 this.logger.error({ err: updateError }, 'Model update failed');
                 this.dispatchComplete(false, 'Model update failed');
             }

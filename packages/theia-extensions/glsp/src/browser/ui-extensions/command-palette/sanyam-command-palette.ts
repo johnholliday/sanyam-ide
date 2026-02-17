@@ -393,10 +393,23 @@ export class SanyamCommandPalette extends AbstractUIExtension {
      */
     protected dispatchSafeAction(action: Action): void {
         switch (action.kind) {
-            case 'layout':
-                // Dispatch RequestLayoutAction which triggers the ELK layout engine
-                this.logger.info('Dispatching layout action');
-                this.dispatch(RequestLayoutAction.create());
+            case 'layout': {
+                // Legacy 'layout' kind — extract options if present and
+                // create a proper RequestLayoutAction
+                const opts = (action as any).options as
+                    | { algorithm?: RequestLayoutAction['algorithm']; direction?: RequestLayoutAction['direction'] }
+                    | undefined;
+                this.logger.info({ algorithm: opts?.algorithm, direction: opts?.direction }, 'Dispatching layout action');
+                this.dispatch(RequestLayoutAction.create(opts ? {
+                    algorithm: opts.algorithm,
+                    direction: opts.direction,
+                } : undefined));
+                break;
+            }
+            case RequestLayoutAction.KIND:
+                // Already a proper RequestLayoutAction — pass through directly
+                this.logger.info('Dispatching RequestLayoutAction');
+                this.dispatch(action);
                 break;
             default:
                 this.dispatch(action);

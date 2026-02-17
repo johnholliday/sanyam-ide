@@ -118,6 +118,15 @@ export class SanyamModelFactory extends SModelFactory {
             normalizedSchema.type = 'node:container';
         }
 
+        // Detect junction nodes: nodes with 'sanyam-junction' CSS class
+        const isJunction = this.isNodeType(originalType) &&
+            Array.isArray(normalizedSchema.cssClasses) &&
+            normalizedSchema.cssClasses.includes('sanyam-junction');
+
+        if (isJunction) {
+            normalizedSchema.type = 'node:junction';
+        }
+
         // Preserve original type for CSS targeting
         if (this.isNodeType(originalType) && !this.isButtonType(originalType)) {
             normalizedSchema.nodeType = originalType;

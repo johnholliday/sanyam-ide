@@ -123,6 +123,10 @@ export const defaultAstToGModelProvider = {
     // skipping intermediate wrapper AST nodes like TaskBlock, ActorBlock).
     // If the ancestor is a container, record for nesting; otherwise create
     // a containment edge.
+    // Containment and reference edges are collected separately so that only
+    // reference edges go through fan-out bundling.
+    const containmentEdges: GModelEdge[] = [];
+    const referenceEdges: GModelEdge[] = [];
     for (const astNode of streamAllContents(root)) {
       const childId = nodeMap.get(astNode);
       if (!childId) continue;
@@ -136,15 +140,26 @@ export const defaultAstToGModelProvider = {
         } else {
           // Parent is NOT a container → create containment edge
           const edge = this.createEdge(context, parentId, childId, 'contains');
-          edges.push(edge);
+          containmentEdges.push(edge);
           logger.trace({ parentId, childId }, 'Created containment edge');
         }
       }
 
       // Create cross-reference edges
       const nodeEdges = this.createEdgesFromReferences(context, astNode, nodeMap);
-      edges.push(...nodeEdges);
+      referenceEdges.push(...nodeEdges);
     }
+
+    // ── Edge Bundling: Fan-out same-property edges ─────────────────────────
+    // Groups reference edges by (sourceId, propertyName). For groups of 2+,
+    // creates a junction node + trunk edge + branch edges for visual fan-out.
+    // The original edges are kept as invisible "layout proxies" so ELK can
+    // compute node positions without junction nodes disrupting layering.
+    // A client-side postprocessor positions junctions and computes trunk/branch
+    // routing from the proxy edge routes after ELK finishes.
+    const { renderEdges, proxyEdges, junctionNodes } = this.bundleEdges(referenceEdges);
+    edges.push(...containmentEdges, ...renderEdges, ...proxyEdges);
+    nodes.push(...junctionNodes);
 
     // ── Pass 3: Nest children into container body compartments ────────────────
     // Build parent → children mapping, then populate body compartments.
@@ -367,6 +382,112 @@ export const defaultAstToGModelProvider = {
       '$type' in value &&
       !nodeMap.has(value as AstNode)
     );
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Edge Bundling (Fan-Out)
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Bundle same-property edges from the same source into fan-out structures.
+   *
+   * For groups of 2+ same-property edges from the same source, creates:
+   * - 1 junction node (tiny dot, CSS class `sanyam-junction`)
+   * - 1 trunk edge: source → junction (carries the label, CSS `edge-trunk`)
+   * - N branch edges: junction → each target (no label, CSS `edge-branch`)
+   *
+   * The original edges are preserved as invisible "layout proxy" edges
+   * (CSS class `layout-proxy`). ELK processes only these proxy edges
+   * (the client-side element filter excludes junctions/trunk/branches).
+   * After ELK layout, a client-side postprocessor reads the proxy edge
+   * routes to position junction nodes and compute trunk/branch routing.
+   *
+   * @param edges - Reference edges to bundle
+   * @returns Render edges, proxy edges, and junction nodes
+   */
+  bundleEdges(
+    edges: GModelEdge[]
+  ): { renderEdges: GModelEdge[]; proxyEdges: GModelEdge[]; junctionNodes: GModelNode[] } {
+    const groups = new Map<string, GModelEdge[]>();
+    for (const edge of edges) {
+      const labelText = this.getEdgeLabelText(edge) ?? edge.type;
+      const key = `${edge.sourceId}::${labelText}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(edge);
+    }
+
+    const renderEdges: GModelEdge[] = [];
+    const proxyEdges: GModelEdge[] = [];
+    const junctionNodes: GModelNode[] = [];
+
+    for (const [, groupEdges] of groups) {
+      if (groupEdges.length < 2) {
+        // No bundling needed — keep original edge as-is
+        renderEdges.push(...groupEdges);
+        continue;
+      }
+
+      const firstEdge = groupEdges[0]!;
+      const sourceId = firstEdge.sourceId;
+      const edgeType = firstEdge.type;
+      const propertyName = this.getEdgeLabelText(firstEdge) ?? edgeType;
+      const safeProperty = propertyName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const junctionId = `${sourceId}_junction_${safeProperty}`;
+
+      // Junction node — tiny dot (positioned by client-side postprocessor)
+      const junction = createNode(
+        junctionId, ElementTypes.NODE_JUNCTION,
+        { x: 0, y: 0 }, { width: 8, height: 8 }
+      );
+      junction.cssClasses = ['sanyam-junction'];
+      junction.children = [];
+      junctionNodes.push(junction);
+
+      // Trunk edge — source → junction, with label
+      const trunkId = `${sourceId}_trunk_${safeProperty}`;
+      const trunk = createEdge(trunkId, edgeType, sourceId, junctionId);
+      trunk.cssClasses = ['edge-trunk', ...(firstEdge.cssClasses || [])];
+      trunk.children = [createLabel(`${trunkId}_label`, propertyName, ElementTypes.LABEL_TEXT)];
+      renderEdges.push(trunk);
+
+      // Branch edges — junction → each target, no label
+      for (const original of groupEdges) {
+        const branchId = `${original.id}_branch`;
+        const branch = createEdge(branchId, edgeType, junctionId, original.targetId);
+        branch.cssClasses = ['edge-branch', ...(original.cssClasses || [])];
+        renderEdges.push(branch);
+      }
+
+      // Layout proxy edges — original edges marked invisible for ELK
+      for (const original of groupEdges) {
+        const proxyId = `${original.id}_proxy`;
+        const proxy = createEdge(proxyId, edgeType, original.sourceId, original.targetId);
+        proxy.cssClasses = ['layout-proxy'];
+        // No label children — proxy edges are invisible
+        proxyEdges.push(proxy);
+      }
+
+      logger.debug({
+        sourceId,
+        propertyName,
+        bundledCount: groupEdges.length,
+      }, 'Bundled edges into fan-out');
+    }
+
+    return { renderEdges, proxyEdges, junctionNodes };
+  },
+
+  /**
+   * Extract the label text from an edge's first label child.
+   *
+   * @param edge - GModel edge
+   * @returns The label text, or undefined if no label child exists
+   */
+  getEdgeLabelText(edge: GModelEdge): string | undefined {
+    const labelChild = edge.children?.find(
+      (c: GModelElement) => c.type.startsWith('label')
+    );
+    return labelChild ? (labelChild as GModelLabel).text : undefined;
   },
 
   // ═══════════════════════════════════════════════════════════════════════════════

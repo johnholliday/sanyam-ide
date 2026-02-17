@@ -23,7 +23,7 @@ import type { Action } from 'sprotty-protocol';
 export interface RequestLayoutAction extends Action {
     kind: typeof RequestLayoutAction.KIND;
     /** Optional layout algorithm to use */
-    algorithm?: 'layered' | 'force' | 'box' | 'radial' | 'stress';
+    algorithm?: 'layered' | 'force' | 'rectpacking' | 'radial' | 'stress';
     /** Optional layout direction for layered algorithm */
     direction?: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 }

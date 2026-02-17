@@ -124,8 +124,10 @@ export class SanyamEdgeView extends RoutableView {
             }
         }
 
-        // Append arrowhead if visible
-        if (this.edgeRoutingService?.arrowheadsVisible !== false) {
+        // Append arrowhead if visible.
+        // Trunk edges (fan-out bundles) point at junction dots — skip arrowhead.
+        const isTrunk = sanyamEdge.cssClasses?.includes('edge-trunk');
+        if (this.edgeRoutingService?.arrowheadsVisible !== false && !isTrunk) {
             const arrowhead = this.createArrowhead(edge, bezierPoints, args);
             if (arrowhead) {
                 vnode.children.push(arrowhead);

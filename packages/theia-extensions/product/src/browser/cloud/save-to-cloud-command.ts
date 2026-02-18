@@ -48,7 +48,7 @@ export class SaveToCloudCommand implements CommandContribution, MenuContribution
   registerCommands(commands: CommandRegistry): void {
     commands.registerCommand(SAVE_TO_CLOUD_COMMAND, {
       execute: () => this.saveToCloud(),
-      isEnabled: () => this.canSaveToCloud(),
+      isEnabled: () => this.authProvider.isAuthenticated,
       isVisible: () => this.authProvider.isConfigured,
     });
   }
@@ -62,24 +62,6 @@ export class SaveToCloudCommand implements CommandContribution, MenuContribution
   }
 
   /**
-   * Check if save to cloud is possible.
-   */
-  private canSaveToCloud(): boolean {
-    if (!this.authProvider.isAuthenticated) {
-      return false;
-    }
-
-    const editor = this.editorManager.currentEditor;
-    if (!editor) {
-      return false;
-    }
-
-    // Check if document has content
-    const monacoEditor = this.getMonacoEditor(editor);
-    return monacoEditor !== undefined;
-  }
-
-  /**
    * Save current document to cloud.
    */
   private async saveToCloud(): Promise<void> {
@@ -90,13 +72,13 @@ export class SaveToCloudCommand implements CommandContribution, MenuContribution
 
     const editor = this.editorManager.currentEditor;
     if (!editor) {
-      this.messageService.warn('No active editor');
+      this.messageService.warn('Open a text file first, then save to cloud');
       return;
     }
 
     const monacoEditor = this.getMonacoEditor(editor);
     if (!monacoEditor) {
-      this.messageService.warn('Cannot save this type of document to cloud');
+      this.messageService.warn('Cannot save this type of document to cloud — open a text editor');
       return;
     }
 

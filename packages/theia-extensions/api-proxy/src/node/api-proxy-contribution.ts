@@ -18,6 +18,9 @@ export class ApiProxyContribution implements BackendApplicationContribution {
       // Use pathFilter to match /api/* requests
       // This avoids Express stripping the /api prefix when mounting
       pathFilter: '/api/**',
+      // Timeout after 15 seconds so the browser fetch doesn't hang forever
+      timeout: 15_000,
+      proxyTimeout: 15_000,
       on: {
         proxyReq: (proxyReq, req) => {
           // Cast to Express request to access originalUrl (full path including /api)

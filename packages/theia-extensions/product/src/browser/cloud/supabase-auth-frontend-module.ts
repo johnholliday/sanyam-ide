@@ -32,6 +32,7 @@ import { RestoreDocumentCommand } from './restore-document-command.js';
 import { ShareDocumentCommand } from './share-document-command.js';
 import { DocumentHistoryCommand } from './document-history-command.js';
 import { ManageApiKeysCommand } from './manage-api-keys-command.js';
+import { CloudOutputChannel, CloudOutputChannelServiceImpl } from './cloud-output-channel.js';
 
 /**
  * Browser-side SecretStorage backed by `localStorage`.
@@ -101,6 +102,9 @@ export const SupabaseAuthFrontendModule = new ContainerModule((bind, unbind, isB
 
   // Main auth provider
   bind(SupabaseAuthProvider).to(SupabaseAuthProviderImpl).inSingletonScope();
+
+  // Cloud output channel (for structured logging in Output panel)
+  bind(CloudOutputChannel).to(CloudOutputChannelServiceImpl).inSingletonScope();
 
   // Status bar contribution
   bind(CloudStatusBarContribution).toSelf().inSingletonScope();

@@ -22,6 +22,7 @@ import {
   SupabaseAuthProvider,
   type SupabaseAuthProviderType,
 } from '@sanyam/supabase-auth';
+import { CloudOutputChannel, type CloudOutputChannelService } from './cloud-output-channel.js';
 
 /**
  * Save to Cloud command.
@@ -46,6 +47,9 @@ export class SaveToCloudCommand implements CommandContribution, MenuContribution
   @inject(MessageService)
   private readonly messageService!: MessageService;
 
+  @inject(CloudOutputChannel)
+  private readonly cloudLog!: CloudOutputChannelService;
+
   registerCommands(commands: CommandRegistry): void {
     commands.registerCommand(SAVE_TO_CLOUD_COMMAND, {
       execute: () => this.saveToCloud(),
@@ -62,23 +66,29 @@ export class SaveToCloudCommand implements CommandContribution, MenuContribution
     });
   }
 
+  /** Fetch timeout in milliseconds. */
+  private static readonly FETCH_TIMEOUT_MS = 15_000;
+
   /**
    * Save current document to cloud.
    */
   private async saveToCloud(): Promise<void> {
     if (!this.authProvider.isAuthenticated) {
+      this.cloudLog.warn('Save aborted — user not authenticated');
       this.messageService.warn('Please sign in to save to cloud');
       return;
     }
 
     const editor = this.editorManager.currentEditor;
     if (!editor) {
+      this.cloudLog.warn('Save aborted — no active editor');
       this.messageService.warn('Open a text file first, then save to cloud');
       return;
     }
 
     const monacoEditor = this.getMonacoEditor(editor);
     if (!monacoEditor) {
+      this.cloudLog.warn('Save aborted — editor is not a Monaco text editor');
       this.messageService.warn('Cannot save this type of document to cloud — open a text editor');
       return;
     }
@@ -88,38 +98,59 @@ export class SaveToCloudCommand implements CommandContribution, MenuContribution
     const name = this.getDocumentName(uri.toString());
     const languageId = monacoEditor.getControl().getModel()?.getLanguageId() ?? 'plaintext';
 
+    this.cloudLog.info(`Saving "${name}" (${languageId}, ${content.length} chars) to cloud…`);
     this.messageService.info('Saving to cloud…');
 
     try {
       // Get access token
+      this.cloudLog.debug('Requesting access token…');
       const accessToken = await this.authProvider.getAccessToken();
       if (!accessToken) {
+        this.cloudLog.error('Failed to obtain access token');
         this.messageService.error('Failed to get access token — please sign in again');
         return;
       }
+      this.cloudLog.debug('Access token obtained');
+
+      // Abort controller for fetch timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        SaveToCloudCommand.FETCH_TIMEOUT_MS,
+      );
 
       // Call the API to save document
-      const response = await fetch('/api/v1/documents', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          name,
-          languageId,
-          content,
-          metadata: {
-            localUri: uri.toString(),
-            savedAt: new Date().toISOString(),
+      this.cloudLog.debug('POST /api/v1/documents …');
+      let response: Response;
+      try {
+        response = await fetch('/api/v1/documents', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
           },
-        }),
-      });
+          body: JSON.stringify({
+            name,
+            languageId,
+            content,
+            metadata: {
+              localUri: uri.toString(),
+              savedAt: new Date().toISOString(),
+            },
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      this.cloudLog.debug(`Response: ${response.status} ${response.statusText}`);
 
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}`;
         try {
           const body = await response.json();
+          this.cloudLog.error(`API error response: ${JSON.stringify(body)}`);
           if (body.error?.code === 'TIER_LIMIT_EXCEEDED') {
             this.messageService.error(
               `Cannot save: ${body.error.message}. Consider upgrading your subscription.`
@@ -136,11 +167,17 @@ export class SaveToCloudCommand implements CommandContribution, MenuContribution
       }
 
       const document = await response.json();
+      this.cloudLog.info(`Saved to cloud: ${document.name} (id=${document.id})`);
       this.messageService.info(`Saved to cloud: ${document.name}`);
 
     } catch (error) {
-      console.error('[SaveToCloud] Error:', error);
-      this.messageService.error(`Failed to save to cloud: ${error}`);
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        this.cloudLog.error(`Request timed out after ${SaveToCloudCommand.FETCH_TIMEOUT_MS}ms`);
+        this.messageService.error('Save to cloud timed out — is the API server running?');
+      } else {
+        this.cloudLog.error(`Unexpected error: ${error}`);
+        this.messageService.error(`Failed to save to cloud: ${error}`);
+      }
     }
   }
 

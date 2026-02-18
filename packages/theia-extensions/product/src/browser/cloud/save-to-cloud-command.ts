@@ -88,11 +88,13 @@ export class SaveToCloudCommand implements CommandContribution, MenuContribution
     const name = this.getDocumentName(uri.toString());
     const languageId = monacoEditor.getControl().getModel()?.getLanguageId() ?? 'plaintext';
 
+    this.messageService.info('Saving to cloud…');
+
     try {
       // Get access token
       const accessToken = await this.authProvider.getAccessToken();
       if (!accessToken) {
-        this.messageService.error('Failed to get access token');
+        this.messageService.error('Failed to get access token — please sign in again');
         return;
       }
 
@@ -115,21 +117,29 @@ export class SaveToCloudCommand implements CommandContribution, MenuContribution
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        if (error.error?.code === 'TIER_LIMIT_EXCEEDED') {
-          this.messageService.error(
-            `Cannot save: ${error.error.message}. Consider upgrading your subscription.`
-          );
-        } else {
-          this.messageService.error(`Failed to save to cloud: ${error.error?.message ?? 'Unknown error'}`);
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+          const body = await response.json();
+          if (body.error?.code === 'TIER_LIMIT_EXCEEDED') {
+            this.messageService.error(
+              `Cannot save: ${body.error.message}. Consider upgrading your subscription.`
+            );
+            return;
+          }
+          errorMessage = body.error?.message ?? body.error ?? errorMessage;
+        } catch {
+          // Response wasn't JSON — use status text
+          errorMessage = `${response.status} ${response.statusText}`;
         }
+        this.messageService.error(`Failed to save to cloud: ${errorMessage}`);
         return;
       }
 
       const document = await response.json();
-      this.messageService.info(`Document saved to cloud: ${document.name}`);
+      this.messageService.info(`Saved to cloud: ${document.name}`);
 
     } catch (error) {
+      console.error('[SaveToCloud] Error:', error);
       this.messageService.error(`Failed to save to cloud: ${error}`);
     }
   }

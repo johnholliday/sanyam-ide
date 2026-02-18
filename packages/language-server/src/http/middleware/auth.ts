@@ -50,29 +50,29 @@ const API_KEY_HEADER = 'X-API-Key';
  * @returns Hono middleware
  */
 export function authMiddleware(config: AuthConfig) {
-  const excludePaths = new Set(config.excludePaths ?? ['/health', '/ready', '/version']);
+  const excludeSuffixes = config.excludePaths ?? ['/health', '/ready', '/version'];
 
   return createMiddleware(async (c, next) => {
-    // Check if path is excluded
+    // Check if path is excluded (suffix match so /api/health matches /health)
     const path = c.req.path;
-    if (excludePaths.has(path)) {
+    if (excludeSuffixes.some((suffix) => path === suffix || path.endsWith(suffix))) {
       await next();
       return;
     }
 
-    // Handle based on auth mode
+    // Handle based on auth mode.
+    // Helper functions return a Response on auth failure — we must
+    // return it from the middleware so Hono sends it to the client.
     switch (config.mode) {
       case 'none':
         await next();
         return;
 
       case 'api-key':
-        await handleApiKeyAuth(c, config, next);
-        return;
+        return await handleApiKeyAuth(c, config, next);
 
       case 'supabase':
-        await handleSupabaseAuth(c, config, next);
-        return;
+        return await handleSupabaseAuth(c, config, next);
 
       default:
         logger.warn({ mode: config.mode }, 'Unknown auth mode, allowing request');
@@ -88,7 +88,7 @@ async function handleApiKeyAuth(
   c: any,
   config: AuthConfig,
   next: () => Promise<void>
-): Promise<void> {
+): Promise<Response | void> {
   const apiKey = c.req.header(API_KEY_HEADER) ?? c.req.query('api_key');
 
   if (!apiKey) {
@@ -130,7 +130,7 @@ async function handleSupabaseAuth(
   c: any,
   config: AuthConfig,
   next: () => Promise<void>
-): Promise<void> {
+): Promise<Response | void> {
   const authHeader = c.req.header('Authorization');
 
   if (!authHeader?.startsWith('Bearer ')) {

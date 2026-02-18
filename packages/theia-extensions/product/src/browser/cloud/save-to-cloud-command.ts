@@ -14,6 +14,7 @@ import {
   MenuContribution,
   MenuModelRegistry,
 } from '@theia/core/lib/common';
+import { CommonMenus } from '@theia/core/lib/browser';
 import { MessageService } from '@theia/core';
 import { EditorManager, EditorWidget } from '@theia/editor/lib/browser';
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
@@ -54,10 +55,10 @@ export class SaveToCloudCommand implements CommandContribution, MenuContribution
   }
 
   registerMenus(menus: MenuModelRegistry): void {
-    // Add to File menu
-    menus.registerMenuAction(['menubar', 'file', 'save'], {
+    // Add to File > Save group, after Save and Save All
+    menus.registerMenuAction(CommonMenus.FILE_SAVE, {
       commandId: SAVE_TO_CLOUD_COMMAND.id,
-      order: '2.5', // After Save, before Save As
+      order: '3', // After Save (1) and Save All (2)
     });
   }
 

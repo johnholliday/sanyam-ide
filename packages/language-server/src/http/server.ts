@@ -18,11 +18,13 @@ import type { OperationRegistry } from '../operations/operation-registry.js';
 import type { JobManager } from '../operations/job-manager.js';
 import type { UnifiedDocumentResolver } from '../services/document-resolver.js';
 import type { LanguageRegistry } from '../language-registry.js';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createOperationsRoutes } from './routes/operations.js';
 import { createJobsRoutes } from './routes/jobs.js';
 import { createHealthRoutes } from './routes/health.js';
 import { createDocsRoutes } from './routes/docs.js';
 import { createModelsRoutes } from './routes/models.js';
+import { createDocumentRoutes } from './routes/documents.js';
 import { correlationMiddleware } from './middleware/correlation.js';
 import { authMiddleware, type AuthConfig } from './middleware/auth.js';
 import { createLogger } from '@sanyam/logger';
@@ -208,6 +210,29 @@ export function createHttpServer(
   app.route('/api', modelsRoutes);        // /api/models (CRUD)
   app.route('/api/v1', operationsRoutes); // /api/v1/* operations
   app.route('/api/v1/jobs', jobsRoutes);  // /api/v1/jobs/*
+
+  // Cloud document routes (require Supabase)
+  const supabaseUrl = process.env['SUPABASE_URL'];
+  const supabaseAnonKey = process.env['SUPABASE_ANON_KEY'];
+  const supabaseServiceKey = process.env['SUPABASE_SERVICE_ROLE_KEY'];
+
+  if (supabaseUrl && supabaseAnonKey) {
+    const documentRoutes = createDocumentRoutes({
+      createClient: (accessToken: string) =>
+        createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: `Bearer ${accessToken}` } },
+          auth: { autoRefreshToken: false, persistSession: false },
+        }),
+      getAnonClient: () =>
+        createSupabaseClient(supabaseUrl, supabaseServiceKey ?? supabaseAnonKey, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        }),
+    });
+    app.route('/api/v1/documents', documentRoutes);
+    logger.info('Cloud document routes mounted at /api/v1/documents');
+  } else {
+    logger.info('Supabase not configured — cloud document routes disabled');
+  }
 
   // Global error handler
   app.onError((err, c) => {

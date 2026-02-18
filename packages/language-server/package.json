@@ -52,10 +52,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@sanyam/logger": "workspace:*",
-    "@sanyam/types": "workspace:*",
     "@eclipse-glsp/server": "^2.5.0",
     "@hono/node-server": "^1.13.7",
+    "@sanyam/logger": "workspace:*",
+    "@sanyam/types": "workspace:*",
+    "@supabase/supabase-js": "^2.96.0",
     "better-sqlite3": "^11.7.0",
     "drizzle-orm": "^0.38.4",
     "hono": "^4.6.16",
@@ -81,8 +82,8 @@
     "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
     "typescript": "~5.6.3",
-    "vsce": "^2.15.0",
     "vitest": "^2.1.9",
+    "vsce": "^2.15.0",
     "vscode-languageclient": "^9.0.1",
     "yaml": "^2.3.4"
   },

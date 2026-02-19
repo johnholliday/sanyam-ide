@@ -1,7 +1,7 @@
 import { injectable } from '@theia/core/shared/inversify';
 import { BackendApplicationContribution } from '@theia/core/lib/node';
 import type { Application } from 'express';
-import { createProxyMiddleware, type Options } from 'http-proxy-middleware';
+import { createProxyMiddleware, fixRequestBody, type Options } from 'http-proxy-middleware';
 
 const DEFAULT_API_PORT = 3001;
 
@@ -27,6 +27,11 @@ export class ApiProxyContribution implements BackendApplicationContribution {
           const expressReq = req as typeof req & { originalUrl?: string };
           const fullPath = expressReq.originalUrl ?? req.url;
           console.log(`[api-proxy] Proxying: ${req.method} ${fullPath} → ${apiTarget}${fullPath}`);
+
+          // Re-stream request body if Express body-parser already consumed it.
+          // Without this, POST/PUT/PATCH requests hang because the proxy
+          // tries to stream an already-consumed body to the target.
+          fixRequestBody(proxyReq, req);
         },
         error: (err, req, res) => {
           const expressReq = req as typeof req & { originalUrl?: string };

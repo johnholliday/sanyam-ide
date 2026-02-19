@@ -185,6 +185,7 @@ export function createDocumentRoutes(deps: DocumentRouteDependencies): Hono<Hono
         const { data, error } = await client
           .from('documents')
           .insert({
+            owner_id: user.id,
             name: input.name,
             language_id: input.languageId,
             content: input.content,

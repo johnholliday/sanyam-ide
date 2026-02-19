@@ -28,18 +28,34 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Optional**: data-model.md (entities), contracts/ (API endpoints), research.md (decisions), quickstart.md (test scenarios)
    - Note: Not all projects have all documents. Generate tasks based on what's available.
 
-3. **Execute task generation workflow**:
+3. **Show Your Work — Assumptions & Sequencing Rationale**: Before generating tasks, you MUST output:
+
+   **Assumptions**: List ALL assumptions you are making about the architecture, dependencies, and implementation approach. For each assumption, state what you are assuming, the evidence (from plan.md, spec.md, data-model.md, etc.), and what would change if wrong.
+
+   **Sequencing Rationale**: For each phase and for each task within a phase, explain WHY it is sequenced where it is. Specifically:
+   - Why is this task in this phase (not earlier or later)?
+   - What dependency or constraint requires this ordering?
+   - If marked [P] (parallelizable), why is it safe to parallelize?
+   - If NOT marked [P], what specific dependency prevents parallelization?
+
+   This analysis MUST appear in your output before the generated tasks.md content.
+
+4. **Execute task generation workflow**:
    - Load plan.md and extract tech stack, libraries, project structure
    - Load spec.md and extract user stories with their priorities (P1, P2, P3, etc.)
    - If data-model.md exists: Extract entities and map to user stories
    - If contracts/ exists: Map endpoints to user stories
    - If research.md exists: Extract decisions for setup tasks
    - Generate tasks organized by user story (see Task Generation Rules below)
-   - Generate dependency graph showing user story completion order
+   - **Generate a structured dependency graph (Constitution §5c)** — NOT just a flat list:
+     - Use a Mermaid `graph TD` diagram showing task-to-task blocking edges
+     - Identify the critical path (longest chain from first task to last)
+     - Show cross-story dependencies explicitly (if any)
+     - Show parallel lanes where tasks have no shared edges
    - Create parallel execution examples per user story
    - Validate task completeness (each user story has all needed tasks, independently testable)
 
-4. **Generate tasks.md**: Use `.specify/templates/tasks-template.md` as structure, fill with:
+5. **Generate tasks.md**: Use `.specify/templates/tasks-template.md` as structure, fill with:
    - Correct feature name from plan.md
    - Phase 1: Setup tasks (project initialization)
    - Phase 2: Foundational tasks (blocking prerequisites for all user stories)
@@ -48,17 +64,32 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Final Phase: Polish & cross-cutting concerns
    - All tasks must follow the strict checklist format (see Task Generation Rules below)
    - Clear file paths for each task
-   - Dependencies section showing story completion order
+   - **Dependency graph section** with Mermaid `graph TD` diagram (Constitution §5c — a flat list is NOT sufficient)
+   - Critical path annotation on the dependency graph
    - Parallel execution examples per story
    - Implementation strategy section (MVP first, incremental delivery)
 
-5. **Report**: Output path to generated tasks.md and summary:
+6. **Report**: Output path to generated tasks.md and summary:
    - Total task count
    - Task count per user story
    - Parallel opportunities identified
    - Independent test criteria for each story
    - Suggested MVP scope (typically just User Story 1)
    - Format validation: Confirm ALL tasks follow the checklist format (checkbox, ID, labels, file paths)
+
+## Phase Gate Protocol (from Constitution)
+
+**MANDATORY** — These gates are non-negotiable:
+
+1. **NEVER advance to task generation without explicit user approval of assumptions and sequencing rationale.** After completing Step 3 (Show Your Work), STOP and present the Assumptions & Sequencing Checkpoint for review. Do NOT generate tasks.md until the user approves.
+
+2. **At each checkpoint, present your reasoning and assumptions as a numbered list for review before proceeding.** Use the checkpoint format defined in the constitution's Phase Gate Protocol section.
+
+3. **Surface all task-ordering trade-offs as explicit questions — do not resolve ambiguity autonomously.** When multiple valid task orderings or groupings exist, present the options and let the user decide.
+
+4. **Phase outputs are immutable once approved.** If task generation reveals a problem with plan.md or spec.md, flag it as a revision request — do not silently work around it.
+
+---
 
 Context for task generation: $ARGUMENTS
 

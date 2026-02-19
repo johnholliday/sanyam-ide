@@ -5,6 +5,23 @@
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
+## Assumptions
+
+<!--
+  SHOW YOUR WORK: Before filling in the Technical Context, list every assumption
+  you are making about the architecture, technology choices, and project constraints.
+  For each assumption, state:
+  - What you are assuming
+  - Why you believe it is correct (cite spec, constitution, or codebase evidence)
+  - What would change if the assumption is wrong
+
+  This section forces explicit reasoning and prevents silent misinterpretations.
+-->
+
+| # | Assumption | Evidence | Impact If Wrong |
+|---|-----------|----------|-----------------|
+| 1 | [e.g., PostgreSQL is the storage layer] | [constitution §storage, spec §NFR-2] | [would need different migration strategy] |
+
 ## Summary
 
 [Extract from feature spec: primary requirement + technical approach from research]
@@ -30,6 +47,8 @@
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
+> **Phase Gate Protocol**: NEVER advance to the next phase without explicit user approval. At each phase checkpoint, present assumptions as a numbered list. Surface all architectural trade-offs as explicit questions. See constitution §Phase Gate Protocol for the full checkpoint format.
 
 [Gates determined based on constitution file]
 
@@ -93,6 +112,37 @@ ios/ or android/
 
 **Structure Decision**: [Document the selected structure and reference the real
 directories captured above]
+
+## Architectural Decisions
+
+<!--
+  REQUIRED (Constitution §5a-b): Every non-trivial architectural decision MUST be
+  recorded here in ADR format. A decision with no alternatives listed is presumed
+  unexamined and will be flagged at review.
+
+  "Non-trivial" includes: technology choices, data model shapes, API patterns,
+  package boundaries, DI strategies, state management, auth schemes, error handling
+  patterns, and anything where 2+ valid approaches exist.
+-->
+
+### ADR-1: [Decision Title]
+
+**Decision**: [What was decided]
+**Context**: [What problem or requirement drove this]
+**Rationale**: [WHY this option — concrete evidence, not "it's best"]
+**Alternatives considered**:
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| [Option A] | [Concrete reason — performance, complexity, compatibility, etc.] |
+| [Option B] | [Concrete reason] |
+
+**Consequences**: [What this enables and what it constrains going forward]
+
+<!--
+  Repeat ADR block for each decision. Number sequentially: ADR-1, ADR-2, ADR-3...
+  Cross-reference from research.md where applicable.
+-->
 
 ## Complexity Tracking
 

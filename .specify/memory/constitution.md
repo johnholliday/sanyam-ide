@@ -6,6 +6,70 @@ This constitution defines the guiding principles, constraints, and standards tha
 
 ---
 
+## Phase Gate Protocol
+
+**CRITICAL — These directives govern ALL speckit workflow phases (specify, plan, tasks, implement).**
+
+1. **NEVER advance to the next phase without explicit user approval.** Each phase boundary is a hard gate. The agent MUST stop, present its output, and wait for the user to confirm before proceeding. Silence is NOT approval. A handoff button click IS approval for the next phase only.
+
+2. **At each phase checkpoint, present your reasoning and assumptions as a numbered list for review before proceeding.** This includes:
+   - All assumptions made during the phase (with evidence and impact-if-wrong)
+   - All decisions taken and their rationale
+   - Any deviations from the spec, plan, or prior phase outputs
+   - The agent MUST NOT bury assumptions in prose — they must be an explicit, scannable numbered list.
+
+3. **Surface all architectural trade-offs as explicit questions — do not resolve ambiguity autonomously.** When the agent encounters:
+   - Multiple valid implementation approaches
+   - Ambiguous or underspecified requirements
+   - Tensions between competing constraints (e.g., performance vs. simplicity)
+   - Technology choices not already locked in by the constitution or spec
+
+   ...it MUST present the trade-off as an explicit question with labeled options, NOT silently pick one. The user decides; the agent advises.
+
+4. **Phase outputs are immutable once approved.** If a later phase reveals a problem with an earlier phase's output, the agent MUST flag this as a "Phase N Revision Request" and get explicit approval before modifying the earlier artifact. It MUST NOT silently patch approved outputs.
+
+5. **Externalize all reasoning — no opaque decisions.** The agent MUST NOT compress architectural reasoning into unexplained conclusions. Specifically:
+
+   a. **Written rationale for every architectural decision in the Plan phase.** Each decision MUST be recorded as an Architectural Decision Record (ADR) with:
+      - **Decision**: What was decided
+      - **Context**: What problem or requirement drove this decision
+      - **Rationale**: Why this option was chosen (concrete, not "it's the best approach")
+      - **Alternatives considered**: Every alternative evaluated, with a one-line reason for rejection
+      - **Consequences**: What this decision enables and what it constrains
+
+   b. **Explicit enumeration of alternatives considered and rejected.** For every non-trivial decision (technology choice, data model shape, API pattern, architectural boundary), the agent MUST list at least 2 alternatives it considered and explain why each was rejected. A decision with no alternatives listed is presumed to be unexamined.
+
+   c. **Dependency graph for the Tasks phase — not just a flat task list.** The tasks.md output MUST include a structured dependency graph that shows:
+      - Which tasks block which other tasks (directed edges)
+      - Which tasks can execute in parallel (no shared edges)
+      - The critical path (longest chain from start to finish)
+      - Cross-story dependencies (if any)
+
+      Format: Use a Mermaid `graph TD` diagram OR a structured adjacency list. A flat numbered list with prose descriptions of ordering is NOT sufficient.
+
+6. **Checkpoint format.** At every phase gate, the agent MUST output:
+
+   ```text
+   ## Phase [N] Checkpoint — [Phase Name]
+
+   ### Assumptions (numbered)
+   1. ...
+   2. ...
+
+   ### Decisions taken
+   - ...
+
+   ### Open questions (if any)
+   - ...
+
+   ### Trade-offs requiring your input (if any)
+   - ...
+
+   ⏸️ AWAITING APPROVAL — Please review the above before I proceed to Phase [N+1].
+   ```
+
+---
+
 ## Core Principles
 
 ### 1. Grammar Agnosticism

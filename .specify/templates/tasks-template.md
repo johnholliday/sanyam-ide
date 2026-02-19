@@ -12,6 +12,30 @@ description: "Task list template for feature implementation"
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
+## Assumptions
+
+<!--
+  SHOW YOUR WORK: List every assumption made about the architecture, dependencies,
+  and implementation approach when generating these tasks.
+-->
+
+| # | Assumption | Evidence | Impact If Wrong |
+|---|-----------|----------|-----------------|
+| 1 | [e.g., auth middleware exists] | [plan.md §Foundational] | [would need additional setup tasks] |
+
+## Sequencing Rationale
+
+<!--
+  SHOW YOUR WORK: For each phase and for key tasks, explain WHY they are sequenced
+  where they are. This section makes ordering decisions explicit and reviewable.
+-->
+
+| Phase / Task | Why This Position | Dependency / Constraint |
+|-------------|-------------------|------------------------|
+| Phase 1: Setup | Must come first | No code can build without project structure |
+| Phase 2: Foundational | Blocks all stories | User stories depend on shared infrastructure |
+| [T00X] [specific task] | [why here, not earlier/later] | [what depends on it or what it depends on] |
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
@@ -71,6 +95,8 @@ Examples of foundational tasks (adjust based on your project):
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
+> **⏸️ PHASE GATE**: STOP here. Present a numbered list of assumptions, decisions, and any open questions. AWAIT explicit user approval before proceeding to User Story phases. See constitution §Phase Gate Protocol.
+
 ---
 
 ## Phase 3: User Story 1 - [Title] (Priority: P1) 🎯 MVP
@@ -97,6 +123,8 @@ Examples of foundational tasks (adjust based on your project):
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
+> **⏸️ PHASE GATE**: STOP here. Present completed tasks, deviations from plan, and assumptions. AWAIT explicit user approval before proceeding to User Story 2. See constitution §Phase Gate Protocol.
+
 ---
 
 ## Phase 4: User Story 2 - [Title] (Priority: P2)
@@ -119,6 +147,8 @@ Examples of foundational tasks (adjust based on your project):
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
+> **⏸️ PHASE GATE**: STOP here. Present completed tasks, deviations from plan, and assumptions. AWAIT explicit user approval before proceeding to User Story 3. See constitution §Phase Gate Protocol.
+
 ---
 
 ## Phase 5: User Story 3 - [Title] (Priority: P3)
@@ -140,9 +170,11 @@ Examples of foundational tasks (adjust based on your project):
 
 **Checkpoint**: All user stories should now be independently functional
 
+> **⏸️ PHASE GATE**: STOP here. Present completed tasks, deviations from plan, and assumptions. AWAIT explicit user approval before proceeding to Polish phase. See constitution §Phase Gate Protocol.
+
 ---
 
-[Add more user story phases as needed, following the same pattern]
+[Add more user story phases as needed, following the same pattern — each MUST include a ⏸️ PHASE GATE checkpoint]
 
 ---
 
@@ -159,53 +191,88 @@ Examples of foundational tasks (adjust based on your project):
 
 ---
 
-## Dependencies & Execution Order
+## Dependency Graph (REQUIRED — Constitution §5c)
 
-### Phase Dependencies
+<!--
+  A flat prose list of dependencies is NOT sufficient.
+  You MUST generate a Mermaid graph TD diagram showing:
+  - Task-to-task blocking edges (directed arrows)
+  - Parallel lanes (tasks with no shared edges)
+  - Critical path (annotated with 🔴 or bold edges)
+  - Cross-story dependencies (if any, annotated with dashed edges)
+-->
 
-- **Setup (Phase 1)**: No dependencies - can start immediately
-- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
-- **User Stories (Phase 3+)**: All depend on Foundational phase completion
-  - User stories can then proceed in parallel (if staffed)
-  - Or sequentially in priority order (P1 → P2 → P3)
-- **Polish (Final Phase)**: Depends on all desired user stories being complete
+```mermaid
+graph TD
+    subgraph "Phase 1: Setup"
+        T001 --> T002
+        T002 --> T003
+    end
 
-### User Story Dependencies
+    subgraph "Phase 2: Foundational"
+        T003 --> T004
+        T003 --> T005
+        T003 --> T006
+        T004 --> T007
+        T005 --> T007
+        T006 --> T008
+        T007 --> T009
+        T008 --> T009
+    end
 
-- **User Story 1 (P1)**: Can start after Foundational (Phase 2) - No dependencies on other stories
-- **User Story 2 (P2)**: Can start after Foundational (Phase 2) - May integrate with US1 but should be independently testable
-- **User Story 3 (P3)**: Can start after Foundational (Phase 2) - May integrate with US1/US2 but should be independently testable
+    subgraph "Phase 3: User Story 1"
+        T009 --> T010
+        T009 --> T011
+        T010 --> T012
+        T011 --> T013
+        T012 --> T014
+        T013 --> T014
+    end
 
-### Within Each User Story
+    subgraph "Phase 4: User Story 2"
+        T009 --> T018
+        T018 --> T020
+        T020 --> T021
+    end
 
-- Tests (if included) MUST be written and FAIL before implementation
-- Models before services
-- Services before endpoints
-- Core implementation before integration
-- Story complete before moving to next priority
+    %% Critical path (bold)
+    linkStyle 0,1,2,5,7,8,9,11,12,13 stroke:#ff0000,stroke-width:2px
 
-### Parallel Opportunities
-
-- All Setup tasks marked [P] can run in parallel
-- All Foundational tasks marked [P] can run in parallel (within Phase 2)
-- Once Foundational phase completes, all user stories can start in parallel (if team capacity allows)
-- All tests for a user story marked [P] can run in parallel
-- Models within a story marked [P] can run in parallel
-- Different user stories can be worked on in parallel by different team members
-
----
-
-## Parallel Example: User Story 1
-
-```bash
-# Launch all tests for User Story 1 together (if tests requested):
-Task: "Contract test for [endpoint] in tests/contract/test_[name].py"
-Task: "Integration test for [user journey] in tests/integration/test_[name].py"
-
-# Launch all models for User Story 1 together:
-Task: "Create [Entity1] model in src/models/[entity1].py"
-Task: "Create [Entity2] model in src/models/[entity2].py"
+    %% Cross-story dependency (dashed) — example
+    %% T014 -.-> T023
 ```
+
+<!--
+  REPLACE the sample graph above with the actual dependency graph for this feature.
+  The sample is illustrative only.
+-->
+
+### Critical Path
+
+| Step | Task | Blocked By | Estimated Effort |
+|------|------|-----------|-----------------|
+| 1 | T001 | — | [effort] |
+| 2 | T002 | T001 | [effort] |
+| ... | ... | ... | ... |
+
+### Parallel Lanes
+
+| Lane | Tasks | Why Safe to Parallelize |
+|------|-------|------------------------|
+| A | T004, T005, T006 | Different files, no shared state |
+| B | T010, T011 | Independent test files |
+| ... | ... | ... |
+
+### Cross-Story Dependencies
+
+<!--
+  List any task in one user story that blocks a task in another story.
+  If none exist, write "None — all stories are independently implementable."
+-->
+
+| Source Task | Blocks | Reason |
+|-----------|--------|--------|
+| [e.g., T014 (US1)] | [T023 (US2)] | [US2 integration requires US1 service] |
 
 ---
 

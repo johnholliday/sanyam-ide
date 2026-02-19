@@ -105,10 +105,24 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 6. Execute implementation following the task plan:
    - **Phase-by-phase execution**: Complete each phase before moving to the next
-   - **Respect dependencies**: Run sequential tasks in order, parallel tasks [P] can run together  
+   - **Respect dependencies**: Run sequential tasks in order, parallel tasks [P] can run together
    - **Follow TDD approach**: Execute test tasks before their corresponding implementation tasks
    - **File-based coordination**: Tasks affecting the same files must run sequentially
    - **Validation checkpoints**: Verify each phase completion before proceeding
+
+   **Phase Gate Protocol (from Constitution) — MANDATORY at every phase boundary:**
+
+   a. **NEVER advance to the next phase without explicit user approval.** After completing each phase (Setup, Foundational, each User Story, Polish), STOP and present a Phase Checkpoint. Do NOT chain phases automatically.
+
+   b. **At each phase checkpoint, present your reasoning and assumptions as a numbered list for review before proceeding.** Include:
+      - Tasks completed in this phase (with status)
+      - Any deviations from the plan or unexpected issues encountered
+      - Assumptions made during implementation (with evidence)
+      - Open questions or concerns for the next phase
+
+   c. **Surface all implementation trade-offs as explicit questions — do not resolve ambiguity autonomously.** When you encounter multiple valid implementation approaches, present them as labeled options. Let the user decide.
+
+   d. **Phase outputs are immutable once approved.** If implementation reveals a problem with plan.md or tasks.md, flag it as a revision request — do not silently deviate from the approved plan.
 
 7. Implementation execution rules:
    - **Setup first**: Initialize project structure, dependencies, configuration

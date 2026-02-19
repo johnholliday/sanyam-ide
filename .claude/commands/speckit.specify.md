@@ -190,7 +190,15 @@ Given that feature description, do this:
 
    d. **Update Checklist**: After each validation iteration, update the checklist file with current pass/fail status
 
-7. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/speckit.clarify` or `/speckit.plan`).
+7. **Phase Gate Protocol (from Constitution) — MANDATORY before completing:**
+
+   Before reporting completion, present a Phase Checkpoint:
+   - List all assumptions made (numbered) with evidence and impact-if-wrong
+   - List all decisions taken (e.g., defaults chosen, clarifications resolved)
+   - Surface any remaining architectural trade-offs as explicit questions — do not resolve ambiguity autonomously
+   - AWAIT explicit user approval before declaring the spec ready for the next phase
+
+8. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/speckit.clarify` or `/speckit.plan`).
 
 **NOTE:** The script creates and checks out the new branch and initializes the spec file before writing.
 

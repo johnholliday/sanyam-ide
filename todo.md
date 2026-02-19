@@ -28,10 +28,6 @@ When a long operation is invoked (such as a large diagram being loaded), the VS 
 Add expand/collapse button on parent nodes in the property view.
 Indent child nodes in the property view.
 
-### Tools Palette
-
-Tools palette icons are inconsistent and do not match the node icons.
-
 ### Forms
 
 Add dynamic forms support in a licensable @sanyam/forms package and enables users to create one or more custom SurveyJS forms to gather raw JSON data and save it as part of a project.  This is implemented using the SurveyJS forms editor package, which requires a license key.  Suggest the best way to secure the key in production at runtime, since it must be embedded in the bundled app or retrieved from a docuGenix key vault.

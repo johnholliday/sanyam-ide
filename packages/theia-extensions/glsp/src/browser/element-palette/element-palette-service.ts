@@ -31,6 +31,8 @@ import {
     ElementPaletteServiceSymbol,
 } from './element-palette-types';
 import { DiagramLanguageClient } from '../diagram-language-client';
+import { getSvgIcon } from '../di/svg-icons';
+import type { IconSvgData } from '@sanyam/types';
 import {
     GrammarOperationService,
     type GrammarOperationServiceInterface,
@@ -206,6 +208,31 @@ export class ElementPaletteService implements IElementPaletteService {
      * These are not provided by the server but are useful diagram commands.
      */
     protected appendClientCategories(groups: ElementCategory[]): void {
+        // EDIT section with undo/redo commands
+        const editCategory: ElementCategory = {
+            id: 'client:edit',
+            label: 'EDIT',
+            icon: 'codicon codicon-edit',
+            sortString: 'z0_edit',
+            items: [
+                {
+                    id: 'cmd:undo',
+                    label: 'Undo',
+                    icon: 'codicon codicon-discard',
+                    description: 'Undo the last diagram action (Ctrl+Z)',
+                    action: { kind: 'command', commandId: 'sanyam.diagram.undo' },
+                },
+                {
+                    id: 'cmd:redo',
+                    label: 'Redo',
+                    icon: 'codicon codicon-redo',
+                    description: 'Redo the last undone diagram action (Ctrl+Y)',
+                    action: { kind: 'command', commandId: 'sanyam.diagram.redo' },
+                },
+            ],
+        };
+        groups.push(editCategory);
+
         // LAYOUT section with edge routing commands
         const layoutCategory: ElementCategory = {
             id: 'client:layout',
@@ -322,15 +349,49 @@ export class ElementPaletteService implements IElementPaletteService {
             })
             .map(item => {
                 const action = item.action || item.toolAction;
+                const thumbnail = this.generateSvgThumbnail(item.icon);
                 return {
                     id: item.id,
                     label: item.label,
                     icon: item.icon,
+                    thumbnail,
                     description: action.args?.description || item.description,
                     sortString: item.sortString,
                     action: this.mapServerAction(action, item.id),
                 };
             });
+    }
+
+    /**
+     * Generate an SVG thumbnail HTML string from an icon name.
+     *
+     * Resolves the icon name via `getSvgIcon()` and renders it as an inline
+     * `<svg>` element suitable for the palette item thumbnail. Returns
+     * `undefined` if the icon name is not found (falls back to Codicon).
+     *
+     * @param iconName - Icon name from the server (e.g. 'person', 'shield')
+     * @returns SVG HTML string, or `undefined`
+     */
+    protected generateSvgThumbnail(iconName: string | undefined): string | undefined {
+        if (!iconName) {
+            return undefined;
+        }
+        const iconData: IconSvgData | undefined = getSvgIcon(iconName);
+        if (!iconData) {
+            return undefined;
+        }
+        const pathElements = iconData.paths.map(p => {
+            const attrs: string[] = [`d="${p.d}"`];
+            attrs.push(`fill="${p.fill ?? 'currentColor'}"`);
+            if (p.fillRule) {
+                attrs.push(`fill-rule="${p.fillRule}"`);
+            }
+            if (p.opacity !== undefined) {
+                attrs.push(`opacity="${p.opacity}"`);
+            }
+            return `<path ${attrs.join(' ')}/>`;
+        }).join('');
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${iconData.viewBox}" width="16" height="16">${pathElements}</svg>`;
     }
 
     /**

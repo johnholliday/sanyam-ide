@@ -8,7 +8,7 @@
 
 import { injectable, inject, postConstruct } from 'inversify';
 import { Command, CommandContribution, CommandRegistry } from '@theia/core/lib/common';
-import { ApplicationShell } from '@theia/core/lib/browser';
+import { ApplicationShell, KeybindingContribution, KeybindingRegistry } from '@theia/core/lib/browser';
 import { ContextKeyService, ContextKey } from '@theia/core/lib/browser/context-key-service';
 import URI from '@theia/core/lib/common/uri';
 import { SelectAllAction } from 'sprotty-protocol';
@@ -193,13 +193,25 @@ export namespace DiagramCommands {
     category: 'Diagram',
   };
 
+  export const UNDO: Command = {
+    id: 'sanyam.diagram.undo',
+    label: 'Undo',
+    category: 'Diagram',
+  };
+
+  export const REDO: Command = {
+    id: 'sanyam.diagram.redo',
+    label: 'Redo',
+    category: 'Diagram',
+  };
+
 }
 
 /**
  * Command contributions for diagram operations.
  */
 @injectable()
-export class GlspDiagramCommands implements CommandContribution {
+export class GlspDiagramCommands implements CommandContribution, KeybindingContribution {
   protected readonly logger = createLogger({ name: 'GlspCommands' });
 
   @inject(ApplicationShell)
@@ -356,6 +368,17 @@ export class GlspDiagramCommands implements CommandContribution {
     this.registerEdgeRoutingCommand(registry, DiagramCommands.EDGE_ROUTING_ORTHOGONAL, 'orthogonal');
     this.registerEdgeRoutingCommand(registry, DiagramCommands.EDGE_ROUTING_STRAIGHT, 'straight');
     this.registerEdgeRoutingCommand(registry, DiagramCommands.EDGE_ROUTING_BEZIER, 'bezier');
+
+    // Undo/Redo - accept widget argument from toolbar/palette
+    registry.registerCommand(DiagramCommands.UNDO, {
+      execute: (...args: unknown[]) => this.undoDiagram(this.extractWidgetFromArgs(args)),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
+    });
+
+    registry.registerCommand(DiagramCommands.REDO, {
+      execute: (...args: unknown[]) => this.redoDiagram(this.extractWidgetFromArgs(args)),
+      isEnabled: (...args: unknown[]) => this.hasDiagramFocus(...args),
+    });
 
   }
 
@@ -954,5 +977,45 @@ export class GlspDiagramCommands implements CommandContribution {
 
     // Update context key to trigger toolbar refresh
     this.snapToGridContextKey?.set(newState);
+  }
+
+  protected undoDiagram(widgetHint?: unknown): void {
+    this.logger.debug('[GlspDiagramCommands] undoDiagram called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (diagram) {
+      diagram.dispatchAction({ kind: 'undo' }).catch(err => {
+        this.logger.error({ err }, 'undoDiagram failed');
+      });
+    } else {
+      this.logger.debug('[GlspDiagramCommands] No diagram for undoDiagram');
+    }
+  }
+
+  protected redoDiagram(widgetHint?: unknown): void {
+    this.logger.debug('[GlspDiagramCommands] redoDiagram called');
+    const diagram = this.getActiveDiagram(widgetHint);
+    if (diagram) {
+      diagram.dispatchAction({ kind: 'redo' }).catch(err => {
+        this.logger.error({ err }, 'redoDiagram failed');
+      });
+    } else {
+      this.logger.debug('[GlspDiagramCommands] No diagram for redoDiagram');
+    }
+  }
+
+  /**
+   * Register keybindings for diagram operations.
+   */
+  registerKeybindings(registry: KeybindingRegistry): void {
+    registry.registerKeybinding({
+      command: DiagramCommands.UNDO.id,
+      keybinding: 'ctrlcmd+z',
+      when: "sanyam.compositeEditor.activeView == 'diagram'",
+    });
+    registry.registerKeybinding({
+      command: DiagramCommands.REDO.id,
+      keybinding: 'ctrlcmd+y',
+      when: "sanyam.compositeEditor.activeView == 'diagram'",
+    });
   }
 }

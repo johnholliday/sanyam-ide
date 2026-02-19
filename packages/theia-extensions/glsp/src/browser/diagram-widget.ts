@@ -679,6 +679,17 @@ export class DiagramWidget extends BaseWidget implements DiagramWidgetEvents {
         const toolbar = document.createElement('div');
         toolbar.className = 'sanyam-diagram-floating-toolbar';
 
+        // Undo/Redo
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-discard', 'Undo (Ctrl+Z)', () => {
+            this.dispatchAction({ kind: 'undo' });
+        }));
+        toolbar.appendChild(this.createToolbarButton('codicon codicon-redo', 'Redo (Ctrl+Y)', () => {
+            this.dispatchAction({ kind: 'redo' });
+        }));
+
+        toolbar.appendChild(this.createToolbarSeparator());
+
+        // Zoom & layout
         toolbar.appendChild(this.createToolbarButton('codicon codicon-zoom-in', 'Zoom In', () => this.zoomIn()));
         toolbar.appendChild(this.createToolbarButton('codicon codicon-zoom-out', 'Zoom Out', () => this.zoomOut()));
         toolbar.appendChild(this.createToolbarButton('codicon codicon-screen-full', 'Fit to Screen', () => this.zoomToFit()));

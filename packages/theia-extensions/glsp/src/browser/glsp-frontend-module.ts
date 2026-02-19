@@ -204,9 +204,10 @@ export default new ContainerModule((bind: interfaces.Bind, _unbind, isBound, reb
   bind(FrontendApplicationContribution).toService(GlspContribution);
   bind(KeybindingContribution).toService(GlspContribution);
 
-  // Bind command contributions
+  // Bind command and keybinding contributions
   bind(GlspDiagramCommands).toSelf().inSingletonScope();
   bind(CommandContribution).toService(GlspDiagramCommands);
+  bind(KeybindingContribution).toService(GlspDiagramCommands);
 
   // Bind menu contributions
   bind(GlspDiagramMenus).toSelf().inSingletonScope();
